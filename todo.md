@@ -21,5 +21,12 @@
 - [x] Add additional dependencies (bcryptjs, etc.)
 - [x] Run pnpm test — must pass 100% (218/218)
 - [x] Validate stock pick/GI logic in dev server
-- [ ] Save checkpoint "TEC.WMS production deploy with stock fix"
+- [x] Save checkpoint "TEC.WMS production deploy with stock fix" (version: 1a77f251)
 - [ ] Publish project
+
+## Database Seeding
+
+- [x] Audit seed.ts and scenario/module definitions in the repository
+- [x] Create and run seed-production.mjs — 17 unique scenarios (5+3+3+3+3) across M1–M5 seeded (the 68 were duplicates)
+- [x] Verify teacher dashboard shows 17 scenarios across M1–M5 (confirmed in screenshot)
+- [x] Verify student view shows M1–M5 scenarios correctly
