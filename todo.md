@@ -44,7 +44,7 @@
 - [x] Implement Odoo Lab button M4: "Odoo Lab — Reporting & Stock Moves" (kpi_service)
 - [x] Implement Odoo Lab button M5: "Odoo Lab — Traceability / Manufacturing Flow" (m5_decision)
 - [x] Fix all bugs found during walkthrough (quiz seed missing, bcryptjs version conflict)
-- [ ] Save checkpoint after Odoo Lab implementation (pending)
+- [x] Save checkpoint after Odoo Lab implementation (version: 0595f2a5)
 
 ## Real-Time Stock Display Fix
 
@@ -52,4 +52,4 @@
 - [x] Fix: removed !isDemo gate, stock panel now shows in all modes
 - [x] Improve UX: all 4 rows always visible, color-coded zones, bold TOTAL row
 - [x] Validate: PUTAWAY 50 → RECEPTION=50, STOCKAGE=50, TOTAL=100 in real time
-- [ ] Save checkpoint after fix (pending)
+- [x] Save checkpoint after fix (version: 0595f2a5)
