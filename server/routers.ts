@@ -1290,20 +1290,37 @@ export const appRouter = router({
         const compliance = checkCompliance(state);
 
         if (!run.isDemo) {
-          // Evaluation mode: hard block on non-compliance
-          if (!compliance.compliant) {
-            throw new TRPCError({ code: "BAD_REQUEST", message: compliance.issuesFr.join("; ") });
-          }
+          // Evaluation mode: allow finalization even if non-compliant (e.g. Scenario 2 ghost GR)
+          // Apply penalties for each compliance issue, then close the run
           await markStepComplete(input.runId, "COMPLIANCE");
-          const rule = getScoringRule("COMPLIANCE_OK");
-          await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_OK", pointsDelta: rule!.points, message: rule!.descriptionFr });
-
-          // Check for perfect run bonus
-          const events = await getScoringEventsByRun(input.runId);
-          const hasErrors = events.some((e) => e.pointsDelta < 0);
-          if (!hasErrors) {
-            const bonus = getScoringRule("PERFECT_RUN_BONUS");
-            await addScoringEvent({ runId: input.runId, eventType: "PERFECT_RUN_BONUS", pointsDelta: bonus!.points, message: bonus!.descriptionFr });
+          if (compliance.compliant) {
+            // Perfect compliance: award COMPLIANCE_OK points
+            const rule = getScoringRule("COMPLIANCE_OK");
+            await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_OK", pointsDelta: rule!.points, message: rule!.descriptionFr });
+            // Check for perfect run bonus
+            const events = await getScoringEventsByRun(input.runId);
+            const hasErrors = events.some((e) => e.pointsDelta < 0);
+            if (!hasErrors) {
+              const bonus = getScoringRule("PERFECT_RUN_BONUS");
+              await addScoringEvent({ runId: input.runId, eventType: "PERFECT_RUN_BONUS", pointsDelta: bonus!.points, message: bonus!.descriptionFr });
+            }
+          } else {
+            // Non-compliant: apply penalty for each issue type
+            const state = await buildRunState(input.runId);
+            const unpostedCount = state.transactions.filter((t: { posted: boolean }) => !t.posted).length;
+            if (unpostedCount > 0) {
+              const penaltyRule = getScoringRule("UNPOSTED_TX_LEFT");
+              for (let i = 0; i < unpostedCount; i++) {
+                await addScoringEvent({ runId: input.runId, eventType: "UNPOSTED_TX_LEFT", pointsDelta: penaltyRule!.points, message: penaltyRule!.descriptionFr });
+              }
+            }
+            const unresolvedCount = state.cycleCounts.filter((c: { variance: number; resolved: boolean }) => c.variance !== 0 && !c.resolved).length;
+            if (unresolvedCount > 0) {
+              const penaltyRule = getScoringRule("UNRESOLVED_VARIANCE");
+              for (let i = 0; i < unresolvedCount; i++) {
+                await addScoringEvent({ runId: input.runId, eventType: "UNRESOLVED_VARIANCE", pointsDelta: penaltyRule!.points, message: penaltyRule!.descriptionFr });
+              }
+            }
           }
           await completeRun(input.runId);
         } else {

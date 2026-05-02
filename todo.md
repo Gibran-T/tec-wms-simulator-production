@@ -53,3 +53,16 @@
 - [x] Improve UX: all 4 rows always visible, color-coded zones, bold TOTAL row
 - [x] Validate: PUTAWAY 50 → RECEPTION=50, STOCKAGE=50, TOTAL=100 in real time
 - [x] Save checkpoint after fix (version: 0595f2a5)
+
+## Full UI Walkthrough QA (M1–M5)
+
+- [ ] M1: Login as student, take quiz, run Scenario 1 full flow (PO→GR→PUTAWAY→SO→PICKING→GI→CC→COMPLIANCE)
+- [ ] M1: Run Scenarios 2–5, verify final reports and teacher monitoring
+- [ ] M1: Verify slides accessible from teacher dashboard
+- [ ] M2: Slides, quiz, all 3 scenarios, verify Odoo Lab button at PUTAWAY/FIFO_PICK
+- [ ] M3: Slides, quiz, all 3 scenarios, verify Odoo Lab button at CC_RECON
+- [ ] M4: Slides, quiz, all 3 scenarios, verify Odoo Lab button at KPI_SERVICE
+- [ ] M5: Slides, quiz, all 3 scenarios, verify Odoo Lab button at M5_DECISION
+- [ ] Teacher dashboard: monitoring, analytics, cohort management, scenario assignment
+- [ ] Fix all bugs found during walkthrough
+- [ ] Save final checkpoint after walkthrough
