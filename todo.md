@@ -1,0 +1,25 @@
+# TEC.WMS Production — Migration TODO
+
+- [x] Migrate drizzle/schema.ts from wms-simulatorV2
+- [x] Migrate drizzle/relations.ts from wms-simulatorV2
+- [x] Run pnpm db:push to initialize all tables
+- [x] Migrate shared/const.ts and shared/types.ts
+- [x] Migrate server/db.ts
+- [x] Migrate server/rulesEngine.ts
+- [x] Migrate server/scoringEngine.ts
+- [x] Migrate server/seed.ts
+- [x] Migrate server/storage.ts
+- [x] Migrate server/routers.ts
+- [x] Migrate all server test files
+- [x] Migrate client/src/index.css
+- [x] Migrate client/src/App.tsx
+- [x] Migrate client/src/main.tsx
+- [x] Migrate client/src/const.ts
+- [x] Migrate all client pages (student, teacher, admin)
+- [x] Migrate all client components (including ui/)
+- [x] Migrate client contexts, hooks, data, lib
+- [x] Add additional dependencies (bcryptjs, etc.)
+- [x] Run pnpm test — must pass 100% (218/218)
+- [x] Validate stock pick/GI logic in dev server
+- [ ] Save checkpoint "TEC.WMS production deploy with stock fix"
+- [ ] Publish project
