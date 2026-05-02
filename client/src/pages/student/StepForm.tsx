@@ -592,6 +592,84 @@ type FormValues = {
   stockValue?: string;
 };
 
+// ─── ODOO LAB BUTTON ─────────────────────────────────────────────────────────
+const ODOO_LAB_CONFIG: Record<string, { label: string; labelEn: string; instruction: string; instructionEn: string; url: string }> = {
+  // M2: After PUTAWAY — compare warehouse locations, racks, bins, putaway rules
+  putaway_m1: {
+    label: "Odoo Lab — Emplacements d'entrepôt",
+    labelEn: "Odoo Lab — Warehouse Locations",
+    instruction: "Comparez les emplacements d'entrepôt, les étagères, les bacs et les règles de rangement dans Odoo Inventory. Comment Odoo gère-t-il les emplacements par rapport au WMS TEC ?",
+    instructionEn: "Compare warehouse locations, racks, bins, and putaway rules in Odoo Inventory. How does Odoo manage locations compared to TEC WMS?",
+    url: "https://www.odoo.com/app/inventory",
+  },
+  // M2: After FIFO Pick — same placement for M2 putaway validation
+  fifo_pick: {
+    label: "Odoo Lab — Emplacements d'entrepôt",
+    labelEn: "Odoo Lab — Warehouse Locations",
+    instruction: "Dans Odoo Inventory, explorez les emplacements (Inventory > Configuration > Locations) et les règles de rangement (Putaway Rules). Comparez avec la logique FIFO/FEFO que vous venez d'appliquer.",
+    instructionEn: "In Odoo Inventory, explore locations (Inventory > Configuration > Locations) and putaway rules. Compare with the FIFO/FEFO logic you just applied.",
+    url: "https://www.odoo.com/app/inventory",
+  },
+  // M3: After Cycle Count reconciliation — compare inventory adjustment
+  cc_recon: {
+    label: "Odoo Lab — Ajustement d'inventaire",
+    labelEn: "Odoo Lab — Inventory Adjustment",
+    instruction: "Dans Odoo Inventory, accédez à Opérations > Ajustements d'inventaire. Comparez la résolution des écarts et l'ajustement de stock avec ce que vous venez de faire dans TEC WMS.",
+    instructionEn: "In Odoo Inventory, go to Operations > Physical Inventory. Compare variance resolution and stock adjustment with what you just did in TEC WMS.",
+    url: "https://www.odoo.com/app/inventory",
+  },
+  // M4: After KPI dashboard — compare reporting, stock moves, inventory valuation
+  kpi_service: {
+    label: "Odoo Lab — Reporting & Mouvements de stock",
+    labelEn: "Odoo Lab — Reporting & Stock Moves",
+    instruction: "Dans Odoo Inventory, explorez Reporting > Mouvements de stock et Valorisation des stocks. Comparez les KPIs de taux de service et de rotation que vous venez de calculer.",
+    instructionEn: "In Odoo Inventory, explore Reporting > Stock Moves and Inventory Valuation. Compare the service rate and rotation KPIs you just calculated.",
+    url: "https://www.odoo.com/app/inventory",
+  },
+  // M5: After final decision / traceability — compare traceability, lots, delivery orders
+  m5_decision: {
+    label: "Odoo Lab — Traçabilité / Flux Manufacturing",
+    labelEn: "Odoo Lab — Traceability / Manufacturing Flow",
+    instruction: "Dans Odoo, explorez la traçabilité des lots (Inventory > Produits > Lots/Numéros de série) et les ordres de livraison. Optionnel : comparez le flux Manufacturing dans Odoo Manufacturing.",
+    instructionEn: "In Odoo, explore lot traceability (Inventory > Products > Lots/Serial Numbers) and delivery orders. Optional: compare the Manufacturing flow in Odoo Manufacturing.",
+    url: "https://www.odoo.com/app/manufacturing",
+  },
+};
+
+function OdooLabButton({ step }: { step: string }) {
+  const { t } = useLanguage();
+  const cfg = ODOO_LAB_CONFIG[step?.toLowerCase() ?? ""];
+  if (!cfg) return null;
+  return (
+    <div className="mt-4 border border-amber-300 dark:border-amber-700 rounded-md overflow-hidden">
+      <div className="bg-amber-50 dark:bg-amber-950/40 px-4 py-3">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-lg">🟠</span>
+          <span className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wider">
+            {t(cfg.label, cfg.labelEn)}
+          </span>
+        </div>
+        <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed mb-3">
+          {t(cfg.instruction, cfg.instructionEn)}
+        </p>
+        <a
+          href={cfg.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-semibold rounded transition-colors"
+        >
+          <BookOpen size={12} />
+          {t("Ouvrir Odoo Lab", "Open Odoo Lab")}
+          <span className="text-amber-200 text-[10px]">↗</span>
+        </a>
+        <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-2 italic">
+          {t("Optionnel — N'interrompt pas la progression TEC WMS", "Optional — Does not interrupt TEC WMS progression")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function PedagogicalPanel({ cfg, isDemo }: { cfg: typeof STEP_CONFIG[string]; isDemo: boolean }) {
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
@@ -1212,6 +1290,7 @@ export default function StepForm() {
             </div>
             <BackendTransparencyPanel runData={runData} />
             <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+            <OdooLabButton step={step ?? ""} />
             <button onClick={() => navigate(`/student/run/${runId}`)}
               className="flex items-center gap-2 text-xs text-primary hover:underline mt-4">
               <ArrowLeft size={13} /> {t("Retour au Mission Control", "Back to Mission Control")}
@@ -1244,11 +1323,10 @@ export default function StepForm() {
               <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.objectiveFr, cfg.objectiveEn)}</p>
             </div>
 
-            {/* Context Panel: Stock for evaluation mode */}
-            {(["gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
+            {/* Context Panel: Stock by zone — shown in ALL modes for all relevant steps */}
+            {(["gr","gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count","m5_reception","stock"].includes(step?.toLowerCase() ?? "")) && (() => {
               const inv = runData?.inventory ?? {};
               const RECEPTION_BINS_UI  = ["REC-01", "REC-02"];
-              const STOCKAGE_BINS_UI   = Object.keys(inv).map(k => k.split("::")[1]).filter(b => b && !RECEPTION_BINS_UI.includes(b) && !b.startsWith("EXP") && !b.startsWith("PICK") && !b.startsWith("RES"));
               const EXPEDITION_BINS_UI = ["EXP-01", "EXP-02"];
               const sumZone = (bins: string[]) =>
                 Object.entries(inv)
@@ -1261,7 +1339,8 @@ export default function StepForm() {
               const stockageTotal = sumAll(b => !RECEPTION_BINS_UI.includes(b) && !b.startsWith("EXP") && !b.startsWith("PICK") && !b.startsWith("RES"));
               const expeditionTotal = sumZone(EXPEDITION_BINS_UI);
               const receptionTotal = sumZone(RECEPTION_BINS_UI);
-              const grandTotal = Object.entries(inv).filter(([, q]) => (q as number) > 0).reduce((s, [, q]) => s + (q as number), 0);
+              // grandTotal = sum of all positive bin balances (TOTAL must never change during PICKING)
+              const grandTotal = receptionTotal + stockageTotal + expeditionTotal;
               const hasStock = grandTotal > 0;
               return (
                 <div className="mx-4 mt-4 bg-primary/5 border border-primary/20 rounded-md p-3">
@@ -1274,28 +1353,16 @@ export default function StepForm() {
                     </p>
                   ) : (
                     <div className="space-y-1">
-                      {/* Zone summary table */}
+                      {/* Zone summary table — always shows all 4 rows so students see every zone */}
                       <div className="grid grid-cols-2 gap-x-3 text-[10px] font-mono border border-border rounded overflow-hidden">
-                        {receptionTotal > 0 && (
-                          <>
-                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-semibold">{t("RÉCEPTION", "RECEPTION")}</span>
-                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/30 text-right text-blue-700 dark:text-blue-300">{receptionTotal} {t("u.", "u.")}</span>
-                          </>
-                        )}
-                        {stockageTotal > 0 && (
-                          <>
-                            <span className="px-2 py-0.5 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 font-semibold">{t("STOCKAGE", "STORAGE")}</span>
-                            <span className="px-2 py-0.5 bg-green-50 dark:bg-green-950/30 text-right text-green-700 dark:text-green-300">{stockageTotal} {t("u.", "u.")}</span>
-                          </>
-                        )}
-                        {expeditionTotal > 0 && (
-                          <>
-                            <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-semibold">{t("EXPÉDITION", "DISPATCH")}</span>
-                            <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-right text-purple-700 dark:text-purple-300">{expeditionTotal} {t("u.", "u.")}</span>
-                          </>
-                        )}
-                        <span className="px-2 py-0.5 bg-muted font-bold border-t border-border">{t("TOTAL", "TOTAL")}</span>
-                        <span className="px-2 py-0.5 bg-muted font-bold border-t border-border text-right">{grandTotal} {t("u.", "u.")}</span>
+                        <span className={`px-2 py-0.5 font-semibold transition-colors ${receptionTotal > 0 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("RÉCEPTION", "RECEPTION")}</span>
+                        <span className={`px-2 py-0.5 text-right font-bold transition-colors ${receptionTotal > 0 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300' : 'bg-muted/30 text-muted-foreground'}`}>{receptionTotal} {t("u.", "u.")}</span>
+                        <span className={`px-2 py-0.5 font-semibold border-t border-border transition-colors ${stockageTotal > 0 ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("STOCKAGE", "STORAGE")}</span>
+                        <span className={`px-2 py-0.5 text-right font-bold border-t border-border transition-colors ${stockageTotal > 0 ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300' : 'bg-muted/30 text-muted-foreground'}`}>{stockageTotal} {t("u.", "u.")}</span>
+                        <span className={`px-2 py-0.5 font-semibold border-t border-border transition-colors ${expeditionTotal > 0 ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("EXPÉDITION", "DISPATCH")}</span>
+                        <span className={`px-2 py-0.5 text-right font-bold border-t border-border transition-colors ${expeditionTotal > 0 ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300' : 'bg-muted/30 text-muted-foreground'}`}>{expeditionTotal} {t("u.", "u.")}</span>
+                        <span className="px-2 py-0.5 bg-primary/10 font-bold border-t-2 border-primary/30 text-primary">{t("TOTAL", "TOTAL")}</span>
+                        <span className="px-2 py-0.5 bg-primary/10 font-bold border-t-2 border-primary/30 text-right text-primary">{grandTotal} {t("u.", "u.")}</span>
                       </div>
                       {/* Per-bin detail */}
                       <details className="text-[10px]">
@@ -1808,6 +1875,7 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+              <OdooLabButton step={step ?? ""} />
             </div>
           </div>
         )}
