@@ -594,13 +594,29 @@ type FormValues = {
 
 // ─── ODOO LAB BUTTON ─────────────────────────────────────────────────────────
 const ODOO_LAB_CONFIG: Record<string, { label: string; labelEn: string; instruction: string; instructionEn: string; url: string }> = {
+  // M1: After PO step — create a Purchase Order in Odoo to compare with TEC WMS
+  po: {
+    label: "Odoo Lab — Créer un Bon de Commande",
+    labelEn: "Odoo Lab — Create a Purchase Order",
+    instruction: "Dans Odoo, allez dans le module Achats. Cliquez sur Nouveau pour créer une Demande de Prix (RFQ). Ajoutez un fournisseur et un produit, puis confirmez la commande. Notez le numéro de PO généré (ex: P00001). L'ERP est le système d'enregistrement des achats — le WMS reçoit les marchandises mais ne crée pas la commande d'achat.",
+    instructionEn: "In Odoo, go to the Purchase module. Click New to create a Request for Quotation (RFQ). Add a vendor and a product, then confirm the order. Note the generated PO number (e.g., P00001). The ERP is the system of record for procurement — the WMS receives goods but does not create the purchase order.",
+    url: "https://www.odoo.com/app/purchase",
+  },
+  // M1: After GR step — verify stock update in Odoo after goods receipt
+  gr: {
+    label: "Odoo Lab — Vérifier la Mise à Jour des Stocks",
+    labelEn: "Odoo Lab — Verify Inventory Update",
+    instruction: "Dans Odoo, allez dans Inventaire > Produits > Produits. Sélectionnez le produit reçu et cliquez sur le bouton de quantité disponible. Vérifiez que la quantité a augmenté suite à la réception. Comparez : TEC WMS GR validée → stock en REC-01 / Odoo réception validée → stock en WH/Input. Chaque réception validée génère automatiquement une écriture comptable dans l'ERP.",
+    instructionEn: "In Odoo, go to Inventory > Products > Products. Select the received product and click the on-hand quantity button. Verify that the quantity increased after receipt. Compare: TEC WMS GR validated → stock in REC-01 / Odoo receipt validated → stock in WH/Input. Every validated receipt automatically generates an accounting entry in the ERP.",
+    url: "https://www.odoo.com/app/inventory",
+  },
   // M2: After PUTAWAY — compare warehouse locations, racks, bins, putaway rules
   putaway_m1: {
-    label: "Odoo Lab — Emplacements d'entrepôt",
-    labelEn: "Odoo Lab — Warehouse Locations",
-    instruction: "Comparez les emplacements d'entrepôt, les étagères, les bacs et les règles de rangement dans Odoo Inventory. Comment Odoo gère-t-il les emplacements par rapport au WMS TEC ?",
-    instructionEn: "Compare warehouse locations, racks, bins, and putaway rules in Odoo Inventory. How does Odoo manage locations compared to TEC WMS?",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Explorer les Emplacements d'Entrepôt",
+    labelEn: "Odoo Lab — Explore Warehouse Locations",
+    instruction: "Dans Odoo Inventaire, allez dans Configuration > Emplacements. Identifiez : WH/Input (= REC-01 dans TEC WMS), WH/Stock (= B-01-R1-L1 STOCKAGE), WH/Output (= EXP-01 EXPÉDITION). Observez la hiérarchie parent → enfant. Les règles de rangement (Putaway Rules) automatisent le placement des produits — équivalent à votre décision manuelle dans TEC WMS.",
+    instructionEn: "In Odoo Inventory, go to Configuration > Locations. Identify: WH/Input (= REC-01 in TEC WMS), WH/Stock (= B-01-R1-L1 STORAGE), WH/Output (= EXP-01 SHIPPING). Observe the parent → child hierarchy. Putaway Rules automate product placement — equivalent to your manual decision in TEC WMS.",
+    url: "https://www.odoo.com/web#action=stock.stock_location_action",
   },
   // M2: After FIFO Pick — same placement for M2 putaway validation
   fifo_pick: {
@@ -610,13 +626,29 @@ const ODOO_LAB_CONFIG: Record<string, { label: string; labelEn: string; instruct
     instructionEn: "In Odoo Inventory, explore locations (Inventory > Configuration > Locations) and putaway rules. Compare with the FIFO/FEFO logic you just applied.",
     url: "https://www.odoo.com/app/inventory",
   },
+  // M1: After CC step — compare cycle count with Odoo physical inventory
+  cc: {
+    label: "Odoo Lab — Inventaire Physique Odoo",
+    labelEn: "Odoo Lab — Odoo Physical Inventory",
+    instruction: "Dans Odoo Inventaire, allez dans Opérations > Inventaire Physique. Observez comment Odoo gère les comptages cycliques : sélectionnez un emplacement, saisissez la quantité comptée et validez. Si un écart existe, Odoo propose un ajustement automatique. Comparez cette approche avec le cycle CC → ADJ que vous venez d'effectuer dans TEC WMS.",
+    instructionEn: "In Odoo Inventory, go to Operations > Physical Inventory. Observe how Odoo manages cycle counts: select a location, enter the counted quantity and validate. If a variance exists, Odoo proposes an automatic adjustment. Compare this approach with the CC → ADJ cycle you just performed in TEC WMS.",
+    url: "https://www.odoo.com/web#action=stock.action_stock_inventory",
+  },
+  // M1: After GI step — validate delivery in Odoo to complete Order-to-Cash cycle
+  gi: {
+    label: "Odoo Lab — Valider la Livraison",
+    labelEn: "Odoo Lab — Validate the Delivery",
+    instruction: "Dans Odoo, allez dans Inventaire > Opérations > Transferts. Filtrez par 'Ordres de livraison'. Trouvez la livraison correspondant à votre commande client, vérifiez les quantités expédiées, puis cliquez sur Valider. Observez la déduction automatique du stock et la génération de la facture. La livraison validée complète le cycle Order-to-Cash : SO → Picking → GI → Facture.",
+    instructionEn: "In Odoo, go to Inventory > Operations > Transfers. Filter by 'Delivery Orders'. Find the delivery matching your sales order, verify shipped quantities, then click Validate. Observe the automatic stock deduction and invoice generation. The validated delivery completes the Order-to-Cash cycle: SO → Picking → GI → Invoice.",
+    url: "https://www.odoo.com/web#action=stock.action_picking_tree_all",
+  },
   // M3: After Cycle Count reconciliation — compare inventory adjustment
   cc_recon: {
-    label: "Odoo Lab — Ajustement d'inventaire",
-    labelEn: "Odoo Lab — Inventory Adjustment",
-    instruction: "Dans Odoo Inventory, accédez à Opérations > Ajustements d'inventaire. Comparez la résolution des écarts et l'ajustement de stock avec ce que vous venez de faire dans TEC WMS.",
-    instructionEn: "In Odoo Inventory, go to Operations > Physical Inventory. Compare variance resolution and stock adjustment with what you just did in TEC WMS.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Effectuer un Comptage Physique",
+    labelEn: "Odoo Lab — Perform Physical Inventory Count",
+    instruction: "Dans Odoo Inventaire, allez dans Opérations > Inventaire Physique. Cliquez sur Nouveau, sélectionnez le produit et l'emplacement à compter. Saisissez la quantité physiquement comptée. Si différente du stock système, Odoo affiche l'écart. Validez → Odoo génère automatiquement un ajustement (ADJ). Comparez : TEC WMS CC + ADJ / Odoo Inventaire Physique + Ajustement de stock.",
+    instructionEn: "In Odoo Inventory, go to Operations > Physical Inventory. Click New, select the product and location to count. Enter the physically counted quantity. If different from system stock, Odoo displays the variance. Validate → Odoo automatically generates an adjustment (ADJ). Compare: TEC WMS CC + ADJ / Odoo Physical Inventory + Stock Adjustment.",
+    url: "https://www.odoo.com/web#action=stock.action_stock_inventory",
   },
   // M4: After KPI dashboard — compare reporting, stock moves, inventory valuation
   kpi_service: {
