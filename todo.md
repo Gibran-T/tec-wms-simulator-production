@@ -69,23 +69,23 @@
 
 ## Odoo Lab URL Fix (demo6.odoo.com broken — 404 Not Found)
 
-- [ ] Find working Odoo demo instance URL (demo6 expired/reset)
-- [ ] Update all 18 ODOO_LAB_CONFIG entries with working URLs
-- [ ] Verify all updated URLs return valid pages (not 404/database selector)
-- [ ] Save checkpoint and publish fix
+- [x] Find working Odoo demo instance URL (demo6 expired/reset) — demo.odoo.com → demo5
+- [x] Update all 18 ODOO_LAB_CONFIG entries with working URLs — active labs use demo.odoo.com/odoo; disabled labs use #
+- [x] Verify all updated URLs return valid pages (not 404/database selector)
+- [x] Save checkpoint and publish fix — awaiting approval
 
 ## Professional Hybrid Odoo Lab Model (Option C + A)
 
-- [ ] Rewrite ODOO_LAB_CONFIG: add embedded guided walkthrough content (FR+EN) for all 5 Core Labs
-- [ ] Rewrite ODOO_LAB_CONFIG: add embedded guided content for all 3 Error Labs (fifo_pick, adj, compliance)
-- [ ] Change all active lab Odoo URLs to safe base URL: https://demo.odoo.com/odoo (not deep links)
-- [ ] Add warning text to all active labs (FR + EN) about optional Odoo button
-- [ ] Keep disabled labs unchanged (url: "#", greyed, "À venir")
-- [ ] Update OdooLabButton component to render embedded guided walkthrough as primary content
-- [ ] Keep "Ouvrir Odoo Lab ↗" button as secondary/optional action
-- [ ] Run pnpm build — 0 errors
-- [ ] Run pnpm test — all pass
-- [ ] Save checkpoint and request user approval before publish
+- [x] Rewrite ODOO_LAB_CONFIG: add embedded guided walkthrough content (FR+EN) for all 5 Core Labs — implemented via OdooLabSlide.tsx + LAB_SLIDE_MAP dispatch
+- [x] Rewrite ODOO_LAB_CONFIG: add embedded guided content for all 3 Error Labs (fifo_pick, adj, compliance)
+- [x] Change all active lab Odoo URLs to safe base URL: https://demo.odoo.com/odoo (not deep links)
+- [x] Add warning text to all active labs (FR + EN) about optional Odoo button
+- [x] Keep disabled labs unchanged (url: "#", greyed, "À venir")
+- [x] Update OdooLabButton component to render embedded guided walkthrough as primary content
+- [x] Keep "Ouvrir Odoo Lab ↗" button as secondary/optional action
+- [x] Run pnpm build — 0 errors
+- [x] Run pnpm test — all pass
+- [x] Save checkpoint and request user approval before publish
 
 ## Visual Didactic Lab Panels (Rich JSX Slides)
 - [x] Create OdooLabSlide component with rich visual layout (header, concept card, diagram, mapping table, warning)
@@ -100,3 +100,16 @@
 - [x] Optional Odoo button: clearly secondary, below separator, with availability disclaimer
 - [x] pnpm build: 0 errors (2433 modules, 11.04s)
 - [x] pnpm test: 218/218 passed
+
+## DevOps Checkpoint v1.0 — GitHub Publish
+- [ ] Health check: project structure analysis
+- [ ] Health check: TypeScript 0 errors
+- [ ] Health check: pnpm build passes
+- [ ] Health check: pnpm test 218/218 pass
+- [ ] Cleanup: remove .manus-logs temp files from git tracking
+- [ ] Cleanup: verify .gitignore covers node_modules, dist, .env, logs
+- [ ] Git: verify remote user_github is connected and repo exists
+- [ ] Git: create clean commit "Checkpoint v1 - TEC.WMS stable version before classroom deployment"
+- [ ] GitHub: push to main branch
+- [ ] Git: tag v1.0-classroom-ready with release notes
+- [ ] Final validation report delivered
