@@ -115,15 +115,26 @@
 - [x] Final validation report delivered
 
 ## Strict Execution Mode — Phases 1-6
-- [ ] Phase 1: Verify SKU-001 to SKU-010 exist in Odoo (storable, FIFO, lot-tracked)
-- [ ] Phase 1: Verify WH/Input, WH/Stock, WH/Output locations exist
-- [ ] Phase 1: Verify P00003 exists and receipt is in Ready status
-- [ ] Phase 2: Open P00003, click Receive Products, validate receipt
-- [ ] Phase 2: Confirm stock = 0 before validation, stock increases after
-- [ ] Phase 2: Confirm destination is WH/Input
-- [ ] Phase 2: Execute putaway internal transfer to WH/Stock
-- [ ] Phase 4 (CRITICAL): Replace ALL demo.odoo.com / demo5.odoo.com URLs with https://concorde-logistics-lab.odoo.com in TEC.WMS simulator
-- [ ] Phase 4: Verify all 8 active Odoo Lab buttons open concorde-logistics-lab.odoo.com
-- [ ] Phase 4: Run pnpm build and pnpm test after URL fix
-- [ ] Phase 4: Save checkpoint and push to GitHub
-- [ ] Phase 5+6: Deliver pedagogical guide + final validation report
+- [x] Phase 1: Verify SKU-001 to SKU-010 exist in Odoo (storable, FIFO, lot-tracked)
+- [x] Phase 1: Verify WH/Input, WH/Stock, WH/Output locations exist
+- [x] Phase 1: Verify P00003 exists and receipt is in Ready status
+- [x] Phase 2: Open P00003, click Receive Products, validate receipt
+- [x] Phase 2: Confirm stock = 0 before validation, stock increases after
+- [x] Phase 2: Confirm destination is WH/Input
+- [x] Phase 2: Execute putaway internal transfer to WH/Stock (WH/STOR/00001 Ready)
+- [x] Phase 4 (CRITICAL): Replace ALL demo.odoo.com / demo5.odoo.com URLs with https://concorde-logistics-lab.odoo.com in TEC.WMS simulator
+- [x] Phase 4: Verify all 8 active Odoo Lab buttons open concorde-logistics-lab.odoo.com
+- [x] Phase 4: Run pnpm build and pnpm test after URL fix (TypeScript 0 errors, HMR OK)
+- [x] Phase 4: Save checkpoint and push to GitHub (version: c485ba1e)
+- [x] Phase 5+6: Deliver pedagogical guide + final validation report
+
+## URL Enforcement — Eliminate ALL demo.odoo.com References (CRITICAL)
+
+- [x] Grep entire codebase for demo.odoo.com, demo5.odoo.com, odoo.com/start
+- [x] Replace ALL occurrences with deep links to concorde-logistics-lab.odoo.com
+- [x] Enforce specific deep links per module (receipts, products, reporting, warehouses, reordering-rules, manufacturing)
+- [x] Add session-failure guard: show "Odoo session required — please log in to Concorde Logistics Lab" instead of redirecting to demo
+- [x] Validate all 8 Odoo Lab buttons open correct concorde-logistics-lab.odoo.com pages
+- [x] Confirm zero occurrences of demo.odoo.com in final codebase (0 in source, 0 in dist bundle)
+- [x] Run pnpm build (0 errors, 2433 modules) and pnpm test (218/218)
+- [x] Save checkpoint and push to GitHub

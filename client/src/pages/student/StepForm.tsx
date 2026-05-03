@@ -1153,8 +1153,8 @@ function OdooLabButton({ step }: { step: string }) {
           <div className="border-t border-orange-200 dark:border-orange-800 pt-3 mt-1">
             <p className="text-[10px] text-orange-500 dark:text-orange-400 italic mb-2">
               {t(
-                "Important : ce laboratoire fonctionne avec un guide visuel. L'ouverture d'Odoo est optionnelle et peut dépendre de la session système.",
-                "Important: this lab works with a visual guide. Opening Odoo is optional and depends on system session availability."
+                "Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien. Si la session expire, reconnectez-vous sur concorde-logistics-lab.odoo.com.",
+                "Odoo session required — please log in to Concorde Logistics Lab before opening this link. If the session expires, reconnect at concorde-logistics-lab.odoo.com."
               )}
             </p>
             <a
@@ -1191,8 +1191,8 @@ function OdooLabButton({ step }: { step: string }) {
         <div className="border-t border-blue-200 dark:border-blue-800 pt-3 mt-1">
           <p className="text-[10px] text-blue-500 dark:text-blue-400 italic mb-2">
             {t(
-              "Important : ce laboratoire fonctionne avec un guide visuel. L'ouverture d'Odoo est optionnelle et peut dépendre de la session système.",
-              "Important: this lab works with a visual guide. Opening Odoo is optional and depends on system session availability."
+              "Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien. Si la session expire, reconnectez-vous sur concorde-logistics-lab.odoo.com.",
+              "Odoo session required — please log in to Concorde Logistics Lab before opening this link. If the session expires, reconnect at concorde-logistics-lab.odoo.com."
             )}
           </p>
           <a

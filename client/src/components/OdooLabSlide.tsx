@@ -88,8 +88,8 @@ function OptionalOdooButton({ url }: { url: string }) {
     <div className="border-t border-current/20 pt-3 mt-3">
       <p className="text-[9px] italic opacity-60 mb-1.5">
         {t(
-          "Ce guide fonctionne sans connexion Odoo. Le bouton ci-dessous est optionnel.",
-          "This guide works without an Odoo connection. The button below is optional."
+          "Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.",
+          "Odoo session required — please log in to Concorde Logistics Lab before opening this link."
         )}
       </p>
       <a
@@ -190,7 +190,7 @@ export function LabGR() {
         fr="Créer un GR sans PO = exception d'audit interne. Toujours lier GR → PO."
         en="Creating a GR without a PO = internal audit exception. Always link GR → PO."
       />
-      <OptionalOdooButton url="https://demo.odoo.com/odoo" />
+      <OptionalOdooButton url="https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts" />
     </div>
   );
 }
@@ -300,7 +300,7 @@ export function LabPutaway() {
         fr="Sans putaway : le stock reste en WH/Input et ne peut pas être prélevé pour les commandes."
         en="Without putaway: stock stays in WH/Input and cannot be picked for orders."
       />
-      <OptionalOdooButton url="https://demo.odoo.com/odoo" />
+      <OptionalOdooButton url="https://concorde-logistics-lab.odoo.com/odoo/inventory/configuration/warehouses" />
     </div>
   );
 }
@@ -385,7 +385,7 @@ export function LabReplenish() {
         fr="Sans règle Min/Max : rupture de stock possible sans alerte système."
         en="Without Min/Max rules: stockout possible with no system alert."
       />
-      <OptionalOdooButton url="https://demo.odoo.com/odoo" />
+      <OptionalOdooButton url="https://concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules" />
     </div>
   );
 }
@@ -496,7 +496,7 @@ export function LabKpiDiagnostic() {
         fr="Un taux de rotation < 2 indique un stock dormant qui immobilise du capital."
         en="A turnover rate < 2 indicates dormant stock that ties up capital."
       />
-      <OptionalOdooButton url="https://demo.odoo.com/odoo" />
+      <OptionalOdooButton url="https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting" />
     </div>
   );
 }
@@ -579,7 +579,7 @@ export function LabM5Decision() {
         fr="Ce module est conceptuel — aucune exécution détaillée requise dans TEC.WMS."
         en="This module is conceptual — no detailed execution required in TEC.WMS."
       />
-      <OptionalOdooButton url="https://demo.odoo.com/odoo" />
+      <OptionalOdooButton url="https://concorde-logistics-lab.odoo.com/odoo/manufacturing" />
     </div>
   );
 }
@@ -672,9 +672,9 @@ export function LabFifoPick() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Ce guide fonctionne sans connexion Odoo. Le bouton ci-dessous est optionnel.", "This guide works without an Odoo connection. The button below is optional.")}
+            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
           </p>
-          <a href="https://demo.odoo.com/odoo" target="_blank" rel="noopener noreferrer"
+          <a href="https://concorde-logistics-lab.odoo.com/odoo/inventory/products" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
             <BookOpen size={10} />
             {t("Optionnel : Explorer dans Odoo ↗", "Optional: Explore in Odoo ↗")}
@@ -763,9 +763,9 @@ export function LabAdj() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Ce guide fonctionne sans connexion Odoo. Le bouton ci-dessous est optionnel.", "This guide works without an Odoo connection. The button below is optional.")}
+            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
           </p>
-          <a href="https://demo.odoo.com/odoo" target="_blank" rel="noopener noreferrer"
+          <a href="https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
             <BookOpen size={10} />
             {t("Optionnel : Explorer dans Odoo ↗", "Optional: Explore in Odoo ↗")}
@@ -884,9 +884,9 @@ export function LabCompliance() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Ce guide fonctionne sans connexion Odoo. Le bouton ci-dessous est optionnel.", "This guide works without an Odoo connection. The button below is optional.")}
+            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
           </p>
-          <a href="https://demo.odoo.com/odoo" target="_blank" rel="noopener noreferrer"
+          <a href="https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
             <BookOpen size={10} />
             {t("Optionnel : Explorer dans Odoo ↗", "Optional: Explore in Odoo ↗")}
