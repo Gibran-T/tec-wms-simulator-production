@@ -614,7 +614,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "core",
     label: "Odoo Lab — Réception marchandises",
     labelEn: "Odoo Lab — Goods Receipt",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
     instruction:
       "📋 GUIDE VISUEL — Réception marchandises dans un ERP\n\n" +
       "Concept clé : Dans tout ERP (Odoo, SAP, Dynamics), le stock n'augmente QUE lorsque la réception est validée (postée). Avant validation = brouillon, aucun impact stock.\n\n" +
@@ -650,7 +650,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "core",
     label: "Odoo Lab — Emplacements et structure d'entrepôt",
     labelEn: "Odoo Lab — Warehouse Locations & Structure",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/configuration/warehouses",
     instruction:
       "📋 GUIDE VISUEL — Structure d'entrepôt dans un ERP\n\n" +
       "Concept clé : Tout entrepôt ERP est organisé en hiérarchie d'emplacements. Le rangement automatique (putaway) dirige chaque article vers le bon emplacement selon des règles prédéfinies.\n\n" +
@@ -692,7 +692,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "core",
     label: "Odoo Lab — Règles de réapprovisionnement",
     labelEn: "Odoo Lab — Replenishment Rules",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules",
     instruction:
       "📋 GUIDE VISUEL — Réapprovisionnement et règles Min/Max\n\n" +
       "Concept clé : Le réapprovisionnement automatique repose sur des règles Min/Max. Quand le stock descend sous le seuil Min, le système génère automatiquement une demande d'achat.\n\n" +
@@ -736,7 +736,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "core",
     label: "Odoo Lab — Rapports d'inventaire et KPI",
     labelEn: "Odoo Lab — Inventory Reporting & KPI",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
     instruction:
       "📋 GUIDE VISUEL — KPI Logistiques et Rapports d'inventaire\n\n" +
       "Concept clé : Les KPI logistiques mesurent la performance opérationnelle. Un ERP centralise ces indicateurs en temps réel pour permettre la prise de décision.\n\n" +
@@ -786,7 +786,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "core",
     label: "Odoo Lab — Fabrication et flux ERP intégré",
     labelEn: "Odoo Lab — Manufacturing & Integrated ERP Flow",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/manufacturing",
     instruction:
       "📋 GUIDE VISUEL — Fabrication et flux ERP intégré\n\n" +
       "Concept clé : La fabrication est une extension naturelle du flux WMS. Les mêmes principes (GR, stock, GI) s'appliquent, mais avec une étape de transformation entre la réception et l'expédition.\n\n" +
@@ -840,7 +840,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "error",
     label: "Odoo Lab — Mauvaise méthode de picking",
     labelEn: "Odoo Lab — Wrong Picking Method",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/products",
     warningFr: "⚠️ Erreur fréquente en production : mauvaise méthode de picking — FIFO non respecté.",
     warningEn: "⚠️ Common production error: wrong picking method — FIFO not respected.",
     instruction:
@@ -888,7 +888,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "error",
     label: "Odoo Lab — Ajustement d'inventaire",
     labelEn: "Odoo Lab — Inventory Adjustment",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
     warningFr: "⚠️ Écart de stock détecté — un ajustement d'inventaire est requis pour corriger le solde.",
     warningEn: "⚠️ Stock discrepancy detected — an inventory adjustment is required to correct the balance.",
     instruction:
@@ -936,7 +936,7 @@ const ODOO_LAB_CONFIG: Record<string, {
     type: "error",
     label: "Odoo Lab — Conformité et audit des transactions",
     labelEn: "Odoo Lab — Transaction Compliance & Audit",
-    url: "https://demo.odoo.com/odoo",
+    url: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting/moves",
     warningFr: "⚠️ Écart de conformité détecté — audit système requis",
     warningEn: "⚠️ Compliance issue detected — system audit required",
     instruction:

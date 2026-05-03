@@ -113,3 +113,17 @@
 - [x] GitHub: push to main branch — 990f04a..c7d2b55
 - [x] Git: tag v1.0-classroom-ready with release notes — https://github.com/Gibran-T/tec-wms-simulator-production/releases/tag/v1.0-classroom-ready
 - [x] Final validation report delivered
+
+## Strict Execution Mode — Phases 1-6
+- [ ] Phase 1: Verify SKU-001 to SKU-010 exist in Odoo (storable, FIFO, lot-tracked)
+- [ ] Phase 1: Verify WH/Input, WH/Stock, WH/Output locations exist
+- [ ] Phase 1: Verify P00003 exists and receipt is in Ready status
+- [ ] Phase 2: Open P00003, click Receive Products, validate receipt
+- [ ] Phase 2: Confirm stock = 0 before validation, stock increases after
+- [ ] Phase 2: Confirm destination is WH/Input
+- [ ] Phase 2: Execute putaway internal transfer to WH/Stock
+- [ ] Phase 4 (CRITICAL): Replace ALL demo.odoo.com / demo5.odoo.com URLs with https://concorde-logistics-lab.odoo.com in TEC.WMS simulator
+- [ ] Phase 4: Verify all 8 active Odoo Lab buttons open concorde-logistics-lab.odoo.com
+- [ ] Phase 4: Run pnpm build and pnpm test after URL fix
+- [ ] Phase 4: Save checkpoint and push to GitHub
+- [ ] Phase 5+6: Deliver pedagogical guide + final validation report
