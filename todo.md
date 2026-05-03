@@ -66,3 +66,37 @@
 - [x] Teacher dashboard: monitoring, analytics, cohort management, scenario assignment
 - [x] Fix all bugs found during walkthrough
 - [x] Save final checkpoint after walkthrough
+
+## Odoo Lab URL Fix (demo6.odoo.com broken — 404 Not Found)
+
+- [ ] Find working Odoo demo instance URL (demo6 expired/reset)
+- [ ] Update all 18 ODOO_LAB_CONFIG entries with working URLs
+- [ ] Verify all updated URLs return valid pages (not 404/database selector)
+- [ ] Save checkpoint and publish fix
+
+## Professional Hybrid Odoo Lab Model (Option C + A)
+
+- [ ] Rewrite ODOO_LAB_CONFIG: add embedded guided walkthrough content (FR+EN) for all 5 Core Labs
+- [ ] Rewrite ODOO_LAB_CONFIG: add embedded guided content for all 3 Error Labs (fifo_pick, adj, compliance)
+- [ ] Change all active lab Odoo URLs to safe base URL: https://demo.odoo.com/odoo (not deep links)
+- [ ] Add warning text to all active labs (FR + EN) about optional Odoo button
+- [ ] Keep disabled labs unchanged (url: "#", greyed, "À venir")
+- [ ] Update OdooLabButton component to render embedded guided walkthrough as primary content
+- [ ] Keep "Ouvrir Odoo Lab ↗" button as secondary/optional action
+- [ ] Run pnpm build — 0 errors
+- [ ] Run pnpm test — all pass
+- [ ] Save checkpoint and request user approval before publish
+
+## Visual Didactic Lab Panels (Rich JSX Slides)
+- [x] Create OdooLabSlide component with rich visual layout (header, concept card, diagram, mapping table, warning)
+- [x] M1 GR: warehouse flow diagram (PO→GR→WH/Input), validation concept, TEC.WMS↔Odoo mapping table
+- [x] M2 Putaway: warehouse hierarchy tree diagram, bin location visual, putaway rules table
+- [x] M3 Replenish: Min/Max gauge visual, reorder logic diagram, formula cards
+- [x] M4 KPI: KPI metric cards with formulas, reporting navigation diagram, 4-KPI comparison table
+- [x] M5 Manufacturing: integrated ERP flow diagram (GR→MO→GR→GI), BoM concept, TEC.WMS↔TEC.SYS table
+- [x] Error Lab FIFO: FIFO vs LIFO visual comparison, lot timeline diagram, correction steps
+- [x] Error Lab ADJ: variance calculation visual, discrepancy types table, correction checklist
+- [x] Error Lab Compliance: 3-anomaly type cards, compliance checklist visual, period-close impact diagram
+- [x] Optional Odoo button: clearly secondary, below separator, with availability disclaimer
+- [x] pnpm build: 0 errors (2433 modules, 11.04s)
+- [x] pnpm test: 218/218 passed
