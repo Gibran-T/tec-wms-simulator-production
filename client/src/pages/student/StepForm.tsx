@@ -594,325 +594,232 @@ type FormValues = {
 
 // ─── ODOO LAB BUTTON ─────────────────────────────────────────────────────────
 const ODOO_LAB_CONFIG: Record<string, {
-  label: string; labelEn: string;
-  instruction: string; instructionEn: string;
+  label: string;
+  labelEn: string;
+  instruction: string;
+  instructionEn: string;
   url: string;
   disabled?: boolean;
 }> = {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACTIVE LABS — exactly one per module (M1–M5)
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  // ── ACTIVE LABS ──────────────────────────────────────────────────────────────
-  // These labs are part of the current teaching plan and are fully interactive.
-
-  // M1 · PO — Create a Purchase Order in Odoo (compare with TEC WMS)
-  po: {
-    label: "Odoo Lab — Créer un Bon de Commande",
-    labelEn: "Odoo Lab — Create a Purchase Order",
-    instruction:
-      "Dans Odoo, allez dans le module Achats. Cliquez sur Nouveau pour créer une Demande de Prix (RFQ). " +
-      "Ajoutez un fournisseur et un produit, puis confirmez la commande. Notez le numéro de PO généré (ex: P00001). " +
-      "L'ERP est le système d'enregistrement des achats — le WMS reçoit les marchandises mais ne crée pas la commande d'achat.",
-    instructionEn:
-      "In Odoo, go to the Purchase module. Click New to create a Request for Quotation (RFQ). " +
-      "Add a vendor and a product, then confirm the order. Note the generated PO number (e.g., P00001). " +
-      "The ERP is the system of record for procurement — the WMS receives goods but does not create the purchase order.",
-    url: "https://www.odoo.com/app/purchase",
-  },
-
-  // M1 · GR — Verify stock update in Odoo after goods receipt
+  // ── M1 ACTIVE: GR — Réception marchandises → Odoo Inventory ───────────────
   gr: {
-    label: "Odoo Lab — Vérifier la Mise à Jour des Stocks",
-    labelEn: "Odoo Lab — Verify Inventory Update",
+    label: "Odoo Lab — Réception et mise à jour des stocks",
+    labelEn: "Odoo Lab — Goods Receipt & Stock Update",
     instruction:
-      "Dans Odoo, allez dans Inventaire > Produits > Produits. Sélectionnez le produit reçu et cliquez sur le bouton de quantité disponible. " +
-      "Vérifiez que la quantité a augmenté suite à la réception. " +
+      "Dans Odoo, allez dans Inventaire > Opérations > Réceptions. " +
+      "Créez un bon de réception pour votre fournisseur, saisissez la quantité reçue et validez. " +
+      "Observez comment Odoo met à jour automatiquement le stock disponible. " +
       "Comparez : TEC WMS GR validée → stock en REC-01 / Odoo réception validée → stock en WH/Input. " +
       "Chaque réception validée génère automatiquement une écriture comptable dans l'ERP.",
     instructionEn:
-      "In Odoo, go to Inventory > Products > Products. Select the received product and click the on-hand quantity button. " +
-      "Verify that the quantity increased after receipt. " +
+      "In Odoo, go to Inventory > Operations > Receipts. " +
+      "Create a receipt for your supplier, enter the received quantity and validate. " +
+      "Observe how Odoo automatically updates the available stock. " +
       "Compare: TEC WMS GR validated → stock in REC-01 / Odoo receipt validated → stock in WH/Input. " +
-      "Every validated receipt automatically generates an accounting entry in the ERP.",
-    url: "https://www.odoo.com/app/inventory",
+      "Each validated receipt automatically generates an accounting entry in the ERP.",
+    url: "https://demo.odoo.com/odoo/inventory",
   },
 
-  // M1 · PUTAWAY_M1 — Explore warehouse locations hierarchy
-  putaway_m1: {
-    label: "Odoo Lab — Explorer les Emplacements d'Entrepôt",
-    labelEn: "Odoo Lab — Explore Warehouse Locations",
-    instruction:
-      "Dans Odoo Inventaire, allez dans Configuration > Emplacements. " +
-      "Identifiez : WH/Input (= REC-01 dans TEC WMS), WH/Stock (= B-01-R1-L1 STOCKAGE), WH/Output (= EXP-01 EXPÉDITION). " +
-      "Observez la hiérarchie parent → enfant. " +
-      "Les règles de rangement (Putaway Rules) automatisent le placement des produits — équivalent à votre décision manuelle dans TEC WMS.",
-    instructionEn:
-      "In Odoo Inventory, go to Configuration > Locations. " +
-      "Identify: WH/Input (= REC-01 in TEC WMS), WH/Stock (= B-01-R1-L1 STORAGE), WH/Output (= EXP-01 SHIPPING). " +
-      "Observe the parent → child hierarchy. " +
-      "Putaway Rules automate product placement — equivalent to your manual decision in TEC WMS.",
-    url: "https://www.odoo.com/web#action=stock.stock_location_action",
-  },
-
-  // M1 · GI — Validate delivery in Odoo (Order-to-Cash cycle)
-  gi: {
-    label: "Odoo Lab — Valider la Livraison",
-    labelEn: "Odoo Lab — Validate the Delivery",
-    instruction:
-      "Dans Odoo, allez dans Inventaire > Opérations > Transferts. Filtrez par 'Ordres de livraison'. " +
-      "Trouvez la livraison correspondant à votre commande client, vérifiez les quantités expédiées, puis cliquez sur Valider. " +
-      "Observez la déduction automatique du stock et la génération de la facture. " +
-      "La livraison validée complète le cycle Order-to-Cash : SO → Picking → GI → Facture.",
-    instructionEn:
-      "In Odoo, go to Inventory > Operations > Transfers. Filter by 'Delivery Orders'. " +
-      "Find the delivery matching your sales order, verify shipped quantities, then click Validate. " +
-      "Observe the automatic stock deduction and invoice generation. " +
-      "The validated delivery completes the Order-to-Cash cycle: SO → Picking → GI → Invoice.",
-    url: "https://www.odoo.com/web#action=stock.action_picking_tree_all",
-  },
-
-  // M1 · CC — Compare cycle count with Odoo physical inventory
-  cc: {
-    label: "Odoo Lab — Inventaire Physique Odoo",
-    labelEn: "Odoo Lab — Odoo Physical Inventory",
-    instruction:
-      "Dans Odoo Inventaire, allez dans Opérations > Inventaire Physique. " +
-      "Observez comment Odoo gère les comptages cycliques : sélectionnez un emplacement, saisissez la quantité comptée et validez. " +
-      "Si un écart existe, Odoo propose un ajustement automatique. " +
-      "Comparez cette approche avec le cycle CC → ADJ que vous venez d'effectuer dans TEC WMS.",
-    instructionEn:
-      "In Odoo Inventory, go to Operations > Physical Inventory. " +
-      "Observe how Odoo manages cycle counts: select a location, enter the counted quantity and validate. " +
-      "If a variance exists, Odoo proposes an automatic adjustment. " +
-      "Compare this approach with the CC → ADJ cycle you just performed in TEC WMS.",
-    url: "https://www.odoo.com/web#action=stock.action_stock_inventory",
-  },
-
-  // M2 · PUTAWAY (lowercase key) — Odoo Putaway Rules automation (fixes M2 key mismatch)
+  // ── M2 ACTIVE: PUTAWAY — Emplacements et règles de rangement ──────────────
   putaway: {
-    label: "Odoo Lab — Règles de Rangement Automatique",
-    labelEn: "Odoo Lab — Automatic Putaway Rules",
+    label: "Odoo Lab — Emplacements et règles de rangement",
+    labelEn: "Odoo Lab — Warehouse Locations & Putaway Rules",
     instruction:
-      "Dans Odoo Inventaire > Configuration > Règles de rangement, observez comment les règles assignent automatiquement " +
-      "les produits à des emplacements spécifiques selon la catégorie ou le produit. " +
-      "Comparez : dans TEC WMS M2, vous sélectionnez manuellement l'emplacement de destination. " +
-      "Odoo automatise cette décision — c'est la valeur ajoutée d'un ERP intégré.",
+      "Dans Odoo, allez dans Inventaire > Configuration > Emplacements. " +
+      "Explorez la hiérarchie des emplacements (WH/Stock, WH/Input, WH/Output). " +
+      "Ensuite, allez dans Configuration > Règles de rangement pour voir comment Odoo " +
+      "dirige automatiquement les produits vers les bons emplacements selon leur catégorie. " +
+      "Comparez avec la logique de rangement que vous venez d'appliquer dans TEC WMS.",
     instructionEn:
-      "In Odoo Inventory > Configuration > Putaway Rules, observe how rules automatically assign products " +
-      "to specific locations based on category or product. " +
-      "Compare: in TEC WMS M2, you manually select the destination bin. " +
-      "Odoo automates this decision — that is the added value of an integrated ERP.",
-    url: "https://www.odoo.com/web#action=stock.action_putaway_tree",
+      "In Odoo, go to Inventory > Configuration > Locations. " +
+      "Explore the location hierarchy (WH/Stock, WH/Input, WH/Output). " +
+      "Then go to Configuration > Putaway Rules to see how Odoo automatically " +
+      "routes products to the correct locations based on their category. " +
+      "Compare with the putaway logic you just applied in TEC WMS.",
+    url: "https://demo.odoo.com/odoo/inventory/configuration/warehouses",
   },
 
-  // M2 · FIFO_PICK — Focused on FIFO enforcement (updated instruction)
-  fifo_pick: {
-    label: "Odoo Lab — Prélèvement FIFO Automatique",
-    labelEn: "Odoo Lab — Automatic FIFO Picking",
-    instruction:
-      "Dans Odoo Inventaire > Configuration > Entrepôts, activez la stratégie de prélèvement FIFO. " +
-      "Créez un ordre de livraison pour un produit avec plusieurs lots. " +
-      "Observez comment Odoo sélectionne automatiquement le lot le plus ancien (premier entré, premier sorti). " +
-      "Comparez : dans TEC WMS, vous devez identifier et sélectionner manuellement le bon lot. " +
-      "Odoo automatise cette décision critique pour éviter les pertes de produits périmés.",
-    instructionEn:
-      "In Odoo Inventory > Configuration > Warehouses, enable the FIFO removal strategy. " +
-      "Create a delivery order for a product with multiple lots. " +
-      "Observe how Odoo automatically selects the oldest lot (first in, first out). " +
-      "Compare: in TEC WMS, you must manually identify and select the correct lot. " +
-      "Odoo automates this critical decision to prevent expired product losses.",
-    url: "https://www.odoo.com/app/inventory",
-  },
-
-  // M3 · REPLENISH — Odoo Reordering Rules (Min/Max automation) [NEW]
+  // ── M3 ACTIVE: REPLENISH — Règles de réapprovisionnement ──────────────────
   replenish: {
-    label: "Odoo Lab — Règles de Réapprovisionnement (Min/Max)",
+    label: "Odoo Lab — Règles de réapprovisionnement (Min/Max)",
     labelEn: "Odoo Lab — Reordering Rules (Min/Max)",
     instruction:
-      "Dans Odoo Inventaire > Configuration > Règles de réapprovisionnement, cliquez sur Nouveau. " +
-      "Définissez : produit, emplacement, quantité minimale (Min Qty) et quantité maximale (Max Qty). " +
-      "Lorsque le stock tombe sous le Min, Odoo génère automatiquement une demande d'achat (RFQ) ou un ordre de fabrication — sans intervention humaine. " +
-      "Comparez : dans TEC WMS, vous calculez manuellement les paramètres Min/Max et déclenchez le réapprovisionnement. " +
-      "Odoo automatise l'intégralité du processus.",
+      "Dans Odoo, allez dans Inventaire > Opérations > Réapprovisionnement. " +
+      "Observez les règles Min/Max configurées : Odoo déclenche automatiquement un bon de commande " +
+      "dès que le stock tombe sous le seuil minimum. " +
+      "Comparez avec la logique de réapprovisionnement manuel que vous venez d'appliquer dans TEC WMS. " +
+      "C'est la différence entre un ERP réactif et un WMS pédagogique.",
     instructionEn:
-      "In Odoo Inventory > Configuration > Reordering Rules, click New. " +
-      "Set: product, location, minimum quantity (Min Qty), and maximum quantity (Max Qty). " +
-      "When stock falls below Min Qty, Odoo automatically generates a purchase request (RFQ) or manufacturing order — without human intervention. " +
-      "Compare: in TEC WMS, you manually calculate Min/Max parameters and trigger replenishment. " +
-      "Odoo automates the entire process.",
-    url: "https://www.odoo.com/app/inventory",
+      "In Odoo, go to Inventory > Operations > Replenishment. " +
+      "Observe the Min/Max rules configured: Odoo automatically triggers a purchase order " +
+      "when stock falls below the minimum threshold. " +
+      "Compare with the manual replenishment logic you just applied in TEC WMS. " +
+      "This is the difference between a reactive ERP and a pedagogical WMS.",
+    url: "https://demo.odoo.com/odoo/inventory/reordering-rules",
   },
 
-  // M3 · CC_RECON — Physical inventory count and adjustment (keep as-is)
-  cc_recon: {
-    label: "Odoo Lab — Effectuer un Comptage Physique",
-    labelEn: "Odoo Lab — Perform Physical Inventory Count",
-    instruction:
-      "Dans Odoo Inventaire, allez dans Opérations > Inventaire Physique. " +
-      "Cliquez sur Nouveau, sélectionnez le produit et l'emplacement à compter. " +
-      "Saisissez la quantité physiquement comptée. Si différente du stock système, Odoo affiche l'écart. " +
-      "Validez → Odoo génère automatiquement un ajustement (ADJ). " +
-      "Comparez : TEC WMS CC + ADJ / Odoo Inventaire Physique + Ajustement de stock.",
-    instructionEn:
-      "In Odoo Inventory, go to Operations > Physical Inventory. " +
-      "Click New, select the product and location to count. " +
-      "Enter the physically counted quantity. If different from system stock, Odoo displays the variance. " +
-      "Validate → Odoo automatically generates an adjustment (ADJ). " +
-      "Compare: TEC WMS CC + ADJ / Odoo Physical Inventory + Stock Adjustment.",
-    url: "https://www.odoo.com/web#action=stock.action_stock_inventory",
-  },
-
-  // M4 · KPI_DIAGNOSTIC — Logistics performance dashboard synthesis [NEW]
+  // ── M4 ACTIVE: KPI_DIAGNOSTIC — Rapports et tableaux de bord ──────────────
   kpi_diagnostic: {
-    label: "Odoo Lab — Tableau de Bord Performance Logistique",
-    labelEn: "Odoo Lab — Logistics Performance Dashboard",
+    label: "Odoo Lab — Rapports d'inventaire et KPI",
+    labelEn: "Odoo Lab — Inventory Reporting & KPI Dashboard",
     instruction:
-      "Dans Odoo Inventaire, explorez le tableau de bord principal et Reporting > Mouvements de stock. " +
-      "Observez comment un ERP réel présente visuellement les données de performance que vous venez de calculer manuellement : " +
-      "niveaux de stock, historique des mouvements, valorisation. " +
-      "Dans votre carrière, vous utiliserez ces tableaux de bord quotidiennement. " +
-      "Les calculs manuels effectués dans TEC WMS vous ont appris à comprendre ce que ces chiffres signifient — pas seulement à les lire.",
+      "Dans Odoo, allez dans Inventaire > Rapports. " +
+      "Explorez le rapport de valorisation des stocks et l'analyse des mouvements de produits. " +
+      "Identifiez les indicateurs clés : taux de rotation, valeur du stock, délai de réapprovisionnement. " +
+      "Comparez les KPI que vous venez d'interpréter dans TEC WMS avec la visualisation Odoo. " +
+      "Un bon gestionnaire WMS sait lire ces données pour prendre des décisions éclairées.",
     instructionEn:
-      "In Odoo Inventory, explore the main dashboard and Reporting > Stock Moves. " +
-      "Observe how a real ERP visually presents the performance data you just calculated manually: " +
-      "stock levels, movement history, valuation. " +
-      "In your career, you will use these dashboards daily. " +
-      "The manual calculations you did in TEC WMS taught you to understand what these numbers mean — not just read them.",
-    url: "https://www.odoo.com/app/inventory",
+      "In Odoo, go to Inventory > Reporting. " +
+      "Explore the stock valuation report and product movement analysis. " +
+      "Identify key indicators: turnover rate, stock value, replenishment lead time. " +
+      "Compare the KPIs you just interpreted in TEC WMS with the Odoo visualization. " +
+      "A good WMS manager knows how to read this data to make informed decisions.",
+    url: "https://demo.odoo.com/odoo/inventory/reporting",
   },
 
-  // M5 · M5_DECISION — Traceability & Manufacturing flow (clean URL, no UTM)
+  // ── M5 ACTIVE: M5_DECISION — Fabrication et flux ERP intégré ──────────────
+  // Supports course transition to TEC.SYS (Manufacturing module)
   m5_decision: {
-    label: "Odoo Lab — Traçabilité & Flux Manufacturing",
-    labelEn: "Odoo Lab — Traceability & Manufacturing Flow",
+    label: "Odoo Lab — Fabrication et flux ERP intégré",
+    labelEn: "Odoo Lab — Manufacturing & Integrated ERP Flow",
     instruction:
-      "Dans Odoo, explorez la traçabilité des lots (Inventaire > Produits > Lots/Numéros de série) : " +
-      "observez comment chaque lot est tracé de la réception à la livraison. " +
-      "Ensuite, explorez Odoo Manufacturing pour voir comment les ordres de fabrication consomment le stock — " +
-      "créant une boucle fermée entre approvisionnement, entreposage, production et ventes. " +
-      "Ce module représente la prochaine étape de votre parcours : TEC.SYS (ERP).",
+      "Dans Odoo, explorez le module Fabrication. " +
+      "Observez comment un ordre de fabrication (MO) déclenche automatiquement des besoins en composants, " +
+      "des réservations de stock et des opérations d'atelier. " +
+      "Ce flux illustre la continuité entre la gestion d'entrepôt (TEC.LOG) et la gestion de production (TEC.SYS). " +
+      "La maîtrise du WMS est le prérequis essentiel pour comprendre le MRP.",
     instructionEn:
-      "In Odoo, explore lot traceability (Inventory > Products > Lots/Serial Numbers): " +
-      "observe how each lot is tracked from receipt to delivery. " +
-      "Then explore Odoo Manufacturing to see how production orders consume inventory — " +
-      "creating a closed loop between procurement, warehousing, production, and sales. " +
-      "This module represents the next step in your learning journey: TEC.SYS (ERP).",
+      "In Odoo, explore the Manufacturing module. " +
+      "Observe how a Manufacturing Order (MO) automatically triggers component requirements, " +
+      "stock reservations and workshop operations. " +
+      "This flow illustrates the continuity between warehouse management (TEC.LOG) and production management (TEC.SYS). " +
+      "WMS mastery is the essential prerequisite for understanding MRP.",
     url: "https://www.odoo.com/app/manufacturing",
   },
 
-  // ── DISABLED LABS ─────────────────────────────────────────────────────────────
-  // Preserved for future activation. Not required for the current course version.
-  // disabled: true → greyed out, unclickable, shows "À venir" label.
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DISABLED LABS — code preserved, not active for this course version
+  // Label: "À venir — Non requis pour cette séance"
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  // M1 · SO — disabled (not required for current course version)
+  // M1 steps — disabled (GR is the one active M1 lab)
+  po: {
+    disabled: true,
+    label: "Odoo Lab — Créer un bon de commande (ME21N)",
+    labelEn: "Odoo Lab — Create a Purchase Order (ME21N)",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/purchase",
+  },
+  putaway_m1: {
+    disabled: true,
+    label: "Odoo Lab — Règles de rangement M1",
+    labelEn: "Odoo Lab — M1 Putaway Rules",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory/configuration/warehouses",
+  },
+  gi: {
+    disabled: true,
+    label: "Odoo Lab — Valider la livraison (VL02N)",
+    labelEn: "Odoo Lab — Validate Delivery (VL02N)",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
+  },
+  cc: {
+    disabled: true,
+    label: "Odoo Lab — Inventaire physique Odoo",
+    labelEn: "Odoo Lab — Odoo Physical Inventory",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
+  },
   so: {
     disabled: true,
-    label: "Odoo Lab — Commande Client (VA01)",
+    label: "Odoo Lab — Commande client (VA01)",
     labelEn: "Odoo Lab — Sales Order (VA01)",
-    instruction: "Dans Odoo, explorez la création d'un ordre de vente et la vérification de disponibilité ATP.",
-    instructionEn: "In Odoo, explore sales order creation and ATP availability check.",
-    url: "https://www.odoo.com/app/sales",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/sales",
   },
 
-  // M1 · PICKING_M1 — disabled (not required for current course version)
-  picking_m1: {
+  // M2 steps — disabled (putaway is the one active M2 lab)
+  fifo_pick: {
     disabled: true,
-    label: "Odoo Lab — Prélèvement (Picking)",
-    labelEn: "Odoo Lab — Picking",
-    instruction: "Dans Odoo, explorez les ordres de transfert et la génération automatique du picking depuis un SO.",
-    instructionEn: "In Odoo, explore transfer orders and automatic picking generation from a SO.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Stratégie FIFO et lots",
+    labelEn: "Odoo Lab — FIFO Strategy & Lots",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
   },
 
-  // M1 · STOCK (MB52 check) — disabled (not required for current course version)
-  stock: {
+  // M3 steps — disabled (replenish is the one active M3 lab)
+  cc_recon: {
     disabled: true,
-    label: "Odoo Lab — Disponibilité Stock (MB52)",
-    labelEn: "Odoo Lab — Stock Availability (MB52)",
-    instruction: "Dans Odoo, consultez le stock disponible par emplacement dans Inventaire > Produits.",
-    instructionEn: "In Odoo, check available stock by location in Inventory > Products.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Réconciliation inventaire physique",
+    labelEn: "Odoo Lab — Physical Inventory Reconciliation",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
   },
 
-  // M4 · KPI_SERVICE — disabled (replaced by kpi_diagnostic for current course version)
+  // M4 steps — disabled (kpi_diagnostic is the one active M4 lab)
   kpi_service: {
     disabled: true,
-    label: "Odoo Lab — Reporting & Mouvements de stock",
-    labelEn: "Odoo Lab — Reporting & Stock Moves",
-    instruction: "Dans Odoo Inventory, explorez Reporting > Mouvements de stock et Valorisation des stocks.",
-    instructionEn: "In Odoo Inventory, explore Reporting > Stock Moves and Inventory Valuation.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Taux de service et OTIF",
+    labelEn: "Odoo Lab — Service Rate & OTIF",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory/reporting",
   },
-
-  // M4 · KPI_DATA — disabled (not required for current course version)
   kpi_data: {
     disabled: true,
-    label: "Odoo Lab — Données KPI",
-    labelEn: "Odoo Lab — KPI Data",
-    instruction: "Dans Odoo, explorez les données brutes des KPIs dans les rapports d'inventaire.",
-    instructionEn: "In Odoo, explore raw KPI data in inventory reports.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Données KPI brutes",
+    labelEn: "Odoo Lab — Raw KPI Data",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory/reporting",
   },
-
-  // M4 · KPI_ROTATION — disabled (not required for current course version)
   kpi_rotation: {
     disabled: true,
-    label: "Odoo Lab — Rotation des Stocks",
-    labelEn: "Odoo Lab — Stock Rotation",
-    instruction: "Dans Odoo, explorez les rapports de rotation des stocks et les indicateurs de performance.",
-    instructionEn: "In Odoo, explore stock rotation reports and performance indicators.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Taux de rotation des stocks",
+    labelEn: "Odoo Lab — Stock Turnover Rate",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory/reporting",
   },
 
-  // ADJ standalone — disabled (not required for current course version)
+  // Misc — disabled
+  stock: {
+    disabled: true,
+    label: "Odoo Lab — Disponibilité stock",
+    labelEn: "Odoo Lab — Stock Availability",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
+  },
   adj: {
     disabled: true,
-    label: "Odoo Lab — Ajustement d'Inventaire",
+    label: "Odoo Lab — Ajustement d'inventaire",
     labelEn: "Odoo Lab — Inventory Adjustment",
-    instruction: "Dans Odoo, explorez les ajustements d'inventaire manuels dans Opérations > Ajustements.",
-    instructionEn: "In Odoo, explore manual inventory adjustments in Operations > Adjustments.",
-    url: "https://www.odoo.com/app/inventory",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
   },
-
-  // COMPLIANCE — disabled (not required for current course version)
   compliance: {
     disabled: true,
-    label: "Odoo Lab — Conformité",
-    labelEn: "Odoo Lab — Compliance",
-    instruction: "Dans Odoo, explorez les contrôles de conformité et les audits d'inventaire.",
-    instructionEn: "In Odoo, explore compliance controls and inventory audits.",
-    url: "https://www.odoo.com/app/inventory",
-  },
-
-  // M5 · M5_RECEPTION — disabled (redundant for current course version)
-  m5_reception: {
-    disabled: true,
-    label: "Odoo Lab — Réception M5",
-    labelEn: "Odoo Lab — M5 Reception",
-    instruction: "Dans Odoo, explorez la réception de marchandises avec gestion des lots et numéros de série.",
-    instructionEn: "In Odoo, explore goods receipt with lot and serial number management.",
-    url: "https://www.odoo.com/app/inventory",
-  },
-
-  // M5 · M5_PUTAWAY — disabled (redundant for current course version)
-  m5_putaway: {
-    disabled: true,
-    label: "Odoo Lab — Rangement M5",
-    labelEn: "Odoo Lab — M5 Putaway",
-    instruction: "Dans Odoo, explorez les règles de rangement avancées avec gestion des lots.",
-    instructionEn: "In Odoo, explore advanced putaway rules with lot management.",
-    url: "https://www.odoo.com/app/inventory",
-  },
-
-  // M5 · M5_CYCLE_COUNT — disabled (redundant for current course version)
-  m5_cycle_count: {
-    disabled: true,
-    label: "Odoo Lab — Inventaire Cyclique M5",
-    labelEn: "Odoo Lab — M5 Cycle Count",
-    instruction: "Dans Odoo, explorez l'inventaire physique avec traçabilité des lots.",
-    instructionEn: "In Odoo, explore physical inventory with lot traceability.",
-    url: "https://www.odoo.com/app/inventory",
+    label: "Odoo Lab — Conformité et audit",
+    labelEn: "Odoo Lab — Compliance & Audit",
+    instruction: "",
+    instructionEn: "",
+    url: "https://demo.odoo.com/odoo/inventory",
   },
 };
-
 function OdooLabButton({ step }: { step: string }) {
   const { t } = useLanguage();
   const cfg = ODOO_LAB_CONFIG[step?.toLowerCase() ?? ""];
