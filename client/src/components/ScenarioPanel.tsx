@@ -609,7 +609,7 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
             <button
               type="button"
               onClick={handleConfirm}
-              disabled={!finalAnswer.trim() || confirmMutation.isPending}
+              disabled={finalAnswer.trim().length < 20 || confirmMutation.isPending}
               className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${confirmBtnCls}`}
             >
               {confirmMutation.isPending ? (
@@ -619,11 +619,26 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
               )}
               {t("Confirmer et continuer (+5 pts)", "Confirm and continue (+5 pts)")}
             </button>
-            {!finalAnswer.trim() && (
-              <p className="text-[9px] text-muted-foreground italic mt-1">
-                {t("Rédigez votre réponse pour activer la confirmation.", "Write your answer to enable confirmation.")}
-              </p>
-            )}
+            <div className="flex items-center justify-between mt-1">
+              <span className={`text-[9px] italic ${
+                finalAnswer.trim().length === 0
+                  ? "text-muted-foreground"
+                  : finalAnswer.trim().length < 20
+                  ? "text-amber-500"
+                  : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {finalAnswer.trim().length === 0
+                  ? t("Rédigez votre réponse pour activer la confirmation.", "Write your answer to enable confirmation.")
+                  : finalAnswer.trim().length < 20
+                  ? t("Continuez... minimum 20 caractères requis.", "Keep writing... minimum 20 characters required.")
+                  : t("✓ Longueur suffisante", "✓ Sufficient length")}
+              </span>
+              <span className={`text-[9px] font-mono tabular-nums ${
+                finalAnswer.trim().length < 20 ? "text-amber-500" : "text-emerald-600 dark:text-emerald-400"
+              }`}>
+                {finalAnswer.trim().length}/20
+              </span>
+            </div>
             {confirmMutation.isError && (
               <p className="text-[10px] text-destructive mt-1">
                 {t("Erreur lors de la sauvegarde. Réessayez.", "Error saving. Please try again.")}

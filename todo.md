@@ -176,3 +176,11 @@
 - [x] Validate all 5 SCN placements: correct module, correct step, correct Odoo URL
 - [x] Run pnpm build (0 errors, 9.62s) and pnpm test (218/218)
 - [x] Save checkpoint and deliver validation table
+
+## ScenarioPanel & Dashboard Improvements
+
+- [x] Enforce minimum 20 characters in ScenarioPanel Step 3 final answer (disable confirm button + show character counter)
+- [x] Add SCN-001 to SCN-005 confirmation indicators to teacher monitoring dashboard (per-student, per-scenario status)
+- [x] Expose SCN confirmation data via tRPC (completedSteps already contains "SCN-00X-CONFIRMED" entries from existing procedure)
+- [x] Run pnpm build (0 errors) and pnpm test (218/218)
+- [x] Save checkpoint

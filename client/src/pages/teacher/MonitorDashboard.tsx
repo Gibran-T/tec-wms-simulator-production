@@ -65,7 +65,8 @@ export default function MonitorDashboard() {
       t("Progression %", "Progress %"),
       t("Score", "Score"),
       t("Conforme", "Compliant"),
-      t("Étapes complétées", "Completed steps")
+      t("Étapes complétées", "Completed steps"),
+      "SCN-001", "SCN-002", "SCN-003", "SCN-004", "SCN-005"
     ];
     const rows = displayedRuns.map((r: any) => [
       r.run?.id ?? r.runId,
@@ -76,7 +77,12 @@ export default function MonitorDashboard() {
       r.progressPct,
       r.run?.isDemo ? "N/A" : (r.score ?? 0),
       r.compliant ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.join("|") ?? ""
+      r.completedSteps?.filter((s: string) => !s.startsWith("SCN-")).join("|") ?? "",
+      r.completedSteps?.includes("SCN-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-002-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-003-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-004-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-005-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No")
     ]);
     const csv = [headers, ...rows].map(row => row.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -216,6 +222,7 @@ export default function MonitorDashboard() {
                 t("Score", "Score"),
                 t("Conformité", "Compliance"),
                 t("Étapes", "Steps"),
+                t("SCN", "SCN"),
                 t("Actions", "Actions")
               ].map(h => (
                 <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold text-foreground uppercase tracking-wider">{h}</th>
@@ -225,14 +232,14 @@ export default function MonitorDashboard() {
           <tbody className="divide-y divide-border">
             {isLoading && (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-muted-foreground">
+                <td colSpan={10} className="py-10 text-center text-muted-foreground">
                   {t("Chargement...", "Loading...")}
                 </td>
               </tr>
             )}
             {!isLoading && displayedRuns.length === 0 && (
               <tr>
-                <td colSpan={9} className="py-10 text-center text-muted-foreground">
+                <td colSpan={10} className="py-10 text-center text-muted-foreground">
                   <Monitor size={24} className="mx-auto mb-2 opacity-40" />
                   {t("Aucune simulation enregistrée dans ce mode", "No simulations recorded in this mode")}
                 </td>
@@ -301,7 +308,31 @@ export default function MonitorDashboard() {
                       {r.compliant ? `✅ ${t("Conforme", "Compliant")}` : isDemo ? `⚠ ${t("Non conforme", "Non-compliant")}` : `🔴 ${t("Non conforme", "Non-compliant")}`}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[10px] text-muted-foreground">{r.completedSteps?.join(" → ") ?? "—"}</td>
+                  <td className="px-4 py-3 text-[10px] text-muted-foreground">
+                    {r.completedSteps?.filter((s: string) => !s.startsWith("SCN-")).join(" → ") ?? "—"}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {["SCN-001","SCN-002","SCN-003","SCN-004","SCN-005"].map(scn => {
+                        const confirmed = r.completedSteps?.includes(`${scn}-CONFIRMED`);
+                        return (
+                          <span
+                            key={scn}
+                            title={confirmed
+                              ? `${scn} — ${t("Confirmé", "Confirmed")}`
+                              : `${scn} — ${t("Non effectué", "Not done")}`}
+                            className={`text-[9px] font-mono px-1 py-0.5 rounded border ${
+                              confirmed
+                                ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300"
+                                : "bg-secondary border-border text-muted-foreground opacity-50"
+                            }`}
+                          >
+                            {confirmed ? "✅" : "□"} {scn.replace("SCN-", "")}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     {confirmResetId === (r.run?.id ?? r.runId) ? (
                       <div className="flex items-center gap-1">
