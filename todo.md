@@ -162,3 +162,17 @@
 - [x] Wire SCN-003 to KPI_DIAGNOSTIC step in StepForm.tsx
 - [x] Run pnpm build (0 errors) and pnpm test (218/218)
 - [x] Save checkpoint and push to GitHub
+
+## ScenarioPanel Guided Discovery Refactor
+
+- [x] Rewrite ScenarioPanel.tsx: collapsed alert banner (default) → Step 1 (Odoo task, no explanation) → Step 2 (reveal explanation + root cause) → Step 3 (written answer required before confirm)
+- [x] Collapsed state: small amber banner "⚠️ Situation détectée (optionnel)" + short hint + "Vérifier dans Odoo" button
+- [x] Step 1: show ONLY Odoo instructions + where to look + 1 discovery question (no explanation)
+- [x] Step 2: reveal after user types first input (≥10 chars) — show explanation, root cause, correction
+- [x] Step 3: require non-empty written answer before enabling confirmation button
+- [x] Do NOT block normal WMS transaction flow (scenario is always optional/collapsible)
+- [x] Teacher script section: hidden by default, collapsible accordion
+- [x] Bilingual FR/EN support maintained across all 3 steps
+- [x] Validate all 5 SCN placements: correct module, correct step, correct Odoo URL
+- [x] Run pnpm build (0 errors, 9.62s) and pnpm test (218/218)
+- [x] Save checkpoint and deliver validation table
