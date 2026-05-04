@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, Chevro
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
 import { LabGR, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance } from "@/components/OdooLabSlide";
+import { ScenarioPanel } from "@/components/ScenarioPanel";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -2414,6 +2415,14 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+              {/* SCN-004: Stock négatif — REPLENISH step (M3 only) */}
+              {step?.toLowerCase() === "replenish" && (
+                <ScenarioPanel scenarioId="SCN-004" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-004-CONFIRMED")} />
+              )}
+              {/* SCN-005: Erreur cachée — COMPLIANCE_M5 step (M5 only) */}
+              {step?.toLowerCase() === "compliance_m5" && (
+                <ScenarioPanel scenarioId="SCN-005" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-005-CONFIRMED")} />
+              )}
               <OdooLabButton step={step ?? ""} />
             </div>
           </div>

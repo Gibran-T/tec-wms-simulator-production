@@ -402,9 +402,32 @@ export const appRouter = router({
       .mutation(({ ctx, input }) =>
         createScenario({ ...input, initialStateJson: input.initialStateJson ?? null, createdBy: ctx.user.id })
       ),
+    /** Persist student's manual confirmation of a scenario panel observation */
+    confirmPanel: protectedProcedure
+      .input(z.object({
+        runId: z.number(),
+        scenarioId: z.string(),
+        studentAnswer: z.string().min(1),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin")
+          throw new TRPCError({ code: "FORBIDDEN" });
+        const stepCode = `${input.scenarioId}-CONFIRMED`;
+        await markStepComplete(input.runId, stepCode as any);
+        if (!run.isDemo) {
+          await addScoringEvent({
+            runId: input.runId,
+            eventType: "SCENARIO_PANEL_CONFIRMED",
+            pointsDelta: 5,
+            message: `${input.scenarioId} observé et confirmé : ${input.studentAnswer.substring(0, 120)}`,
+          });
+        }
+        return { success: true, stepCode };
+      }),
   }),
-
-  // ─── Modules progress ─────────────────────────────────────────────────────
+  // ─── Modules progresss ─────────────────────────────────────────────────────
   modules: router({
     progress: protectedProcedure.query(async ({ ctx }) => {
       const db = await import("./db").then((m) => m.getDb());

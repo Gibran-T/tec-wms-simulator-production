@@ -138,3 +138,14 @@
 - [x] Confirm zero occurrences of demo.odoo.com in final codebase (0 in source, 0 in dist bundle)
 - [x] Run pnpm build (0 errors, 2433 modules) and pnpm test (218/218)
 - [x] Save checkpoint and push to GitHub
+
+## Scenario Implementation — SCN-004 & SCN-005
+
+- [x] Audit existing SCN-001/002/003 implementation in StepForm.tsx to understand scenario rendering pattern
+- [x] Implement SCN-004: Stock négatif (M3/GI) — negative stock scenario with Odoo trigger at /odoo/inventory/reporting, manual confirmation, no auto-resolution
+- [x] Implement SCN-005: Erreur cachée (M5/Compliance) — hidden error audit scenario with Odoo trigger at /odoo/inventory/receipts, manual confirmation, no auto-resolution
+- [x] Ensure both scenarios follow JSON schema: trigger, route, action, expected_observation, resolution, wms_return_logic, instructor_script
+- [x] UI: clear action panel + clear explanation panel + clear validation/confirmation step
+- [x] FR/EN bilingual support for all new scenario text
+- [x] Run pnpm build (0 errors, 2707kB bundle) and pnpm test (218/218)
+- [x] Save checkpoint and push to GitHub
