@@ -2415,25 +2415,43 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
-              {/* SCN-001: Réception fantôme — GR step (M1 only — moduleId guard prevents M2 GR from triggering) */}
+              {/* ── M1 Scenarios: SCN-001 to SCN-005 (all M1-specific) ────────────────── */}
+              {/* SCN-001: Réception conforme (positive baseline) — GR step, M1 only */}
               {step?.toLowerCase() === "gr" && runData?.moduleId === 1 && (
                 <ScenarioPanel scenarioId="SCN-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-001-CONFIRMED")} />
               )}
-              {/* SCN-002: Violation FIFO — FIFO_PICK step (M2 only) */}
-              {step?.toLowerCase() === "fifo_pick" && (
+              {/* SCN-002: Réception fantôme (GR not posted) — GR step, M1 only */}
+              {step?.toLowerCase() === "gr" && runData?.moduleId === 1 && (
                 <ScenarioPanel scenarioId="SCN-002" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-002-CONFIRMED")} />
               )}
-              {/* SCN-003: Diagnostic KPI — KPI_DIAGNOSTIC step (M4 only) */}
-              {step?.toLowerCase() === "kpi_diagnostic" && (
+              {/* SCN-003: Marchandise mal rangée (putaway incomplete) — PUTAWAY_M1 step, M1 only */}
+              {step?.toLowerCase() === "putaway_m1" && runData?.moduleId === 1 && (
                 <ScenarioPanel scenarioId="SCN-003" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-003-CONFIRMED")} />
               )}
-              {/* SCN-004: Stock négatif — REPLENISH step (M3 only) */}
-              {step?.toLowerCase() === "replenish" && (
+              {/* SCN-004: Écart de quantité (PO/GR mismatch) — GI step, M1 only */}
+              {step?.toLowerCase() === "gi" && runData?.moduleId === 1 && (
                 <ScenarioPanel scenarioId="SCN-004" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-004-CONFIRMED")} />
               )}
-              {/* SCN-005: Erreur cachée — COMPLIANCE_M5 step (M5 only) */}
-              {step?.toLowerCase() === "compliance_m5" && (
+              {/* SCN-005: Erreur en cascade (multi-error capstone) — COMPLIANCE step, M1 only */}
+              {step?.toLowerCase() === "compliance" && runData?.moduleId === 1 && (
                 <ScenarioPanel scenarioId="SCN-005" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-005-CONFIRMED")} />
+              )}
+              {/* ── Cross-module Scenarios ──────────────────────────────────────────────── */}
+              {/* SCN-M2-001: Violation FIFO — FIFO_PICK step (M2 only) */}
+              {step?.toLowerCase() === "fifo_pick" && (
+                <ScenarioPanel scenarioId="SCN-M2-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M2-001-CONFIRMED")} />
+              )}
+              {/* SCN-M3-001: Stock négatif — REPLENISH step (M3 only) */}
+              {step?.toLowerCase() === "replenish" && (
+                <ScenarioPanel scenarioId="SCN-M3-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M3-001-CONFIRMED")} />
+              )}
+              {/* SCN-M4-001: Diagnostic KPI — KPI_DIAGNOSTIC step (M4 only) */}
+              {step?.toLowerCase() === "kpi_diagnostic" && (
+                <ScenarioPanel scenarioId="SCN-M4-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M4-001-CONFIRMED")} />
+              )}
+              {/* SCN-M5-001: Erreur cachée — COMPLIANCE_M5 step (M5 only) */}
+              {step?.toLowerCase() === "compliance_m5" && (
+                <ScenarioPanel scenarioId="SCN-M5-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M5-001-CONFIRMED")} />
               )}
               <OdooLabButton step={step ?? ""} />
             </div>

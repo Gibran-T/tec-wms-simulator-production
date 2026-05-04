@@ -184,3 +184,18 @@
 - [x] Expose SCN confirmation data via tRPC (completedSteps already contains "SCN-00X-CONFIRMED" entries from existing procedure)
 - [x] Run pnpm build (0 errors) and pnpm test (218/218)
 - [x] Save checkpoint
+
+## M1 Scenario Redesign — SCN-001 to SCN-005 (Full Rebuild)
+
+- [ ] Audit current ScenarioPanel registry for existing SCN-001 content
+- [ ] Design SCN-001: Positive baseline (GR posted correctly, stock visible)
+- [ ] Design SCN-002: GR not posted (receipt in READY, stock = 0)
+- [ ] Design SCN-003: Stock issue (quantity mismatch between PO and GR)
+- [ ] Design SCN-004: Inventory mismatch (physical vs system discrepancy)
+- [ ] Design SCN-005: Multi-error (hidden receipt + wrong lot + negative stock chain)
+- [ ] Validate all 5 scenarios against real Odoo data (SKU-001, SKU-004, BOX-001)
+- [ ] Implement all 5 in ScenarioPanel registry with 3-step guided UX
+- [ ] Wire each SCN to correct M1 step in StepForm.tsx
+- [ ] Add instructor guidance, expected answers, common mistakes to each
+- [ ] Run pnpm build (0 errors) and pnpm test (218/218)
+- [ ] Save checkpoint and deliver structured scenario document
