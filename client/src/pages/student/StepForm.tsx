@@ -2415,6 +2415,18 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+              {/* SCN-001: Réception fantôme — GR step (M1 only — moduleId guard prevents M2 GR from triggering) */}
+              {step?.toLowerCase() === "gr" && runData?.moduleId === 1 && (
+                <ScenarioPanel scenarioId="SCN-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-001-CONFIRMED")} />
+              )}
+              {/* SCN-002: Violation FIFO — FIFO_PICK step (M2 only) */}
+              {step?.toLowerCase() === "fifo_pick" && (
+                <ScenarioPanel scenarioId="SCN-002" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-002-CONFIRMED")} />
+              )}
+              {/* SCN-003: Diagnostic KPI — KPI_DIAGNOSTIC step (M4 only) */}
+              {step?.toLowerCase() === "kpi_diagnostic" && (
+                <ScenarioPanel scenarioId="SCN-003" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-003-CONFIRMED")} />
+              )}
               {/* SCN-004: Stock négatif — REPLENISH step (M3 only) */}
               {step?.toLowerCase() === "replenish" && (
                 <ScenarioPanel scenarioId="SCN-004" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-004-CONFIRMED")} />

@@ -149,3 +149,16 @@
 - [x] FR/EN bilingual support for all new scenario text
 - [x] Run pnpm build (0 errors, 2707kB bundle) and pnpm test (218/218)
 - [x] Save checkpoint and push to GitHub
+
+## Scenario Implementation — SCN-001, SCN-002, SCN-003
+
+- [x] Audit module step codes (M1, M2, M4) to determine correct wiring points for SCN-001/002/003
+- [x] Design SCN-001 JSON config (M1 — negative, GR step: Réception fantôme / Ghost Receipt)
+- [x] Design SCN-002 JSON config (M2 — negative, FIFO_PICK step: Violation FIFO)
+- [x] Design SCN-003 JSON config (M4 — positive, KPI_DIAGNOSTIC step: Diagnostic KPI)
+- [x] Add SCN-001/002/003 to SCENARIO_REGISTRY in ScenarioPanel.tsx
+- [x] Wire SCN-001 to GR step in StepForm.tsx
+- [x] Wire SCN-002 to FIFO_PICK step in StepForm.tsx
+- [x] Wire SCN-003 to KPI_DIAGNOSTIC step in StepForm.tsx
+- [x] Run pnpm build (0 errors) and pnpm test (218/218)
+- [x] Save checkpoint and push to GitHub

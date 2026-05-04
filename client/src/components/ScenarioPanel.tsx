@@ -62,6 +62,129 @@ export interface ScenarioConfig {
 
 // ─── Scenario Registry ────────────────────────────────────────────────────────
 export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
+  // ── SCN-001: Réception fantôme (M1 / GR step) ────────────────────────────────
+  // A GR created but never posted — stock appears received but the system
+  // shows zero. Students discover the difference between creating and posting.
+  "SCN-001": {
+    scenario_id: "SCN-001",
+    module: "M1",
+    title: "Réception fantôme",
+    titleEn: "Ghost Receipt",
+    type: "negative",
+    learning_objective: "Comprendre que créer une transaction ≠ la poster : seul le posting crée un mouvement de stock réel.",
+    learning_objectiveEn: "Understand that creating a transaction ≠ posting it: only posting creates a real stock movement.",
+    error_type: "unposted_gr",
+    wms_step: "GR",
+    odoo_intervention: {
+      trigger: "Réception enregistrée dans TEC.WMS mais stock toujours à zéro dans Odoo",
+      triggerEn: "Receipt recorded in TEC.WMS but stock still zero in Odoo",
+      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      action: "Ouvrir Odoo → Inventaire → Réceptions. Rechercher le bon de réception correspondant. Vérifier son statut : READY ou DONE ?",
+      actionEn: "Open Odoo → Inventory → Receipts. Find the corresponding receipt. Check its status: READY or DONE?",
+      expected_observation: "Le bon de réception est en statut READY (créé mais non validé). Le stock n'a pas bougé car la transaction n'a pas été postée.",
+      expected_observationEn: "The receipt is in READY status (created but not validated). Stock has not moved because the transaction was not posted.",
+      resolution: "Valider (poster) le bon de réception dans Odoo pour que le stock soit mis à jour. Dans SAP, c'est l'équivalent de cliquer 'Post' dans MIGO.",
+      resolutionEn: "Validate (post) the receipt in Odoo to update stock. In SAP, this is equivalent to clicking 'Post' in MIGO.",
+    },
+    wms_return_logic: {
+      mode: "manual_confirmation",
+      message: "Quelle est la différence entre créer et poster une transaction ?",
+      messageEn: "What is the difference between creating and posting a transaction?",
+      validation: "L'étudiant explique que seul le posting crée un document matière et impacte le stock",
+      validationEn: "Student explains that only posting creates a material document and impacts stock",
+    },
+    instructor_script: {
+      what_to_say: "Une transaction non postée n'existe pas pour le système. C'est une intention, pas un fait.",
+      what_to_sayEn: "An unposted transaction does not exist for the system. It is an intention, not a fact.",
+      common_mistake: "Confondre la saisie des données avec la validation — croire que remplir le formulaire suffit.",
+      common_mistakeEn: "Confusing data entry with validation — believing that filling the form is enough.",
+      teaching_moment: "Dans SAP et Odoo, chaque transaction a deux états : brouillon (draft/READY) et posté (DONE). Seul le posting génère un document comptable et un mouvement de stock.",
+      teaching_momentEn: "In SAP and Odoo, every transaction has two states: draft (READY) and posted (DONE). Only posting generates an accounting document and a stock movement.",
+    },
+  },
+
+  // ── SCN-002: Violation FIFO (M2 / FIFO_PICK step) ────────────────────────────
+  // Student picks the wrong lot — newest instead of oldest. Odoo's lot list
+  // shows the correct FIFO order; student must identify the error.
+  "SCN-002": {
+    scenario_id: "SCN-002",
+    module: "M2",
+    title: "Violation FIFO",
+    titleEn: "FIFO Violation",
+    type: "negative",
+    learning_objective: "Comprendre la règle FIFO : le lot le plus ancien doit toujours être prélevé en premier pour éviter les péremptions.",
+    learning_objectiveEn: "Understand the FIFO rule: the oldest lot must always be picked first to prevent expiry.",
+    error_type: "fifo_violation",
+    wms_step: "FIFO_PICK",
+    odoo_intervention: {
+      trigger: "Prélèvement effectué sur un lot récent alors qu'un lot plus ancien est disponible",
+      triggerEn: "Pick performed on a recent lot while an older lot is available",
+      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/products",
+      action: "Ouvrir Odoo → Inventaire → Produits. Sélectionner le produit concerné → onglet 'Lots/Numéros de série'. Observer les dates de réception de chaque lot.",
+      actionEn: "Open Odoo → Inventory → Products. Select the relevant product → 'Lots/Serial Numbers' tab. Observe the reception date of each lot.",
+      expected_observation: "Deux lots ou plus sont visibles. Le lot prélevé a une date de réception plus récente que le lot disponible. La règle FIFO a été violée.",
+      expected_observationEn: "Two or more lots are visible. The picked lot has a more recent reception date than the available lot. The FIFO rule was violated.",
+      resolution: "Annuler le prélèvement et recommencer en sélectionnant le lot avec la date de réception la plus ancienne. Dans Odoo, activer 'Stratégie de retrait : FIFO' dans la configuration du produit.",
+      resolutionEn: "Cancel the pick and restart by selecting the lot with the oldest reception date. In Odoo, enable 'Removal Strategy: FIFO' in the product configuration.",
+    },
+    wms_return_logic: {
+      mode: "manual_confirmation",
+      message: "Quel lot aurait dû être prélevé en premier, et pourquoi ?",
+      messageEn: "Which lot should have been picked first, and why?",
+      validation: "L'étudiant identifie le lot le plus ancien et explique le risque de péremption si FIFO n'est pas respecté",
+      validationEn: "Student identifies the oldest lot and explains the expiry risk if FIFO is not followed",
+    },
+    instructor_script: {
+      what_to_say: "FIFO n'est pas une option — c'est une obligation légale pour les produits périssables.",
+      what_to_sayEn: "FIFO is not an option — it is a legal obligation for perishable products.",
+      common_mistake: "Prélever le lot le plus accessible physiquement plutôt que le plus ancien chronologiquement.",
+      common_mistakeEn: "Picking the most physically accessible lot rather than the chronologically oldest one.",
+      teaching_moment: "La méthode FIFO (First In, First Out) garantit que les marchandises les plus anciennes quittent l'entrepôt en premier. Dans Odoo et SAP, elle est configurable par produit et appliquée automatiquement lors du picking.",
+      teaching_momentEn: "The FIFO (First In, First Out) method ensures that the oldest goods leave the warehouse first. In Odoo and SAP, it is configurable per product and applied automatically during picking.",
+    },
+  },
+
+  // ── SCN-003: Diagnostic KPI (M4 / KPI_DIAGNOSTIC step) ───────────────────────
+  // Positive scenario — student reads the KPI dashboard in Odoo and interprets
+  // the four key indicators: rotation, service level, error rate, lead time.
+  "SCN-003": {
+    scenario_id: "SCN-003",
+    module: "M4",
+    title: "Diagnostic KPI",
+    titleEn: "KPI Diagnostic",
+    type: "positive",
+    learning_objective: "Lire et interpréter un tableau de bord logistique : rotation des stocks, taux de service, taux d'erreur, délai moyen.",
+    learning_objectiveEn: "Read and interpret a logistics KPI dashboard: stock turnover, service level, error rate, average lead time.",
+    error_type: "kpi_misreading",
+    wms_step: "KPI_DIAGNOSTIC",
+    odoo_intervention: {
+      trigger: "Étape de diagnostic global — validation des indicateurs de performance",
+      triggerEn: "Global diagnostic step — performance indicator validation",
+      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+      action: "Ouvrir Odoo → Inventaire → Reporting. Explorer les rapports disponibles : mouvements de stock, valorisation, analyse par emplacement.",
+      actionEn: "Open Odoo → Inventory → Reporting. Explore the available reports: stock moves, valuation, location analysis.",
+      expected_observation: "Le reporting Odoo affiche les mouvements de stock, les valorisations et les analyses par emplacement. Ces données correspondent aux KPI calculés dans TEC.WMS.",
+      expected_observationEn: "Odoo reporting shows stock movements, valuations, and location analyses. This data corresponds to the KPIs calculated in TEC.WMS.",
+      resolution: "Comparer les données Odoo avec les KPI calculés dans TEC.WMS. Identifier les écarts et formuler un diagnostic : quel indicateur est le plus préoccupant ?",
+      resolutionEn: "Compare Odoo data with the KPIs calculated in TEC.WMS. Identify gaps and formulate a diagnosis: which indicator is most concerning?",
+    },
+    wms_return_logic: {
+      mode: "manual_confirmation",
+      message: "Quel KPI est le plus préoccupant dans ce scénario, et quelle action recommandez-vous ?",
+      messageEn: "Which KPI is most concerning in this scenario, and what action do you recommend?",
+      validation: "L'étudiant identifie l'indicateur critique et propose une action corrective concrète",
+      validationEn: "Student identifies the critical indicator and proposes a concrete corrective action",
+    },
+    instructor_script: {
+      what_to_say: "Un KPI sans action corrective n'est qu'un chiffre. La valeur est dans la décision qu'il déclenche.",
+      what_to_sayEn: "A KPI without corrective action is just a number. The value is in the decision it triggers.",
+      common_mistake: "Lire les KPI sans les contextualiser — comparer à un benchmark ou à la période précédente.",
+      common_mistakeEn: "Reading KPIs without contextualizing them — comparing to a benchmark or previous period.",
+      teaching_moment: "Les 4 KPI fondamentaux de la logistique : (1) Rotation = consommation annuelle / stock moyen, (2) Taux de service = commandes livrées à temps / total, (3) Taux d'erreur = erreurs / opérations, (4) Délai moyen = temps entre commande et livraison. Chaque KPI déclenche une action spécifique.",
+      teaching_momentEn: "The 4 fundamental logistics KPIs: (1) Turnover = annual consumption / average stock, (2) Service level = orders delivered on time / total, (3) Error rate = errors / operations, (4) Average lead time = time between order and delivery. Each KPI triggers a specific action.",
+    },
+  },
+
   // ── SCN-004: Stock négatif (M3 / REPLENISH step) ──────────────────────────
   // Triggered at the Replenishment step because that is when M3 students
   // discover that a previous GI created a negative stock condition.
