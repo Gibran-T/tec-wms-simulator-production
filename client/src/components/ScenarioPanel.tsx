@@ -42,6 +42,9 @@ export interface ScenarioConfig {
   module: string;
   title: string;
   titleEn: string;
+  /** Teacher Trigger: real-world tension statement shown FIRST in the banner */
+  teacher_trigger: string;
+  teacher_triggerEn: string;
   /** Short hint shown in the collapsed banner */
   hint: string;
   hintEn: string;
@@ -98,6 +101,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Réception conforme",
     titleEn: "Correct Receipt",
+    teacher_trigger: "Le responsable d'entrepôt affirme que 50 unités de SKU-001 ont été reçues hier. Mais un préparateur dit que le stock est introuvable. Qui a raison — et comment le prouver ?",
+    teacher_triggerEn: "The warehouse manager claims 50 units of SKU-001 were received yesterday. But a picker says the stock cannot be found. Who is right — and how do you prove it?",
     hint: "Vérifiez que la réception a bien créé un mouvement de stock dans Odoo.",
     hintEn: "Verify that the receipt actually created a stock movement in Odoo.",
     type: "positive",
@@ -141,6 +146,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Réception fantôme",
     titleEn: "Ghost Receipt",
+    teacher_trigger: "Un opérateur a saisi la réception de 50 unités il y a 2 heures. Le stock dans Odoo est toujours à zéro. Le fournisseur attend la confirmation. Qu'est-ce qui s'est passé ?",
+    teacher_triggerEn: "An operator entered a receipt for 50 units 2 hours ago. Stock in Odoo is still zero. The supplier is waiting for confirmation. What happened?",
     hint: "Stock à zéro après réception — quelque chose ne va pas.",
     hintEn: "Stock still zero after receipt — something is wrong.",
     type: "negative",
@@ -184,6 +191,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Marchandise mal rangée",
     titleEn: "Misplaced Goods",
+    teacher_trigger: "La réception est validée. Les cartons sont physiquement dans l'entrepôt. Mais Odoo refuse de préparer la commande client — stock disponible : 0 à WH/Stock. Comment est-ce possible ?",
+    teacher_triggerEn: "The receipt is validated. The boxes are physically in the warehouse. But Odoo refuses to prepare the customer order — available stock: 0 at WH/Stock. How is this possible?",
     hint: "Les marchandises sont reçues mais pas encore rangées — le stock est bloqué à l'entrée.",
     hintEn: "Goods received but not yet put away — stock is stuck at the input location.",
     type: "negative",
@@ -227,6 +236,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Écart de quantité",
     titleEn: "Quantity Mismatch",
+    teacher_trigger: "Le fournisseur a envoyé sa facture pour 100 BOX-001. Le service comptable ne peut pas l'approuver. Dans l'entrepôt, les cartons sont là. Dans Odoo, le stock est à zéro. Qui bloque qui — et pourquoi ?",
+    teacher_triggerEn: "The supplier sent their invoice for 100 BOX-001. Accounting cannot approve it. In the warehouse, the boxes are there. In Odoo, stock is zero. Who is blocking whom — and why?",
     hint: "BOX-001 est dans l'entrepôt mais absent du système — écart PO/GR détecté.",
     hintEn: "BOX-001 is in the warehouse but missing from the system — PO/GR mismatch detected.",
     type: "negative",
@@ -270,6 +281,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Erreur en cascade",
     titleEn: "Cascading Error",
+    teacher_trigger: "La clôture de période est demain matin. Le contrôleur de gestion dit que les chiffres ne correspondent pas. Trois départements se renvoient la responsabilité. Vous avez 15 minutes pour identifier toutes les anomalies dans Odoo.",
+    teacher_triggerEn: "Period closing is tomorrow morning. The controller says the numbers don't match. Three departments are blaming each other. You have 15 minutes to identify all anomalies in Odoo.",
     hint: "Audit final — plusieurs anomalies coexistent. Le système n'est pas propre.",
     hintEn: "Final audit — multiple anomalies coexist. The system is not clean.",
     type: "negative",
@@ -317,6 +330,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M2",
     title: "Violation FIFO",
     titleEn: "FIFO Violation",
+    teacher_trigger: "Un client a retourné une commande : les produits étaient périmés. L'entrepôt avait du stock plus récent disponible. Mais le préparateur a pris le mauvais lot. Qui est responsable — et comment l'éviter ?",
+    teacher_triggerEn: "A customer returned an order: the products were expired. The warehouse had fresher stock available. But the picker took the wrong lot. Who is responsible — and how do you prevent this?",
     hint: "Deux lots disponibles — lequel prélever en premier ?",
     hintEn: "Two lots available — which one to pick first?",
     type: "negative",
@@ -364,6 +379,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M3",
     title: "Stock négatif",
     titleEn: "Negative Stock",
+    teacher_trigger: "Odoo affiche un stock négatif pour SKU-001 : -10 unités. C'est mathématiquement impossible dans un entrepôt réel. Quelqu'un a livré ce qu'il n'avait pas. Comment cela arrive-t-il dans un système ERP ?",
+    teacher_triggerEn: "Odoo shows negative stock for SKU-001: -10 units. This is mathematically impossible in a real warehouse. Someone delivered what they didn't have. How does this happen in an ERP system?",
     hint: "Stock insuffisant détecté — la séquence a été rompue.",
     hintEn: "Insufficient stock detected — the sequence was broken.",
     type: "negative",
@@ -409,8 +426,10 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
   "SCN-M4-001": {
     scenario_id: "SCN-M4-001",
     module: "M4",
-    title: "Diagnostic KPI",
-    titleEn: "KPI Diagnostic",
+    title: "Lecture KPI",
+    titleEn: "KPI Reading",
+    teacher_trigger: "Le directeur logistique reçoit le tableau de bord mensuel. Trois indicateurs sont au rouge. Il demande une explication en 5 minutes. Vous avez Odoo ouvert devant vous. Par où commencez-vous ?",
+    teacher_triggerEn: "The logistics director receives the monthly dashboard. Three indicators are in the red. They want an explanation in 5 minutes. You have Odoo open in front of you. Where do you start?",
     hint: "Comparez vos KPI TEC.WMS avec les données réelles Odoo.",
     hintEn: "Compare your TEC.WMS KPIs with real Odoo data.",
     type: "positive",
@@ -458,6 +477,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M5",
     title: "Erreur cachée",
     titleEn: "Hidden Error",
+    teacher_trigger: "L'auditeur externe arrive demain. Il demande que tous les bons de réception soient validés ou annulés. Vous ouvrez Odoo et vous trouvez un document READY vieux de 3 semaines. Personne ne sait pourquoi il est encore ouvert.",
+    teacher_triggerEn: "The external auditor arrives tomorrow. They require all receipts to be validated or cancelled. You open Odoo and find a READY document that is 3 weeks old. Nobody knows why it is still open.",
     hint: "Audit final — le système n'est pas propre.",
     hintEn: "Final audit — the system is not clean.",
     type: "negative",
@@ -577,6 +598,12 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
   if (panelState === "COLLAPSED") {
     return (
       <div className="mt-3 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+        {/* Teacher Trigger — real-world tension statement */}
+        <div className="mb-2 pb-2 border-b border-amber-200 dark:border-amber-700">
+          <p className="text-[10px] font-bold text-amber-900 dark:text-amber-100 leading-relaxed">
+            🎯 {t(scenario.teacher_trigger, scenario.teacher_triggerEn)}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -659,6 +686,16 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
       </div>
 
       <div className="px-3 pb-3 pt-1 space-y-3">
+
+        {/* ── Teacher Trigger card — repeated at top of expanded panel ─────── */}
+        <div className="rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-2.5 py-2">
+          <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-0.5">
+            🎯 {t("Situation réelle", "Real-world situation")}
+          </p>
+          <p className="text-[10px] font-semibold text-amber-900 dark:text-amber-100 leading-relaxed">
+            {t(scenario.teacher_trigger, scenario.teacher_triggerEn)}
+          </p>
+        </div>
 
         {/* ── STEP 1: Odoo task + discovery question ─────────────────────── */}
         <div className="space-y-2">

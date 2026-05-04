@@ -187,15 +187,33 @@
 
 ## M1 Scenario Redesign — SCN-001 to SCN-005 (Full Rebuild)
 
-- [ ] Audit current ScenarioPanel registry for existing SCN-001 content
-- [ ] Design SCN-001: Positive baseline (GR posted correctly, stock visible)
-- [ ] Design SCN-002: GR not posted (receipt in READY, stock = 0)
-- [ ] Design SCN-003: Stock issue (quantity mismatch between PO and GR)
-- [ ] Design SCN-004: Inventory mismatch (physical vs system discrepancy)
-- [ ] Design SCN-005: Multi-error (hidden receipt + wrong lot + negative stock chain)
-- [ ] Validate all 5 scenarios against real Odoo data (SKU-001, SKU-004, BOX-001)
-- [ ] Implement all 5 in ScenarioPanel registry with 3-step guided UX
-- [ ] Wire each SCN to correct M1 step in StepForm.tsx
-- [ ] Add instructor guidance, expected answers, common mistakes to each
+- [x] Audit current ScenarioPanel registry for existing SCN-001 content
+- [x] Design SCN-001: Positive baseline (GR posted correctly, stock visible) — Réception conforme
+- [x] Design SCN-002: GR not posted (receipt in READY, stock = 0) — Réception fantôme
+- [x] Design SCN-003: Stock issue (quantity mismatch between PO and GR) — Marchandise mal rangée (putaway incomplete)
+- [x] Design SCN-004: Inventory mismatch (physical vs system discrepancy) — Écart de quantité (PO/GR mismatch)
+- [x] Design SCN-005: Multi-error (hidden receipt + wrong lot + negative stock chain) — Erreur en cascade
+- [x] Validate all 5 scenarios against real Odoo data (SKU-001, SKU-004, BOX-001)
+- [x] Implement all 5 in ScenarioPanel registry with 3-step guided UX
+- [x] Wire each SCN to correct M1 step in StepForm.tsx (GR, GR, PUTAWAY_M1, GI, COMPLIANCE)
+- [x] Add instructor guidance, expected answers, common mistakes to each (in instructor_script block)
+- [x] Run pnpm build (0 errors, 10.04s) and pnpm test (218/218)
+- [x] Save checkpoint (582aa2ff) and deliver structured scenario document
+
+## Teacher Trigger — Scenario Entry Point Redesign
+
+- [ ] Design Teacher Trigger (FR + EN) for SCN-001: tension around "stock visible but is it real?"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-002: tension around "receipt created but stock = 0"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-003: tension around "goods received but cannot be picked"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-004: tension around "supplier invoice blocked, no one knows why"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-005: tension around "period close tomorrow, system is not clean"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-M2-001: tension around "wrong lot shipped to customer"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-M3-001: tension around "delivery impossible, stock shows negative"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-M4-001: tension around "KPI dashboard shows red, no one can explain why"
+- [ ] Design Teacher Trigger (FR + EN) for SCN-M5-001: tension around "old receipt still open, audit is tomorrow"
+- [ ] Add teacher_trigger + teacher_triggerEn fields to ScenarioConfig TypeScript interface
+- [ ] Add teacher_trigger text to all 9 scenario entries in SCENARIO_REGISTRY
+- [ ] Update ScenarioPanel UI: show Teacher Trigger as the first visible element in collapsed banner
+- [ ] Update ScenarioPanel UI: repeat Teacher Trigger as a styled "situation" card at top of Step 1
 - [ ] Run pnpm build (0 errors) and pnpm test (218/218)
-- [ ] Save checkpoint and deliver structured scenario document
+- [ ] Save checkpoint and deliver updated scenario document
