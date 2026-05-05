@@ -220,11 +220,24 @@
 
 ## Full Scenario Validation & Stress-Test (All 9 SCN)
 
-- [ ] Stress-test SCN-001 to SCN-005 (M1): simulate execution, validate visual contrast, confirm classroom readiness
-- [ ] Stress-test SCN-M2-001, SCN-M3-001, SCN-M4-001, SCN-M5-001: same validation
-- [ ] Improve discovery questions, expected answers, and common mistakes where weak
-- [ ] Update ScenarioPanel registry with improved content
-- [ ] Write comprehensive validated scenario document (all 9 SCN, FR+EN, with instructor guidance)
-- [ ] Export scenario document to PDF
-- [ ] Run pnpm build (0 errors) and pnpm test (218/218)
-- [ ] Save checkpoint and deliver to professor
+- [x] Stress-test SCN-001 to SCN-005 (M1): simulate execution, validate visual contrast, confirm classroom readiness
+- [x] Stress-test SCN-M2-001, SCN-M3-001, SCN-M4-001, SCN-M5-001: same validation
+- [x] Improve discovery questions, expected answers, and common mistakes where weak (SCN-M2-001 observation note, SCN-M4-001 question sharpened)
+- [x] Update ScenarioPanel registry with improved content (checkpoint 1b9356ea)
+- [x] Write comprehensive validated scenario document (all 9 SCN, FR+EN, with instructor guidance)
+- [x] Export scenario document to PDF (TEC_WMS_Scenarios_Validated_Complete.pdf)
+- [x] Run pnpm build (0 errors) and pnpm test (218/218)
+- [x] Save checkpoint (1b9356ea) and deliver to professor
+
+## Single Odoo Lab Per Step — Architecture Fix
+
+- [x] Audit all ScenarioPanel and OdooLabButton render sites in StepForm.tsx
+- [x] Implement getActiveScenarioForStep(moduleId, scenarioId, stepCode) single-source-of-truth function
+- [x] Remove all duplicate ScenarioPanel renders on same step
+- [x] Enforce mutual exclusion: suppress OdooLabButton when ScenarioPanel is active for that step
+- [x] M1 Scenario 1 GR → only SCN-001; M1 Scenario 2 GR → only SCN-002
+- [x] Add dev warning guard: if >1 scenario matches a step, render only highest-priority
+- [x] Verify no screen shows 2+ Odoo buttons or duplicate "Vérifier dans Odoo"
+- [x] Run pnpm build (0 errors) and pnpm test (218/218)
+- [x] Save checkpoint "Fix single Odoo Lab per scenario-step rendering"
+- [x] Deliver validation table: each scenario, step, exactly one visible lab

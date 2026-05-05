@@ -1830,7 +1830,22 @@ export default function StepForm() {
             </div>
             <BackendTransparencyPanel runData={runData} />
             <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
-            <OdooLabButton step={step ?? ""} />
+            {/* Completed-state lab: same mutual exclusion — no OdooLabButton if ScenarioPanel is active */}
+            {![
+              { step: "gr",           module: 1, nameFragment: "Cycle propre" },
+              { step: "gr",           module: 1, nameFragment: "R\u00e9ception fant\u00f4me" },
+              { step: "putaway_m1",   module: 1, nameFragment: "Stock insuffisant" },
+              { step: "gi",           module: 1, nameFragment: "\u00c9cart d'inventaire" },
+              { step: "compliance",   module: 1, nameFragment: "Non-conformit\u00e9s" },
+              { step: "fifo_pick",      module: 2, nameFragment: "" },
+              { step: "replenish",      module: 3, nameFragment: "" },
+              { step: "kpi_diagnostic", module: 4, nameFragment: "" },
+              { step: "compliance_m5",  module: 5, nameFragment: "" },
+            ].some(s =>
+              s.step === (step?.toLowerCase() ?? "") &&
+              s.module === (runData?.moduleId ?? 0) &&
+              (s.nameFragment === "" || ((runData?.scenario as any)?.name ?? "").includes(s.nameFragment))
+            ) && <OdooLabButton step={step ?? ""} />}
             <button onClick={() => navigate(`/student/run/${runId}`)}
               className="flex items-center gap-2 text-xs text-primary hover:underline mt-4">
               <ArrowLeft size={13} /> {t("Retour au Mission Control", "Back to Mission Control")}
@@ -2415,45 +2430,63 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
-              {/* ── M1 Scenarios: SCN-001 to SCN-005 (all M1-specific) ────────────────── */}
-              {/* SCN-001: Réception conforme (positive baseline) — GR step, M1 only */}
-              {step?.toLowerCase() === "gr" && runData?.moduleId === 1 && (
-                <ScenarioPanel scenarioId="SCN-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-001-CONFIRMED")} />
-              )}
-              {/* SCN-002: Réception fantôme (GR not posted) — GR step, M1 only */}
-              {step?.toLowerCase() === "gr" && runData?.moduleId === 1 && (
-                <ScenarioPanel scenarioId="SCN-002" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-002-CONFIRMED")} />
-              )}
-              {/* SCN-003: Marchandise mal rangée (putaway incomplete) — PUTAWAY_M1 step, M1 only */}
-              {step?.toLowerCase() === "putaway_m1" && runData?.moduleId === 1 && (
-                <ScenarioPanel scenarioId="SCN-003" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-003-CONFIRMED")} />
-              )}
-              {/* SCN-004: Écart de quantité (PO/GR mismatch) — GI step, M1 only */}
-              {step?.toLowerCase() === "gi" && runData?.moduleId === 1 && (
-                <ScenarioPanel scenarioId="SCN-004" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-004-CONFIRMED")} />
-              )}
-              {/* SCN-005: Erreur en cascade (multi-error capstone) — COMPLIANCE step, M1 only */}
-              {step?.toLowerCase() === "compliance" && runData?.moduleId === 1 && (
-                <ScenarioPanel scenarioId="SCN-005" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-005-CONFIRMED")} />
-              )}
-              {/* ── Cross-module Scenarios ──────────────────────────────────────────────── */}
-              {/* SCN-M2-001: Violation FIFO — FIFO_PICK step (M2 only) */}
-              {step?.toLowerCase() === "fifo_pick" && (
-                <ScenarioPanel scenarioId="SCN-M2-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M2-001-CONFIRMED")} />
-              )}
-              {/* SCN-M3-001: Stock négatif — REPLENISH step (M3 only) */}
-              {step?.toLowerCase() === "replenish" && (
-                <ScenarioPanel scenarioId="SCN-M3-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M3-001-CONFIRMED")} />
-              )}
-              {/* SCN-M4-001: Diagnostic KPI — KPI_DIAGNOSTIC step (M4 only) */}
-              {step?.toLowerCase() === "kpi_diagnostic" && (
-                <ScenarioPanel scenarioId="SCN-M4-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M4-001-CONFIRMED")} />
-              )}
-              {/* SCN-M5-001: Erreur cachée — COMPLIANCE_M5 step (M5 only) */}
-              {step?.toLowerCase() === "compliance_m5" && (
-                <ScenarioPanel scenarioId="SCN-M5-001" runId={parseInt(runId)} alreadyConfirmed={runData?.completedSteps?.includes("SCN-M5-001-CONFIRMED")} />
-              )}
-              <OdooLabButton step={step ?? ""} />
+              {/* ── Single Odoo Lab per step — getActiveScenarioForStep() ─────────────── */}
+              {/* RULE: At most ONE pedagogical panel per step.                           */}
+              {/* ScenarioPanel takes priority over OdooLabButton (mutual exclusion).    */}
+              {(() => {
+                const stepCode = step?.toLowerCase() ?? "";
+                const moduleId = runData?.moduleId ?? 0;
+                const scenarioName = (runData?.scenario as any)?.name ?? "";
+
+                // Single source of truth: scenario-to-step mapping
+                // Each entry: { id, step, module, nameFragment }
+                // nameFragment = "" means "match all scenarios in that module"
+                const SCENARIO_MAP = [
+                  // M1 — each scenario maps to exactly one SCN at exactly one step
+                  { id: "SCN-001", step: "gr",           module: 1, nameFragment: "Cycle propre" },
+                  { id: "SCN-002", step: "gr",           module: 1, nameFragment: "R\u00e9ception fant\u00f4me" },
+                  { id: "SCN-003", step: "putaway_m1",   module: 1, nameFragment: "Stock insuffisant" },
+                  { id: "SCN-004", step: "gi",           module: 1, nameFragment: "\u00c9cart d'inventaire" },
+                  { id: "SCN-005", step: "compliance",   module: 1, nameFragment: "Non-conformit\u00e9s" },
+                  // Cross-module — appear for all scenarios in that module at that step
+                  { id: "SCN-M2-001", step: "fifo_pick",      module: 2, nameFragment: "" },
+                  { id: "SCN-M3-001", step: "replenish",      module: 3, nameFragment: "" },
+                  { id: "SCN-M4-001", step: "kpi_diagnostic", module: 4, nameFragment: "" },
+                  { id: "SCN-M5-001", step: "compliance_m5",  module: 5, nameFragment: "" },
+                ];
+
+                // Find the ONE matching scenario for this step + module + scenario name
+                const matches = SCENARIO_MAP.filter(s =>
+                  s.step === stepCode &&
+                  s.module === moduleId &&
+                  (s.nameFragment === "" || scenarioName.includes(s.nameFragment))
+                );
+
+                // Dev guard: warn if multiple matches (should never happen)
+                if (matches.length > 1 && import.meta.env.DEV) {
+                  console.warn(
+                    `[ScenarioPanel] Multiple scenarios match step="${stepCode}" module=${moduleId} ` +
+                    `scenario="${scenarioName}". Using first match: ${matches[0].id}`
+                  );
+                }
+
+                const active = matches[0] ?? null;
+
+                if (active) {
+                  // ScenarioPanel is active — render ONLY the scenario panel, suppress OdooLabButton
+                  return (
+                    <ScenarioPanel
+                      key={active.id}
+                      scenarioId={active.id}
+                      runId={parseInt(runId)}
+                      alreadyConfirmed={runData?.completedSteps?.includes(`${active.id}-CONFIRMED`)}
+                    />
+                  );
+                }
+
+                // No scenario panel for this step — fall back to legacy OdooLabButton
+                return <OdooLabButton step={stepCode} />;
+              })()}
             </div>
           </div>
         )}
