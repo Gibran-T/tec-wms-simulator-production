@@ -149,7 +149,7 @@ const module1: ModuleData = {
       timingMin: 4,
       tags: ["warehouse", "WMS", "flux", "visuel"],
       highlight: "Chaque zone = une transaction WMS",
-      warehouseImage: "/manus-storage/concorde_warehouse_v2_0025252e.webp",
+      warehouseImage: "/images/concorde_warehouse_v2.webp",
     },
     {
       id: 5,
