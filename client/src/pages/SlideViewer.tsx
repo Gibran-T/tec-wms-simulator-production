@@ -1,7 +1,7 @@
 /**
  * TEC.LOG — Slide Viewer
  * Design: Industrial-Academic Precision
- * Full-screen slide canvas with professor/student mode toggle
+ * Full-screen slide canvas with FR/EN toggle, dark mode, keyboard navigation
  * FR/EN global toggle, dark mode, keyboard navigation
  */
 import { useState, useEffect, useCallback } from "react";
@@ -15,7 +15,7 @@ import type { SlideContent } from "@/data/modules";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   Clock, Tag, Lightbulb,
-  List, X
+  List, X, ZoomIn, AlertTriangle
 } from "lucide-react";
 
 // ── Slide type badge colors ──────────────────────────────────────────────────
@@ -79,6 +79,92 @@ function SlideLine({ line }: { line: string }) {
       style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}>
       {line}
     </div>
+  );
+}
+
+
+// ── Warehouse Image Slide Component ─────────────────────────────────────────
+function WarehouseImageSlide({ src, alt, body }: { src: string; alt: string; body: string[] }) {
+  const [imgState, setImgState] = useState<"loading" | "loaded" | "error">("loading");
+  const [zoomOpen, setZoomOpen] = useState(false);
+
+  return (
+    <>
+      <div className="mb-4">
+        {/* Image container */}
+        <div
+          className="relative w-full rounded-xl border border-border overflow-hidden bg-secondary/30 cursor-zoom-in"
+          style={{ minHeight: "220px" }}
+          onClick={() => imgState === "loaded" && setZoomOpen(true)}
+          title={imgState === "loaded" ? "Cliquer pour agrandir" : undefined}
+        >
+          {/* Loading skeleton */}
+          {imgState === "loading" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 animate-pulse">
+              <div className="w-16 h-16 rounded-full bg-border" />
+              <div className="h-3 w-40 rounded bg-border" />
+              <div className="h-2 w-28 rounded bg-border" />
+            </div>
+          )}
+          {/* Error state */}
+          {imgState === "error" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+              <AlertTriangle className="w-8 h-8 text-amber-500" />
+              <p className="text-sm font-medium">Image non disponible</p>
+              <p className="text-xs opacity-60 font-mono break-all px-4 text-center">{src}</p>
+            </div>
+          )}
+          {/* Zoom hint badge */}
+          {imgState === "loaded" && (
+            <div className="absolute top-2 right-2 bg-black/50 text-white rounded-md px-2 py-1 flex items-center gap-1 text-xs pointer-events-none">
+              <ZoomIn className="w-3 h-3" />
+              <span>Agrandir</span>
+            </div>
+          )}
+          <img
+            src={src}
+            alt={alt}
+            className={`w-full object-contain transition-opacity duration-300 ${imgState === "loaded" ? "opacity-100" : "opacity-0"}`}
+            style={{ maxHeight: "480px" }}
+            onLoad={() => setImgState("loaded")}
+            onError={() => {
+              console.warn("Warehouse image not found:", src);
+              setImgState("error");
+            }}
+          />
+        </div>
+        {/* Body text below image */}
+        <div className="rounded-xl border border-border bg-card px-5 py-3 mt-3">
+          <div className="space-y-0.5">
+            {body.map((line, i) => (
+              <SlideLine key={i} line={line} />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Zoom modal */}
+      {zoomOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setZoomOpen(false)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition-colors"
+            onClick={() => setZoomOpen(false)}
+            title="Fermer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <img
+            src={src}
+            alt={alt}
+            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -322,21 +408,11 @@ export default function SlideViewer() {
 
               {/* Slide body */}
               {slide.warehouseImage ? (
-                <div className="mb-4">
-                  <img
-                    src={slide.warehouseImage}
-                    alt={title}
-                    className="w-full rounded-xl border border-border object-contain"
-                    style={{ maxHeight: "480px" }}
-                  />
-                  <div className="rounded-xl border border-border bg-card px-5 py-3 mt-3">
-                    <div className="space-y-0.5">
-                      {body.map((line, i) => (
-                        <SlideLine key={i} line={line} />
-                      ))}
-                    </div>
-                  </div>
-                </div>
+                <WarehouseImageSlide
+                  src={slide.warehouseImage}
+                  alt={title}
+                  body={body}
+                />
               ) : (
                 <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
                   <div className="space-y-0.5">
