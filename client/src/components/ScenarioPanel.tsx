@@ -12,7 +12,6 @@
  *   2. Full explanation is NEVER shown immediately — student must observe first
  *   3. No loops — one concept per scenario
  *   4. Scenario never blocks the normal WMS transaction
- *   5. Teacher script is always hidden by default (collapsible accordion)
  *
  * Persistence: confirmation stored via trpc.scenarios.confirmPanel
  * which writes "SCN-XXX-CONFIRMED" to completedSteps in the DB.
@@ -29,7 +28,6 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
-  GraduationCap,
   Search,
   Lightbulb,
   ChevronRight,
@@ -42,9 +40,6 @@ export interface ScenarioConfig {
   module: string;
   title: string;
   titleEn: string;
-  /** Teacher Trigger: real-world tension statement shown FIRST in the banner */
-  teacher_trigger: string;
-  teacher_triggerEn: string;
   /** Short hint shown in the collapsed banner */
   hint: string;
   hintEn: string;
@@ -78,14 +73,6 @@ export interface ScenarioConfig {
     validation: string;
     validationEn: string;
   };
-  instructor_script: {
-    what_to_say: string;
-    what_to_sayEn: string;
-    common_mistake: string;
-    common_mistakeEn: string;
-    teaching_moment: string;
-    teaching_momentEn: string;
-  };
 }
 
 // ─── Scenario Registry ────────────────────────────────────────────────────────
@@ -101,8 +88,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Réception conforme",
     titleEn: "Correct Receipt",
-    teacher_trigger: "Le responsable d'entrepôt affirme que 50 unités de SKU-001 ont été reçues hier. Mais un préparateur dit que le stock est introuvable. Qui a raison — et comment le prouver ?",
-    teacher_triggerEn: "The warehouse manager claims 50 units of SKU-001 were received yesterday. But a picker says the stock cannot be found. Who is right — and how do you prove it?",
     hint: "Vérifiez que la réception a bien créé un mouvement de stock dans Odoo.",
     hintEn: "Verify that the receipt actually created a stock movement in Odoo.",
     type: "positive",
@@ -130,14 +115,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant explique que DONE = transaction postée = mouvement de stock créé = stock visible et traçable",
       validationEn: "Student explains that DONE = posted transaction = stock movement created = stock visible and traceable",
     },
-    instructor_script: {
-      what_to_say: "Ce que vous voyez dans Odoo est la preuve que la transaction a existé. DONE = document matière créé = stock réel.",
-      what_to_sayEn: "What you see in Odoo is proof that the transaction existed. DONE = material document created = real stock.",
-      common_mistake: "L'étudiant regarde la commande d'achat (PO) au lieu du bon de réception. Rediriger vers Inventaire → Réceptions, pas Achats → Commandes.",
-      common_mistakeEn: "Student looks at the purchase order (PO) instead of the receipt. Redirect to Inventory → Receipts, not Purchase → Orders.",
-      teaching_moment: "Dans tout ERP (SAP, Odoo, Dynamics), une transaction a deux états : brouillon et posté. Seul le posting génère un document comptable et un mouvement de stock. WH/IN/00003 DONE = Matbeleg SAP = preuve légale de réception.",
-      teaching_momentEn: "In any ERP (SAP, Odoo, Dynamics), a transaction has two states: draft and posted. Only posting generates an accounting document and a stock movement. WH/IN/00003 DONE = SAP Matbeleg = legal proof of receipt.",
-    },
   },
 
   // ── SCN-002: Réception fantôme — GR Not Posted (M1 / GR step) ───────────────
@@ -146,8 +123,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Réception fantôme",
     titleEn: "Ghost Receipt",
-    teacher_trigger: "Un opérateur a saisi la réception de 50 unités il y a 2 heures. Le stock dans Odoo est toujours à zéro. Le fournisseur attend la confirmation. Qu'est-ce qui s'est passé ?",
-    teacher_triggerEn: "An operator entered a receipt for 50 units 2 hours ago. Stock in Odoo is still zero. The supplier is waiting for confirmation. What happened?",
     hint: "Stock à zéro après réception — quelque chose ne va pas.",
     hintEn: "Stock still zero after receipt — something is wrong.",
     type: "negative",
@@ -175,14 +150,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant explique que seul le posting crée un document matière et impacte le stock — READY = aucun impact stock",
       validationEn: "Student explains that only posting creates a material document and impacts stock — READY = no stock impact",
     },
-    instructor_script: {
-      what_to_say: "Une transaction non postée n'existe pas pour le système. C'est une intention, pas un fait. Demandez : 'Où est la preuve que les marchandises ont été reçues ?'",
-      what_to_sayEn: "An unposted transaction does not exist for the system. It is an intention, not a fact. Ask: 'Where is the proof that goods were received?'",
-      common_mistake: "Confondre la saisie des données avec la validation — croire que remplir le formulaire suffit à mettre à jour le stock.",
-      common_mistakeEn: "Confusing data entry with validation — believing that filling the form is enough to update stock.",
-      teaching_moment: "Dans SAP et Odoo, chaque transaction a deux états : brouillon (READY/Prêt) et posté (DONE/Fait). Seul le posting génère un document comptable (Matbeleg/Journal Entry) et un mouvement de stock. Comparez READY vs DONE sur deux documents côte à côte.",
-      teaching_momentEn: "In SAP and Odoo, every transaction has two states: draft (READY) and posted (DONE). Only posting generates an accounting document (Matbeleg/Journal Entry) and a stock movement. Compare READY vs DONE on two documents side by side.",
-    },
   },
 
   // ── SCN-003: Marchandise mal rangée — Wrong Location (M1 / PUTAWAY step) ─────
@@ -191,8 +158,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Marchandise mal rangée",
     titleEn: "Misplaced Goods",
-    teacher_trigger: "La réception est validée. Les cartons sont physiquement dans l'entrepôt. Mais Odoo refuse de préparer la commande client — stock disponible : 0 à WH/Stock. Comment est-ce possible ?",
-    teacher_triggerEn: "The receipt is validated. The boxes are physically in the warehouse. But Odoo refuses to prepare the customer order — available stock: 0 at WH/Stock. How is this possible?",
     hint: "Les marchandises sont reçues mais pas encore rangées — le stock est bloqué à l'entrée.",
     hintEn: "Goods received but not yet put away — stock is stuck at the input location.",
     type: "negative",
@@ -220,14 +185,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant explique que le système ne connaît que les emplacements validés — stock physique ≠ stock système si le putaway n'est pas posté",
       validationEn: "Student explains that the system only knows validated locations — physical stock ≠ system stock if putaway is not posted",
     },
-    instructor_script: {
-      what_to_say: "Demandez : 'Si un client commande SKU-001 maintenant, Odoo peut-il le prélever depuis WH/Stock ?' — La réponse est non. Pourquoi ?",
-      what_to_sayEn: "Ask: 'If a customer orders SKU-001 now, can Odoo pick it from WH/Stock?' — The answer is no. Why?",
-      common_mistake: "L'étudiant pense que la réception suffit. Insistez : recevoir et ranger sont deux transactions distinctes dans tout WMS.",
-      common_mistakeEn: "Student thinks the receipt is enough. Emphasize: receiving and putting away are two distinct transactions in any WMS.",
-      teaching_moment: "Le flux en 2 étapes (2-step receive): GR → WH/Input → Putaway → WH/Stock. Chaque étape est une transaction distincte. Dans SAP, c'est TA (Transfer Order) après GR. Dans Odoo, c'est le transfert interne automatique. Sans putaway validé, le stock est 'fantôme' pour les commandes clients.",
-      teaching_momentEn: "The 2-step receive flow: GR → WH/Input → Putaway → WH/Stock. Each step is a distinct transaction. In SAP, this is a Transfer Order (TA) after GR. In Odoo, it's the automatic internal transfer. Without validated putaway, stock is 'ghost' for customer orders.",
-    },
   },
 
   // ── SCN-004: Écart de quantité — Inventory Mismatch (M1 / GI step) ───────────
@@ -236,8 +193,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Écart de quantité",
     titleEn: "Quantity Mismatch",
-    teacher_trigger: "Le fournisseur a envoyé sa facture pour 100 BOX-001. Le service comptable ne peut pas l'approuver. Dans l'entrepôt, les cartons sont là. Dans Odoo, le stock est à zéro. Qui bloque qui — et pourquoi ?",
-    teacher_triggerEn: "The supplier sent their invoice for 100 BOX-001. Accounting cannot approve it. In the warehouse, the boxes are there. In Odoo, stock is zero. Who is blocking whom — and why?",
     hint: "BOX-001 est dans l'entrepôt mais absent du système — écart PO/GR détecté.",
     hintEn: "BOX-001 is in the warehouse but missing from the system — PO/GR mismatch detected.",
     type: "negative",
@@ -246,8 +201,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     error_type: "po_gr_mismatch",
     wms_step: "GI",
     odoo_intervention: {
-      trigger: "Écart détecté entre quantité commandée et quantité reçue pour BOX-001",
-      triggerEn: "Mismatch detected between ordered and received quantity for BOX-001",
+      trigger: "Écart détecté entre stock physique et stock système pour BOX-001",
+      triggerEn: "Mismatch detected between physical and system stock for BOX-001",
       route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/products",
       action: "Ouvrez Odoo → Inventaire → Produits. Recherchez BOX-001. Vérifiez la quantité disponible. Comparez avec SKU-001 (50 unités) et SKU-004 (20 unités). Cherchez ensuite un bon de réception pour BOX-001 dans Réceptions.",
       actionEn: "Open Odoo → Inventory → Products. Search for BOX-001. Check the available quantity. Compare with SKU-001 (50 units) and SKU-004 (20 units). Then search for a receipt for BOX-001 in Receipts.",
@@ -265,14 +220,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant explique la correspondance à 3 voies et identifie la GR manquante comme cause du blocage de facturation",
       validationEn: "Student explains the 3-way match and identifies the missing GR as the cause of the invoicing block",
     },
-    instructor_script: {
-      what_to_say: "Imaginez que le fournisseur envoie sa facture pour 100 BOX-001. Odoo peut-il approuver le paiement ? Pourquoi pas ?",
-      what_to_sayEn: "Imagine the supplier sends their invoice for 100 BOX-001. Can Odoo approve the payment? Why not?",
-      common_mistake: "L'étudiant pense que c'est un bug système. Clarifiez : c'est une transaction manquante — quelqu'un a oublié de créer le bon de réception pour BOX-001.",
-      common_mistakeEn: "Student thinks it's a system bug. Clarify: it's a missing transaction — someone forgot to create the receipt for BOX-001.",
-      teaching_moment: "La correspondance à 3 voies (3-way match) : PO (commande) + GR (réception) + Facture doivent correspondre pour approuver le paiement. Si GR = 0 et Facture = 100, le système bloque. Dans SAP, c'est la transaction MIRO qui détecte cet écart. Dans Odoo, c'est la validation de facture fournisseur.",
-      teaching_momentEn: "The 3-way match: PO (order) + GR (receipt) + Invoice must match to approve payment. If GR = 0 and Invoice = 100, the system blocks. In SAP, this is the MIRO transaction that detects this discrepancy. In Odoo, it's the supplier invoice validation.",
-    },
   },
 
   // ── SCN-005: Erreur en cascade — Multi-Error Capstone (M1 / COMPLIANCE step) ─
@@ -281,8 +228,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M1",
     title: "Erreur en cascade",
     titleEn: "Cascading Error",
-    teacher_trigger: "La clôture de période est demain matin. Le contrôleur de gestion dit que les chiffres ne correspondent pas. Trois départements se renvoient la responsabilité. Vous avez 15 minutes pour identifier toutes les anomalies dans Odoo.",
-    teacher_triggerEn: "Period closing is tomorrow morning. The controller says the numbers don't match. Three departments are blaming each other. You have 15 minutes to identify all anomalies in Odoo.",
     hint: "Audit final — plusieurs anomalies coexistent. Le système n'est pas propre.",
     hintEn: "Final audit — multiple anomalies coexist. The system is not clean.",
     type: "negative",
@@ -310,14 +255,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant identifie les 3 anomalies et propose un plan de correction ordonné avec justification de priorité",
       validationEn: "Student identifies all 3 anomalies and proposes an ordered correction plan with priority justification",
     },
-    instructor_script: {
-      what_to_say: "Après la première anomalie trouvée, demandez : 'Avez-vous tout vérifié ? Regardez aussi les transferts internes et les produits sans réception.'",
-      what_to_sayEn: "After the first anomaly found, ask: 'Have you checked everything? Also look at internal transfers and products with no receipt.'",
-      common_mistake: "L'étudiant corrige la première erreur et déclare le système propre. Challengez : 'Avez-vous vérifié les transferts internes ? Et BOX-001 ?'",
-      common_mistakeEn: "Student fixes the first error and declares the system clean. Challenge: 'Have you checked internal transfers? And BOX-001?'",
-      teaching_moment: "La mentalité auditeur : chaque transaction laisse une trace. Une clôture de période propre exige que TOUTES les transactions soient résolues. Les erreurs en cascade sont les plus dangereuses car elles se masquent mutuellement. Dans SAP : MB51 (mouvements) + ME2M (écarts PO/GR) + MB52 (stock par emplacement) = audit complet.",
-      teaching_momentEn: "The auditor mindset: every transaction leaves a trace. A clean period close requires ALL transactions to be resolved. Cascading errors are the most dangerous because they mask each other. In SAP: MB51 (movements) + ME2M (PO/GR gaps) + MB52 (stock by location) = complete audit.",
-    },
   },
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -330,8 +267,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M2",
     title: "Violation FIFO",
     titleEn: "FIFO Violation",
-    teacher_trigger: "Un client a retourné une commande : les produits étaient périmés. L'entrepôt avait du stock plus récent disponible. Mais le préparateur a pris le mauvais lot. Qui est responsable — et comment l'éviter ?",
-    teacher_triggerEn: "A customer returned an order: the products were expired. The warehouse had fresher stock available. But the picker took the wrong lot. Who is responsible — and how do you prevent this?",
     hint: "Deux lots disponibles — lequel prélever en premier ?",
     hintEn: "Two lots available — which one to pick first?",
     type: "negative",
@@ -347,8 +282,8 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       actionEn: "Open Odoo → Inventory → Products. Select the relevant product → 'Lots/Serial Numbers' tab. Observe the reception date of each lot.",
       discovery_question: "Ouvrez SKU-001 → onglet Lots. Quel est le numéro et la date de réception du lot LOT-SKU001-001 ? Si une 2e livraison arrivait avec un lot plus récent, lequel devrait être prélevé en premier ?",
       discovery_questionEn: "Open SKU-001 → Lots tab. What is the number and reception date of lot LOT-SKU001-001? If a 2nd delivery arrived with a newer lot, which should be picked first?",
-      expected_observation: "LOT-SKU001-001 est visible avec sa date de réception. Le principe FIFO exige que ce lot soit prélevé avant tout lot reçu ultérieurement. ⚠️ Note instructeur : pour rendre le contraste visible, créez un 2e lot (LOT-SKU001-002) dans Odoo avant le cours via Inventaire → Lots/Numéros de série → Nouveau.",
-      expected_observationEn: "LOT-SKU001-001 is visible with its reception date. FIFO requires this lot to be picked before any later-received lot. ⚠️ Instructor note: to make the contrast visible, create a 2nd lot (LOT-SKU001-002) in Odoo before class via Inventory → Lots/Serial Numbers → New.",
+      expected_observation: "LOT-SKU001-001 est visible avec sa date de réception. LOT-SKU001-002 est également présent. Le principe FIFO exige que LOT-SKU001-001 soit prélevé avant LOT-SKU001-002 car il a été reçu en premier.",
+      expected_observationEn: "LOT-SKU001-001 is visible with its reception date. LOT-SKU001-002 is also present. FIFO requires LOT-SKU001-001 to be picked before LOT-SKU001-002 because it was received first.",
       resolution: "Annuler le prélèvement et recommencer en sélectionnant le lot avec la date de réception la plus ancienne. Dans Odoo, la stratégie FIFO peut être configurée automatiquement par produit.",
       resolutionEn: "Cancel the pick and restart by selecting the lot with the oldest reception date. In Odoo, the FIFO strategy can be configured automatically per product.",
     },
@@ -358,14 +293,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       messageEn: "Which lot should have been picked first, and why is this a legal obligation for perishable products?",
       validation: "L'étudiant identifie le lot le plus ancien et explique le risque de péremption si FIFO n'est pas respecté",
       validationEn: "Student identifies the oldest lot and explains the expiry risk if FIFO is not followed",
-    },
-    instructor_script: {
-      what_to_say: "FIFO n'est pas une option — c'est une obligation légale pour les produits périssables.",
-      what_to_sayEn: "FIFO is not an option — it is a legal obligation for perishable products.",
-      common_mistake: "Prélever le lot le plus accessible physiquement plutôt que le plus ancien chronologiquement.",
-      common_mistakeEn: "Picking the most physically accessible lot rather than the chronologically oldest one.",
-      teaching_moment: "FIFO (First In, First Out) garantit que les marchandises les plus anciennes quittent l'entrepôt en premier. Dans Odoo et SAP, elle est configurable par produit (Removal Strategy). En cas d'audit, une violation FIFO = non-conformité réglementaire.",
-      teaching_momentEn: "FIFO (First In, First Out) ensures the oldest goods leave the warehouse first. In Odoo and SAP, it is configurable per product (Removal Strategy). In an audit, a FIFO violation = regulatory non-compliance.",
     },
   },
 
@@ -379,8 +306,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M3",
     title: "Stock négatif",
     titleEn: "Negative Stock",
-    teacher_trigger: "Odoo affiche un stock négatif pour SKU-001 : -10 unités. C'est mathématiquement impossible dans un entrepôt réel. Quelqu'un a livré ce qu'il n'avait pas. Comment cela arrive-t-il dans un système ERP ?",
-    teacher_triggerEn: "Odoo shows negative stock for SKU-001: -10 units. This is mathematically impossible in a real warehouse. Someone delivered what they didn't have. How does this happen in an ERP system?",
     hint: "Stock insuffisant détecté — la séquence a été rompue.",
     hintEn: "Insufficient stock detected — the sequence was broken.",
     type: "negative",
@@ -408,14 +333,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant explique la rupture de séquence (GI avant GR ou GR non postée)",
       validationEn: "Student explains the sequence break (GI before GR or unposted GR)",
     },
-    instructor_script: {
-      what_to_say: "Vous ne pouvez pas livrer ce que vous n'avez pas reçu.",
-      what_to_sayEn: "You cannot deliver what you have not received.",
-      common_mistake: "Ignorer la séquence et exécuter le GI sans vérifier le stock disponible.",
-      common_mistakeEn: "Ignoring the sequence and executing GI without checking available stock.",
-      teaching_moment: "Le flux logistique est causal : GR → Putaway → GI → Livraison. Chaque étape dépend de la précédente. GI sans GR = anomalie critique en audit. Dans SAP, le système bloque physiquement cette séquence.",
-      teaching_momentEn: "The logistics flow is causal: GR → Putaway → GI → Delivery. Each step depends on the previous one. GI without GR = critical audit anomaly. In SAP, the system physically blocks this sequence.",
-    },
   },
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -428,8 +345,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M4",
     title: "Lecture KPI",
     titleEn: "KPI Reading",
-    teacher_trigger: "Le directeur logistique reçoit le tableau de bord mensuel. Trois indicateurs sont au rouge. Il demande une explication en 5 minutes. Vous avez Odoo ouvert devant vous. Par où commencez-vous ?",
-    teacher_triggerEn: "The logistics director receives the monthly dashboard. Three indicators are in the red. They want an explanation in 5 minutes. You have Odoo open in front of you. Where do you start?",
     hint: "Comparez vos KPI TEC.WMS avec les données réelles Odoo.",
     hintEn: "Compare your TEC.WMS KPIs with real Odoo data.",
     type: "positive",
@@ -457,14 +372,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant identifie l'indicateur critique et propose une action corrective concrète",
       validationEn: "Student identifies the critical indicator and proposes a concrete corrective action",
     },
-    instructor_script: {
-      what_to_say: "Un KPI sans action corrective n'est qu'un chiffre. La valeur est dans la décision qu'il déclenche.",
-      what_to_sayEn: "A KPI without corrective action is just a number. The value is in the decision it triggers.",
-      common_mistake: "Lire les KPI sans les contextualiser — ne pas comparer à un benchmark ou à la période précédente.",
-      common_mistakeEn: "Reading KPIs without contextualizing them — not comparing to a benchmark or previous period.",
-      teaching_moment: "Les 4 KPI fondamentaux : (1) Rotation = consommation annuelle / stock moyen, (2) Taux de service = commandes livrées à temps / total, (3) Taux d'erreur = erreurs / opérations, (4) Délai moyen = temps entre commande et livraison. Chaque KPI déclenche une action spécifique.",
-      teaching_momentEn: "The 4 fundamental KPIs: (1) Turnover = annual consumption / average stock, (2) Service level = orders on time / total, (3) Error rate = errors / operations, (4) Lead time = time between order and delivery. Each KPI triggers a specific action.",
-    },
   },
 
   // ════════════════════════════════════════════════════════════════════════════
@@ -477,8 +384,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     module: "M5",
     title: "Erreur cachée",
     titleEn: "Hidden Error",
-    teacher_trigger: "L'auditeur externe arrive demain. Il demande que tous les bons de réception soient validés ou annulés. Vous ouvrez Odoo et vous trouvez un document READY vieux de 3 semaines. Personne ne sait pourquoi il est encore ouvert.",
-    teacher_triggerEn: "The external auditor arrives tomorrow. They require all receipts to be validated or cancelled. You open Odoo and find a READY document that is 3 weeks old. Nobody knows why it is still open.",
     hint: "Audit final — le système n'est pas propre.",
     hintEn: "Final audit — the system is not clean.",
     type: "negative",
@@ -506,14 +411,6 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
       validation: "L'étudiant identifie le document READY et explique son impact sur la clôture",
       validationEn: "Student identifies the READY document and explains its impact on period closing",
     },
-    instructor_script: {
-      what_to_say: "Une erreur ancienne impacte le présent. Le système n'oublie jamais.",
-      what_to_sayEn: "An old error impacts the present. The system never forgets.",
-      common_mistake: "Ignorer l'historique des transactions et se concentrer uniquement sur les opérations actuelles.",
-      common_mistakeEn: "Ignoring transaction history and focusing only on current operations.",
-      teaching_moment: "La mentalité auditeur : chaque transaction laisse une trace. Une clôture de période propre exige que TOUTES les transactions soient résolues. Dans SAP, les documents ouverts apparaissent dans MB51 et bloquent la clôture MM.",
-      teaching_momentEn: "The auditor mindset: every transaction leaves a trace. A clean period close requires ALL transactions to be resolved. In SAP, open documents appear in MB51 and block MM period closing.",
-    },
   },
 };
 
@@ -537,7 +434,6 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
   const [odooOpened, setOdooOpened] = useState(false);
   const [step1Answer, setStep1Answer] = useState("");
   const [finalAnswer, setFinalAnswer] = useState("");
-  const [showInstructor, setShowInstructor] = useState(false);
 
   const confirmMutation = trpc.scenarios.confirmPanel.useMutation({
     onSuccess: () => {
@@ -598,12 +494,6 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
   if (panelState === "COLLAPSED") {
     return (
       <div className="mt-3 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
-        {/* Teacher Trigger — real-world tension statement */}
-        <div className="mb-2 pb-2 border-b border-amber-200 dark:border-amber-700">
-          <p className="text-[10px] font-bold text-amber-900 dark:text-amber-100 leading-relaxed">
-            🎯 {t(scenario.teacher_trigger, scenario.teacher_triggerEn)}
-          </p>
-        </div>
         <div className="flex items-center gap-2">
           <AlertTriangle size={13} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div className="flex-1 min-w-0">
@@ -686,16 +576,6 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
       </div>
 
       <div className="px-3 pb-3 pt-1 space-y-3">
-
-        {/* ── Teacher Trigger card — repeated at top of expanded panel ─────── */}
-        <div className="rounded bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 px-2.5 py-2">
-          <p className="text-[9px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide mb-0.5">
-            🎯 {t("Situation réelle", "Real-world situation")}
-          </p>
-          <p className="text-[10px] font-semibold text-amber-900 dark:text-amber-100 leading-relaxed">
-            {t(scenario.teacher_trigger, scenario.teacher_triggerEn)}
-          </p>
-        </div>
 
         {/* ── STEP 1: Odoo task + discovery question ─────────────────────── */}
         <div className="space-y-2">
@@ -837,35 +717,6 @@ export function ScenarioPanel({ scenarioId, runId, alreadyConfirmed = false, onC
             )}
           </div>
         )}
-
-        {/* ── Instructor script — hidden accordion ──────────────────────── */}
-        <div className="border-t border-border/50 pt-2">
-          <button
-            type="button"
-            onClick={() => setShowInstructor(!showInstructor)}
-            className="flex items-center gap-1.5 text-[9px] font-semibold text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <GraduationCap size={10} />
-            {t("Script enseignant", "Instructor script")}
-            {showInstructor ? <ChevronUp size={9} /> : <ChevronDown size={9} />}
-          </button>
-          {showInstructor && (
-            <div className="mt-2 space-y-1.5 bg-muted/20 rounded p-2">
-              <p className="text-[9px]">
-                <span className="font-semibold text-foreground">{t("À dire :", "Say:")}</span>{" "}
-                <span className="text-muted-foreground italic">« {t(scenario.instructor_script.what_to_say, scenario.instructor_script.what_to_sayEn)} »</span>
-              </p>
-              <p className="text-[9px]">
-                <span className="font-semibold text-foreground">{t("Erreur fréquente :", "Common mistake:")}</span>{" "}
-                <span className="text-muted-foreground">{t(scenario.instructor_script.common_mistake, scenario.instructor_script.common_mistakeEn)}</span>
-              </p>
-              <p className="text-[9px]">
-                <span className="font-semibold text-foreground">{t("Moment pédagogique :", "Teaching moment:")}</span>{" "}
-                <span className="text-muted-foreground">{t(scenario.instructor_script.teaching_moment, scenario.instructor_script.teaching_momentEn)}</span>
-              </p>
-            </div>
-          )}
-        </div>
 
       </div>
     </div>
