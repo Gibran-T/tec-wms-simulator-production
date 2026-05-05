@@ -202,18 +202,29 @@
 
 ## Teacher Trigger — Scenario Entry Point Redesign
 
-- [ ] Design Teacher Trigger (FR + EN) for SCN-001: tension around "stock visible but is it real?"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-002: tension around "receipt created but stock = 0"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-003: tension around "goods received but cannot be picked"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-004: tension around "supplier invoice blocked, no one knows why"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-005: tension around "period close tomorrow, system is not clean"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-M2-001: tension around "wrong lot shipped to customer"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-M3-001: tension around "delivery impossible, stock shows negative"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-M4-001: tension around "KPI dashboard shows red, no one can explain why"
-- [ ] Design Teacher Trigger (FR + EN) for SCN-M5-001: tension around "old receipt still open, audit is tomorrow"
-- [ ] Add teacher_trigger + teacher_triggerEn fields to ScenarioConfig TypeScript interface
-- [ ] Add teacher_trigger text to all 9 scenario entries in SCENARIO_REGISTRY
-- [ ] Update ScenarioPanel UI: show Teacher Trigger as the first visible element in collapsed banner
-- [ ] Update ScenarioPanel UI: repeat Teacher Trigger as a styled "situation" card at top of Step 1
+- [x] Design Teacher Trigger (FR + EN) for SCN-001: tension around "stock visible but is it real?"
+- [x] Design Teacher Trigger (FR + EN) for SCN-002: tension around "receipt created but stock = 0"
+- [x] Design Teacher Trigger (FR + EN) for SCN-003: tension around "goods received but cannot be picked"
+- [x] Design Teacher Trigger (FR + EN) for SCN-004: tension around "supplier invoice blocked, no one knows why"
+- [x] Design Teacher Trigger (FR + EN) for SCN-005: tension around "period close tomorrow, system is not clean"
+- [x] Design Teacher Trigger (FR + EN) for SCN-M2-001: tension around "wrong lot shipped to customer"
+- [x] Design Teacher Trigger (FR + EN) for SCN-M3-001: tension around "delivery impossible, stock shows negative"
+- [x] Design Teacher Trigger (FR + EN) for SCN-M4-001: tension around "KPI dashboard shows red, no one can explain why"
+- [x] Design Teacher Trigger (FR + EN) for SCN-M5-001: tension around "old receipt still open, audit is tomorrow"
+- [x] Add teacher_trigger + teacher_triggerEn fields to ScenarioConfig TypeScript interface
+- [x] Add teacher_trigger text to all 9 scenario entries in SCENARIO_REGISTRY
+- [x] Update ScenarioPanel UI: show Teacher Trigger as the first visible element in collapsed banner
+- [x] Update ScenarioPanel UI: repeat Teacher Trigger as a styled "situation" card at top of Step 1
+- [x] Run pnpm build (0 errors, 9.90s) and pnpm test (218/218)
+- [x] Save checkpoint (6abcae52) and deliver updated scenario document
+
+## Full Scenario Validation & Stress-Test (All 9 SCN)
+
+- [ ] Stress-test SCN-001 to SCN-005 (M1): simulate execution, validate visual contrast, confirm classroom readiness
+- [ ] Stress-test SCN-M2-001, SCN-M3-001, SCN-M4-001, SCN-M5-001: same validation
+- [ ] Improve discovery questions, expected answers, and common mistakes where weak
+- [ ] Update ScenarioPanel registry with improved content
+- [ ] Write comprehensive validated scenario document (all 9 SCN, FR+EN, with instructor guidance)
+- [ ] Export scenario document to PDF
 - [ ] Run pnpm build (0 errors) and pnpm test (218/218)
-- [ ] Save checkpoint and deliver updated scenario document
+- [ ] Save checkpoint and deliver to professor

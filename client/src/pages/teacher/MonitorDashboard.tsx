@@ -66,7 +66,8 @@ export default function MonitorDashboard() {
       t("Score", "Score"),
       t("Conforme", "Compliant"),
       t("Étapes complétées", "Completed steps"),
-      "SCN-001", "SCN-002", "SCN-003", "SCN-004", "SCN-005"
+      "SCN-001", "SCN-002", "SCN-003", "SCN-004", "SCN-005",
+      "SCN-M2-001", "SCN-M3-001", "SCN-M4-001", "SCN-M5-001"
     ];
     const rows = displayedRuns.map((r: any) => [
       r.run?.id ?? r.runId,
@@ -82,7 +83,11 @@ export default function MonitorDashboard() {
       r.completedSteps?.includes("SCN-002-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
       r.completedSteps?.includes("SCN-003-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
       r.completedSteps?.includes("SCN-004-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-005-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No")
+      r.completedSteps?.includes("SCN-005-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-M2-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-M3-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-M4-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
+      r.completedSteps?.includes("SCN-M5-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No")
     ]);
     const csv = [headers, ...rows].map(row => row.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -313,7 +318,17 @@ export default function MonitorDashboard() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-1">
-                      {["SCN-001","SCN-002","SCN-003","SCN-004","SCN-005"].map(scn => {
+                      {[
+                        { key: "SCN-001", label: "001" },
+                        { key: "SCN-002", label: "002" },
+                        { key: "SCN-003", label: "003" },
+                        { key: "SCN-004", label: "004" },
+                        { key: "SCN-005", label: "005" },
+                        { key: "SCN-M2-001", label: "M2" },
+                        { key: "SCN-M3-001", label: "M3" },
+                        { key: "SCN-M4-001", label: "M4" },
+                        { key: "SCN-M5-001", label: "M5" },
+                      ].map(({ key: scn, label }) => {
                         const confirmed = r.completedSteps?.includes(`${scn}-CONFIRMED`);
                         return (
                           <span
@@ -327,7 +342,7 @@ export default function MonitorDashboard() {
                                 : "bg-secondary border-border text-muted-foreground opacity-50"
                             }`}
                           >
-                            {confirmed ? "✅" : "□"} {scn.replace("SCN-", "")}
+                            {confirmed ? "✅" : "□"} {label}
                           </span>
                         );
                       })}
