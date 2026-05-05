@@ -14,7 +14,7 @@ import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
-  BookOpen, GraduationCap, Clock, Tag, Lightbulb,
+  Clock, Tag, Lightbulb,
   List, X
 } from "lucide-react";
 
@@ -93,7 +93,6 @@ export default function SlideViewer() {
 
   // ── ALL hooks must be declared before any conditional returns ──────────────
   const [slideIndex, setSlideIndex] = useState(0);
-  const [professorMode, setProfessorMode] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [animKey, setAnimKey] = useState(0);
 
@@ -129,8 +128,6 @@ export default function SlideViewer() {
         goPrev();
       } else if (e.key === "Escape") {
         navigate("/student/scenarios");
-      } else if (e.key === "p" || e.key === "P") {
-        setProfessorMode(m => !m);
       }
     };
     window.addEventListener("keydown", handler);
@@ -168,7 +165,6 @@ export default function SlideViewer() {
   const title = lang === "FR" ? slide.titleFr : slide.titleEn;
   const subtitle = lang === "FR" ? slide.subtitleFr : slide.subtitleEn;
   const body = lang === "FR" ? slide.bodyFr : slide.bodyEn;
-  const notes = lang === "FR" ? slide.notesFr : slide.notesEn;
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
   const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
   const progress = ((slideIndex + 1) / totalSlides) * 100;
@@ -205,21 +201,6 @@ export default function SlideViewer() {
 
           <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
 
-          {/* Professor mode toggle */}
-          <button
-            onClick={() => setProfessorMode(m => !m)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
-              professorMode
-                ? "bg-amber-500 text-white"
-                : "border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
-            }`}
-            title={t("Mode Professeur (P)", "Professor Mode (P)")}
-          >
-            {professorMode ? <GraduationCap className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
-            <span className="hidden md:inline">
-              {professorMode ? t("Prof", "Prof") : t("Étudiant", "Student")}
-            </span>
-          </button>
 
           {/* Slide list toggle */}
           <button
@@ -340,13 +321,31 @@ export default function SlideViewer() {
               </div>
 
               {/* Slide body */}
-              <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
-                <div className="space-y-0.5">
-                  {body.map((line, i) => (
-                    <SlideLine key={i} line={line} />
-                  ))}
+              {slide.warehouseImage ? (
+                <div className="mb-4">
+                  <img
+                    src={slide.warehouseImage}
+                    alt={title}
+                    className="w-full rounded-xl border border-border object-contain"
+                    style={{ maxHeight: "480px" }}
+                  />
+                  <div className="rounded-xl border border-border bg-card px-5 py-3 mt-3">
+                    <div className="space-y-0.5">
+                      {body.map((line, i) => (
+                        <SlideLine key={i} line={line} />
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
+                  <div className="space-y-0.5">
+                    {body.map((line, i) => (
+                      <SlideLine key={i} line={line} />
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Highlight badge */}
               {slide.highlight && (
@@ -369,21 +368,6 @@ export default function SlideViewer() {
                 </div>
               )}
 
-              {/* Professor Notes Panel */}
-              {professorMode && notes && (
-                <div className="notes-panel rounded-r-xl p-4 sm:p-5 mb-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <GraduationCap className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
-                      {t("Notes du professeur", "Professor Notes")}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-mono ml-auto">
-                      ~{slide.timingMin} min {t("à l'oral", "speaking")}
-                    </span>
-                  </div>
-                  <p className="text-sm text-foreground/85 leading-relaxed">{notes}</p>
-                </div>
-              )}
 
               {/* Spacer for nav buttons */}
               <div className="h-16" />
