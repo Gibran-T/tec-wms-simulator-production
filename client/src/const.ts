@@ -1,5 +1,10 @@
 export { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
+// ── Official EDU Odoo database ─────────────────────────────────────────────
+// All Odoo Lab links must use this constant. Never hardcode the domain.
+// To switch databases, change only this one line.
+export const ODOO_BASE_URL = "https://edu-concorde-logistics-lab.odoo.com";
+
 // Generate login URL at runtime so redirect URI reflects the current origin.
 export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;

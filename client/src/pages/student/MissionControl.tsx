@@ -372,7 +372,7 @@ export default function MissionControl() {
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <a
-                    href="https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts"
+                    href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2 rounded-md transition-colors"
@@ -381,7 +381,7 @@ export default function MissionControl() {
                   </a>
                   {moduleId === 2 && (
                     <a
-                      href="https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts"
+                      href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-emerald-200 text-xs font-semibold px-4 py-2 rounded-md transition-colors"
@@ -391,7 +391,7 @@ export default function MissionControl() {
                   )}
                   {moduleId === 3 && (
                     <a
-                      href="https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting"
+                      href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-emerald-200 text-xs font-semibold px-4 py-2 rounded-md transition-colors"
@@ -401,7 +401,7 @@ export default function MissionControl() {
                   )}
                   {moduleId === 5 && (
                     <a
-                      href="https://concorde-logistics-lab.odoo.com/odoo/inventory/products"
+                      href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 bg-emerald-900 hover:bg-emerald-800 border border-emerald-600 text-emerald-200 text-xs font-semibold px-4 py-2 rounded-md transition-colors"

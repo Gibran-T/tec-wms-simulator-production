@@ -98,7 +98,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Réception enregistrée dans TEC.WMS — vérification dans Odoo",
       triggerEn: "Receipt recorded in TEC.WMS — verification in Odoo",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
       action: "Ouvrez Odoo → Inventaire → Réceptions. Trouvez WH/IN/00003. Cliquez dessus. Observez le statut et les lignes de mouvement. Naviguez ensuite vers Produits → SKU-001 → Stock disponible.",
       actionEn: "Open Odoo → Inventory → Receipts. Find WH/IN/00003. Click it. Observe the status and movement lines. Then navigate to Products → SKU-001 → Available stock.",
       discovery_question: "Quel est le statut de WH/IN/00003 ? Combien d'unités de SKU-001 sont disponibles, et à quel emplacement ?",
@@ -133,7 +133,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Réception enregistrée dans TEC.WMS mais stock toujours à zéro dans Odoo",
       triggerEn: "Receipt recorded in TEC.WMS but stock still zero in Odoo",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
       action: "Ouvrez Odoo → Inventaire → Réceptions. Filtrez par statut 'PRÊT' (Ready). Observez les documents listés. Cliquez sur l'un d'eux — y a-t-il des lignes de mouvement de stock générées ?",
       actionEn: "Open Odoo → Inventory → Receipts. Filter by status 'READY'. Observe the listed documents. Click on one — are there any stock movement lines generated?",
       discovery_question: "Quel est le statut des documents que vous trouvez ? Qu'est-ce que ce statut signifie pour le stock disponible ?",
@@ -168,7 +168,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Réception validée mais transfert de rangement non exécuté",
       triggerEn: "Receipt validated but putaway transfer not executed",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
       action: "Ouvrez Odoo → Inventaire → Transferts internes. Recherchez WH/STOR/00001. Observez son statut et les emplacements source/destination. Comparez avec l'emplacement actuel de SKU-001 dans Produits → Stock disponible.",
       actionEn: "Open Odoo → Inventory → Internal Transfers. Find WH/STOR/00001. Observe its status and source/destination locations. Compare with the current location of SKU-001 in Products → Available stock.",
       discovery_question: "Quel est le statut de WH/STOR/00001 ? À quel emplacement SKU-001 se trouve-t-il actuellement ? Est-ce l'emplacement final prévu ?",
@@ -203,7 +203,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Écart détecté entre stock physique et stock système pour BOX-001",
       triggerEn: "Mismatch detected between physical and system stock for BOX-001",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/products",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
       action: "Ouvrez Odoo → Inventaire → Produits. Recherchez BOX-001. Vérifiez la quantité disponible. Comparez avec SKU-001 (50 unités) et SKU-004 (20 unités). Cherchez ensuite un bon de réception pour BOX-001 dans Réceptions.",
       actionEn: "Open Odoo → Inventory → Products. Search for BOX-001. Check the available quantity. Compare with SKU-001 (50 units) and SKU-004 (20 units). Then search for a receipt for BOX-001 in Receipts.",
       discovery_question: "Quelle est la quantité disponible de BOX-001 dans Odoo ? Y a-t-il un bon de réception validé (DONE) pour ce produit ? Qu'est-ce que cela signifie pour la facturation fournisseur ?",
@@ -238,7 +238,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Audit final du module M1 — vérification systématique de la cohérence documentaire",
       triggerEn: "M1 final audit — systematic check of documentary consistency",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
       action: "Ouvrez Odoo → Inventaire → Réceptions. Listez TOUS les documents et notez leur statut. Ouvrez ensuite Transferts internes et faites de même. Enfin, vérifiez Produits → BOX-001. Dressez une liste de toutes les anomalies que vous trouvez.",
       actionEn: "Open Odoo → Inventory → Receipts. List ALL documents and note their status. Then open Internal Transfers and do the same. Finally, check Products → BOX-001. Make a list of all anomalies you find.",
       discovery_question: "Combien d'anomalies différentes pouvez-vous identifier ? Listez-les par ordre de priorité : quelle est la plus critique pour la clôture de période ?",
@@ -277,7 +277,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Prélèvement effectué sur un lot récent alors qu'un lot plus ancien est disponible",
       triggerEn: "Pick performed on a recent lot while an older lot is available",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/products",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
       action: "Ouvrez Odoo → Inventaire → Produits. Sélectionnez le produit concerné → onglet 'Lots/Numéros de série'. Observez les dates de réception de chaque lot.",
       actionEn: "Open Odoo → Inventory → Products. Select the relevant product → 'Lots/Serial Numbers' tab. Observe the reception date of each lot.",
       discovery_question: "Ouvrez SKU-001 → onglet Lots. Quel est le numéro et la date de réception du lot LOT-SKU001-001 ? Si une 2e livraison arrivait avec un lot plus récent, lequel devrait être prélevé en premier ?",
@@ -316,7 +316,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Incohérence de livraison détectée — stock insuffisant avant GI",
       triggerEn: "Delivery inconsistency detected — insufficient stock before GI",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
       action: "Ouvrez Odoo → Inventaire → Reporting. Vérifiez la quantité disponible pour le SKU concerné dans le rapport de valorisation des stocks.",
       actionEn: "Open Odoo → Inventory → Reporting. Check the available quantity for the relevant SKU in the stock valuation report.",
       discovery_question: "Quelle est la quantité disponible pour ce SKU dans Odoo ? Comment expliquez-vous cet écart avec la quantité demandée ?",
@@ -355,7 +355,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Étape de diagnostic global — validation des indicateurs de performance",
       triggerEn: "Global diagnostic step — performance indicator validation",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
       action: "Ouvrez Odoo → Inventaire → Reporting. Explorez les rapports : mouvements de stock, valorisation des stocks, analyse par emplacement.",
       actionEn: "Open Odoo → Inventory → Reporting. Explore the reports: stock moves, stock valuation, location analysis.",
       discovery_question: "Dans Odoo → Reporting → Mouvements de stock : combien de mouvements de type 'Réception' trouvez-vous ? Combien de mouvements de type 'Livraison' ? Calculez le taux de service : Livraisons / (Réceptions + Livraisons) × 100. Est-ce acceptable ?",
@@ -394,7 +394,7 @@ export const SCENARIO_REGISTRY: Record<string, ScenarioConfig> = {
     odoo_intervention: {
       trigger: "Audit final du module — vérification de la cohérence documentaire",
       triggerEn: "Module final audit — documentary consistency check",
-      route: "https://concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      route: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
       action: "Ouvrez Odoo → Inventaire → Réceptions. Filtrez par statut 'READY'. Identifiez les documents non validés les plus anciens.",
       actionEn: "Open Odoo → Inventory → Receipts. Filter by status 'READY'. Identify the oldest unvalidated documents.",
       discovery_question: "Combien de documents READY trouvez-vous ? Quel est le plus ancien ? Quel impact a-t-il sur la clôture de période ?",
