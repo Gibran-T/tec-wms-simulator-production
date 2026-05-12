@@ -313,8 +313,8 @@ export function LabReplenish() {
     <div className="mt-4 border border-blue-300 dark:border-blue-700 rounded-md overflow-hidden bg-blue-50/60 dark:bg-blue-950/30 px-4 py-3 text-blue-800 dark:text-blue-200">
       <SlideHeader
         icon="🔵"
-        labelFr="Odoo Lab — Règles de réapprovisionnement"
-        labelEn="Odoo Lab — Replenishment Rules"
+        labelFr="Odoo Lab — Règles de réapprovisionnement Min/Max"
+        labelEn="Odoo Lab — Min/Max Replenishment Rules"
         badge="M3 · Core"
         badgeColor="bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200"
       />
@@ -322,46 +322,64 @@ export function LabReplenish() {
       <ConceptCard
         titleFr="Concept clé"
         titleEn="Key concept"
-        bodyFr="Le réapprovisionnement automatique repose sur des règles Min/Max. Quand le stock descend sous le seuil Min, le système génère automatiquement une demande d'achat."
-        bodyEn="Automatic replenishment relies on Min/Max rules. When stock drops below the Min threshold, the system automatically generates a purchase request."
+        bodyFr="Le réapprovisionnement automatique repose sur des règles Min/Max. Quand le stock descend sous le seuil Min, le système génère automatiquement une demande d'achat (Qté = Max − Stock actuel)."
+        bodyEn="Automatic replenishment relies on Min/Max rules. When stock drops below the Min threshold, the system automatically generates a purchase request (Qty = Max − Current stock)."
         color="border-blue-400 bg-blue-100/60 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200"
       />
 
-      {/* Min/Max visual gauge */}
+      {/* Dual product gauges — real Odoo EDU data (Phase 3B) */}
       <div className="mb-3">
         <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
-          {t("Logique Min/Max — exemple", "Min/Max logic — example")}
+          {t("Données réelles — Odoo EDU Lab", "Real data — Odoo EDU Lab")}
         </p>
-        <div className="rounded border border-blue-200 dark:border-blue-700 bg-white/60 dark:bg-blue-900/20 p-3">
-          <div className="flex justify-between text-[9px] font-mono mb-1 opacity-60">
-            <span>0</span><span>Min=20</span><span>Stock=15</span><span>Max=100</span>
+        {/* SKU-004: Ruban adhésif — Min=10, Max=50, Stock=0 */}
+        <div className="rounded border border-blue-200 dark:border-blue-700 bg-white/60 dark:bg-blue-900/20 p-2.5 mb-2">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[9px] font-mono font-bold text-blue-700 dark:text-blue-300">SKU-004</span>
+            <span className="text-[9px] opacity-70">{t("Ruban adhésif d'emballage", "Packaging tape")}</span>
           </div>
-          {/* Bar */}
-          <div className="relative h-5 rounded-full bg-blue-100 dark:bg-blue-900/40 overflow-hidden border border-blue-200 dark:border-blue-700">
-            {/* Max zone */}
-            <div className="absolute inset-0 bg-green-200 dark:bg-green-900/40 rounded-full" style={{ width: "100%" }} />
-            {/* Min zone */}
-            <div className="absolute inset-0 bg-orange-200 dark:bg-orange-900/40 rounded-full" style={{ width: "20%" }} />
-            {/* Current stock */}
-            <div className="absolute inset-y-0 left-0 bg-red-400 dark:bg-red-600 rounded-full flex items-center justify-end pr-1" style={{ width: "15%" }}>
-              <span className="text-white text-[8px] font-bold">15</span>
-            </div>
-            {/* Min line */}
+          <div className="flex justify-between text-[8px] font-mono mb-1 opacity-50">
+            <span className="text-red-500 font-bold">Stock=0</span><span>Min=10</span><span>Max=50</span>
+          </div>
+          <div className="relative h-4 rounded-full overflow-hidden border border-blue-200 dark:border-blue-700">
+            <div className="absolute inset-0 bg-green-200 dark:bg-green-900/40" style={{ width: "100%" }} />
+            <div className="absolute inset-0 bg-orange-200 dark:bg-orange-900/40" style={{ width: "20%" }} />
+            <div className="absolute inset-y-0 left-0 bg-red-400 dark:bg-red-600" style={{ width: "0%" }} />
             <div className="absolute inset-y-0 border-l-2 border-orange-500 border-dashed" style={{ left: "20%" }} />
           </div>
-          <div className="flex justify-between text-[9px] mt-1">
-            <span className="text-red-600 dark:text-red-400 font-bold">⚠️ {t("Stock < Min", "Stock < Min")}</span>
-            <span className="text-green-600 dark:text-green-400 font-bold">{t("Commander 85 unités", "Order 85 units")} (100−15)</span>
+          <div className="flex justify-between text-[8px] mt-1">
+            <span className="text-red-600 dark:text-red-400 font-bold">⚠️ {t("Stock = 0 < Min (10)", "Stock = 0 < Min (10)")}</span>
+            <span className="text-green-600 dark:text-green-400 font-bold">{t("Commander 50 unités", "Order 50 units")} (50−0)</span>
+          </div>
+        </div>
+        {/* SKU-005: Étiquette code-barres — Min=20, Max=100, Stock=0 */}
+        <div className="rounded border border-blue-200 dark:border-blue-700 bg-white/60 dark:bg-blue-900/20 p-2.5">
+          <div className="flex justify-between items-center mb-1">
+            <span className="text-[9px] font-mono font-bold text-blue-700 dark:text-blue-300">SKU-005</span>
+            <span className="text-[9px] opacity-70">{t("Étiquette code-barres", "Barcode label")}</span>
+          </div>
+          <div className="flex justify-between text-[8px] font-mono mb-1 opacity-50">
+            <span className="text-red-500 font-bold">Stock=0</span><span>Min=20</span><span>Max=100</span>
+          </div>
+          <div className="relative h-4 rounded-full overflow-hidden border border-blue-200 dark:border-blue-700">
+            <div className="absolute inset-0 bg-green-200 dark:bg-green-900/40" style={{ width: "100%" }} />
+            <div className="absolute inset-0 bg-orange-200 dark:bg-orange-900/40" style={{ width: "20%" }} />
+            <div className="absolute inset-y-0 left-0 bg-red-400 dark:bg-red-600" style={{ width: "0%" }} />
+            <div className="absolute inset-y-0 border-l-2 border-orange-500 border-dashed" style={{ left: "20%" }} />
+          </div>
+          <div className="flex justify-between text-[8px] mt-1">
+            <span className="text-red-600 dark:text-red-400 font-bold">⚠️ {t("Stock = 0 < Min (20)", "Stock = 0 < Min (20)")}</span>
+            <span className="text-green-600 dark:text-green-400 font-bold">{t("Commander 100 unités", "Order 100 units")} (100−0)</span>
           </div>
         </div>
       </div>
 
-      {/* Formula cards */}
+      {/* Formula cards — SKU-004 as primary example */}
       <div className="grid grid-cols-3 gap-2 mb-3 text-[10px]">
         {[
-          { label: t("Seuil Min", "Min Threshold"), formula: "= 20", desc: t("Déclenche la commande", "Triggers the order"), color: "border-orange-300 bg-orange-50 dark:bg-orange-950/30 text-orange-800 dark:text-orange-200" },
-          { label: t("Seuil Max", "Max Threshold"), formula: "= 100", desc: t("Quantité cible", "Target quantity"), color: "border-green-300 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200" },
-          { label: t("Qté commandée", "Order Qty"), formula: "Max − Stock", desc: "= 100 − 15 = 85", color: "border-blue-300 bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200" },
+          { label: t("Seuil Min", "Min Threshold"), formula: "SKU-004: 10", desc: t("Déclenche la commande", "Triggers the order"), color: "border-orange-300 bg-orange-50 dark:bg-orange-950/30 text-orange-800 dark:text-orange-200" },
+          { label: t("Seuil Max", "Max Threshold"), formula: "SKU-004: 50", desc: t("Quantité cible", "Target quantity"), color: "border-green-300 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200" },
+          { label: t("Qté commandée", "Order Qty"), formula: "Max − Stock", desc: "= 50 − 0 = 50", color: "border-blue-300 bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200" },
         ].map((card, i) => (
           <div key={i} className={`rounded border px-2 py-1.5 ${card.color}`}>
             <div className="font-bold text-[9px] uppercase opacity-60 mb-0.5">{card.label}</div>
@@ -382,10 +400,10 @@ export function LabReplenish() {
       />
 
       <WarningBanner
-        fr="Sans règle Min/Max : rupture de stock possible sans alerte système."
-        en="Without Min/Max rules: stockout possible with no system alert."
+        fr="Le stock est à zéro pour SKU-004 et SKU-005 — inférieur au seuil Min. Odoo propose une quantité à commander égale à Max − Stock actuel."
+        en="Stock is at zero for SKU-004 and SKU-005 — below the Min threshold. Odoo suggests an order quantity equal to Max − Current stock."
       />
-      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules" />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/replenishment" />
     </div>
   );
 }
