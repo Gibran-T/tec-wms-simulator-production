@@ -1,0 +1,94 @@
+{
+  "query": "SHOW TABLES;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute SHOW TABLES;",
+  "rows": [
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "__drizzle_migrations"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "assignments"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "bin_capacity"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "cohorts"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "cycle_counts"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "inventory_adjustments"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "inventory_counts"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "kpi_interpretations"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "kpi_snapshots"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "master_bins"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "master_skus"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "module_progress"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "modules"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "password_reset_tokens"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "pre_authorized_emails"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "profiles"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "progress"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "putaway_records"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "quiz_attempts"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "quiz_questions"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "quizzes"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "replenishment_params"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "replenishment_suggestions"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "scenario_runs"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "scenarios"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "scoring_events"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "transactions"
+    },
+    {
+      "Tables_in_nAhGw8XK59ZrVZBqWsfEzN": "users"
+    }
+  ],
+  "messages": [],
+  "stdout": "Tables_in_nAhGw8XK59ZrVZBqWsfEzN\n__drizzle_migrations\nassignments\nbin_capacity\ncohorts\ncycle_counts\ninventory_adjustments\ninventory_counts\nkpi_interpretations\nkpi_snapshots\nmaster_bins\nmaster_skus\nmodule_progress\nmodules\npassword_reset_tokens\npre_authorized_emails\nprofiles\nprogress\nputaway_records\nquiz_attempts\nquiz_questions\nquizzes\nreplenishment_params\nreplenishment_suggestions\nscenario_runs\nscenarios\nscoring_events\ntransactions\nusers\n",
+  "stderr": "",
+  "execution_time_ms": 266
+}

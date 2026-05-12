@@ -1,0 +1,16 @@
+{
+  "query": "SELECT id, email, name, passwordHash FROM users WHERE email = 'student@concorde.ca';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute SELECT id, email, name, passwordHash FROM users WHERE email = 'student@concorde.ca';",
+  "rows": [
+    {
+      "id": "20",
+      "email": "student@concorde.ca",
+      "name": "Étudiant Demo",
+      "passwordHash": "$2b$10$SOIHXEkbFxpql57wx2rhDeGnNsNvQCSpZ9PaZoXa90yVZ4rjCwvya"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\tpasswordHash\n20\tstudent@concorde.ca\tÉtudiant Demo\t$2b$10$SOIHXEkbFxpql57wx2rhDeGnNsNvQCSpZ9PaZoXa90yVZ4rjCwvya\n",
+  "stderr": "",
+  "execution_time_ms": 261
+}
