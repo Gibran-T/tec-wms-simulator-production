@@ -88,8 +88,8 @@ function OptionalOdooButton({ url }: { url: string }) {
     <div className="border-t border-current/20 pt-3 mt-3">
       <p className="text-[9px] italic opacity-60 mb-1.5">
         {t(
-          "Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.",
-          "Odoo session required — please log in to Concorde Logistics Lab before opening this link."
+          "Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien.",
+          "Odoo session required — please log in to Odoo EDU LAB before opening this link."
         )}
       </p>
       <a
@@ -672,7 +672,7 @@ export function LabFifoPick() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
+            {t("Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien.", "Odoo session required — please log in to Odoo EDU LAB before opening this link.")}
           </p>
           <a href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
@@ -763,7 +763,7 @@ export function LabAdj() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
+            {t("Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien.", "Odoo session required — please log in to Odoo EDU LAB before opening this link.")}
           </p>
           <a href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
@@ -884,7 +884,7 @@ export function LabCompliance() {
 
         <div className="border-t border-orange-200 dark:border-orange-800 pt-3">
           <p className="text-[9px] italic opacity-60 mb-1.5">
-            {t("Session Odoo requise — connectez-vous à Concorde Logistics Lab avant d'ouvrir ce lien.", "Odoo session required — please log in to Concorde Logistics Lab before opening this link.")}
+            {t("Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien.", "Odoo session required — please log in to Odoo EDU LAB before opening this link.")}
           </p>
           <a href="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts" target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-orange-300 dark:border-orange-700 text-[9px] font-medium opacity-70 hover:opacity-100 transition-opacity">
