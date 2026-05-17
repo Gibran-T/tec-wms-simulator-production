@@ -1120,3 +1120,488 @@ export function LabLots() {
     </div>
   );
 }
+
+// ─── M2 — FIFO_PICK: FIFO Picking in Odoo ────────────────────────────────────
+export function LabFifoPick_M2() {
+  const { t, language } = useLanguage();
+  const navSteps = language === "FR"
+    ? ["Inventaire → Produits → SKU-001", "Onglet 'Prélèvements' → voir les mouvements en attente", "Vérifier : lot le plus ancien sélectionné en premier", "Comparer date entrée lot A vs lot B", "Confirmer : FIFO = premier entré, premier sorti"]
+    : ["Inventory → Products → SKU-001", "Tab 'Pickings' → view pending moves", "Verify: oldest lot selected first", "Compare entry date lot A vs lot B", "Confirm: FIFO = first in, first out"];
+  return (
+    <div className="text-xs text-emerald-900 dark:text-emerald-100">
+      <SlideHeader icon="📦" labelFr="Odoo Lab — Prélèvement FIFO" labelEn="Odoo Lab — FIFO Picking" badge="M2 · FIFO_PICK" badgeColor="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" />
+      <ConceptCard
+        titleFr="Règle FIFO dans Odoo" titleEn="FIFO Rule in Odoo"
+        bodyFr="FIFO (First In First Out) = le stock le plus ancien est prélevé en premier. Dans Odoo, cette règle est configurée par produit ou catégorie."
+        bodyEn="FIFO (First In First Out) = oldest stock is picked first. In Odoo, this rule is configured per product or category."
+        color="border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+      />
+      <div className="rounded-md border border-emerald-200 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Vérification FIFO dans Odoo", "FIFO Verification in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {navSteps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-emerald-200 dark:border-emerald-700 bg-white/30 dark:bg-emerald-900/10 px-2 py-1">
+              <span className="text-emerald-500">▶</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "FIFO_PICK step", right: t("Stratégie retrait FIFO", "FIFO removal strategy") },
+          { left: "Lot le plus ancien", right: t("Date de réception la plus ancienne", "Oldest receipt date") },
+          { left: "Ordre de prélèvement", right: t("Bon de livraison / Picking", "Delivery order / Picking") },
+          { left: "Validation FIFO", right: t("Transfert validé Odoo", "Validated Odoo transfer") },
+        ]}
+      />
+      <WarningBanner
+        fr="Sans règle FIFO configurée, Odoo peut prélever n'importe quel lot — risque de péremption et non-conformité."
+        en="Without FIFO rule configured, Odoo may pick any lot — expiry risk and non-compliance."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/picking-type-all" />
+    </div>
+  );
+}
+
+// ─── M2 — STOCK_ACCURACY: Inventory Accuracy in Odoo ─────────────────────────
+export function LabStockAccuracy() {
+  const { t, language } = useLanguage();
+  const checkItems = language === "FR"
+    ? ["Inventaire → Produits → Vérifier quantité disponible", "Comparer : stock système vs stock physique compté", "Identifier les écarts (variance positive ou négative)", "Créer ajustement d'inventaire si écart > seuil", "Valider l'ajustement → stock mis à jour"]
+    : ["Inventory → Products → Check on-hand quantity", "Compare: system stock vs physical count", "Identify variances (positive or negative)", "Create inventory adjustment if variance > threshold", "Validate adjustment → stock updated"];
+  return (
+    <div className="text-xs text-blue-900 dark:text-blue-100">
+      <SlideHeader icon="🎯" labelFr="Odoo Lab — Précision inventaire" labelEn="Odoo Lab — Stock Accuracy" badge="M2 · STOCK_ACCURACY" badgeColor="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" />
+      <ConceptCard
+        titleFr="Précision d'inventaire (Stock Accuracy)" titleEn="Inventory Accuracy (Stock Accuracy)"
+        bodyFr="La précision d'inventaire mesure l'écart entre le stock système et le stock physique réel. Objectif industrie : ≥ 98%."
+        bodyEn="Inventory accuracy measures the gap between system stock and real physical stock. Industry target: ≥ 98%."
+        color="border-blue-500 bg-blue-50 dark:bg-blue-900/30"
+      />
+      <div className="rounded-md border border-blue-200 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Vérification précision dans Odoo", "Accuracy Check in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {checkItems.map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-blue-200 dark:border-blue-700 bg-white/30 dark:bg-blue-900/10 px-2 py-1">
+              <span className="text-blue-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "STOCK_ACCURACY step", right: t("Ajustement d'inventaire", "Inventory adjustment") },
+          { left: "Variance détectée", right: t("Écart de stock Odoo", "Odoo stock variance") },
+          { left: "ADJ créé + validé", right: t("Ajustement validé → stock corrigé", "Validated adjustment → corrected stock") },
+          { left: "Précision ≥ 98%", right: t("Rapport de précision inventaire", "Inventory accuracy report") },
+        ]}
+      />
+      <WarningBanner
+        fr="Un écart non résolu en M2 = non-conformité en COMPLIANCE_ADV. Toujours valider l'ajustement avant de continuer."
+        en="An unresolved variance in M2 = non-compliance in COMPLIANCE_ADV. Always validate the adjustment before continuing."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments" />
+    </div>
+  );
+}
+
+// ─── M3 — CC_RECON: Cycle Count Reconciliation in Odoo ───────────────────────
+export function LabCcRecon() {
+  const { t, language } = useLanguage();
+  const steps = language === "FR"
+    ? ["Inventaire → Inventaires physiques → Créer", "Sélectionner les emplacements à compter", "Saisir les quantités comptées réellement", "Valider → Odoo calcule les écarts automatiquement", "Créer ajustement pour chaque écart détecté"]
+    : ["Inventory → Physical Inventories → Create", "Select locations to count", "Enter physically counted quantities", "Validate → Odoo calculates variances automatically", "Create adjustment for each detected variance"];
+  return (
+    <div className="text-xs text-violet-900 dark:text-violet-100">
+      <SlideHeader icon="🔄" labelFr="Odoo Lab — Réconciliation inventaire cyclique" labelEn="Odoo Lab — Cycle Count Reconciliation" badge="M3 · CC_RECON" badgeColor="bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200" />
+      <ConceptCard
+        titleFr="Inventaire cyclique vs inventaire annuel" titleEn="Cycle Count vs Annual Inventory"
+        bodyFr="L'inventaire cyclique compte une partie du stock en continu (ex: classe A chaque semaine). Plus précis et moins perturbant que l'inventaire annuel complet."
+        bodyEn="Cycle counting counts part of the stock continuously (e.g., class A items weekly). More accurate and less disruptive than full annual inventory."
+        color="border-violet-500 bg-violet-50 dark:bg-violet-900/30"
+      />
+      <div className="rounded-md border border-violet-200 dark:border-violet-700 bg-violet-50/50 dark:bg-violet-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Processus inventaire cyclique Odoo", "Odoo Cycle Count Process")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-violet-200 dark:border-violet-700 bg-white/30 dark:bg-violet-900/10 px-2 py-1">
+              <span className="text-violet-500">▶</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "CC_LIST → CC_COUNT", right: t("Inventaire physique Odoo", "Odoo physical inventory") },
+          { left: "Variance détectée", right: t("Ligne d'ajustement Odoo", "Odoo adjustment line") },
+          { left: "CC_RECON (ADJ)", right: t("Validation ajustement Odoo", "Odoo adjustment validation") },
+          { left: "Stock corrigé", right: t("Quantité disponible mise à jour", "Updated on-hand quantity") },
+        ]}
+      />
+      <WarningBanner
+        fr="Un inventaire cyclique non réconcilié = stock fantôme. Les commandes clients peuvent être acceptées pour du stock inexistant."
+        en="An unreconciled cycle count = ghost stock. Customer orders may be accepted for non-existent stock."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments" />
+    </div>
+  );
+}
+
+// ─── M4 — KPI_DATA: KPI Data Collection in Odoo ──────────────────────────────
+export function LabKpiData() {
+  const { t, language } = useLanguage();
+  const navSteps = language === "FR"
+    ? ["Inventaire → Rapports → Mouvements de stock", "Filtrer par période (mois en cours)", "Exporter les données : entrées, sorties, valeur", "Inventaire → Produits → Voir quantité disponible", "Calculer : Rotation = Consommation / Stock moyen"]
+    : ["Inventory → Reporting → Stock Moves", "Filter by period (current month)", "Export data: inflows, outflows, value", "Inventory → Products → View on-hand quantity", "Calculate: Turnover = Consumption / Average Stock"];
+  return (
+    <div className="text-xs text-amber-900 dark:text-amber-100">
+      <SlideHeader icon="📊" labelFr="Odoo Lab — Collecte données KPI" labelEn="Odoo Lab — KPI Data Collection" badge="M4 · KPI_DATA" badgeColor="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" />
+      <ConceptCard
+        titleFr="Sources de données KPI dans Odoo" titleEn="KPI Data Sources in Odoo"
+        bodyFr="Les KPI logistiques se calculent à partir des mouvements de stock, des niveaux d'inventaire et des délais de traitement — toutes ces données sont dans Odoo."
+        bodyEn="Logistics KPIs are calculated from stock moves, inventory levels, and processing times — all this data is in Odoo."
+        color="border-amber-500 bg-amber-50 dark:bg-amber-900/30"
+      />
+      <div className="rounded-md border border-amber-200 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Extraction données KPI dans Odoo", "KPI Data Extraction in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {navSteps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-amber-200 dark:border-amber-700 bg-white/30 dark:bg-amber-900/10 px-2 py-1">
+              <span className="text-amber-500">▶</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["KPI TEC.WMS", "Source Odoo"]}
+        headerEn={["TEC.WMS KPI", "Odoo Source"]}
+        rows={[
+          { left: "Consommation annuelle", right: t("Rapports → Mouvements sortants", "Reports → Outgoing moves") },
+          { left: "Stock moyen", right: t("Produits → Quantité disponible", "Products → On-hand qty") },
+          { left: "Commandes livrées", right: t("Bons de livraison validés", "Validated delivery orders") },
+          { left: "Valeur stock immobilisé", right: t("Valorisation de l'inventaire", "Inventory valuation") },
+        ]}
+      />
+      <WarningBanner
+        fr="Des données incomplètes (GR ou GI non postés) faussent tous les KPI. Vérifier la conformité avant d'analyser."
+        en="Incomplete data (unposted GR or GI) distorts all KPIs. Verify compliance before analyzing."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting" />
+    </div>
+  );
+}
+
+// ─── M4 — KPI_ROTATION: Inventory Turnover in Odoo ───────────────────────────
+export function LabKpiRotation() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-xs text-orange-900 dark:text-orange-100">
+      <SlideHeader icon="🔁" labelFr="Odoo Lab — Taux de rotation des stocks" labelEn="Odoo Lab — Inventory Turnover Rate" badge="M4 · KPI_ROTATION" badgeColor="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" />
+      <ConceptCard
+        titleFr="Taux de rotation = Consommation / Stock moyen" titleEn="Turnover Rate = Consumption / Average Stock"
+        bodyFr="Un taux élevé = stock qui tourne vite = bonne liquidité. Un taux faible = surstock = capital immobilisé. Référence industrie : 4–12 rotations/an selon le secteur."
+        bodyEn="High rate = fast-moving stock = good liquidity. Low rate = overstock = tied-up capital. Industry benchmark: 4–12 turns/year depending on sector."
+        color="border-orange-500 bg-orange-50 dark:bg-orange-900/30"
+      />
+      <div className="rounded-md border border-orange-200 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Formule et interprétation", "Formula and Interpretation")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {[
+            t("Rotation = Consommation annuelle ÷ Stock moyen", "Turnover = Annual consumption ÷ Average stock"),
+            t("< 4 rotations → Surstock — réduire les commandes", "< 4 turns → Overstock — reduce orders"),
+            t("4–12 rotations → Zone normale — maintenir", "4–12 turns → Normal zone — maintain"),
+            t("> 12 rotations → Risque rupture — augmenter stock sécurité", "> 12 turns → Stockout risk — increase safety stock"),
+            t("Odoo : Rapports → Analyse de stock → Rotation", "Odoo: Reports → Stock Analysis → Turnover"),
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-orange-200 dark:border-orange-700 bg-white/30 dark:bg-orange-900/10 px-2 py-1">
+              <span className="text-orange-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Rapports"]}
+        headerEn={["TEC.WMS", "Odoo Reports"]}
+        rows={[
+          { left: "KPI_ROTATION step", right: t("Analyse de stock Odoo", "Odoo stock analysis") },
+          { left: "Surstock détecté", right: t("Rotation < 4 → alerte", "Turnover < 4 → alert") },
+          { left: "Sous-performance", right: t("Rotation > 12 → risque rupture", "Turnover > 12 → stockout risk") },
+          { left: "Action plan", right: t("Règles de réappro à ajuster", "Reorder rules to adjust") },
+        ]}
+      />
+      <WarningBanner
+        fr="Le taux de rotation seul ne suffit pas — toujours croiser avec le taux de service et le taux d'erreur."
+        en="Turnover rate alone is not enough — always cross with service level and error rate."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting" />
+    </div>
+  );
+}
+
+// ─── M4 — KPI_SERVICE: Service Level in Odoo ─────────────────────────────────
+export function LabKpiService() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-xs text-teal-900 dark:text-teal-100">
+      <SlideHeader icon="🎖️" labelFr="Odoo Lab — Taux de service (OTIF)" labelEn="Odoo Lab — Service Level (OTIF)" badge="M4 · KPI_SERVICE" badgeColor="bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200" />
+      <ConceptCard
+        titleFr="OTIF = On Time In Full" titleEn="OTIF = On Time In Full"
+        bodyFr="OTIF mesure le % de commandes livrées à temps et complètes. C'est le KPI client principal en logistique. Objectif : ≥ 95%."
+        bodyEn="OTIF measures the % of orders delivered on time and complete. It is the primary customer KPI in logistics. Target: ≥ 95%."
+        color="border-teal-500 bg-teal-50 dark:bg-teal-900/30"
+      />
+      <div className="rounded-md border border-teal-200 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Calcul taux de service dans Odoo", "Service Level Calculation in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {[
+            t("Taux de service = Commandes livrées / Total commandes × 100", "Service level = Orders fulfilled / Total orders × 100"),
+            t("Odoo : Ventes → Commandes → Filtrer 'Livré'", "Odoo: Sales → Orders → Filter 'Done'"),
+            t("Comparer date promise vs date réelle de livraison", "Compare promised date vs actual delivery date"),
+            t("< 90% → Problème critique — analyser les causes", "< 90% → Critical issue — analyze root causes"),
+            t("≥ 95% → Performance acceptable — maintenir", "≥ 95% → Acceptable performance — maintain"),
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-teal-200 dark:border-teal-700 bg-white/30 dark:bg-teal-900/10 px-2 py-1">
+              <span className="text-teal-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo"]}
+        headerEn={["TEC.WMS", "Odoo"]}
+        rows={[
+          { left: "KPI_SERVICE step", right: t("Bons de livraison Odoo", "Odoo delivery orders") },
+          { left: "Commandes livrées", right: t("Transferts validés", "Validated transfers") },
+          { left: "Taux d'erreur", right: t("Retours / Annulations", "Returns / Cancellations") },
+          { left: "OTIF ≥ 95%", right: t("Objectif performance client", "Customer performance target") },
+        ]}
+      />
+      <WarningBanner
+        fr="Un faible taux de service = clients insatisfaits = perte de contrats. Toujours identifier la cause racine avant d'agir."
+        en="Low service level = dissatisfied customers = lost contracts. Always identify root cause before acting."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting" />
+    </div>
+  );
+}
+
+// ─── M5 — M5_RECEPTION: End-to-End Reception in Odoo ─────────────────────────
+export function LabM5Reception() {
+  const { t, language } = useLanguage();
+  const steps = language === "FR"
+    ? ["Achats → Bons de commande → Valider le PO", "Inventaire → Réceptions → Trouver le bon de réception", "Vérifier les quantités reçues vs commandées", "Valider la réception → stock mis à jour automatiquement", "Vérifier : Inventaire → Produits → Quantité disponible"]
+    : ["Purchases → Purchase Orders → Validate PO", "Inventory → Receipts → Find the receipt", "Verify received quantities vs ordered", "Validate receipt → stock updated automatically", "Verify: Inventory → Products → On-hand quantity"];
+  return (
+    <div className="text-xs text-sky-900 dark:text-sky-100">
+      <SlideHeader icon="🏭" labelFr="Odoo Lab — Réception intégrée M5" labelEn="Odoo Lab — M5 Integrated Reception" badge="M5 · M5_RECEPTION" badgeColor="bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200" />
+      <ConceptCard
+        titleFr="Flux intégré : PO → GR → Stock" titleEn="Integrated Flow: PO → GR → Stock"
+        bodyFr="En M5, vous simulez le flux complet. La réception n'est que la première étape — chaque action a un impact sur toutes les étapes suivantes."
+        bodyEn="In M5, you simulate the complete flow. Reception is just the first step — every action impacts all subsequent steps."
+        color="border-sky-500 bg-sky-50 dark:bg-sky-900/30"
+      />
+      <div className="rounded-md border border-sky-200 dark:border-sky-700 bg-sky-50/50 dark:bg-sky-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Réception fournisseur dans Odoo", "Supplier Reception in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {steps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-sky-200 dark:border-sky-700 bg-white/30 dark:bg-sky-900/10 px-2 py-1">
+              <span className="text-sky-500">▶</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS M5", "Odoo"]}
+        headerEn={["TEC.WMS M5", "Odoo"]}
+        rows={[
+          { left: "M5_RECEPTION", right: t("Bon de réception validé", "Validated receipt") },
+          { left: "PO → GR", right: t("Achat → Réception Odoo", "Purchase → Odoo Receipt") },
+          { left: "Stock mis à jour", right: t("Qté disponible +", "On-hand qty +") },
+          { left: "Traçabilité lot", right: t("Lot créé à la réception", "Lot created at receipt") },
+        ]}
+      />
+      <WarningBanner
+        fr="En M5, une erreur à la réception se propage à toutes les étapes suivantes. Vérifier avant de valider."
+        en="In M5, a reception error propagates to all subsequent steps. Verify before validating."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts" />
+    </div>
+  );
+}
+
+// ─── M5 — M5_PUTAWAY: M5 Putaway & FIFO in Odoo ──────────────────────────────
+export function LabM5Putaway() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-xs text-indigo-900 dark:text-indigo-100">
+      <SlideHeader icon="📍" labelFr="Odoo Lab — Rangement FIFO M5" labelEn="Odoo Lab — M5 FIFO Putaway" badge="M5 · M5_PUTAWAY" badgeColor="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200" />
+      <ConceptCard
+        titleFr="Rangement + FIFO = précision opérationnelle" titleEn="Putaway + FIFO = operational accuracy"
+        bodyFr="En M5, le rangement correct ET le respect du FIFO sont tous les deux requis pour la conformité finale. Une erreur sur l'un affecte l'autre."
+        bodyEn="In M5, correct putaway AND FIFO compliance are both required for final compliance. An error in one affects the other."
+        color="border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
+      />
+      <div className="rounded-md border border-indigo-200 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Validation rangement dans Odoo", "Putaway Validation in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {[
+            t("Inventaire → Transferts internes → Voir rangement", "Inventory → Internal Transfers → View putaway"),
+            t("Vérifier : emplacement destination = règle putaway", "Verify: destination location = putaway rule"),
+            t("Inventaire → Lots → Vérifier date entrée", "Inventory → Lots → Check entry date"),
+            t("Confirmer : lot le plus ancien = emplacement accessible", "Confirm: oldest lot = accessible location"),
+            t("Valider le transfert interne", "Validate the internal transfer"),
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-indigo-200 dark:border-indigo-700 bg-white/30 dark:bg-indigo-900/10 px-2 py-1">
+              <span className="text-indigo-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS M5", "Odoo"]}
+        headerEn={["TEC.WMS M5", "Odoo"]}
+        rows={[
+          { left: "M5_PUTAWAY", right: t("Transfert interne Odoo", "Odoo internal transfer") },
+          { left: "Règle putaway", right: t("Configuration → Règles rangement", "Configuration → Putaway rules") },
+          { left: "FIFO validé", right: t("Stratégie retrait = FIFO", "Removal strategy = FIFO") },
+          { left: "Emplacement correct", right: t("Destination = WH/Stock/Zone", "Destination = WH/Stock/Zone") },
+        ]}
+      />
+      <WarningBanner
+        fr="En M5, un mauvais rangement + violation FIFO = double non-conformité. Les deux doivent être corrects simultanément."
+        en="In M5, wrong putaway + FIFO violation = double non-compliance. Both must be correct simultaneously."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/configuration/putaway-rules" />
+    </div>
+  );
+}
+
+// ─── M5 — M5_REPLENISH: M5 Replenishment in Odoo ─────────────────────────────
+export function LabM5Replenish() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-xs text-green-900 dark:text-green-100">
+      <SlideHeader icon="🔋" labelFr="Odoo Lab — Réapprovisionnement intégré M5" labelEn="Odoo Lab — M5 Integrated Replenishment" badge="M5 · M5_REPLENISH" badgeColor="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" />
+      <ConceptCard
+        titleFr="Réapprovisionnement = réponse au cycle count" titleEn="Replenishment = response to cycle count"
+        bodyFr="En M5, le réapprovisionnement est déclenché par les résultats du cycle count. Si le stock est sous le seuil Min, une demande d'achat doit être créée."
+        bodyEn="In M5, replenishment is triggered by cycle count results. If stock is below Min threshold, a purchase request must be created."
+        color="border-green-500 bg-green-50 dark:bg-green-900/30"
+      />
+      <div className="rounded-md border border-green-200 dark:border-green-700 bg-green-50/50 dark:bg-green-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Réapprovisionnement dans Odoo", "Replenishment in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {[
+            t("Inventaire → Réapprovisionnement → Voir les alertes", "Inventory → Replenishment → View alerts"),
+            t("Identifier les SKU sous le seuil Min", "Identify SKUs below Min threshold"),
+            t("Cliquer 'Commander' → Bon de commande créé automatiquement", "Click 'Order' → Purchase order created automatically"),
+            t("Vérifier : Achats → Bons de commande → Nouveau PO", "Verify: Purchases → Purchase Orders → New PO"),
+            t("Valider le PO → En attente de réception", "Validate PO → Awaiting receipt"),
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-green-200 dark:border-green-700 bg-white/30 dark:bg-green-900/10 px-2 py-1">
+              <span className="text-green-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS M5", "Odoo"]}
+        headerEn={["TEC.WMS M5", "Odoo"]}
+        rows={[
+          { left: "M5_REPLENISH", right: t("Règle de réapprovisionnement", "Replenishment rule") },
+          { left: "Stock < Min", right: t("Alerte réapprovisionnement", "Replenishment alert") },
+          { left: "Demande d'achat", right: t("Bon de commande automatique", "Automatic purchase order") },
+          { left: "Validation PO", right: t("PO confirmé → En attente GR", "PO confirmed → Awaiting GR") },
+        ]}
+      />
+      <WarningBanner
+        fr="En M5, un réapprovisionnement non déclenché après un cycle count avec écart = non-conformité de processus."
+        en="In M5, replenishment not triggered after a cycle count with variance = process non-compliance."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules" />
+    </div>
+  );
+}
+
+// ─── M5 — M5_KPI: KPI Calculation in Integrated Flow ─────────────────────────
+export function LabM5Kpi() {
+  const { t } = useLanguage();
+  return (
+    <div className="text-xs text-rose-900 dark:text-rose-100">
+      <SlideHeader icon="📈" labelFr="Odoo Lab — KPI flux intégré M5" labelEn="Odoo Lab — M5 Integrated KPI" badge="M5 · M5_KPI" badgeColor="bg-rose-100 text-rose-800 dark:bg-rose-900 dark:text-rose-200" />
+      <ConceptCard
+        titleFr="KPI = mesure de la performance du flux complet" titleEn="KPI = measure of complete flow performance"
+        bodyFr="En M5, les KPI reflètent la performance de TOUTES les étapes précédentes. Un KPI faible révèle une défaillance opérationnelle quelque part dans le flux."
+        bodyEn="In M5, KPIs reflect the performance of ALL previous steps. A weak KPI reveals an operational failure somewhere in the flow."
+        color="border-rose-500 bg-rose-50 dark:bg-rose-900/30"
+      />
+      <div className="rounded-md border border-rose-200 dark:border-rose-700 bg-rose-50/50 dark:bg-rose-900/10 p-2 mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Tableau de bord KPI dans Odoo", "KPI Dashboard in Odoo")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {[
+            t("Inventaire → Rapports → Vue d'ensemble", "Inventory → Reporting → Overview"),
+            t("Vérifier : Rotation, Taux de service, Valeur stock", "Check: Turnover, Service level, Stock value"),
+            t("Identifier le KPI le plus faible → cause racine", "Identify weakest KPI → root cause"),
+            t("Croiser avec les mouvements de stock de la session", "Cross with stock moves from the session"),
+            t("Proposer une action corrective justifiée par les données", "Propose corrective action justified by data"),
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-rose-200 dark:border-rose-700 bg-white/30 dark:bg-rose-900/10 px-2 py-1">
+              <span className="text-rose-500">▶</span>
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS M5", "Odoo Rapports"]}
+        headerEn={["TEC.WMS M5", "Odoo Reports"]}
+        rows={[
+          { left: "M5_KPI", right: t("Tableau de bord inventaire", "Inventory dashboard") },
+          { left: "Rotation calculée", right: t("Analyse de stock Odoo", "Odoo stock analysis") },
+          { left: "Taux de service", right: t("Livraisons validées / Total", "Validated deliveries / Total") },
+          { left: "Décision stratégique", right: t("Plan d'action basé sur KPI", "KPI-based action plan") },
+        ]}
+      />
+      <WarningBanner
+        fr="En M5, la décision stratégique doit être justifiée par les KPI calculés — pas par intuition. Référencer les chiffres."
+        en="In M5, the strategic decision must be justified by calculated KPIs — not intuition. Reference the numbers."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting" />
+    </div>
+  );
+}

@@ -7,7 +7,7 @@ import React, { useState } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
-import { LabGR, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance, LabStock, LabFifoM1, LabLots } from "@/components/OdooLabSlide";
+import { LabGR, LabStock, LabFifoM1, LabLots, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance, LabFifoPick_M2, LabStockAccuracy, LabCcRecon, LabKpiData, LabKpiRotation, LabKpiService, LabM5Reception, LabM5Putaway, LabM5Replenish, LabM5Kpi } from "@/components/OdooLabSlide";
 import { ScenarioPanel } from "@/components/ScenarioPanel";
 import { ComplianceAuditPanel } from "@/components/ComplianceAuditPanel";
 
@@ -1088,6 +1088,332 @@ const ODOO_LAB_CONFIG: Record<string, {
       "⚠️ In real production: a period close with non-compliant transactions creates reconciliation errors between WMS, MM, and FI.",
   },
 
+  // M2 — FIFO_PICK
+  fifo_pick_m2: {
+    type: "core",
+    label: "Odoo Lab — Prélèvement FIFO",
+    labelEn: "Odoo Lab — FIFO Picking",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/picking-type-all",
+    instruction:
+      "📋 GUIDE VISUEL — Prélèvement FIFO dans Odoo\n\n" +
+      "Concept clé : FIFO = le stock le plus ancien est prélevé en premier.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Produits → SKU-001\n" +
+      "  2. Onglet 'Prélèvements' → voir les mouvements en attente\n" +
+      "  3. Vérifier : lot le plus ancien sélectionné en premier\n" +
+      "  4. Comparer date entrée lot A vs lot B\n" +
+      "  5. Confirmer : FIFO = premier entré, premier sorti\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • FIFO_PICK dans TEC.WMS = Stratégie retrait FIFO Odoo\n" +
+      "  • Lot le plus ancien = Date de réception la plus ancienne\n" +
+      "  • Validation FIFO = Transfert validé Odoo",
+    instructionEn:
+      "📋 VISUAL GUIDE — FIFO Picking in Odoo\n\n" +
+      "Key concept: FIFO = oldest stock is picked first.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Products → SKU-001\n" +
+      "  2. Tab 'Pickings' → view pending moves\n" +
+      "  3. Verify: oldest lot selected first\n" +
+      "  4. Compare entry date lot A vs lot B\n" +
+      "  5. Confirm: FIFO = first in, first out\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • FIFO_PICK in TEC.WMS = Odoo FIFO removal strategy\n" +
+      "  • Oldest lot = Oldest receipt date\n" +
+      "  • FIFO validation = Validated Odoo transfer",
+  },
+  // M2 — STOCK_ACCURACY
+  stock_accuracy: {
+    type: "core",
+    label: "Odoo Lab — Précision inventaire",
+    labelEn: "Odoo Lab — Stock Accuracy",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
+    instruction:
+      "📋 GUIDE VISUEL — Précision d'inventaire dans Odoo\n\n" +
+      "Concept clé : Précision = Stock système / Stock physique × 100. Objectif ≥ 98%.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Produits → Vérifier quantité disponible\n" +
+      "  2. Comparer : stock système vs stock physique compté\n" +
+      "  3. Identifier les écarts (variance positive ou négative)\n" +
+      "  4. Créer ajustement d'inventaire si écart > seuil\n" +
+      "  5. Valider l'ajustement → stock mis à jour\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • STOCK_ACCURACY dans TEC.WMS = Ajustement d'inventaire Odoo\n" +
+      "  • Variance détectée = Écart de stock Odoo\n" +
+      "  • ADJ créé + validé = Ajustement validé → stock corrigé",
+    instructionEn:
+      "📋 VISUAL GUIDE — Inventory Accuracy in Odoo\n\n" +
+      "Key concept: Accuracy = System stock / Physical stock × 100. Target ≥ 98%.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Products → Check on-hand quantity\n" +
+      "  2. Compare: system stock vs physical count\n" +
+      "  3. Identify variances (positive or negative)\n" +
+      "  4. Create inventory adjustment if variance > threshold\n" +
+      "  5. Validate adjustment → stock updated\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • STOCK_ACCURACY in TEC.WMS = Odoo inventory adjustment\n" +
+      "  • Detected variance = Odoo stock variance\n" +
+      "  • ADJ created + validated = Validated adjustment → corrected stock",
+  },
+  // M3 — CC_RECON
+  cc_recon_active: {
+    type: "core",
+    label: "Odoo Lab — Réconciliation inventaire cyclique",
+    labelEn: "Odoo Lab — Cycle Count Reconciliation",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
+    instruction:
+      "📋 GUIDE VISUEL — Inventaire cyclique dans Odoo\n\n" +
+      "Concept clé : L'inventaire cyclique compte une partie du stock en continu.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Inventaires physiques → Créer\n" +
+      "  2. Sélectionner les emplacements à compter\n" +
+      "  3. Saisir les quantités comptées réellement\n" +
+      "  4. Valider → Odoo calcule les écarts automatiquement\n" +
+      "  5. Créer ajustement pour chaque écart détecté\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • CC_LIST → CC_COUNT dans TEC.WMS = Inventaire physique Odoo\n" +
+      "  • Variance détectée = Ligne d'ajustement Odoo\n" +
+      "  • CC_RECON (ADJ) = Validation ajustement Odoo",
+    instructionEn:
+      "📋 VISUAL GUIDE — Cycle Count in Odoo\n\n" +
+      "Key concept: Cycle counting counts part of the stock continuously.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Physical Inventories → Create\n" +
+      "  2. Select locations to count\n" +
+      "  3. Enter physically counted quantities\n" +
+      "  4. Validate → Odoo calculates variances automatically\n" +
+      "  5. Create adjustment for each detected variance\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • CC_LIST → CC_COUNT in TEC.WMS = Odoo physical inventory\n" +
+      "  • Detected variance = Odoo adjustment line\n" +
+      "  • CC_RECON (ADJ) = Odoo adjustment validation",
+  },
+  // M4 — KPI_DATA
+  kpi_data: {
+    type: "core",
+    label: "Odoo Lab — Collecte données KPI",
+    labelEn: "Odoo Lab — KPI Data Collection",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+    instruction:
+      "📋 GUIDE VISUEL — Collecte données KPI dans Odoo\n\n" +
+      "Concept clé : Les KPI logistiques se calculent à partir des mouvements de stock.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Rapports → Mouvements de stock\n" +
+      "  2. Filtrer par période (mois en cours)\n" +
+      "  3. Exporter les données : entrées, sorties, valeur\n" +
+      "  4. Inventaire → Produits → Voir quantité disponible\n" +
+      "  5. Calculer : Rotation = Consommation / Stock moyen\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • Consommation annuelle = Rapports → Mouvements sortants\n" +
+      "  • Stock moyen = Produits → Quantité disponible\n" +
+      "  • Valeur stock immobilisé = Valorisation de l'inventaire",
+    instructionEn:
+      "📋 VISUAL GUIDE — KPI Data Collection in Odoo\n\n" +
+      "Key concept: Logistics KPIs are calculated from stock moves.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Reporting → Stock Moves\n" +
+      "  2. Filter by period (current month)\n" +
+      "  3. Export data: inflows, outflows, value\n" +
+      "  4. Inventory → Products → View on-hand quantity\n" +
+      "  5. Calculate: Turnover = Consumption / Average Stock\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • Annual consumption = Reports → Outgoing moves\n" +
+      "  • Average stock = Products → On-hand quantity\n" +
+      "  • Immobilized stock value = Inventory valuation",
+  },
+  // M4 — KPI_ROTATION
+  kpi_rotation: {
+    type: "core",
+    label: "Odoo Lab — Taux de rotation des stocks",
+    labelEn: "Odoo Lab — Inventory Turnover Rate",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+    instruction:
+      "📋 GUIDE VISUEL — Taux de rotation dans Odoo\n\n" +
+      "Formule : Rotation = Consommation annuelle ÷ Stock moyen\n" +
+      "  • < 4 rotations → Surstock — réduire les commandes\n" +
+      "  • 4–12 rotations → Zone normale — maintenir\n" +
+      "  • > 12 rotations → Risque rupture — augmenter stock sécurité\n\n" +
+      "Navigation Odoo :\n" +
+      "  Rapports → Analyse de stock → Rotation\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • KPI_ROTATION dans TEC.WMS = Analyse de stock Odoo\n" +
+      "  • Surstock détecté = Rotation < 4 → alerte\n" +
+      "  • Action plan = Règles de réappro à ajuster",
+    instructionEn:
+      "📋 VISUAL GUIDE — Inventory Turnover in Odoo\n\n" +
+      "Formula: Turnover = Annual consumption ÷ Average stock\n" +
+      "  • < 4 turns → Overstock — reduce orders\n" +
+      "  • 4–12 turns → Normal zone — maintain\n" +
+      "  • > 12 turns → Stockout risk — increase safety stock\n\n" +
+      "Odoo navigation:\n" +
+      "  Reports → Stock Analysis → Turnover\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • KPI_ROTATION in TEC.WMS = Odoo stock analysis\n" +
+      "  • Overstock detected = Turnover < 4 → alert\n" +
+      "  • Action plan = Reorder rules to adjust",
+  },
+  // M4 — KPI_SERVICE
+  kpi_service: {
+    type: "core",
+    label: "Odoo Lab — Taux de service (OTIF)",
+    labelEn: "Odoo Lab — Service Level (OTIF)",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+    instruction:
+      "📋 GUIDE VISUEL — Taux de service OTIF dans Odoo\n\n" +
+      "Formule : Taux de service = Commandes livrées / Total commandes × 100\n" +
+      "  • < 90% → Problème critique — analyser les causes\n" +
+      "  • ≥ 95% → Performance acceptable — maintenir\n\n" +
+      "Navigation Odoo :\n" +
+      "  Ventes → Commandes → Filtrer 'Livré'\n" +
+      "  Comparer date promise vs date réelle de livraison\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • KPI_SERVICE dans TEC.WMS = Bons de livraison Odoo\n" +
+      "  • Commandes livrées = Transferts validés\n" +
+      "  • Taux d'erreur = Retours / Annulations",
+    instructionEn:
+      "📋 VISUAL GUIDE — OTIF Service Level in Odoo\n\n" +
+      "Formula: Service level = Orders fulfilled / Total orders × 100\n" +
+      "  • < 90% → Critical issue — analyze root causes\n" +
+      "  • ≥ 95% → Acceptable performance — maintain\n\n" +
+      "Odoo navigation:\n" +
+      "  Sales → Orders → Filter 'Done'\n" +
+      "  Compare promised date vs actual delivery date\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • KPI_SERVICE in TEC.WMS = Odoo delivery orders\n" +
+      "  • Orders fulfilled = Validated transfers\n" +
+      "  • Error rate = Returns / Cancellations",
+  },
+  // M5 — M5_RECEPTION
+  m5_reception: {
+    type: "core",
+    label: "Odoo Lab — Réception intégrée M5",
+    labelEn: "Odoo Lab — M5 Integrated Reception",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+    instruction:
+      "📋 GUIDE VISUEL — Réception fournisseur dans Odoo (M5)\n\n" +
+      "Concept clé : En M5, chaque action a un impact sur toutes les étapes suivantes.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Achats → Bons de commande → Valider le PO\n" +
+      "  2. Inventaire → Réceptions → Trouver le bon de réception\n" +
+      "  3. Vérifier les quantités reçues vs commandées\n" +
+      "  4. Valider la réception → stock mis à jour automatiquement\n" +
+      "  5. Vérifier : Inventaire → Produits → Quantité disponible\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • M5_RECEPTION = Bon de réception validé\n" +
+      "  • PO → GR = Achat → Réception Odoo\n" +
+      "  • Stock mis à jour = Qté disponible +",
+    instructionEn:
+      "📋 VISUAL GUIDE — Supplier Reception in Odoo (M5)\n\n" +
+      "Key concept: In M5, every action impacts all subsequent steps.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Purchases → Purchase Orders → Validate PO\n" +
+      "  2. Inventory → Receipts → Find the receipt\n" +
+      "  3. Verify received quantities vs ordered\n" +
+      "  4. Validate receipt → stock updated automatically\n" +
+      "  5. Verify: Inventory → Products → On-hand quantity\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • M5_RECEPTION = Validated receipt\n" +
+      "  • PO → GR = Purchase → Odoo Receipt\n" +
+      "  • Stock updated = On-hand qty +",
+  },
+  // M5 — M5_PUTAWAY
+  m5_putaway: {
+    type: "core",
+    label: "Odoo Lab — Rangement FIFO M5",
+    labelEn: "Odoo Lab — M5 FIFO Putaway",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/configuration/putaway-rules",
+    instruction:
+      "📋 GUIDE VISUEL — Rangement FIFO dans Odoo (M5)\n\n" +
+      "Concept clé : En M5, rangement correct ET FIFO sont tous les deux requis.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Transferts internes → Voir rangement\n" +
+      "  2. Vérifier : emplacement destination = règle putaway\n" +
+      "  3. Inventaire → Lots → Vérifier date entrée\n" +
+      "  4. Confirmer : lot le plus ancien = emplacement accessible\n" +
+      "  5. Valider le transfert interne\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • M5_PUTAWAY = Transfert interne Odoo\n" +
+      "  • Règle putaway = Configuration → Règles rangement\n" +
+      "  • FIFO validé = Stratégie retrait = FIFO",
+    instructionEn:
+      "📋 VISUAL GUIDE — FIFO Putaway in Odoo (M5)\n\n" +
+      "Key concept: In M5, correct putaway AND FIFO are both required.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Internal Transfers → View putaway\n" +
+      "  2. Verify: destination location = putaway rule\n" +
+      "  3. Inventory → Lots → Check entry date\n" +
+      "  4. Confirm: oldest lot = accessible location\n" +
+      "  5. Validate the internal transfer\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • M5_PUTAWAY = Odoo internal transfer\n" +
+      "  • Putaway rule = Configuration → Putaway rules\n" +
+      "  • FIFO validated = Removal strategy = FIFO",
+  },
+  // M5 — M5_REPLENISH
+  m5_replenish: {
+    type: "core",
+    label: "Odoo Lab — Réapprovisionnement intégré M5",
+    labelEn: "Odoo Lab — M5 Integrated Replenishment",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules",
+    instruction:
+      "📋 GUIDE VISUEL — Réapprovisionnement dans Odoo (M5)\n\n" +
+      "Concept clé : En M5, le réapprovisionnement est déclenché par les résultats du cycle count.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Réapprovisionnement → Voir les alertes\n" +
+      "  2. Identifier les SKU sous le seuil Min\n" +
+      "  3. Cliquer 'Commander' → Bon de commande créé automatiquement\n" +
+      "  4. Vérifier : Achats → Bons de commande → Nouveau PO\n" +
+      "  5. Valider le PO → En attente de réception\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • M5_REPLENISH = Règle de réapprovisionnement\n" +
+      "  • Stock < Min = Alerte réapprovisionnement\n" +
+      "  • Demande d'achat = Bon de commande automatique",
+    instructionEn:
+      "📋 VISUAL GUIDE — Replenishment in Odoo (M5)\n\n" +
+      "Key concept: In M5, replenishment is triggered by cycle count results.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Replenishment → View alerts\n" +
+      "  2. Identify SKUs below Min threshold\n" +
+      "  3. Click 'Order' → Purchase order created automatically\n" +
+      "  4. Verify: Purchases → Purchase Orders → New PO\n" +
+      "  5. Validate PO → Awaiting receipt\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • M5_REPLENISH = Replenishment rule\n" +
+      "  • Stock < Min = Replenishment alert\n" +
+      "  • Purchase request = Automatic purchase order",
+  },
+  // M5 — M5_KPI
+  m5_kpi: {
+    type: "core",
+    label: "Odoo Lab — KPI flux intégré M5",
+    labelEn: "Odoo Lab — M5 Integrated KPI",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
+    instruction:
+      "📋 GUIDE VISUEL — KPI flux intégré dans Odoo (M5)\n\n" +
+      "Concept clé : En M5, les KPI reflètent la performance de TOUTES les étapes précédentes.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Rapports → Vue d'ensemble\n" +
+      "  2. Vérifier : Rotation, Taux de service, Valeur stock\n" +
+      "  3. Identifier le KPI le plus faible → cause racine\n" +
+      "  4. Croiser avec les mouvements de stock de la session\n" +
+      "  5. Proposer une action corrective justifiée par les données\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • M5_KPI = Tableau de bord inventaire\n" +
+      "  • Rotation calculée = Analyse de stock Odoo\n" +
+      "  • Décision stratégique = Plan d'action basé sur KPI",
+    instructionEn:
+      "📋 VISUAL GUIDE — Integrated KPI in Odoo (M5)\n\n" +
+      "Key concept: In M5, KPIs reflect the performance of ALL previous steps.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Reporting → Overview\n" +
+      "  2. Check: Turnover, Service level, Stock value\n" +
+      "  3. Identify weakest KPI → root cause\n" +
+      "  4. Cross with stock moves from the session\n" +
+      "  5. Propose corrective action justified by data\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • M5_KPI = Inventory dashboard\n" +
+      "  • Calculated turnover = Odoo stock analysis\n" +
+      "  • Strategic decision = KPI-based action plan",
+  },
   // ═══════════════════════════════════════════════════════════════════════
   // DISABLED LABS — code preserved, url="#", unclickable, À venir label
   // ═══════════════════════════════════════════════════════════════════════
@@ -1146,32 +1472,8 @@ const ODOO_LAB_CONFIG: Record<string, {
     instructionEn: "",
   },
 
-  kpi_service: {
-    disabled: true,
-    label: "Odoo Lab — Taux de service",
-    labelEn: "Odoo Lab — Service Level KPI",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
 
-  kpi_data: {
-    disabled: true,
-    label: "Odoo Lab — Données KPI",
-    labelEn: "Odoo Lab — KPI Data",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
 
-  kpi_rotation: {
-    disabled: true,
-    label: "Odoo Lab — Taux de rotation",
-    labelEn: "Odoo Lab — Inventory Turnover",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
 };
 
 // ─── Visual slide dispatch map ────────────────────────────────────────────────
@@ -1187,11 +1489,25 @@ const LAB_SLIDE_MAP: Record<string, React.FC> = {
   fifo_pick: LabFifoPick,
   adj: LabAdj,
   compliance: LabCompliance,
+  fifo_pick_m2: LabFifoPick_M2,
+  stock_accuracy: LabStockAccuracy,
+  cc_recon_active: LabCcRecon,
+  kpi_data: LabKpiData,
+  kpi_rotation: LabKpiRotation,
+  kpi_service: LabKpiService,
+  m5_reception: LabM5Reception,
+  m5_putaway: LabM5Putaway,
+  m5_replenish: LabM5Replenish,
+  m5_kpi: LabM5Kpi,
 };
 
 function OdooLabButton({ step }: { step: string }) {
   const { t } = useLanguage();
-  const key = step?.toLowerCase() ?? "";
+  const KEY_ALIAS: Record<string, string> = {
+    cc_recon: "cc_recon_active",
+  };
+  const rawKey = step?.toLowerCase() ?? "";
+  const key = KEY_ALIAS[rawKey] ?? rawKey;
   const cfg = ODOO_LAB_CONFIG[key];
   if (!cfg) return null;
 
