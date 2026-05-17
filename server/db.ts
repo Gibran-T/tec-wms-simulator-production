@@ -839,6 +839,15 @@ export async function saveQuizAttempt(data: {
   });
 }
 
+/** Teacher/admin: delete all quiz attempts for a student on a given module */
+export async function deleteQuizAttempts(userId: number, moduleId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const { quizAttempts } = await import("../drizzle/schema");
+  await db.delete(quizAttempts)
+    .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.moduleId, moduleId)));
+}
+
 export async function seedQuizData() {
   const db = await getDb();
   if (!db) return;

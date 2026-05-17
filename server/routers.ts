@@ -56,6 +56,7 @@ import {
   getQuizAttemptsByUser,
   getBestQuizAttempt,
   saveQuizAttempt,
+  deleteQuizAttempts,
 } from "./db";
 import {
   calculateBinLoad,
@@ -932,6 +933,20 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         await resetRun(input.runId);
         return { success: true, message: `Run ${input.runId} has been reset successfully.` };
+      }),
+
+    /** Student self-reset: allows a student to reset their own run (any status) */
+    selfReset: protectedProcedure
+      .input(z.object({ runId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND", message: "Session introuvable" });
+        // Students can only reset their own runs; teachers/admins can reset any
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Vous ne pouvez réinitialiser que vos propres sessions" });
+        }
+        await resetRun(input.runId);
+        return { success: true, message: "Session réinitialisée. Vous pouvez démarrer une nouvelle tentative." };
       }),
 
     state: protectedProcedure
@@ -2358,6 +2373,17 @@ export const appRouter = router({
           explanationFr: q.explanationFr,
           explanationEn: q.explanationEn,
         };
+      }),
+
+    /** Teacher/admin: reset all quiz attempts for a student on a given module */
+    resetAttempts: protectedProcedure
+      .input(z.object({ userId: z.number(), moduleId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Only teachers and admins can reset quiz attempts" });
+        }
+        await deleteQuizAttempts(input.userId, input.moduleId);
+        return { success: true, message: `Quiz attempts for user ${input.userId} on module ${input.moduleId} have been reset.` };
       }),
   }),
 });

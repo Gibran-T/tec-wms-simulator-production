@@ -308,7 +308,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
 
                 {/* Profile */}
                 <button
-                  onClick={() => { setUserMenuOpen(false); navigate("/student/profile"); }}
+                  onClick={() => { setUserMenuOpen(false); navigate("/student/scenarios"); }}
                   className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
                     theme === "dark" ? "text-gray-300 hover:bg-white/10 hover:text-white" : "text-gray-700 hover:bg-gray-50"
                   }`}

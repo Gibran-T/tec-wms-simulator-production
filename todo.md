@@ -255,3 +255,64 @@
 - [x] Update compliance step rendering in StepForm.tsx to use ComplianceAuditPanel
 - [x] Run pnpm build (0 errors) and pnpm test (218/218 pass)
 - [x] Save checkpoint and deliver implementation report
+
+## TEC.LOG Final Completion — Phases 1-8
+
+### Phase 1 — Reset Path Validation & Fix
+- [ ] Audit existing resetRun path: teacher MonitorDashboard → runs.resetRun tRPC → db.resetRun (deletes run + child records)
+- [ ] Add student self-reset: runs.selfReset tRPC procedure (student can reset their own in_progress or completed run)
+- [ ] Fix RunReport.tsx "Recommencer ce scénario" button: currently navigates to /student/scenarios but does NOT actually reset — wire to selfReset mutation
+- [ ] Add teacher quiz reset: quiz.resetAttempts tRPC procedure (teacher can clear quiz attempts for a student/module)
+- [ ] Wire quiz reset button in MonitorDashboard (per-student, per-module)
+- [ ] Verify reset restores: scenario state, scoring history, stocks, lots, compliance state
+
+### Phase 2 — M1 Quiz Retake Fix
+- [ ] Investigate why M1 quiz button appears inactive after one attempt (check quizPassed gate in ScenarioList)
+- [ ] Confirm quiz is already retakeable (QuizPage already shows "Recommencer le quiz" — verify the gate is not blocking)
+- [ ] Add "Mode pratique" label to quiz intro (unlimited retakes, no lock)
+- [ ] Add "Mode examen" label for certification attempts (teacher-controlled)
+- [ ] Ensure practice mode and exam mode are clearly separated in UI
+
+### Phase 3 — Odoo Certification Structure (2 certifications only)
+- [x] Create Odoo article: "TEC.LOG Fundamentals Certification" (M1 scope, seq 39)
+- [x] Create Odoo article: "TEC.LOG — Integrated ERP/WMS Logistics Certification" (M2–M5 scope, seq 69)
+- [x] Remove/update existing M1 certification article if it has wrong scope
+- [x] Update TEC.WMS CertificationPage to show 2-cert structure (M1 Fundamentals + M2–M5 Final)
+- [x] Update TEC.WMS M1 completion logic → triggers Fundamentals Cert display
+- [x] Update TEC.WMS M2–M5 all complete → triggers Final Cert display
+- [x] Do NOT create per-module M2/M3/M4/M5 certifications
+
+### Phase 4 — Odoo Dataset Validation
+- [x] Verify SKU-001 to SKU-010 exist in Odoo (all 10 present; type=consu, SKU-003/004 lot-tracked)
+- [x] Verify/create WH/Input, WH/Stock, WH/Output, WH/Quality locations (created Output+Quality, Allée-A/B/C exist)
+- [x] Verify Min/Max replenishment rules for SKU-004 (10/50), SKU-005 (20/100), SKU-003 (30/150) created
+- [x] Verify lot-tracked products: SKU-003 has LOT-A/B/C; SKU-004 lots LOT-2024-A/B created
+- [x] Verify cycle count data: SKU-003 multi-lot stock confirmed (50+30+20=100 units)
+- [x] Verify KPI data: stock quants confirmed (SKU-001=130, BOX-001=75, SKU-003=100)
+- [x] Created: WH/Output, WH/Quality locations; putaway rules SKU-001→Allée-A, SKU-003→Allée-B, SKU-004→Allée-C; lots LOT-SKU004-2024-A/B; reorder rule SKU-003
+
+### Phase 5 — M2-M5 Odoo Readiness
+- [x] M2: Validate putaway rules, bin locations, internal transfers, FIFO picking
+- [x] M3: Validate Min/Max, replenishment, safety stock, cycle count, multi-lot
+- [x] M4: Validate KPI datasets, dashboards, OTIF, Fill Rate, Lead Time, Inventory Turnover
+- [x] M5: Validate end-to-end flow: receipt → putaway → picking → shipping → cycle count → audit
+
+### Phase 6 — Student/Teacher UX Fixes
+- [x] Fix empty pages or inactive buttons found during audit
+- [x] Fix broken Odoo links (all 64 Odoo URLs confirmed pointing to edu-concorde-logistics-lab.odoo.com)
+- [x] Ensure teacher notes are hidden from students (isTeacherOrAdmin gate confirmed in SlideViewer)
+- [x] Fix certification visibility: banners shown in RunReport after M1 pass (green) and M5 pass (indigo)
+
+### Phase 7 — Guide de facilitation TEC.LOG PDF
+- [x] Write Guide de facilitation TEC.LOG (French, 10 classes × 3h)
+- [x] Include: module flow, TEC.WMS usage, Odoo EDU LAB, demo/exam modes, reset procedure, quiz/certification, evaluation criteria, student mistakes, teacher script, final checklist
+- [x] Export to PDF
+
+### Phase 8 — Final Validation Report
+- [x] Run TypeScript check (0 errors)
+- [x] Run pnpm test (218/218)
+- [x] Validate student flow M1-M5
+- [x] Validate teacher flow (reset, monitoring, quiz management)
+- [x] Validate Odoo certification pages (2 articles: M1 Fundamentals + M2–M5 Final)
+- [x] Produce FINAL TEC.LOG VALIDATION REPORT
+- [x] Save checkpoint

@@ -13,6 +13,21 @@ export default function MonitorDashboard() {
   const [filterMode, setFilterMode] = useState<FilterMode>("evaluation");
   const [resettingRunId, setResettingRunId] = useState<number | null>(null);
   const [confirmResetId, setConfirmResetId] = useState<number | null>(null);
+  const [quizResetKey, setQuizResetKey] = useState<string | null>(null); // "userId-moduleId"
+
+  const resetQuizMutation = trpc.quiz.resetAttempts.useMutation({
+    onSuccess: (_, variables) => {
+      toast.success(t(
+        `Quiz M${variables.moduleId} de l'étudiant #${variables.userId} réinitialisé.`,
+        `Quiz M${variables.moduleId} for student #${variables.userId} reset.`
+      ));
+      setQuizResetKey(null);
+    },
+    onError: (err) => {
+      toast.error(t(`Erreur quiz reset : ${err.message}`, `Quiz reset error: ${err.message}`));
+      setQuizResetKey(null);
+    },
+  });
 
   const resetRunMutation = trpc.runs.resetRun.useMutation({
     onSuccess: (_, variables) => {
@@ -366,13 +381,43 @@ export default function MonitorDashboard() {
                         </button>
                       </div>
                     ) : (
-                      <button
-                        onClick={() => handleReset(r.run?.id ?? r.runId)}
-                        title={t("Réinitialiser la session de cet étudiant", "Reset this student's session")}
-                        className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
-                      >
-                        <RotateCcw size={10} /> {t("Réinitialiser", "Reset")}
-                      </button>
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => handleReset(r.run?.id ?? r.runId)}
+                          title={t("Réinitialiser la session de cet étudiant", "Reset this student's session")}
+                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+                        >
+                          <RotateCcw size={10} /> {t("Réinit. session", "Reset session")}
+                        </button>
+                        {r.run?.userId && r.scenario?.moduleId && (() => {
+                          const qKey = `${r.run.userId}-${r.scenario.moduleId}`;
+                          return quizResetKey === qKey ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => resetQuizMutation.mutate({ userId: r.run.userId, moduleId: r.scenario.moduleId })}
+                                disabled={resetQuizMutation.isPending}
+                                className="text-[10px] font-semibold px-2 py-1 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
+                              >
+                                {resetQuizMutation.isPending ? "..." : t("Confirmer", "Confirm")}
+                              </button>
+                              <button
+                                onClick={() => setQuizResetKey(null)}
+                                className="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted-foreground hover:border-muted-foreground transition-colors"
+                              >
+                                {t("Annuler", "Cancel")}
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setQuizResetKey(qKey)}
+                              title={t("Réinitialiser le quiz de cet étudiant pour ce module", "Reset this student's quiz for this module")}
+                              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
+                            >
+                              <RotateCcw size={10} /> {t("Réinit. quiz", "Reset quiz")}
+                            </button>
+                          );
+                        })()}
+                      </div>
                     )}
                   </td>
                 </tr>
