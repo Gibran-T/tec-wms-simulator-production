@@ -7,7 +7,7 @@ import React, { useState } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
-import { LabGR, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance } from "@/components/OdooLabSlide";
+import { LabGR, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance, LabStock, LabFifoM1, LabLots } from "@/components/OdooLabSlide";
 import { ScenarioPanel } from "@/components/ScenarioPanel";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
@@ -646,6 +646,101 @@ const ODOO_LAB_CONFIG: Record<string, {
       "⚠️ Common error: creating a GR without a PO → internal audit exception.",
   },
 
+  // M1 — STOCK / Stock Visibility
+  stock: {
+    type: "core",
+    label: "Odoo Lab — Visibilité stock (MMBE)",
+    labelEn: "Odoo Lab — Stock Visibility (MMBE)",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
+    instruction:
+      "📋 GUIDE VISUEL — Visibilité stock dans Odoo\n\n" +
+      "Concept clé : Le stock système n'est fiable que si chaque transaction est validée. Un GR non validé = stock inchangé.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Rapport → Stock par emplacement\n" +
+      "  2. Observer les colonnes : Disponible / Réservé / En transit\n" +
+      "  3. Comparer WH/Input vs WH/Stock vs WH/Output\n" +
+      "  4. Identifier les écarts entre stock attendu et stock réel\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • MMBE dans TEC.WMS = Rapport Stock par emplacement dans Odoo\n" +
+      "  • Stock disponible TEC.WMS = Quantité disponible Odoo\n" +
+      "  • Écart stock → Ajustement d'inventaire obligatoire",
+    instructionEn:
+      "📋 VISUAL GUIDE — Stock Visibility in Odoo\n\n" +
+      "Key concept: System stock is only reliable if every transaction is validated. An unvalidated GR = stock unchanged.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Reporting → Stock by Location\n" +
+      "  2. Observe columns: Available / Reserved / In transit\n" +
+      "  3. Compare WH/Input vs WH/Stock vs WH/Output\n" +
+      "  4. Identify discrepancies between expected and actual stock\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • MMBE in TEC.WMS = Stock by Location report in Odoo\n" +
+      "  • Available stock TEC.WMS = On-hand quantity Odoo\n" +
+      "  • Stock discrepancy → Inventory adjustment mandatory",
+  },
+  // M1 — FIFO_M1 / FIFO Logic
+  fifo_m1: {
+    type: "core",
+    label: "Odoo Lab — Logique FIFO et sortie de stock",
+    labelEn: "Odoo Lab — FIFO Logic & Stock Issue",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/delivery-orders",
+    instruction:
+      "📋 GUIDE VISUEL — FIFO dans Odoo\n\n" +
+      "Concept clé : FIFO = Premier Entré, Premier Sorti. Le lot le plus ancien sort en premier.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Livraisons → Ouvrir une livraison\n" +
+      "  2. Observer le champ Lot/Numéro de série\n" +
+      "  3. Vérifier que le lot le plus ancien est sélectionné\n" +
+      "  4. Valider la livraison → stock réduit\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • GI FIFO dans TEC.WMS = Valider une Livraison dans Odoo\n" +
+      "  • Sélection lot FIFO = Stratégie de retrait FIFO dans Odoo\n" +
+      "  • Violation FIFO −20pts = Alerte de conformité Odoo",
+    instructionEn:
+      "📋 VISUAL GUIDE — FIFO in Odoo\n\n" +
+      "Key concept: FIFO = First In, First Out. The oldest lot exits first.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Deliveries → Open a delivery\n" +
+      "  2. Observe the Lot/Serial Number field\n" +
+      "  3. Verify that the oldest lot is selected\n" +
+      "  4. Validate the delivery → stock reduced\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • GI FIFO in TEC.WMS = Validate a Delivery in Odoo\n" +
+      "  • FIFO lot selection = FIFO removal strategy in Odoo\n" +
+      "  • FIFO violation −20pts = Odoo compliance alert",
+  },
+  // M1 — LOTS / Lot Traceability
+  lots: {
+    type: "core",
+    label: "Odoo Lab — Numéros de lot et traçabilité",
+    labelEn: "Odoo Lab — Lot Numbers & Traceability",
+    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/lots",
+    instruction:
+      "📋 GUIDE VISUEL — Traçabilité des lots dans Odoo\n\n" +
+      "Concept clé : Traçabilité complète = Fournisseur → Lot → Emplacement → Client.\n\n" +
+      "Navigation Odoo :\n" +
+      "  1. Inventaire → Lots/Numéros de série\n" +
+      "  2. Rechercher LOT-SKU005-A\n" +
+      "  3. Cliquer sur le lot → voir les détails\n" +
+      "  4. Onglet Traçabilité → voir tous les mouvements\n" +
+      "  5. Observer : GR d'entrée + GI de sortie\n\n" +
+      "Correspondance TEC.WMS ↔ Odoo :\n" +
+      "  • LOT-001, LOT-002 dans TEC.WMS = Numéros de lot Odoo\n" +
+      "  • Historique mouvements = Onglet Traçabilité Odoo\n" +
+      "  • Conformité lot = Rapport de traçabilité Odoo",
+    instructionEn:
+      "📋 VISUAL GUIDE — Lot Traceability in Odoo\n\n" +
+      "Key concept: Full traceability = Supplier → Lot → Location → Customer.\n\n" +
+      "Odoo navigation:\n" +
+      "  1. Inventory → Lots/Serial Numbers\n" +
+      "  2. Search for LOT-SKU005-A\n" +
+      "  3. Click on the lot → view details\n" +
+      "  4. Traceability tab → view all movements\n" +
+      "  5. Observe: GR entry + GI exit\n\n" +
+      "TEC.WMS ↔ Odoo mapping:\n" +
+      "  • LOT-001, LOT-002 in TEC.WMS = Odoo lot numbers\n" +
+      "  • Movement history = Odoo Traceability tab\n" +
+      "  • Lot compliance = Odoo traceability report",
+  },
   // M2 — PUTAWAY / Warehouse Locations
   putaway: {
     type: "core",
@@ -1076,20 +1171,14 @@ const ODOO_LAB_CONFIG: Record<string, {
     instruction: "",
     instructionEn: "",
   },
-
-  stock: {
-    disabled: true,
-    label: "Odoo Lab — Disponibilité stock",
-    labelEn: "Odoo Lab — Stock Availability",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
 };
 
 // ─── Visual slide dispatch map ────────────────────────────────────────────────
 const LAB_SLIDE_MAP: Record<string, React.FC> = {
   gr: LabGR,
+  stock: LabStock,
+  fifo_m1: LabFifoM1,
+  lots: LabLots,
   putaway: LabPutaway,
   replenish: LabReplenish,
   kpi_diagnostic: LabKpiDiagnostic,

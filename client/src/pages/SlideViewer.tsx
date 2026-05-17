@@ -15,8 +15,10 @@ import type { SlideContent } from "@/data/modules";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   Clock, Tag, Lightbulb,
-  List, X, ZoomIn, AlertTriangle
+  List, X, ZoomIn, AlertTriangle,
+  BookOpen, GraduationCap, Link2
 } from "lucide-react";
+import { MacroProcessVisual, MODULE_PROCESS_MAP } from "@/components/MacroProcessVisual";
 
 // ── Slide type badge colors ──────────────────────────────────────────────────
 const typeColors: Record<string, string> = {
@@ -423,6 +425,15 @@ export default function SlideViewer() {
                 </div>
               )}
 
+              {/* Macro Process Visual — shown on cover slides */}
+              {slide.type === "cover" && MODULE_PROCESS_MAP[mod.id] && (
+                <MacroProcessVisual
+                  steps={MODULE_PROCESS_MAP[mod.id]}
+                  moduleColor={mod.color}
+                  titleFr="Flux opérationnel du module"
+                  titleEn="Module operational flow"
+                />
+              )}
               {/* Highlight badge */}
               {slide.highlight && (
                 <div className="flex items-start gap-2 px-4 py-3 rounded-lg border mb-4"
@@ -445,6 +456,48 @@ export default function SlideViewer() {
               )}
 
 
+              {/* ── À RETENIR ─────────────────────────────────────────── */}
+              {(lang === "FR" ? slide.aRetenir : slide.aRetenirEn) && (
+                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-amber-400/30 bg-amber-50/10 dark:bg-amber-950/20 mb-3">
+                  <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-0.5">
+                      {lang === "FR" ? "À retenir" : "Key takeaway"}
+                    </p>
+                    <p className="text-xs text-foreground leading-snug">
+                      {lang === "FR" ? slide.aRetenir : slide.aRetenirEn}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* ── ODOO MOMENT ───────────────────────────────────────────── */}
+              {(lang === "FR" ? slide.odooMoment : slide.odooMomentEn) && (
+                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-purple-400/30 bg-purple-50/10 dark:bg-purple-950/20 mb-3">
+                  <Link2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-purple-500" />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-500 mb-0.5">
+                      {lang === "FR" ? "Lien TEC.WMS ↔ Odoo" : "TEC.WMS ↔ Odoo Link"}
+                    </p>
+                    <p className="text-xs text-foreground leading-snug whitespace-pre-line">
+                      {lang === "FR" ? slide.odooMoment : slide.odooMomentEn}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {/* ── TEACHER NOTE ──────────────────────────────────────────── */}
+              {(lang === "FR" ? slide.teacherNote : slide.teacherNoteEn) && (
+                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-emerald-400/30 bg-emerald-50/10 dark:bg-emerald-950/20 mb-3">
+                  <GraduationCap className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-0.5">
+                      {lang === "FR" ? "Note professeur" : "Teacher note"}
+                    </p>
+                    <p className="text-xs text-foreground leading-snug">
+                      {lang === "FR" ? slide.teacherNote : slide.teacherNoteEn}
+                    </p>
+                  </div>
+                </div>
+              )}
               {/* Spacer for nav buttons */}
               <div className="h-16" />
             </div>

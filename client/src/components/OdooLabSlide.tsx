@@ -914,3 +914,209 @@ export function LabCompliance() {
     </div>
   );
 }
+
+// ─── M1 — STOCK: Stock Visibility (MMBE) ─────────────────────────────────────
+export function LabStock() {
+  const { t } = useLanguage();
+  const stockTypes = [
+    { icon: "✅", fr: "Disponible", en: "Available", descFr: "Peut être utilisé pour les commandes", descEn: "Can be used for orders", color: "border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-200" },
+    { icon: "🔒", fr: "Réservé", en: "Reserved", descFr: "Affecté à un SO, non disponible", descEn: "Assigned to a SO, not available", color: "border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 text-orange-800 dark:text-orange-200" },
+    { icon: "🔄", fr: "En transit", en: "In transit", descFr: "En cours de mouvement interne", descEn: "Currently in internal movement", color: "border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-950/30 text-blue-800 dark:text-blue-200" },
+  ];
+  return (
+    <div className="mt-4 border border-emerald-300 dark:border-emerald-700 rounded-md overflow-hidden bg-emerald-50/60 dark:bg-emerald-950/30 px-4 py-3 text-emerald-800 dark:text-emerald-200">
+      <SlideHeader
+        icon="📊"
+        labelFr="Odoo Lab — Visibilité stock (MMBE)"
+        labelEn="Odoo Lab — Stock Visibility (MMBE)"
+        badge="M1 · Core"
+        badgeColor="bg-emerald-200 dark:bg-emerald-800 text-emerald-800 dark:text-emerald-200"
+      />
+      <ConceptCard
+        titleFr="Concept clé"
+        titleEn="Key concept"
+        bodyFr="Le stock système n'est fiable que si chaque transaction est validée. Stock disponible ≠ Stock physique si des transactions sont en brouillon."
+        bodyEn="System stock is only reliable if every transaction is validated. Available stock ≠ Physical stock if transactions are in draft."
+        color="border-emerald-400 bg-emerald-100/60 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-200"
+      />
+      <div className="mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Types de stock dans Odoo", "Stock types in Odoo")}
+        </p>
+        <div className="grid grid-cols-3 gap-1.5 text-[10px]">
+          {stockTypes.map((s, i) => (
+            <div key={i} className={`rounded border px-2 py-1.5 ${s.color}`}>
+              <div className="text-base mb-0.5">{s.icon}</div>
+              <div className="font-bold">{t(s.fr, s.en)}</div>
+              <div className="opacity-70 leading-tight mt-0.5">{t(s.descFr, s.descEn)}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "MMBE", right: t("Inventaire → Rapport → Stock par emplacement", "Inventory → Reporting → Stock by Location") },
+          { left: "Stock disponible", right: t("Quantité disponible", "On-hand quantity") },
+          { left: "Stock réservé", right: t("Quantité réservée", "Reserved quantity") },
+          { left: "Écart stock", right: t("Ajustement d'inventaire", "Inventory Adjustment") },
+        ]}
+      />
+      <WarningBanner
+        fr="Un écart non corrigé se propage à tous les modules suivants. Toujours vérifier MMBE après chaque transaction."
+        en="An uncorrected discrepancy propagates to all subsequent modules. Always check MMBE after each transaction."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products" />
+    </div>
+  );
+}
+// ─── M1 — FIFO_M1: FIFO Logic in Odoo ───────────────────────────────────────
+export function LabFifoM1() {
+  const { t } = useLanguage();
+  return (
+    <div className="mt-4 border border-violet-300 dark:border-violet-700 rounded-md overflow-hidden bg-violet-50/60 dark:bg-violet-950/30 px-4 py-3 text-violet-800 dark:text-violet-200">
+      <SlideHeader
+        icon="🔄"
+        labelFr="Odoo Lab — Logique FIFO et sortie de stock"
+        labelEn="Odoo Lab — FIFO Logic & Stock Issue"
+        badge="M1 · Core"
+        badgeColor="bg-violet-200 dark:bg-violet-800 text-violet-800 dark:text-violet-200"
+      />
+      <ConceptCard
+        titleFr="Concept clé"
+        titleEn="Key concept"
+        bodyFr="FIFO = Premier Entré, Premier Sorti. Le lot le plus ANCIEN doit TOUJOURS être prélevé en premier. Violer le FIFO = risque de péremption, non-conformité réglementaire."
+        bodyEn="FIFO = First In, First Out. The OLDEST lot must ALWAYS be picked first. Violating FIFO = expiry risk, regulatory non-compliance."
+        color="border-violet-400 bg-violet-100/60 dark:bg-violet-900/40 text-violet-800 dark:text-violet-200"
+      />
+      <div className="mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Règle FIFO — Séquence obligatoire", "FIFO Rule — Mandatory sequence")}
+        </p>
+        <div className="flex items-stretch gap-1 text-[10px]">
+          <div className="flex-1 rounded border border-violet-400 bg-violet-100/60 dark:bg-violet-900/40 px-1.5 py-1.5 text-center font-bold">
+            <div className="text-base mb-0.5">📦</div>
+            <div className="text-[9px] leading-tight">LOT-001</div>
+            <div className="text-[9px] leading-tight opacity-70">Jan 2025</div>
+            <div className="text-[9px] leading-tight text-violet-600 dark:text-violet-300">{t("Plus ancien", "Oldest")}</div>
+          </div>
+          <div className="flex items-center text-violet-400 font-bold text-base px-0.5">→</div>
+          <div className="flex-1 rounded border border-gray-300 dark:border-gray-600 opacity-60 px-1.5 py-1.5 text-center">
+            <div className="text-base mb-0.5">📦</div>
+            <div className="text-[9px] leading-tight">LOT-002</div>
+            <div className="text-[9px] leading-tight opacity-70">Mar 2025</div>
+            <div className="text-[9px] leading-tight">{t("Plus récent", "More recent")}</div>
+          </div>
+          <div className="flex items-center text-violet-400 font-bold text-base px-0.5">→</div>
+          <div className="flex-1 rounded border border-violet-400 bg-violet-100/60 dark:bg-violet-900/40 px-1.5 py-1.5 text-center font-bold">
+            <div className="text-base mb-0.5">📤</div>
+            <div className="text-[9px] leading-tight">{t("Livraison", "Delivery")}</div>
+            <div className="text-[9px] leading-tight opacity-70">{t("client", "customer")}</div>
+          </div>
+        </div>
+        <p className="text-[9px] mt-1.5 opacity-60">
+          {t(
+            "✅ LOT-001 sort en premier (FIFO respecté) · ❌ Sortir LOT-002 en premier = violation FIFO",
+            "✅ LOT-001 exits first (FIFO respected) · ❌ Issuing LOT-002 first = FIFO violation"
+          )}
+        </p>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "GI FIFO (VL02N)", right: t("Valider une Livraison", "Validate a Delivery") },
+          { left: "Sélection lot FIFO", right: t("Stratégie de retrait FIFO", "FIFO removal strategy") },
+          { left: "Lot le plus ancien", right: t("Date de réception la plus ancienne", "Oldest receipt date") },
+          { left: "Violation FIFO −20pts", right: t("Alerte de conformité", "Compliance alert") },
+        ]}
+      />
+      <WarningBanner
+        fr="FIFO est non négociable. Dans les secteurs pharma et alimentaire, une violation peut entraîner un rappel de produit."
+        en="FIFO is non-negotiable. In pharma and food sectors, a violation can trigger a product recall."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/delivery-orders" />
+    </div>
+  );
+}
+// ─── M1 — LOTS: Lot Traceability ─────────────────────────────────────────────
+export function LabLots() {
+  const { t } = useLanguage();
+  const traceSteps = [
+    { icon: "🏭", fr: "Fournisseur", en: "Supplier" },
+    { icon: "📦", fr: "GR + Lot assigné", en: "GR + Lot assigned" },
+    { icon: "🗄️", fr: "Bin stockage", en: "Storage bin" },
+    { icon: "📤", fr: "GI + Lot sorti", en: "GI + Lot issued" },
+    { icon: "🚚", fr: "Client livré", en: "Customer delivered" },
+  ];
+  const navSteps = [
+    t("1. Inventaire → Lots/Numéros de série", "1. Inventory → Lots/Serial Numbers"),
+    t("2. Rechercher LOT-SKU005-A", "2. Search for LOT-SKU005-A"),
+    t("3. Cliquer sur le lot → voir les détails", "3. Click on the lot → view details"),
+    t("4. Onglet Traçabilité → voir tous les mouvements", "4. Traceability tab → view all movements"),
+    t("5. Observer : GR entrée + GI sortie", "5. Observe: GR entry + GI exit"),
+  ];
+  return (
+    <div className="mt-4 border border-rose-300 dark:border-rose-700 rounded-md overflow-hidden bg-rose-50/60 dark:bg-rose-950/30 px-4 py-3 text-rose-800 dark:text-rose-200">
+      <SlideHeader
+        icon="🔬"
+        labelFr="Odoo Lab — Numéros de lot et traçabilité"
+        labelEn="Odoo Lab — Lot Numbers & Traceability"
+        badge="M1 · Core"
+        badgeColor="bg-rose-200 dark:bg-rose-800 text-rose-800 dark:text-rose-200"
+      />
+      <ConceptCard
+        titleFr="Concept clé"
+        titleEn="Key concept"
+        bodyFr="La traçabilité complète = Fournisseur → Lot → Emplacement → Client. Chaque mouvement de lot est enregistré dans l'historique Odoo."
+        bodyEn="Full traceability = Supplier → Lot → Location → Customer. Every lot movement is recorded in Odoo history."
+        color="border-rose-400 bg-rose-100/60 dark:bg-rose-900/40 text-rose-800 dark:text-rose-200"
+      />
+      <div className="mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Chaîne de traçabilité complète", "Full traceability chain")}
+        </p>
+        <div className="flex items-center gap-0.5 text-[9px] flex-wrap">
+          {traceSteps.map((node, i) => (
+            <div key={i} className="flex items-center gap-0.5">
+              <div className="rounded border border-rose-200 dark:border-rose-700 bg-white/40 dark:bg-rose-900/20 px-1.5 py-1 text-center">
+                <div className="text-sm">{node.icon}</div>
+                <div className="font-semibold leading-tight">{t(node.fr, node.en)}</div>
+              </div>
+              {i < traceSteps.length - 1 && <span className="text-rose-400 font-bold">→</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-wide opacity-60 mb-2">
+          {t("Navigation Odoo — Consulter un lot", "Odoo Navigation — View a lot")}
+        </p>
+        <div className="space-y-1 text-[10px]">
+          {navSteps.map((step, i) => (
+            <div key={i} className="flex items-center gap-1.5 rounded border border-rose-200 dark:border-rose-700 bg-white/30 dark:bg-rose-900/10 px-2 py-1">
+              <span className="text-rose-500">▶</span>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <MappingTable
+        headerFr={["TEC.WMS", "Odoo Inventaire"]}
+        headerEn={["TEC.WMS", "Odoo Inventory"]}
+        rows={[
+          { left: "LOT-001, LOT-002", right: t("Numéros de lot Odoo", "Odoo lot numbers") },
+          { left: "Historique mouvements", right: t("Onglet Traçabilité", "Traceability tab") },
+          { left: "FIFO lot sélection", right: t("Stratégie retrait FIFO", "FIFO removal strategy") },
+          { left: "Conformité lot", right: t("Rapport de traçabilité", "Traceability report") },
+        ]}
+      />
+      <WarningBanner
+        fr="Un lot sans historique complet = non-conformité réglementaire. Chaque mouvement doit être tracé."
+        en="A lot without complete history = regulatory non-compliance. Every movement must be traced."
+      />
+      <OptionalOdooButton url="https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/lots" />
+    </div>
+  );
+}
