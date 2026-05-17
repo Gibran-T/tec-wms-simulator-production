@@ -661,37 +661,103 @@ export function canIssueStock(
 }
 
 // ─── Compliance Check ─────────────────────────────────────────────────────────
+/** Non-conformity type codes for structured audit reporting */
+export type NonConformityType = "UNPOSTED_TRANSACTION" | "NEGATIVE_STOCK" | "UNRESOLVED_VARIANCE";
+
+/** Structured compliance issue with root cause, recovery target, and Odoo audit hook */
+export interface ComplianceIssueStructured {
+  type: NonConformityType;
+  /** Human-readable message (English) */
+  message: string;
+  /** Human-readable message (French) */
+  messageFr: string;
+  /** Step code to navigate back to for correction (e.g. "gr", "cc") */
+  recoveryStepCode: string;
+  /** Whether the issue is technically recoverable without full scenario restart */
+  canRecover: boolean;
+  /** Odoo EDU LAB URL for audit evidence (future integration) */
+  odooAuditUrl: string | null;
+  /** Impact description (English) */
+  impactEn: string;
+  /** Impact description (French) */
+  impactFr: string;
+}
+
 export interface ComplianceResult {
   compliant: boolean;
+  /** Plain string issues (English) — kept for backward compatibility */
   issues: string[];
+  /** Plain string issues (French) — kept for backward compatibility */
   issuesFr: string[];
+  /** Structured issue objects with root cause, recovery target, Odoo hook */
+  structuredIssues: ComplianceIssueStructured[];
 }
 
 export function checkCompliance(state: RunState): ComplianceResult {
   const issues: string[] = [];
   const issuesFr: string[] = [];
+  const structuredIssues: ComplianceIssueStructured[] = [];
 
+  // 1. Unposted transactions
   const unposted = state.transactions.filter((t) => !t.posted);
   if (unposted.length > 0) {
-    issues.push(`${unposted.length} unposted transaction(s) detected`);
-    issuesFr.push(`${unposted.length} transaction(s) non postée(s) détectée(s)`);
+    const msg = `${unposted.length} unposted transaction(s) detected`;
+    const msgFr = `${unposted.length} transaction(s) non postée(s) détectée(s)`;
+    issues.push(msg);
+    issuesFr.push(msgFr);
+    structuredIssues.push({
+      type: "UNPOSTED_TRANSACTION",
+      message: msg,
+      messageFr: msgFr,
+      recoveryStepCode: "gr",
+      canRecover: true,
+      odooAuditUrl: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
+      impactEn: "System stock does not reflect physical reality. Unposted transactions block period closing and generate audit exceptions.",
+      impactFr: "Le stock système ne reflète pas la réalité physique. Les transactions non postées bloquent la clôture de période et génèrent des exceptions d'audit.",
+    });
   }
 
+  // 2. Negative stock
   for (const [key, qty] of Object.entries(state.inventory)) {
     if (qty < 0) {
       const [sku, bin] = key.split("::");
-      issues.push(`Negative stock: ${sku} in ${bin} (${qty})`);
-      issuesFr.push(`Stock négatif : ${sku} dans ${bin} (${qty})`);
+      const msg = `Negative stock: ${sku} in ${bin} (${qty})`;
+      const msgFr = `Stock négatif : ${sku} dans ${bin} (${qty})`;
+      issues.push(msg);
+      issuesFr.push(msgFr);
+      structuredIssues.push({
+        type: "NEGATIVE_STOCK",
+        message: msg,
+        messageFr: msgFr,
+        recoveryStepCode: "gi",
+        canRecover: true,
+        odooAuditUrl: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
+        impactEn: `Negative stock for ${sku} in ${bin} indicates a GI was recorded without sufficient available stock. Critical system inconsistency.`,
+        impactFr: `Stock négatif pour ${sku} dans ${bin} — une sortie a été enregistrée sans stock disponible suffisant. Incohérence système critique.`,
+      });
     }
   }
 
+  // 3. Unresolved inventory variances
   const unresolved = state.cycleCounts.filter((c) => c.variance !== 0 && !c.resolved);
   if (unresolved.length > 0) {
-    issues.push(`${unresolved.length} unresolved inventory variance(s)`);
-    issuesFr.push(`${unresolved.length} écart(s) d'inventaire non résolu(s) — ADJ requis`);
+    const msg = `${unresolved.length} unresolved inventory variance(s)`;
+    const msgFr = `${unresolved.length} écart(s) d'inventaire non résolu(s) — ADJ requis`;
+    issues.push(msg);
+    issuesFr.push(msgFr);
+    structuredIssues.push({
+      type: "UNRESOLVED_VARIANCE",
+      message: msg,
+      messageFr: msgFr,
+      recoveryStepCode: "cc",
+      canRecover: true,
+      odooAuditUrl: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
+      impactEn: "Unresolved variances mean system stock does not match physical stock. This invalidates all stock reports and is an ISO 9001 non-compliance.",
+      impactFr: "Les écarts non résolus signifient que le stock système ne correspond pas au stock physique. Cela invalide tous les rapports et constitue une non-conformité ISO 9001.",
+    });
   }
 
-  return { compliant: issues.length === 0, issues, issuesFr };
+  return { compliant: issues.length === 0, issues, issuesFr, structuredIssues };
 }
 
 // ─── Next Required Step ───────────────────────────────────────────────────────

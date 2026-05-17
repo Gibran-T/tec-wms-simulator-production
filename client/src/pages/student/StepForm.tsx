@@ -9,6 +9,7 @@ import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
 import { LabGR, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance, LabStock, LabFifoM1, LabLots } from "@/components/OdooLabSlide";
 import { ScenarioPanel } from "@/components/ScenarioPanel";
+import { ComplianceAuditPanel } from "@/components/ComplianceAuditPanel";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -2032,53 +2033,45 @@ export default function StepForm() {
               {/* ── Compliance / Auto steps ─────────────────────────────── */}
               {step?.toLowerCase() === "compliance" && (
                 <div>
-                  <div className={`rounded-md p-4 mb-4 ${
-                    runData?.compliance.compliant
-                      ? "bg-green-50 dark:bg-green-950/30"
-                      : isDemo ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30"
-                  }`}>
-                    <p className={`font-bold text-sm mb-2 ${
-                      runData?.compliance.compliant
-                        ? "text-green-700 dark:text-green-400"
-                        : isDemo ? "text-amber-700 dark:text-amber-400" : "text-destructive"
-                    }`}>
-                      {runData?.compliance.compliant
-                        ? t("✅ Système conforme — Prêt pour clôture", "✅ System compliant — Ready for closing")
-                        : isDemo
-                        ? t("⚠ Non conforme (démo) — Clôture autorisée en mode démonstration", "⚠ Non-compliant (demo) — Closing allowed in demo mode")
-                        : t("🔴 Système non conforme — Résoudre les problèmes", "🔴 System non-compliant — Resolve issues")}
-                    </p>
-                    {runData?.compliance.issuesFr?.map((issue: string, i: number) => (
-                      <p key={i} className={`text-xs ${isDemo ? "text-amber-700 dark:text-amber-400" : "text-destructive"}`}>• {issue}</p>
-                    ))}
-                  </div>
-                  {!runData?.compliance.compliant && !isDemo && (
-                    <div className="space-y-2 mb-4">
-                      <div className="alert-blocked flex items-start gap-2">
-                        <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
-                        <p className="text-xs">{t("Résolvez tous les problèmes de conformité avant de clôturer le module.", "Resolve all compliance issues before closing the module.")}</p>
-                      </div>
-                      {/* Show actionable resolution hints per issue */}
-                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('non postée')) && (
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-xs">
-                          <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 {t("Comment résoudre : transactions non postées", "How to resolve: unposted transactions")}</p>
-                          <p className="text-amber-700 dark:text-amber-400">{t("Ce scénario simule une GR fantôme (réception non comptabilisée). Dans un vrai WMS, vous devez localiser et poster la transaction manquante via MB01/MIGO. Ici, retournez au tableau de bord, démarrez un nouveau scénario et veillez à poster chaque GR immédiatement après réception.", "This scenario simulates a ghost GR (unposted receipt). In a real WMS, you must locate and post the missing transaction via MB01/MIGO. Here, return to the dashboard, start a new scenario and make sure to post each GR immediately after receipt.")}</p>
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/student/run/${runId}`)}
-                            className="mt-2 text-amber-800 dark:text-amber-300 underline text-xs font-semibold"
-                          >
-                            ← {t("Retour au Mission Control", "Back to Mission Control")}
-                          </button>
-                        </div>
-                      )}
-                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('écart')) && (
-                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 text-xs">
-                          <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">💡 {t("Comment résoudre : écarts d'inventaire", "How to resolve: inventory variances")}</p>
-                          <p className="text-blue-700 dark:text-blue-400">{t("Des écarts ont été détectés lors du Cycle Count. Retournez exécuter un nouveau CC pour les emplacements concernés et entrez la quantité physique réelle pour générer un ajustement (ADJ).", "Variances were detected during the Cycle Count. Go back and run a new CC for the affected locations, entering the actual physical quantity to generate an adjustment (ADJ).")}</p>
-                        </div>
-                      )}
+                  {/* ── Compliant state ─────────────────────────────────── */}
+                  {runData?.compliance.compliant && (
+                    <div className="rounded-md p-4 mb-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                      <p className="font-bold text-sm text-green-700 dark:text-green-400 mb-1">
+                        ✅ {t("Système conforme — Prêt pour clôture", "System compliant — Ready for closing")}
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {t("Toutes les transactions sont postées, le stock est cohérent et les écarts sont résolus.", "All transactions are posted, stock is consistent and variances are resolved.")}
+                      </p>
                     </div>
+                  )}
+                  {/* ── Non-compliant: demo mode ─────────────────────────── */}
+                  {!runData?.compliance.compliant && isDemo && (
+                    <>
+                      <div className="rounded-md p-3 mb-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700">
+                        <p className="font-bold text-xs text-amber-700 dark:text-amber-300 mb-1">
+                          ⚠ {t("Non conforme (démo) — Clôture autorisée en mode démonstration", "Non-compliant (demo) — Closing allowed in demo mode")}
+                        </p>
+                      </div>
+                      <ComplianceAuditPanel
+                        issuesFr={runData?.compliance.issuesFr ?? []}
+                        issuesEn={runData?.compliance.issues ?? []}
+                        isDemo={true}
+                        runId={parseInt(runId)}
+                        onNavigateToStep={(stepCode) => navigate(`/student/run/${runId}/step/${stepCode}`)}
+                        onRetryCompliance={() => refetch()}
+                      />
+                    </>
+                  )}
+                  {/* ── Non-compliant: evaluation mode ──────────────────── */}
+                  {!runData?.compliance.compliant && !isDemo && (
+                    <ComplianceAuditPanel
+                      issuesFr={runData?.compliance.issuesFr ?? []}
+                      issuesEn={runData?.compliance.issues ?? []}
+                      isDemo={false}
+                      runId={parseInt(runId)}
+                      onNavigateToStep={(stepCode) => navigate(`/student/run/${runId}/step/${stepCode}`)}
+                      onRetryCompliance={() => refetch()}
+                    />
                   )}
                   <input {...register("comment")} placeholder={t("Ex: Module complété avec succès", "Ex: Module completed successfully")} className="fiori-field-input" />
                 </div>

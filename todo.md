@@ -241,3 +241,17 @@
 - [x] Run pnpm build (0 errors) and pnpm test (218/218)
 - [x] Save checkpoint "Fix single Odoo Lab per scenario-step rendering"
 - [x] Deliver validation table: each scenario, step, exactly one visible lab
+
+## Compliance Recovery Flow — Full Implementation
+
+- [x] Extend ComplianceResult type in rulesEngine.ts: add rootCauseStep, recoveryStepCode, impactFr, impactEn, odooAuditUrl per issue
+- [x] Update checkCompliance() to return structured ComplianceIssue objects with root cause + recovery target
+- [x] Add compliance.diagnose tRPC query returning detailed audit report (non-destructive, no run close)
+- [x] Create ComplianceAuditPanel.tsx: root-cause cards, corrective action cards, smart recovery buttons
+- [x] Wire recovery navigation in StepForm.tsx: return-to-step without full reset, preserve completed steps
+- [x] Add compliance.retryCheck tRPC procedure (re-run compliance without closing run)
+- [x] Add pedagogical fallback message when rollback is not technically possible
+- [x] Add Odoo-ready audit hooks (odooAuditUrl per issue type for future EDU LAB integration)
+- [x] Update compliance step rendering in StepForm.tsx to use ComplianceAuditPanel
+- [x] Run pnpm build (0 errors) and pnpm test (218/218 pass)
+- [x] Save checkpoint and deliver implementation report
