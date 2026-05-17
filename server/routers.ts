@@ -1004,7 +1004,7 @@ export const appRouter = router({
         if (!validation.allowed) {
           if (!run.isDemo) {
             // Evaluation mode: penalize and block
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
           // Demo mode: warn but allow (return warning in response)
@@ -1036,7 +1036,7 @@ export const appRouter = router({
         const validation = canExecuteStep("GR", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1044,7 +1044,7 @@ export const appRouter = router({
         const zoneCheck = validateGRZone(input.bin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GR: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1078,7 +1078,7 @@ export const appRouter = router({
         const validation = canExecuteStep("PUTAWAY_M1", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1086,7 +1086,7 @@ export const appRouter = router({
         const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY_M1: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PUTAWAY_M1: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1121,7 +1121,7 @@ export const appRouter = router({
         const validation = canExecuteStep("SO", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1151,14 +1151,14 @@ export const appRouter = router({
         const validation = canExecuteStep("GI", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
         const stockCheck = canIssueStock(input.sku, input.bin, input.qty, state.inventory);
         if (!stockCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: stockCheck.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, /* Erreur stock corrigée */ message: stockCheck.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(stockCheck, ctx.req) });
           }
           // Demo: allow negative stock with warning
@@ -1167,7 +1167,7 @@ export const appRouter = router({
         const zoneCheckGI = validateGIZone(input.bin);
         if (!zoneCheckGI.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GI", pointsDelta: -3, message: `GI: ${zoneCheckGI.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GI", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GI: ${zoneCheckGI.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheckGI, ctx.req) });
           }
         }
@@ -1201,7 +1201,7 @@ export const appRouter = router({
         const validation = canExecuteStep("PICKING_M1", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1209,7 +1209,7 @@ export const appRouter = router({
         const zoneCheck = validatePickingM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PICKING", pointsDelta: -3, message: `PICKING_M1: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PICKING", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PICKING_M1: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1217,7 +1217,7 @@ export const appRouter = router({
         const stockCheck = canIssueStock(input.sku, input.fromBin, input.qty, state.inventory);
         if (!stockCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: stockCheck.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, /* Erreur stock corrigée */ message: stockCheck.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(stockCheck, ctx.req) });
           }
         }
@@ -1802,12 +1802,12 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("GR" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const zoneCheck = validateGRZone(input.bin);
         if (!zoneCheck.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GR M2: ${zoneCheck.reasonFr}` });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
@@ -1838,12 +1838,12 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("PUTAWAY" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
@@ -1875,7 +1875,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("FIFO_PICK" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         // FIFO validation: lotNumber must be the oldest lot in fromBin
@@ -1886,7 +1886,7 @@ export const appRouter = router({
         const oldestLot = lotsInBin[0]?.lotNumber;
         if (oldestLot && oldestLot !== input.lotNumber) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "FIFO_VIOLATION", pointsDelta: -10, message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${oldestLot}` });
+            await addScoringEvent({ runId: input.runId, eventType: "FIFO_VIOLATION", pointsDelta: -8, message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${oldestLot} — Erreur opérationnelle corrigée (-8 pts)` });
             throw new TRPCError({ code: "BAD_REQUEST", message: `Violation FIFO : le lot ${oldestLot} doit être prélevé en premier (plus ancien)` });
           }
         }
@@ -1912,7 +1912,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("STOCK_ACCURACY" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const variance = input.countedQty - input.systemQty;
@@ -1932,7 +1932,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("COMPLIANCE_ADV" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_ADV");
@@ -1954,7 +1954,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_LIST" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "CC_LIST");
@@ -1980,7 +1980,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_COUNT" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         for (const c of input.counts) {
@@ -2011,7 +2011,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         for (const adj of input.adjustments) {
@@ -2043,7 +2043,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("REPLENISH" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
@@ -2065,7 +2065,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_M3");

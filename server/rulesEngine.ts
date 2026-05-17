@@ -353,7 +353,7 @@ export function validatePutaway(ctx: PutawayContext): PutawayValidationResult {
       reasonFr: `Capacité de l'emplacement "${ctx.toBin}" dépassée : ${currentLoad + ctx.qty} / ${maxCap} unités — débordement de ${currentLoad + ctx.qty - maxCap} unités`,
       reasonEn: `Bin "${ctx.toBin}" capacity exceeded: ${currentLoad + ctx.qty} / ${maxCap} units — overflow of ${currentLoad + ctx.qty - maxCap} units.`,
       penaltyEvent: "CAPACITY_OVERFLOW",
-      penaltyPoints: -10,
+      penaltyPoints: -8,  // Calibrated: operational error corrected → max -8
     };
   }
 
@@ -369,7 +369,7 @@ export function validatePutaway(ctx: PutawayContext): PutawayValidationResult {
       reasonFr: `Violation FIFO : le lot ${oldest.lotNumber} (reçu le ${oldest.receivedAt.toLocaleDateString("fr-CA")}) doit être rangé avant le lot ${ctx.lotNumber}`,
       reasonEn: `FIFO violation: lot ${oldest.lotNumber} (received ${oldest.receivedAt.toLocaleDateString("en-CA")}) must be placed before lot ${ctx.lotNumber}.`,
       penaltyEvent: "FIFO_VIOLATION",
-      penaltyPoints: -15,
+      penaltyPoints: -10, // Calibrated: FIFO violation → max -10
     };
   }
 

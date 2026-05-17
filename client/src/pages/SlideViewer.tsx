@@ -176,7 +176,8 @@ export default function SlideViewer() {
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { language: lang, setLanguage: setLang, t } = useLanguage();
-  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { isAuthenticated, loading: authLoading, user } = useAuth();
+  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
   const moduleId = parseInt(params.moduleId || "1", 10);
 
   // ── ALL hooks must be declared before any conditional returns ──────────────
@@ -484,8 +485,8 @@ export default function SlideViewer() {
                   </div>
                 </div>
               )}
-              {/* ── TEACHER NOTE ──────────────────────────────────────────── */}
-              {(lang === "FR" ? slide.teacherNote : slide.teacherNoteEn) && (
+              {/* ── TEACHER NOTE — visible to admin/teacher only ─────────── */}
+              {isTeacherOrAdmin && (lang === "FR" ? slide.teacherNote : slide.teacherNoteEn) && (
                 <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-emerald-400/30 bg-emerald-50/10 dark:bg-emerald-950/20 mb-3">
                   <GraduationCap className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
                   <div>
