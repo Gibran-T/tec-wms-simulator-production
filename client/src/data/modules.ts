@@ -78,6 +78,7 @@ const module1: ModuleData = {
       ],
       timingMin: 3,
       tags: ["intro", "overview"],
+      warehouseImage: "/manus-storage/concorde_warehouse_v2_271d6aff.webp",
       highlight: "PO → GR → STOCK → SO → GI → CC → COMPLIANCE",
       aRetenir: "Ce module pose les bases de tous les modules suivants. Chaque concept ici sera réutilisé en M2–M5.",
       aRetenirEn: "This module lays the foundation for all subsequent modules. Every concept here will be reused in M2–M5.",
