@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import CertificationEarned from "@/pages/student/CertificationEarned";
+import CertificationCenter from "@/pages/student/CertificationCenter";
 import CredentialVerify from "@/pages/CredentialVerify";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/login" component={LocalLogin} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
+      <Route path="/student/certifications" component={CertificationCenter} />
       <Route path="/student/certification/:certType" component={CertificationEarned} />
       <Route path="/verify/:credentialId" component={CredentialVerify} />
       <Route path="/legal" component={Legal} />

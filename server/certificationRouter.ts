@@ -70,110 +70,130 @@ async function generateCertificatePDF(cert: {
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaOblique = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-  // Color palette
-  const concorBlue = rgb(0.047, 0.196, 0.42);
-  const accentBlue = rgb(0.0, 0.47, 0.84);
-  const silver = rgb(0.75, 0.77, 0.80);
-  const lightGray = rgb(0.96, 0.97, 0.98);
-  const darkText = rgb(0.1, 0.1, 0.15);
-  const midGray = rgb(0.45, 0.47, 0.52);
-  const gold = rgb(0.80, 0.65, 0.15);
-  const white = rgb(1, 1, 1);
+  // ── Dark Premium Color Palette (Silver/Gold tier) ──────────────────────────
+  const isSilver = cert.certType === "m1_fundamentals";
+  const darkBg   = rgb(0.039, 0.063, 0.118);   // #0a1030 deep navy
+  const darkCard  = rgb(0.059, 0.094, 0.176);   // #0f1830
+  const accentMain = isSilver
+    ? rgb(0.58, 0.64, 0.72)   // silver #94a3b8
+    : rgb(0.918, 0.702, 0.031); // gold #eab308
+  const accentLight = isSilver
+    ? rgb(0.88, 0.91, 0.95)   // light silver
+    : rgb(0.996, 0.941, 0.196); // light gold #fde047
+  const white     = rgb(1, 1, 1);
+  const offWhite  = rgb(0.87, 0.89, 0.92);   // #dee2eb
+  const slate400  = rgb(0.58, 0.64, 0.72);   // #94a3b8
+  const slate600  = rgb(0.28, 0.33, 0.40);   // #475569
+  const emerald   = rgb(0.13, 0.77, 0.37);   // #22c55e
 
-  // Background
-  page.drawRectangle({ x: 0, y: 0, width, height, color: white });
-  page.drawRectangle({ x: 0, y: 0, width: 12, height, color: concorBlue });
-  page.drawRectangle({ x: 12, y: height - 90, width: width - 12, height: 90, color: concorBlue });
-  page.drawRectangle({ x: 12, y: height - 93, width: width - 12, height: 3, color: gold });
+  // ── Background ───────────────────────────────────────────────────────────────
+  page.drawRectangle({ x: 0, y: 0, width, height, color: darkBg });
 
-  // Header
-  page.drawText("COLLÈGE DE LA CONCORDE", { x: 36, y: height - 38, size: 13, font: helveticaBold, color: white });
-  page.drawText("Département Techniques de la logistique  ·  TEC.LOG", { x: 36, y: height - 56, size: 9, font: helvetica, color: silver });
+  // Subtle grid lines
+  for (let gx = 0; gx < width; gx += 40) {
+    page.drawLine({ start: { x: gx, y: 0 }, end: { x: gx, y: height }, thickness: 0.3, color: rgb(1,1,1), opacity: 0.03 });
+  }
+  for (let gy = 0; gy < height; gy += 40) {
+    page.drawLine({ start: { x: 0, y: gy }, end: { x: width, y: gy }, thickness: 0.3, color: rgb(1,1,1), opacity: 0.03 });
+  }
 
-  // TEC.LOG badge
-  page.drawRectangle({ x: width - 140, y: height - 75, width: 120, height: 50, color: accentBlue });
-  page.drawText("TEC.LOG", { x: width - 130, y: height - 42, size: 16, font: helveticaBold, color: white });
-  page.drawText("CERTIFICATION", { x: width - 130, y: height - 57, size: 7.5, font: helveticaBold, color: silver });
+  // Top accent bar
+  page.drawRectangle({ x: 0, y: height - 3, width, height: 3, color: accentMain });
 
-  const bodyTop = height - 130;
+  // Header area
+  page.drawRectangle({ x: 0, y: height - 80, width, height: 77, color: darkCard });
 
-  page.drawText("CERTIFICAT DE RÉUSSITE", { x: 36, y: bodyTop, size: 9, font: helveticaBold, color: accentBlue });
+  // Header text
+  page.drawText("COLLEGE DE LA CONCORDE", { x: 36, y: height - 32, size: 11, font: helveticaBold, color: accentMain });
+  page.drawText("Departement Techniques de la logistique  ·  TEC.LOG", { x: 36, y: height - 50, size: 8, font: helvetica, color: slate400 });
+
+  // Tier badge
+  const tierLabel = isSilver ? "SILVER" : "GOLD";
+  const tierName  = isSilver ? "TEC.LOG SILVER CERTIFICATION" : "TEC.LOG GOLD CERTIFICATION";
+  page.drawRectangle({ x: width - 180, y: height - 72, width: 160, height: 52, color: darkBg, borderColor: accentMain, borderWidth: 1 });
+  page.drawText(tierName, { x: width - 175, y: height - 36, size: 7, font: helveticaBold, color: accentMain });
+  page.drawText(tierLabel, { x: width - 175, y: height - 56, size: 18, font: helveticaBold, color: accentLight });
+
+  // ── Body ─────────────────────────────────────────────────────────────────────
+  const bodyTop = height - 110;
 
   const certTitle = cert.certType === "m1_fundamentals"
     ? "TEC.LOG Fundamentals Certification"
-    : "TEC.LOG Integrated ERP/WMS Logistics Certification";
+    : "TEC.LOG Integrated Operations Certification";
   const certSubtitle = cert.certType === "m1_fundamentals"
-    ? "Module 1 — Fondements ERP/WMS"
-    : "Modules 2–5 — Simulation opérationnelle intégrée";
+    ? "Module 1 - Fondements ERP/WMS"
+    : "Modules 2-5 - Simulation operationnelle integree";
 
-  page.drawText(certTitle, { x: 36, y: bodyTop - 28, size: 20, font: helveticaBold, color: concorBlue });
-  page.drawText(certSubtitle, { x: 36, y: bodyTop - 48, size: 11, font: helveticaOblique, color: midGray });
+  page.drawText(certTitle, { x: 36, y: bodyTop, size: 22, font: helveticaBold, color: white });
+  page.drawText(certSubtitle, { x: 36, y: bodyTop - 22, size: 10, font: helvetica, color: slate400 });
 
-  page.drawLine({ start: { x: 36, y: bodyTop - 62 }, end: { x: width - 36, y: bodyTop - 62 }, thickness: 0.5, color: silver });
+  // Accent divider
+  page.drawRectangle({ x: 36, y: bodyTop - 34, width: 60, height: 2, color: accentMain });
 
-  page.drawText("Ce certificat est décerné à", { x: 36, y: bodyTop - 82, size: 9, font: helvetica, color: midGray });
-  page.drawText(cert.studentName, { x: 36, y: bodyTop - 108, size: 26, font: helveticaBold, color: concorBlue });
+  page.drawText("Ce certificat est decerne a", { x: 36, y: bodyTop - 56, size: 8, font: helvetica, color: slate600 });
+  page.drawText(cert.studentName, { x: 36, y: bodyTop - 82, size: 28, font: helveticaBold, color: white });
 
-  // Score badge
-  page.drawRectangle({ x: 36, y: bodyTop - 148, width: 90, height: 32, color: lightGray });
-  page.drawRectangle({ x: 36, y: bodyTop - 148, width: 3, height: 32, color: accentBlue });
-  page.drawText("SCORE FINAL", { x: 44, y: bodyTop - 134, size: 7, font: helveticaBold, color: midGray });
-  page.drawText(`${cert.finalScore}/100`, { x: 44, y: bodyTop - 148, size: 13, font: helveticaBold, color: concorBlue });
+  // Status + modules pills
+  page.drawRectangle({ x: 36, y: bodyTop - 115, width: 130, height: 20, color: rgb(0.08, 0.47, 0.22), borderColor: emerald, borderWidth: 1 });
+  page.drawText("COMPETENCE VALIDEE", { x: 44, y: bodyTop - 108, size: 7, font: helveticaBold, color: emerald });
 
-  // Modules badge
-  const modLabel = cert.certType === "m1_fundamentals" ? "MODULE 1" : "MODULES 2-5";
-  page.drawRectangle({ x: 140, y: bodyTop - 148, width: 110, height: 32, color: lightGray });
-  page.drawRectangle({ x: 140, y: bodyTop - 148, width: 3, height: 32, color: gold });
-  page.drawText("MODULES COMPLETES", { x: 148, y: bodyTop - 134, size: 7, font: helveticaBold, color: midGray });
-  page.drawText(modLabel, { x: 148, y: bodyTop - 148, size: 13, font: helveticaBold, color: concorBlue });
+  const modLabel = cert.certType === "m1_fundamentals" ? "Module 1" : "Modules 2-5";
+  page.drawRectangle({ x: 178, y: bodyTop - 115, width: 90, height: 20, color: darkCard, borderColor: slate600, borderWidth: 1 });
+  page.drawText(modLabel, { x: 186, y: bodyTop - 108, size: 7, font: helveticaBold, color: offWhite });
 
   // Competencies
-  const compTop = bodyTop - 175;
-  page.drawText("COMPETENCES VALIDEES", { x: 36, y: compTop, size: 8, font: helveticaBold, color: accentBlue });
+  const compTop = bodyTop - 140;
+  page.drawText("COMPETENCES VALIDEES", { x: 36, y: compTop, size: 7, font: helveticaBold, color: accentMain });
   cert.competencies.slice(0, 4).forEach((comp, i) => {
-    const truncated = comp.length > 85 ? comp.substring(0, 82) + "..." : comp;
-    page.drawText(`- ${truncated}`, { x: 36, y: compTop - 16 - i * 14, size: 7.5, font: helvetica, color: darkText });
+    const truncated = comp.length > 80 ? comp.substring(0, 77) + "..." : comp;
+    page.drawRectangle({ x: 36, y: compTop - 20 - i * 18, width: 4, height: 10, color: accentMain });
+    page.drawText(truncated, { x: 46, y: compTop - 18 - i * 18, size: 7, font: helvetica, color: offWhite });
   });
 
-  // Right column
-  const rightX = width - 230;
-  const sigTop = bodyTop - 80;
+  // ── Right column ─────────────────────────────────────────────────────────────
+  const rightX = width - 220;
 
-  page.drawRectangle({ x: rightX, y: sigTop - 70, width: 195, height: 70, color: lightGray });
-  page.drawText("[NADIA_ALLAMI_SIGNATURE_IMAGE_PLACEHOLDER]", { x: rightX + 10, y: sigTop - 38, size: 7, font: helveticaOblique, color: midGray });
-  page.drawLine({ start: { x: rightX + 10, y: sigTop - 50 }, end: { x: rightX + 185, y: sigTop - 50 }, thickness: 0.5, color: silver });
-  page.drawText("Nadia Allami, Directrice", { x: rightX + 10, y: sigTop - 62, size: 8, font: helveticaBold, color: concorBlue });
-  page.drawText("College de la Concorde - Dept. Techniques de la logistique", { x: rightX + 10, y: sigTop - 73, size: 6.5, font: helvetica, color: midGray });
+  // Credential ID block
+  page.drawRectangle({ x: rightX, y: bodyTop - 50, width: 195, height: 50, color: darkCard, borderColor: accentMain, borderWidth: 1 });
+  page.drawText("IDENTIFIANT DE CERTIFICATION", { x: rightX + 10, y: bodyTop - 22, size: 6.5, font: helveticaBold, color: accentMain });
+  page.drawText(cert.credentialId, { x: rightX + 10, y: bodyTop - 38, size: 11, font: helveticaBold, color: white });
 
-  const credTop = sigTop - 105;
-  page.drawRectangle({ x: rightX, y: credTop - 40, width: 195, height: 40, color: concorBlue });
-  page.drawText("IDENTIFIANT DE CERTIFICATION", { x: rightX + 8, y: credTop - 14, size: 6.5, font: helveticaBold, color: silver });
-  page.drawText(cert.credentialId, { x: rightX + 8, y: credTop - 28, size: 10, font: helveticaBold, color: white });
-
+  // Date
   const dateStr = cert.issuedAt.toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" });
-  page.drawText(`Emis le : ${dateStr}`, { x: rightX, y: credTop - 56, size: 8, font: helvetica, color: midGray });
-  page.drawText("Verification : " + cert.verificationUrl, { x: rightX, y: credTop - 70, size: 6.5, font: helvetica, color: accentBlue });
+  page.drawText(`Emis le : ${dateStr}`, { x: rightX, y: bodyTop - 68, size: 8, font: helvetica, color: slate400 });
+  page.drawText("Statut : VALIDE", { x: rightX, y: bodyTop - 82, size: 8, font: helveticaBold, color: emerald });
+
+  // Signature block
+  page.drawRectangle({ x: rightX, y: bodyTop - 160, width: 195, height: 65, color: darkCard, borderColor: slate600, borderWidth: 1 });
+  page.drawRectangle({ x: rightX, y: bodyTop - 125, width: 195, height: 30, color: rgb(1,1,1), opacity: 0.04 });
+  page.drawText("[Signature officielle - a venir]", { x: rightX + 10, y: bodyTop - 115, size: 7, font: helveticaOblique, color: slate600 });
+  page.drawLine({ start: { x: rightX + 10, y: bodyTop - 130 }, end: { x: rightX + 185, y: bodyTop - 130 }, thickness: 0.5, color: slate600 });
+  page.drawText("Nadia Allami, Directrice", { x: rightX + 10, y: bodyTop - 143, size: 8, font: helveticaBold, color: offWhite });
+  page.drawText("College de la Concorde - Dept. Techniques de la logistique", { x: rightX + 10, y: bodyTop - 155, size: 6, font: helvetica, color: slate600 });
 
   // QR code
-  const qrSize = 60;
-  const qrX = rightX + 135;
-  const qrY = credTop - 145;
+  const qrSize = 65;
+  const qrX = rightX + 125;
+  const qrY = bodyTop - 260;
   try {
-    const qrDataUrl = await QRCode.toDataURL(cert.verificationUrl, { width: 120, margin: 1, color: { dark: "#0C3269", light: "#FFFFFF" } });
+    const qrDataUrl = await QRCode.toDataURL(cert.verificationUrl, { width: 130, margin: 2, color: { dark: "#0a1030", light: "#ffffff" } });
     const qrBase64 = qrDataUrl.split(",")[1];
     const qrImage = await pdfDoc.embedPng(Buffer.from(qrBase64, "base64"));
     page.drawImage(qrImage, { x: qrX, y: qrY, width: qrSize, height: qrSize });
   } catch {
-    page.drawRectangle({ x: qrX, y: qrY, width: qrSize, height: qrSize, color: lightGray });
-    page.drawText("QR", { x: qrX + 22, y: qrY + 25, size: 12, font: helveticaBold, color: midGray });
+    page.drawRectangle({ x: qrX, y: qrY, width: qrSize, height: qrSize, color: darkCard });
+    page.drawText("QR", { x: qrX + 22, y: qrY + 28, size: 12, font: helveticaBold, color: slate400 });
   }
-  page.drawText("Scanner pour verifier", { x: qrX - 5, y: qrY - 10, size: 6, font: helvetica, color: midGray });
+  page.drawText("Scanner pour verifier", { x: qrX - 10, y: qrY - 12, size: 6, font: helvetica, color: slate600 });
 
-  // Footer
-  page.drawRectangle({ x: 12, y: 0, width: width - 12, height: 28, color: lightGray });
-  page.drawLine({ start: { x: 12, y: 28 }, end: { x: width, y: 28 }, thickness: 0.5, color: silver });
-  page.drawText("College de la Concorde · 570 rue Saint-Vallier Ouest, Quebec, G1K 1K1 · www.collegelaconcorde.com", { x: 36, y: 10, size: 6.5, font: helvetica, color: midGray });
-  page.drawText(`Hash : ${cert.verificationHash}`, { x: width - 220, y: 10, size: 6, font: helvetica, color: silver });
+  // Verification URL
+  page.drawText("Verification : " + cert.verificationUrl, { x: rightX, y: bodyTop - 280, size: 6, font: helvetica, color: accentMain });
+
+  // ── Footer ───────────────────────────────────────────────────────────────────
+  page.drawRectangle({ x: 0, y: 0, width, height: 28, color: darkCard });
+  page.drawRectangle({ x: 0, y: 28, width, height: 1, color: accentMain, opacity: 0.3 });
+  page.drawText("College de la Concorde · 570 rue Saint-Vallier Ouest, Quebec, G1K 1K1 · www.collegelaconcorde.com", { x: 36, y: 10, size: 6.5, font: helvetica, color: slate600 });
+  page.drawText(`Hash : ${cert.verificationHash}`, { x: width - 220, y: 10, size: 6, font: helvetica, color: slate600 });
 
   return pdfDoc.save();
 }
@@ -295,6 +315,24 @@ export const certificationRouter = router({
       });
 
       return { pdfBase64: Buffer.from(pdfBytes).toString("base64") };
+    }),
+
+  getQRCode: publicProcedure
+    .input(z.object({ credentialId: z.string() }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const rows = await db.select({ credentialId: certifications.credentialId })
+        .from(certifications)
+        .where(eq(certifications.credentialId, input.credentialId))
+        .limit(1);
+      if (!rows.length) return null;
+      const verificationUrl = getVerificationUrl(input.credentialId);
+      const qrDataUrl = await QRCode.toDataURL(verificationUrl, {
+        width: 200, margin: 2,
+        color: { dark: "#0f172a", light: "#ffffff" },
+      });
+      return { qrCodeDataUrl: qrDataUrl };
     }),
 
   seedDemo: protectedProcedure

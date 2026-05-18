@@ -388,4 +388,18 @@
 - [x] Routes: /student/certification/:certType and /verify/:credentialId registered in App.tsx
 - [x] TypeScript: 0 errors across all new files
 - [x] End-to-end validation with demo student data — PASS (screenshot confirmed)
+- [x] Golden checkpoint saved — be784cb4
+
+## TEC.LOG Next-Gen Certification System v2 (2026-05-18)
+- [x] Dark premium design system — Silver (M1) / Gold (M2-M5) tiers, no score exposure
+- [x] CertificationEarned screen — fullscreen unlock, animated metallic badge, no score
+- [x] CredentialVerify page — dark premium, real QR code from server (getQRCode procedure), Silver/Gold tier rendering
+- [x] PDF export — dark navy background, tier badge, no score, real QR embedded, grid texture
+- [x] getQRCode public procedure added to certificationRouter
+- [x] CertificationCenter page — student hub with Silver/Gold status cards, locked/earned states
+- [x] FioriShell nav — Certifications tab added for students (Award icon)
+- [x] Route /student/certifications registered in App.tsx
+- [x] TypeScript: 0 errors
+- [x] Tests: 218/218 passing
+- [x] Build: clean (10.60s)
 - [ ] Golden checkpoint saved
