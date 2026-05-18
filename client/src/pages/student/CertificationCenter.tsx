@@ -44,16 +44,18 @@ const CERT_DEFS = [
 ];
 
 function MiniTierBadge({ tier, badgeGrad, accentColor }: { tier: string; badgeGrad: string; accentColor: string }) {
+  const badgeUrl = tier === "SILVER"
+    ? "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/nAhGw8XK59ZrVZBqWsfEzN/teclog-silver-badge-HMdxVYVmvxQKEB77KZ8vEC.webp"
+    : "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/nAhGw8XK59ZrVZBqWsfEzN/teclog-gold-badge-aaCuqFpweDoGUZoAS6gRrf.webp";
   return (
-    <div
-      className="flex items-center justify-center rounded-full shrink-0"
-      style={{ width: 56, height: 56, background: badgeGrad, boxShadow: `0 0 16px ${accentColor}40` }}
-    >
-      <div className="text-center">
-        <div className="text-[6px] font-black tracking-[0.15em] text-slate-900/60">TEC</div>
-        <div className="text-[11px] font-black text-slate-900/80 leading-none">{tier}</div>
-      </div>
-    </div>
+    <img
+      src={badgeUrl}
+      alt={`TEC.LOG ${tier} Badge`}
+      className="w-14 h-14 rounded-full object-contain shrink-0"
+      style={{
+        filter: "drop-shadow(0 0 12px rgba(148,163,184,0.25))",
+      }}
+    />
   );
 }
 

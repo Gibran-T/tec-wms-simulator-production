@@ -118,17 +118,34 @@ async function generateCertificatePDF(cert: {
       logoEmbedded = true;
     }
   } catch (_) { /* non-blocking */ }
-  // Header text
-  const textX = logoEmbedded ? 36 : 36;
+  // Header text — institutional authority
+  const textX = logoEmbedded ? 100 : 36;
   page.drawText("COLLEGE DE LA CONCORDE", { x: textX, y: height - 32, size: 11, font: helveticaBold, color: accentMain });
   page.drawText("Departement Techniques de la logistique  ·  TEC.LOG", { x: textX, y: height - 50, size: 8, font: helvetica, color: slate400 });
+  page.drawText("Official Digital Credential Authority", { x: textX, y: height - 62, size: 7, font: helveticaOblique, color: slate400 });
 
-  // Tier badge
+  // Tier badge — embed metallic badge image
   const tierLabel = isSilver ? "SILVER" : "GOLD";
   const tierName  = isSilver ? "TEC.LOG SILVER CERTIFICATION" : "TEC.LOG GOLD CERTIFICATION";
-  page.drawRectangle({ x: width - 180, y: height - 72, width: 160, height: 52, color: darkBg, borderColor: accentMain, borderWidth: 1 });
-  page.drawText(tierName, { x: width - 175, y: height - 36, size: 7, font: helveticaBold, color: accentMain });
-  page.drawText(tierLabel, { x: width - 175, y: height - 56, size: 18, font: helveticaBold, color: accentLight });
+  let badgeEmbedded = false;
+  try {
+    const badgeFileName = isSilver ? "teclog-silver-badge.png" : "teclog-gold-badge.png";
+    const badgePath = path.join(process.cwd(), "client", "public", badgeFileName);
+    if (fs.existsSync(badgePath)) {
+      const badgeBytes = fs.readFileSync(badgePath);
+      const badgeImg = await pdfDoc.embedPng(badgeBytes);
+      const badgeH = 45;
+      const badgeW = (badgeImg.width / badgeImg.height) * badgeH;
+      page.drawImage(badgeImg, { x: width - 190, y: height - 70, width: badgeW, height: badgeH, opacity: 0.95 });
+      badgeEmbedded = true;
+    }
+  } catch (_) { /* non-blocking */ }
+  // Fallback tier text if badge not embedded
+  if (!badgeEmbedded) {
+    page.drawRectangle({ x: width - 180, y: height - 72, width: 160, height: 52, color: darkBg, borderColor: accentMain, borderWidth: 1 });
+    page.drawText(tierName, { x: width - 175, y: height - 36, size: 7, font: helveticaBold, color: accentMain });
+    page.drawText(tierLabel, { x: width - 175, y: height - 56, size: 18, font: helveticaBold, color: accentLight });
+  }
 
   // ── Body ─────────────────────────────────────────────────────────────────────
   const bodyTop = height - 110;

@@ -40,17 +40,18 @@ const TIER_CONFIG = {
 
 function MiniMetallicBadge({ certType }: { certType: CertType }) {
   const cfg = TIER_CONFIG[certType] ?? TIER_CONFIG.m1_fundamentals;
+  const badgeUrl = certType === "m1_fundamentals"
+    ? "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/nAhGw8XK59ZrVZBqWsfEzN/teclog-silver-badge-HMdxVYVmvxQKEB77KZ8vEC.webp"
+    : "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/nAhGw8XK59ZrVZBqWsfEzN/teclog-gold-badge-aaCuqFpweDoGUZoAS6gRrf.webp";
   return (
-    <div
-      className="flex items-center justify-center rounded-full shrink-0"
-      style={{ width: 80, height: 80, background: cfg.badgeGrad, boxShadow: `0 0 20px ${cfg.accentGlow}` }}
-    >
-      <div className="text-center">
-        <div className="text-[8px] font-black tracking-[0.2em] text-slate-900/60">TEC.LOG</div>
-        <div className="text-[14px] font-black text-slate-900/80 leading-none">{cfg.tier}</div>
-        <div className="text-[6px] font-bold tracking-[0.15em] text-slate-900/50">CERT</div>
-      </div>
-    </div>
+    <img
+      src={badgeUrl}
+      alt={`TEC.LOG ${cfg.tier} Badge`}
+      className="w-20 h-20 rounded-full object-contain shrink-0"
+      style={{
+        filter: "drop-shadow(0 0 15px rgba(148,163,184,0.3))",
+      }}
+    />
   );
 }
 
