@@ -171,8 +171,11 @@ async function buildRunState(runId: number) {
   };
 }
 
+import { certificationRouter } from "./certificationRouter";
+
 export const appRouter = router({
   system: systemRouter,
+  certification: certificationRouter,
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
   auth: router({

@@ -387,3 +387,23 @@ export const quizAttempts = mysqlTable("quiz_attempts", {
 
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type InsertQuizAttempt = typeof quizAttempts.$inferInsert;
+
+// ─── Certifications ──────────────────────────────────────────────────────────
+// One row per issued credential. Immutable once created.
+export const certifications = mysqlTable("certifications", {
+  id: int("id").autoincrement().primaryKey(),
+  credentialId: varchar("credentialId", { length: 64 }).notNull().unique(), // e.g. TECLOG-M1-2026-A3F7
+  userId: int("userId").notNull(),
+  certType: mysqlEnum("certType", ["m1_fundamentals", "m2m5_integrated"]).notNull(),
+  studentName: varchar("studentName", { length: 255 }).notNull(),
+  studentEmail: varchar("studentEmail", { length: 320 }).notNull(),
+  finalScore: int("finalScore").notNull(),           // 0–100
+  modulesCompleted: json("modulesCompleted").notNull(), // number[] e.g. [1] or [2,3,4,5]
+  competencies: json("competencies").notNull(),       // string[]
+  issuedAt: timestamp("issuedAt").defaultNow().notNull(),
+  revokedAt: timestamp("revokedAt"),                  // null = active
+  verificationHash: varchar("verificationHash", { length: 128 }).notNull(), // sha256 of credentialId+secret
+});
+
+export type Certification = typeof certifications.$inferSelect;
+export type InsertCertification = typeof certifications.$inferInsert;

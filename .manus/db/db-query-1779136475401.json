@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO certifications (credentialId, userId, certType, studentName, studentEmail, finalScore, modulesCompleted, competencies, verificationHash, issuedAt)\nVALUES (\n  'TECLOG-M1-2026-DEMO1',\n  1,\n  'm1_fundamentals',\n  'Étudiant Démo TEC.LOG',\n  'demo@concorde.ca',\n  87,\n  '[1]',\n  '[\"Comprendre le flux logistique complet : PO → GR → PUTAWAY → STOCK → SO → GI → CC → COMPLIANCE\",\"Distinguer les rôles du WMS et de lERP dans la gestion des stocks\",\"Pratiquer les scénarios guidés dans TEC.WMS (SCN-001 à SCN-005)\",\"Observer les données réelles dans Odoo EDU LAB\"]',\n  'cfa01798028e715a63b47dec280a45a2',\n  NOW()\n) ON DUPLICATE KEY UPDATE studentName = VALUES(studentName);",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute INSERT INTO certifications (credentialId, userId, certType, studentName, studentEmail, finalScore, modulesCompleted, competencies, verificationHash, issuedAt)\nVALUES (\n  'TECLOG-M1-2026-DEMO1',\n  1,\n  'm1_fundamentals',\n  'Étudiant Démo TEC.LOG',\n  'demo@concorde.ca',\n  87,\n  '[1]',\n  '[\"Comprendre le flux logistique complet : PO → GR → PUTAWAY → STOCK → SO → GI → CC → COMPLIANCE\",\"Distinguer les rôles du WMS et de lERP dans la gestion des stocks\",\"Pratiquer les scénarios guidés dans TEC.WMS (SCN-001 à SCN-005)\",\"Observer les données réelles dans Odoo EDU LAB\"]',\n  'cfa01798028e715a63b47dec280a45a2',\n  NOW()\n) ON DUPLICATE KEY UPDATE studentName = VALUES(studentName);",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 291
+}

@@ -377,3 +377,15 @@
 - [x] Validate M1→M5 fullscreen: PDF binary confirmed server-side (document_binary_content present all 42 slides)
 - [x] Confirm 218/218 tests passing, 0 TypeScript errors, build clean
 - [x] Save golden stable state checkpoint
+
+## TEC.LOG Digital Certification System
+
+- [x] DB schema: certifications table added and migrated
+- [x] Server: certificationRouter.ts — issue, getByCredentialId, getMine, generatePDF, seedDemo
+- [x] Server: certificationRouter registered in appRouter
+- [x] Frontend: CertificationEarned.tsx — premium screen with PDF download, LinkedIn helper, copy link
+- [x] Frontend: CredentialVerify.tsx — public verification page at /verify/:credentialId
+- [x] Routes: /student/certification/:certType and /verify/:credentialId registered in App.tsx
+- [x] TypeScript: 0 errors across all new files
+- [x] End-to-end validation with demo student data — PASS (screenshot confirmed)
+- [ ] Golden checkpoint saved
