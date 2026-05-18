@@ -259,19 +259,19 @@
 ## TEC.LOG Final Completion — Phases 1-8
 
 ### Phase 1 — Reset Path Validation & Fix
-- [ ] Audit existing resetRun path: teacher MonitorDashboard → runs.resetRun tRPC → db.resetRun (deletes run + child records)
-- [ ] Add student self-reset: runs.selfReset tRPC procedure (student can reset their own in_progress or completed run)
-- [ ] Fix RunReport.tsx "Recommencer ce scénario" button: currently navigates to /student/scenarios but does NOT actually reset — wire to selfReset mutation
-- [ ] Add teacher quiz reset: quiz.resetAttempts tRPC procedure (teacher can clear quiz attempts for a student/module)
-- [ ] Wire quiz reset button in MonitorDashboard (per-student, per-module)
-- [ ] Verify reset restores: scenario state, scoring history, stocks, lots, compliance state
+- [x] Audit existing resetRun path: teacher MonitorDashboard → runs.resetRun tRPC → db.resetRun (deletes run + child records)
+- [x] Add student self-reset: runs.selfReset tRPC procedure (student can reset their own in_progress or completed run)
+- [x] Fix RunReport.tsx "Recommencer ce scénario" button: wired to selfReset mutation
+- [x] Add teacher quiz reset: quiz.resetAttempts tRPC procedure (teacher can clear quiz attempts for a student/module)
+- [x] Wire quiz reset button in MonitorDashboard (per-student, per-module)
+- [x] Verify reset restores: scenario state, scoring history, stocks, lots, compliance state
 
 ### Phase 2 — M1 Quiz Retake Fix
-- [ ] Investigate why M1 quiz button appears inactive after one attempt (check quizPassed gate in ScenarioList)
-- [ ] Confirm quiz is already retakeable (QuizPage already shows "Recommencer le quiz" — verify the gate is not blocking)
-- [ ] Add "Mode pratique" label to quiz intro (unlimited retakes, no lock)
-- [ ] Add "Mode examen" label for certification attempts (teacher-controlled)
-- [ ] Ensure practice mode and exam mode are clearly separated in UI
+- [x] Investigate why M1 quiz button appears inactive after one attempt (quizPassed gate confirmed working)
+- [x] Confirm quiz is already retakeable (QuizPage shows "Recommencer le quiz" — gate not blocking)
+- [x] Add "Mode pratique" label to quiz intro (unlimited retakes, no lock)
+- [x] Add "Mode examen" label for certification attempts (teacher-controlled)
+- [x] Ensure practice mode and exam mode are clearly separated in UI
 
 ### Phase 3 — Odoo Certification Structure (2 certifications only)
 - [x] Create Odoo article: "TEC.LOG Fundamentals Certification" (M1 scope, seq 39)
@@ -316,3 +316,56 @@
 - [x] Validate Odoo certification pages (2 articles: M1 Fundamentals + M2–M5 Final)
 - [x] Produce FINAL TEC.LOG VALIDATION REPORT
 - [x] Save checkpoint
+
+## Production Hardening — Phases 1-8 (pasted_content_39)
+
+### PH1 — Odoo Dataset Coverage Matrix
+- [ ] Audit all Odoo products (SKU-001 to SKU-010, BOX-001) — confirm name, type, tracking
+- [ ] Audit all locations (WH/Input, WH/Stock, Allée-A/B/C, WH/Output, WH/Quality)
+- [ ] Audit all lots (LOT-SKU003-A/B/C, LOT-SKU004-2024-A/B)
+- [ ] Audit putaway rules, reorder rules, stock quants
+- [ ] Build M1–M5 coverage matrix (MODULE→SCENARIO→SKU→LOCATION→LOT→OPERATION→URL→OBSERVATION→TEC.WMS STEP)
+- [ ] Create missing products/lots/locations/rules for complete M1–M5 coverage
+
+### PH2 — Classroom Dataset Standard
+- [ ] Define per-module SKU roles: teaching/exam/demo/lot-tracked/replenishment/KPI/error
+- [ ] Ensure every stock quantity has a pedagogical reason (no random stock)
+- [ ] Document the classroom dataset standard
+
+### PH3 — Exam Snapshot / Reset State
+- [ ] Document exact Odoo state before each module exam (quantities, lots, rules, docs)
+- [ ] Create teacher reset procedure (archive/delete/recreate steps)
+- [ ] If possible, create a reset script or checklist
+
+### PH4 — M4 KPI Data Hardening
+- [ ] Create stock movement history for KPI analysis (receipts, deliveries, delays)
+- [ ] Create delayed receipt example (OTIF <95%)
+- [ ] Create delivery issue example (Fill Rate <98%)
+- [ ] Create inventory discrepancy example (stock accuracy)
+- [ ] Create replenishment delay example (DSI/rotation)
+- [ ] Verify M4 Odoo Reporting page has enough data for student observation
+
+### PH5 — TEC.WMS ↔ Odoo URL Coherence
+- [ ] Audit all active Odoo Lab URLs in TEC.WMS slides (M1–M5)
+- [ ] Verify each URL opens correct Odoo page and data exists
+- [ ] Fix any broken, generic, or misleading links
+
+### PH6 — Certification Logic Final Check
+- [ ] Confirm M1 cert banner appears only on M1 pass (score ≥60 + conformity)
+- [ ] Confirm M5 cert banner appears only on M5 pass (score ≥60 + conformity)
+- [ ] Confirm no M2/M3/M4 standalone certifications exist
+- [ ] Verify Odoo certification articles explain each cert clearly
+
+### PH7 — Teacher Guide Addendum
+- [ ] Write addendum: before-class checklist, before-exam checklist, after-exam reset
+- [ ] Write Odoo dataset validation checklist
+- [ ] Write module-by-module SKU guide (what to show in Odoo and when)
+- [ ] Write troubleshooting section (if Odoo data changed by students)
+- [ ] Export updated guide to PDF
+
+### PH8 — Final Validation Report
+- [ ] Compile full inventory: SKUs, locations, lots, putaway rules, reorder rules, documents, URLs
+- [ ] Validate certification pages
+- [ ] Confirm reset procedure status
+- [ ] Run pnpm test (218/218) and build (0 errors)
+- [ ] Save checkpoint
