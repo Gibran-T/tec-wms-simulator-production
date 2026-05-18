@@ -202,14 +202,13 @@ export default function CredentialVerify() {
           {/* Top accent */}
           <div className="h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${cfg.accentColor}, transparent)` }} />
 
-          {/* Institutional header with CC logo */}
-          <div className="px-6 py-3 flex items-center gap-2" style={{ background: "rgba(0,0,0,0.5)", borderBottom: `1px solid ${cfg.accentColor}20` }}>
-            <img
-              src="/manus-storage/cc-logo-institutional_c26c3579.png"
-              alt="Collège de la Concorde"
-              className="h-5 object-contain"
-              style={{ filter: "brightness(0) invert(1)", opacity: 0.8 }}
-            />
+          {/* Institutional header — pure CSS/SVG, no image dependency */}
+          <div className="px-6 py-3 flex items-center gap-3" style={{ background: "rgba(0,0,0,0.5)", borderBottom: `1px solid ${cfg.accentColor}20` }}>
+            {/* CC monogram — inline SVG */}
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="shrink-0">
+              <circle cx="10" cy="10" r="9" stroke="currentColor" strokeWidth="1.5" className="text-slate-400" />
+              <text x="10" y="13" textAnchor="middle" fontSize="8" fontWeight="bold" fill="currentColor" className="text-slate-300">CC</text>
+            </svg>
             <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Official credential issued by Collège de la Concorde</div>
           </div>
 
