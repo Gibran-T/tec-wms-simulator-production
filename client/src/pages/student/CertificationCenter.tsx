@@ -75,7 +75,7 @@ export default function CertificationCenter() {
         className="min-h-screen px-4 py-8"
         style={{ background: "linear-gradient(135deg, #020817 0%, #0a0f1e 40%, #0d1a2e 100%)" }}
       >
-        {/* Background grid */}
+         {/* Background grid */}
         <div
           className="fixed inset-0 pointer-events-none"
           style={{
@@ -84,7 +84,15 @@ export default function CertificationCenter() {
             zIndex: 0,
           }}
         />
-
+        {/* CC Institutional logo — top-right surgical insertion */}
+        <div className="fixed top-16 right-5 z-20" style={{ opacity: 0.65 }}>
+          <img
+            src="/manus-storage/cc-logo-institutional_c26c3579.png"
+            alt="Collège de la Concorde"
+            className="h-7 object-contain"
+            style={{ filter: "brightness(0) invert(1)", maxWidth: 120 }}
+          />
+        </div>
         <div className="relative z-10 max-w-3xl mx-auto">
 
           {/* Header */}

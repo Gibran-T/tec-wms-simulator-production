@@ -14,6 +14,8 @@ import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 import QRCode from "qrcode";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import fs from "fs";
+import path from "path";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -103,9 +105,23 @@ async function generateCertificatePDF(cert: {
   // Header area
   page.drawRectangle({ x: 0, y: height - 80, width, height: 77, color: darkCard });
 
+  // CC Institutional logo — top-left in header (white rendering, non-blocking)
+  let logoEmbedded = false;
+  try {
+    const logoPath = path.join(process.cwd(), "client", "public", "cc-logo-cert.png");
+    if (fs.existsSync(logoPath)) {
+      const logoBytes = fs.readFileSync(logoPath);
+      const logoImg = await pdfDoc.embedPng(logoBytes);
+      const logoH = 30;
+      const logoW = (logoImg.width / logoImg.height) * logoH;
+      page.drawImage(logoImg, { x: 36, y: height - 65, width: logoW, height: logoH, opacity: 0.9 });
+      logoEmbedded = true;
+    }
+  } catch (_) { /* non-blocking */ }
   // Header text
-  page.drawText("COLLEGE DE LA CONCORDE", { x: 36, y: height - 32, size: 11, font: helveticaBold, color: accentMain });
-  page.drawText("Departement Techniques de la logistique  ·  TEC.LOG", { x: 36, y: height - 50, size: 8, font: helvetica, color: slate400 });
+  const textX = logoEmbedded ? 36 : 36;
+  page.drawText("COLLEGE DE LA CONCORDE", { x: textX, y: height - 32, size: 11, font: helveticaBold, color: accentMain });
+  page.drawText("Departement Techniques de la logistique  ·  TEC.LOG", { x: textX, y: height - 50, size: 8, font: helvetica, color: slate400 });
 
   // Tier badge
   const tierLabel = isSilver ? "SILVER" : "GOLD";

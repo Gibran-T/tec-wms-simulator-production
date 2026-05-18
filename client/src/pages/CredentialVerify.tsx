@@ -139,6 +139,19 @@ export default function CredentialVerify() {
           backgroundSize: "40px 40px",
         }}
       />
+      {/* CC Institutional logo — top-right surgical insertion */}
+      <div className="absolute top-4 right-5 z-20 flex flex-col items-end gap-1" style={{ opacity: 0.75 }}>
+        <img
+          src="/manus-storage/cc-logo-institutional_c26c3579.png"
+          alt="Collège de la Concorde"
+          className="h-8 object-contain"
+          style={{ filter: "brightness(0) invert(1)", maxWidth: 130 }}
+        />
+        <div className="text-right" style={{ lineHeight: 1.3 }}>
+          <div className="text-[8px] font-medium text-slate-500 uppercase tracking-widest">Official credential issued by</div>
+          <div className="text-[9px] font-bold text-slate-400">Collège de la Concorde</div>
+        </div>
+      </div>
       {/* Ambient glow */}
       <div
         className="absolute top-0 left-1/2 pointer-events-none"

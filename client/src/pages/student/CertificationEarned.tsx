@@ -203,6 +203,15 @@ export default function CertificationEarned() {
           backgroundSize: "40px 40px",
         }}
       />
+      {/* CC Institutional logo — top-right surgical insertion */}
+      <div className="absolute top-4 right-5 z-20" style={{ opacity: 0.7 }}>
+        <img
+          src="/manus-storage/cc-logo-institutional_c26c3579.png"
+          alt="Collège de la Concorde"
+          className="h-8 object-contain"
+          style={{ filter: "brightness(0) invert(1)", maxWidth: 130 }}
+        />
+      </div>
       {/* Ambient top glow */}
       <div
         className="absolute top-0 left-1/2 pointer-events-none"
