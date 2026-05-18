@@ -8,7 +8,7 @@
 
 import { useParams } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 type CertType = "m1_fundamentals" | "m2m5_integrated";
@@ -62,6 +62,30 @@ export default function CredentialVerify() {
   const params = useParams<{ credentialId: string }>();
   const credentialId = params.credentialId || "";
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!credentialId) return;
+    const title = "TEC.LOG Digital Credential";
+    const desc = "Verified digital credential issued by Collège de la Concorde";
+    const img = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/nAhGw8XK59ZrVZBqWsfEzN/linkedin-preview-teclog-certification-bUttroqSpBP2Qteoac28iG.png";
+    document.title = title;
+    const addMeta = (prop: string, content: string) => {
+      const m = document.createElement("meta");
+      if (prop.startsWith("twitter:")) m.setAttribute("name", prop);
+      else m.setAttribute("property", prop);
+      m.setAttribute("content", content);
+      document.head.appendChild(m);
+    };
+    addMeta("og:title", title);
+    addMeta("og:description", desc);
+    addMeta("og:image", img);
+    addMeta("og:url", window.location.href);
+    addMeta("og:type", "website");
+    addMeta("twitter:card", "summary_large_image");
+    addMeta("twitter:title", title);
+    addMeta("twitter:description", desc);
+    addMeta("twitter:image", img);
+  }, [credentialId]);
 
   const { data: cert, isLoading } = trpc.certification.getByCredentialId.useQuery(
     { credentialId },
@@ -139,19 +163,7 @@ export default function CredentialVerify() {
           backgroundSize: "40px 40px",
         }}
       />
-      {/* CC Institutional logo — top-right surgical insertion */}
-      <div className="absolute top-4 right-5 z-20 flex flex-col items-end gap-1" style={{ opacity: 0.75 }}>
-        <img
-          src="/manus-storage/cc-logo-institutional_c26c3579.png"
-          alt="Collège de la Concorde"
-          className="h-8 object-contain"
-          style={{ filter: "brightness(0) invert(1)", maxWidth: 130 }}
-        />
-        <div className="text-right" style={{ lineHeight: 1.3 }}>
-          <div className="text-[8px] font-medium text-slate-500 uppercase tracking-widest">Official credential issued by</div>
-          <div className="text-[9px] font-bold text-slate-400">Collège de la Concorde</div>
-        </div>
-      </div>
+
       {/* Ambient glow */}
       <div
         className="absolute top-0 left-1/2 pointer-events-none"
@@ -188,6 +200,17 @@ export default function CredentialVerify() {
         >
           {/* Top accent */}
           <div className="h-0.5" style={{ background: `linear-gradient(90deg, transparent, ${cfg.accentColor}, transparent)` }} />
+
+          {/* Institutional header with CC logo */}
+          <div className="px-6 py-3 flex items-center gap-2" style={{ background: "rgba(0,0,0,0.5)", borderBottom: `1px solid ${cfg.accentColor}20` }}>
+            <img
+              src="/manus-storage/cc-logo-institutional_c26c3579.png"
+              alt="Collège de la Concorde"
+              className="h-5 object-contain"
+              style={{ filter: "brightness(0) invert(1)", opacity: 0.8 }}
+            />
+            <div className="text-[9px] font-medium text-slate-500 uppercase tracking-wider">Official credential issued by Collège de la Concorde</div>
+          </div>
 
           {/* Header */}
           <div className="px-6 py-5" style={{ background: "rgba(0,0,0,0.3)", borderBottom: `1px solid ${cfg.accentColor}15` }}>
