@@ -1,0 +1,52 @@
+{
+  "query": "SELECT id, email, name, role FROM users LIMIT 20;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute SELECT id, email, name, role FROM users LIMIT 20;",
+  "rows": [
+    {
+      "id": "1",
+      "email": "gibranlog@gmail.com",
+      "name": "Thiago Gibran",
+      "role": "admin"
+    },
+    {
+      "id": "20",
+      "email": "student@concorde.ca",
+      "name": "Étudiant Demo",
+      "role": "student"
+    },
+    {
+      "id": "21",
+      "email": "etudiant@concorde.ca",
+      "name": "Étudiant FR Demo",
+      "role": "student"
+    },
+    {
+      "id": "22",
+      "email": "prof@concorde.ca",
+      "name": "Professeur Demo",
+      "role": "teacher"
+    },
+    {
+      "id": "300005",
+      "email": "magalylps@gmail.com",
+      "name": "GIBRAN",
+      "role": "student"
+    },
+    {
+      "id": "330001",
+      "email": "qa.teststudent@concordia.ca",
+      "name": "QA TestStudent",
+      "role": "student"
+    },
+    {
+      "id": "3990014",
+      "email": "jamesnns3@gmail.com",
+      "name": "James Timothy",
+      "role": "student"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1\tgibranlog@gmail.com\tThiago Gibran\tadmin\n20\tstudent@concorde.ca\tÉtudiant Demo\tstudent\n21\tetudiant@concorde.ca\tÉtudiant FR Demo\tstudent\n22\tprof@concorde.ca\tProfesseur Demo\tteacher\n300005\tmagalylps@gmail.com\tGIBRAN\tstudent\n330001\tqa.teststudent@concordia.ca\tQA TestStudent\tstudent\n3990014\tjamesnns3@gmail.com\tJames Timothy\tstudent\n",
+  "stderr": "",
+  "execution_time_ms": 397
+}
