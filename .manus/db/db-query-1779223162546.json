@@ -1,0 +1,19 @@
+{
+  "query": "SELECT * FROM scenario_runs WHERE id = 480001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute SELECT * FROM scenario_runs WHERE id = 480001;",
+  "rows": [
+    {
+      "id": "480001",
+      "userId": "3990014",
+      "scenarioId": "1",
+      "status": "in_progress",
+      "isDemo": "0",
+      "startedAt": "2026-05-19 20:18:51",
+      "completedAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tuserId\tscenarioId\tstatus\tisDemo\tstartedAt\tcompletedAt\n480001\t3990014\t1\tin_progress\t0\t2026-05-19 20:18:51\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 260
+}

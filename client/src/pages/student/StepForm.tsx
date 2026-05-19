@@ -1885,7 +1885,24 @@ export default function StepForm() {
   }
 
   function handleError(err: any) {
-    toast.error(err.message ?? t("Erreur de validation", "Validation error"));
+    // Extract error message from tRPC error structure
+    const message = 
+      err?.data?.message || 
+      err?.message || 
+      t("Erreur de validation", "Validation error");
+    
+    // Log for debugging
+    console.error("Step submission error:", { 
+      code: err?.data?.code,
+      message: message,
+      fullError: err 
+    });
+    
+    // Display error with longer duration for readability
+    toast.error(message, { 
+      duration: 5000,
+      position: "top-center"
+    });
   }
 
   function onSubmit(values: FormValues) {
