@@ -1,0 +1,9 @@
+{
+  "query": "DELETE FROM scenario_runs WHERE userId = 3990014; DELETE FROM certifications WHERE userId = 3990014;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.df943ea7bc7b --database nAhGw8XK59ZrVZBqWsfEzN --execute DELETE FROM scenario_runs WHERE userId = 3990014; DELETE FROM certifications WHERE userId = 3990014;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 268
+}
