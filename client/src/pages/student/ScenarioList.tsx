@@ -2,7 +2,8 @@ import FioriShell from "@/components/FioriShell";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useLocation } from "wouter";
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
 import {
   BookOpen, Play, ChevronRight, AlertCircle, UserCircle, CheckCircle,
   Pencil, MonitorPlay, Presentation, Lock, Clock, Target, Info,
@@ -13,6 +14,14 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
 const MODULE_CONFIG = [
+  // Operational flow steps for each module
+  // PO -> GR -> STOCK -> SO -> GI -> CC -> COMPLIANCE
+  // M1: PO, GR, STOCK, SO, GI, CC, COMPLIANCE
+  // M2: GR, PUTAWAY, BIN CAPACITY, FIFO, INVENTAIRE
+  // M3: CYCLE COUNT, VARIANCE, AJUSTEMENT, RÉAPPRO, VALIDATION
+  // M4: KPI CALCUL, ROTATION, TAUX SERVICE, LEAD TIME, DIAGNOSTIC
+  // M5: RÉCEPTION, RANGEMENT, INVENTAIRE, RÉAPPRO, KPI, DÉCISION
+
   {
     id: 1,
     icon: BookOpen,
@@ -193,7 +202,24 @@ export default function ScenarioList() {
   const mod = MODULE_CONFIG.find((m) => m.id === selectedModule)!;
   const ModIcon = mod.icon;
 
-  const moduleScenarios = (scenarios ?? []).filter((s) => s.moduleId === selectedModule);
+    const moduleScenarios = useMemo(() => (scenarios ?? []).filter((s) => s.moduleId === selectedModule), [scenarios, selectedModule]);
+
+  const currentModuleConfig = useMemo(() => MODULE_CONFIG.find((m) => m.id === selectedModule)!, [selectedModule]);
+
+  const moduleRuns = useMemo(() => myRuns?.filter(r => r.run.moduleId === selectedModule) || [], [myRuns, selectedModule]);
+
+  const totalScenarios = moduleScenarios.length;
+  const completedScenarios = moduleRuns.filter(r => r.run.status === "completed").length;
+  const inProgressScenarios = moduleRuns.filter(r => r.run.status === "in_progress").length;
+  const avgScoreModule = useMemo(() => {
+    const scoredRuns = moduleRuns.filter(r => r.run.score !== null && r.run.score !== undefined);
+    if (scoredRuns.length === 0) return 0;
+    return Math.round(scoredRuns.reduce((sum, r) => sum + (r.run.score ?? 0), 0) / scoredRuns.length);
+  }, [moduleRuns]);
+
+  const isModuleCompleted = completedScenarios === totalScenarios && totalScenarios > 0;
+
+
 
   const getActiveRun = (scenarioId: number) =>
     myRuns?.find((r) => r.run.scenarioId === scenarioId && r.run.status === "in_progress" && !r.run.isDemo);
@@ -224,351 +250,196 @@ export default function ScenarioList() {
     >
       <div className="max-w-4xl mx-auto space-y-5">
 
-        {/* ── Teacher banner ──────────────────────────────────────────────── */}
-        {isTeacherOrAdmin && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-md border-2 border-purple-500/40 bg-purple-500/10 dark:bg-purple-900/20">
-            <div className="w-8 h-8 bg-purple-700 rounded-md flex items-center justify-center shrink-0">
-              <MonitorPlay size={16} className="text-white" />
+        {/* ── Module Overview Card ────────────────────────────────────────── */}
+        <div className={`bg-card border ${mod.border} rounded-md p-4 mb-5`}>
+          <div className="flex items-center gap-3 mb-3">
+            <div className={`w-10 h-10 ${mod.bg} rounded-full flex items-center justify-center shrink-0`}>
+              <ModIcon size={20} className={mod.text} />
             </div>
-            <div className="flex-1">
-              <p className="text-xs font-bold text-purple-800 dark:text-purple-300">
-                {t("Mode Enseignant — Vue de démonstration", "Teacher Mode — Demonstration View")}
-              </p>
-              <p className="text-[10px] text-purple-700 dark:text-purple-400 mt-0.5">
-                {t("Scores affichés à titre pédagogique (non officiels).", "Scores shown for pedagogical purposes (non-official).")}
-              </p>
+            <div>
+              <h2 className="text-lg font-bold text-foreground">{language === "FR" ? mod.titleFr : mod.titleEn}</h2>
+              <p className="text-sm text-muted-foreground">{language === "FR" ? mod.descFr : mod.descEn}</p>
             </div>
-            <button onClick={() => navigate("/teacher")} className="text-xs text-purple-700 dark:text-purple-300 font-semibold hover:underline shrink-0">
-              ← {t("Tableau de bord", "Dashboard")}
-            </button>
           </div>
-        )}
 
-        {/* ── Student number ──────────────────────────────────────────────── */}
-        <div className={`flex items-center gap-3 px-4 py-2.5 rounded-md border ${
-          myProfile?.studentNumber ? "bg-green-500/10 border-green-500/30" : "bg-amber-500/10 border-amber-500/30"
-        }`}>
-          <UserCircle size={16} className={myProfile?.studentNumber ? "text-green-600 dark:text-green-400 shrink-0" : "text-amber-600 dark:text-amber-400 shrink-0"} />
-          {editingStudentNum ? (
-            <div className="flex items-center gap-2 flex-1 flex-wrap">
-              <input
-                type="text"
-                value={studentNumInput}
-                onChange={(e) => setStudentNumInput(e.target.value)}
-                placeholder={t("Ex: 2024-12345", "e.g. 2024-12345")}
-                maxLength={64}
-                className="border border-border rounded px-2 py-1 text-xs w-40 focus:outline-none focus:border-primary bg-background text-foreground"
-                onKeyDown={(e) => e.key === "Enter" && handleSaveStudentNum()}
-                autoFocus
-              />
-              <button onClick={handleSaveStudentNum} disabled={upsertProfile.isPending}
-                className="flex items-center gap-1 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded hover:bg-primary/90">
-                <CheckCircle size={11} /> {t("Enregistrer", "Save")}
-              </button>
-              <button onClick={() => setEditingStudentNum(false)} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1">
-                {t("Annuler", "Cancel")}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+              <p className="text-2xl font-bold text-primary">{totalScenarios}</p>
+              <p className="text-xs text-muted-foreground">{t("Scénarios", "Scenarios")}</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+              <p className="text-2xl font-bold text-green-600">{completedScenarios}</p>
+              <p className="text-xs text-muted-foreground">{t("Terminés", "Completed")}</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+              <p className="text-2xl font-bold text-amber-600">{inProgressScenarios}</p>
+              <p className="text-xs text-muted-foreground">{t("En cours", "In Progress")}</p>
+            </div>
+            <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
+              <p className="text-2xl font-bold text-primary">{avgScoreModule}<span className="text-sm">/100</span></p>
+              <p className="text-xs text-muted-foreground">{t("Score Moyen", "Avg. Score")}</p>
+            </div>
+          </div>
+
+          {/* Operational Flow Display */}
+          <div className="mt-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2">{t("Flux Opérationnel", "Operational Flow")}</h4>
+            <OperationalFlowDisplay steps={currentModuleConfig.steps} />
+          </div>
+
+          {/* Quiz Gate */}
+          {!quizPassed && (
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-md flex items-center gap-3">
+              <AlertCircle size={20} className="text-amber-600 dark:text-amber-400 shrink-0" />
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t("Quiz Pré-requis", "Prerequisite Quiz")}</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300">{t("Vous devez réussir le quiz de ce module avant de pouvoir démarrer les scénarios.", "You must pass this module's quiz before starting scenarios.")}</p>
+              </div>
+              <button
+                onClick={() => navigate(`/student/quiz/${selectedModule}`)}
+                className="ml-auto px-3 py-1 bg-amber-600 text-white text-xs rounded-md hover:bg-amber-700 transition-colors"
+              >
+                {t("Commencer le Quiz", "Start Quiz")}
               </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 flex-1">
-              <span className="text-xs text-muted-foreground">{t("N° étudiant :", "Student #:")}</span>
-              {myProfile?.studentNumber ? (
-                <span className="text-xs font-bold text-green-600 dark:text-green-400 font-mono">{myProfile.studentNumber}</span>
-              ) : (
-                <span className="text-xs text-amber-600 dark:text-amber-400 italic">
-                  {t("Non défini", "Not set")}
-                  <span className="hidden sm:inline"> — {t("requis pour l'identification par l'enseignant", "required for teacher identification")}</span>
-                </span>
-              )}
-              <button onClick={() => { setStudentNumInput(myProfile?.studentNumber ?? ""); setEditingStudentNum(true); }}
-                className="ml-1 text-muted-foreground hover:text-primary transition-colors" title={t("Modifier", "Edit")}>
-                <Pencil size={11} />
-              </button>
+          )}
+
+          {/* Student Number Input */}
+          {user?.role === "student" && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-300 dark:border-blue-700 rounded-md flex items-center gap-3">
+              <UserCircle size={20} className="text-blue-600 dark:text-blue-400 shrink-0" />
+              <div className="flex-1">
+                {editingStudentNum ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={studentNumInput}
+                      onChange={(e) => setStudentNumInput(e.target.value)}
+                      placeholder={t("Entrez votre numéro étudiant", "Enter your student number")}
+                      className="flex-1 px-2 py-1 border rounded-md text-sm bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <button
+                      onClick={handleSaveStudentNum}
+                      className="px-3 py-1 bg-primary text-primary-foreground text-xs rounded-md hover:bg-primary/90 transition-colors"
+                    >
+                      {t("Sauvegarder", "Save")}
+                    </button>
+                    <button onClick={() => setEditingStudentNum(false)} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1">
+                      {t("Annuler", "Cancel")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 flex-1">
+                    <span className="text-xs text-muted-foreground">{t("N° étudiant :", "Student #:")}</span>
+                    {myProfile?.studentNumber ? (
+                      <span className="text-xs font-bold text-green-600 dark:text-green-400 font-mono">{myProfile.studentNumber}</span>
+                    ) : (
+                      <span className="text-xs text-amber-600 dark:text-amber-400 italic">{t("Non défini", "Not set")}</span>
+                    )}
+                    <button onClick={() => setEditingStudentNum(true)} className="text-xs text-primary hover:underline ml-auto">
+                      {t("Modifier", "Edit")}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
 
-        {/* ── Module selector tabs ─────────────────────────────────────────── */}
-        <div className="bg-card border border-border rounded-md p-1 flex gap-1 overflow-x-auto">
-          {MODULE_CONFIG.map((m) => {
-            const Icon = m.icon;
-            const active = m.id === selectedModule;
-            const modScenarios = (scenarios ?? []).filter((s) => s.moduleId === m.id);
-            const completedCount = modScenarios.filter((s) => getCompletedRun(s.id)).length;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setSelectedModule(m.id)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded text-xs font-semibold transition-all shrink-0 ${
-                  active
-                    ? "text-white shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-                style={active ? { backgroundColor: m.color } : {}}
-              >
-                <Icon size={12} />
-                <span className="hidden sm:inline">M{m.id}</span>
-                <span className="sm:hidden">M{m.id}</span>
-                {completedCount > 0 && (
-                  <span className={`text-[9px] px-1 rounded-full font-bold ${active ? "bg-white/30 text-white" : "bg-green-100 text-green-700"}`}>
-                    {completedCount}✓
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ── Module header card ───────────────────────────────────────────── */}
-        <div className={`bg-card border-2 ${mod.border} rounded-md overflow-hidden`}>
-          {/* Color accent top bar */}
-          <div className="h-1.5 w-full" style={{ backgroundColor: mod.color }} />
-          <div className="p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-md flex items-center justify-center shrink-0" style={{ backgroundColor: mod.color }}>
-                <ModIcon size={22} className="text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-0.5">
-                      Module {mod.id} · {mod.durationH}h · {t("Seuil de réussite", "Pass threshold")}: {mod.passThreshold}/100
-                    </p>
-                    <h2 className="text-foreground font-bold text-base leading-snug">
-                      {language === "FR" ? mod.titleFr : mod.titleEn}
-                    </h2>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {language === "FR" ? mod.descFr : mod.descEn}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Quiz status badge */}
-                    {quizPassed ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
-                        <CheckCircle size={10} /> {t("Quiz ✓", "Quiz ✓")}
-                      </span>
-                    ) : (
-                      <button
-                        onClick={() => navigate(`/student/quiz/${selectedModule}`)}
-                        className="flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800 hover:opacity-80 transition-opacity"
-                      >
-                        <Lock size={10} /> {t("Quiz requis", "Quiz required")}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(mod.slidesRoute)}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold text-white hover:opacity-90 transition-opacity"
-                      style={{ backgroundColor: mod.color }}
-                    >
-                      <Presentation size={13} />
-                      {t("Slides M", "Slides M")}{mod.id}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Process flow steps */}
-                <div className="mt-3 flex items-center gap-1 overflow-x-auto pb-1 flex-wrap">
-                  {mod.steps.map((step, i) => (
-                    <div key={step} className="flex items-center gap-1 shrink-0">
-                      <span
-                        className="px-2 py-0.5 text-[10px] font-bold rounded cursor-help"
-                        style={{ backgroundColor: `${mod.color}18`, color: mod.color, border: `1px solid ${mod.color}30` }}
-                        title={ACRONYMS.find((a) => a.code === step)
-                          ? (language === "FR" ? ACRONYMS.find((a) => a.code === step)!.fr : ACRONYMS.find((a) => a.code === step)!.en)
-                          : step}
-                      >
-                        {step}
-                      </span>
-                      {i < mod.steps.length - 1 && <ChevronRight size={10} className="text-muted-foreground/40" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Learning objectives (collapsible) */}
-            <details className="mt-4 group">
-              <summary className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-muted-foreground hover:text-foreground list-none select-none">
-                <Target size={12} style={{ color: mod.color }} />
-                {t("Objectifs pédagogiques", "Learning objectives")}
-                <ChevronDown size={12} className="group-open:hidden ml-auto" />
-                <ChevronUp size={12} className="hidden group-open:block ml-auto" />
-              </summary>
-              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {mod.objectives.map((obj, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2.5 rounded-md bg-muted/50">
-                    <div className="w-4 h-4 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[9px] font-bold text-white" style={{ backgroundColor: mod.color }}>
-                      {i + 1}
-                    </div>
-                    <p className="text-[11px] text-foreground leading-snug">
-                      {language === "FR" ? obj.fr : obj.en}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </details>
-          </div>
-        </div>
-
-        {/* ── Scenarios list ───────────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              {t("Scénarios disponibles", "Available scenarios")} ({moduleScenarios.length})
-            </p>
-            <span className="text-[10px] text-muted-foreground">
-              {t("Score de passage :", "Pass score:")} <strong>{mod.passThreshold}/100</strong>
-            </span>
-          </div>
-
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-card border border-border rounded-md p-5 animate-pulse">
-                  <div className="h-4 bg-secondary rounded w-1/3 mb-2" />
-                  <div className="h-3 bg-secondary rounded w-2/3" />
-                </div>
-              ))}
-            </div>
-          ) : moduleScenarios.length === 0 ? (
-            <div className="bg-card border border-dashed border-border rounded-md py-12 text-center">
-              <p className="text-muted-foreground text-sm mb-1">{t("Aucun scénario disponible pour ce module.", "No scenarios available for this module.")}</p>
-              <p className="text-xs text-muted-foreground">{t("Contactez votre enseignant.", "Contact your teacher.")}</p>
-            </div>
+        {/* ── Scenario List ────────────────────────────────────────────────── */} 
+        <div className="space-y-4">
+          <h3 className="text-lg font-bold text-foreground">{t("Scénarios du Module", "Module Scenarios")}</h3>
+          {moduleScenarios.length === 0 && !isLoading ? (
+            <p className="text-muted-foreground italic">{t("Aucun scénario disponible pour ce module.", "No scenarios available for this module.")}</p>
           ) : (
-            <div className="space-y-3">
-              {moduleScenarios.map((scenario, idx) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {moduleScenarios.map((scenario) => {
                 const activeRun = getActiveRun(scenario.id);
                 const completedRun = getCompletedRun(scenario.id);
-                const diffCfg = DIFF_CONFIG[scenario.difficulty ?? "facile"] ?? DIFF_CONFIG.facile;
-                const estimatedMin = SCENARIO_DURATION[idx + 1] ?? 20;
-                const progressPct = activeRun ? Math.round(((activeRun.completedSteps?.length ?? 0) / mod.steps.length) * 100) : 0;
-                const completedSteps = activeRun?.completedSteps?.length ?? 0;
+                const isLocked = !quizPassed && user?.role === "student";
 
                 return (
                   <div
                     key={scenario.id}
-                    className={`bg-card border rounded-md overflow-hidden transition-all hover:shadow-sm ${
-                      completedRun ? "border-green-400/50 dark:border-green-700/50" : activeRun ? "border-amber-400/50 dark:border-amber-700/50" : "border-border hover:border-primary/40"
-                    }`}
+                    className={`bg-card border rounded-lg p-4 flex flex-col justify-between ${isLocked ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg transition-shadow"}`}
                   >
-                    {/* Status accent bar */}
-                    <div className="h-1 w-full" style={{
-                      backgroundColor: completedRun ? "#107e3e" : activeRun ? "#e9730c" : mod.color,
-                      opacity: completedRun || activeRun ? 1 : 0.3,
-                    }} />
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-foreground">{scenario.name}</h4>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DIFF_CONFIG[scenario.difficulty]?.bg} ${DIFF_CONFIG[scenario.difficulty]?.text}`}>
+                          {language === "FR" ? DIFF_CONFIG[scenario.difficulty]?.labelFr : DIFF_CONFIG[scenario.difficulty]?.labelEn}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">{language === "FR" ? scenario.descriptionFr : scenario.descriptionEn}</p>
 
-                    <div className="p-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          {/* Badges row */}
-                          <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${diffCfg.bg} ${diffCfg.text} ${diffCfg.border}`}
-                              title={language === "FR"
-                                ? `Difficulté : ${diffCfg.labelFr}`
-                                : `Difficulty: ${diffCfg.labelEn}`}>
-                              {language === "FR" ? diffCfg.labelFr : diffCfg.labelEn}
-                            </span>
-                            {completedRun && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-300 border border-green-300 dark:border-green-700">
-                                <CheckCircle size={9} /> {t("Complété", "Completed")}
-                                {completedRun.score !== null && completedRun.score !== undefined && (
-                                  <span className="ml-1 font-bold">{completedRun.score}/100</span>
-                                )}
-                              </span>
-                            )}
-                            {activeRun && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
-                                <Play size={9} /> {t("En cours", "In progress")} — {completedSteps}/{mod.steps.length} {t("étapes", "steps")}
-                              </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-                              <Clock size={9} /> ~{estimatedMin} min
-                            </span>
-                          </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
+                        <Clock size={14} />
+                        <span>{SCENARIO_DURATION[scenario.id]} {t("min", "min")}</span>
+                        <Target size={14} className="ml-4" />
+                        <span>{scenario.targetScore}% {t("cible", "target")}</span>
+                      </div>
 
-                          {/* Title & description */}
-                          <h3 className="text-foreground font-semibold text-sm mb-1 leading-snug">{scenario.name}</h3>
-                          <p className="text-muted-foreground text-xs leading-relaxed">{scenario.descriptionFr}</p>
+                      {/* Status Badges */}
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {activeRun && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                            <MonitorPlay size={12} className="mr-1" /> {t("En cours", "In Progress")}
+                          </span>
+                        )}
+                        {completedRun && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
+                          </span>
+                        )}
+                        {completedRun && completedRun.run.score !== null && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            <BarChart2 size={12} className="mr-1" /> {t("Score:", "Score:")} {completedRun.run.score}/100
+                          </span>
+                        )}
+                        {isLocked && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                            <Lock size={12} className="mr-1" /> {t("Verrouillé", "Locked")}
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                          {/* Progress bar for in-progress runs */}
-                          {activeRun && (
-                            <div className="mt-2.5">
-                              <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-1">
-                                <span>{t("Progression", "Progress")}</span>
-                                <span className="font-semibold text-amber-600 dark:text-amber-400">{progressPct}%</span>
-                              </div>
-                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${progressPct}%` }} />
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Completed score bar */}
-                          {completedRun && completedRun.score !== null && completedRun.score !== undefined && (
-                            <div className="mt-2.5">
-                              <div className="flex items-center justify-between text-[9px] text-muted-foreground mb-1">
-                                <span>{t("Score obtenu", "Score achieved")}</span>
-                                <span className={`font-bold ${completedRun.score >= mod.passThreshold ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                                  {completedRun.score}/100 {completedRun.score >= mod.passThreshold ? `✓ ${t("Réussi", "Passed")}` : `✗ ${t("Échoué", "Failed")}`}
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all ${completedRun.score >= mod.passThreshold ? "bg-green-500" : "bg-red-500"}`}
-                                  style={{ width: `${completedRun.score}%` }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Action buttons */}
-                        <div className="flex-shrink-0 flex flex-col gap-2">
-                          {activeRun && (
+                    {/* Action Buttons */}
+                    <div className="mt-4 flex gap-2">
+                      {isLocked ? (
+                        <button
+                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md cursor-not-allowed"
+                          disabled
+                        >
+                          <Lock size={16} className="inline mr-2" /> {t("Verrouillé", "Locked")}
+                        </button>
+                      ) : (
+                        <>
+                          {activeRun ? (
                             <button
                               onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
-                              className="flex items-center gap-1.5 bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-amber-700 transition-colors"
+                              className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
                             >
-                              <Play size={12} /> {t("Continuer", "Continue")}
+                              <Play size={16} className="inline mr-2" /> {t("Continuer", "Continue")}
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty })}
+                              className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+                            >
+                              <Play size={16} className="inline mr-2" /> {t("Démarrer", "Start")}
                             </button>
                           )}
                           {completedRun && (
                             <button
-                              onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
-                              className="flex items-center gap-1.5 bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-md hover:bg-green-800 transition-colors"
+                              onClick={() => navigate(`/student/report/${completedRun.run.id}`)}
+                              className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
                             >
-                              {t("Voir rapport", "View report")}
+                              <FileText size={16} className="inline mr-2" /> {t("Rapport", "Report")}
                             </button>
                           )}
-                          {!activeRun && (
-                            quizPassed ? (
-                              <button
-                                onClick={() => {
-                                  setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty ?? undefined });
-                                }}
-                                className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-                                style={{ backgroundColor: mod.color }}
-                              >
-                                <Play size={12} /> {completedRun ? t("Recommencer", "Restart") : t("Démarrer", "Start")}
-                              </button>
-                            ) : (
-                              <div className="flex flex-col gap-1.5">
-                                <button
-                                  onClick={() => navigate(`/student/quiz/${selectedModule}`)}
-                                  className="flex items-center gap-1.5 text-white text-xs font-semibold px-4 py-2 rounded-md hover:opacity-90 transition-opacity"
-                                  style={{ backgroundColor: mod.color }}
-                                >
-                                  <Lock size={12} /> {t("Faire le quiz d'abord", "Take quiz first")}
-                                </button>
-                                <span className="text-[10px] text-muted-foreground text-center">
-                                  {t("Score ≥60% requis", "Score ≥60% required")}
-                                </span>
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
+                        </>
+                      )}
                     </div>
                   </div>
                 );
@@ -577,48 +448,26 @@ export default function ScenarioList() {
           )}
         </div>
 
-        {/* ── Glossary (collapsible) ───────────────────────────────────────── */}
-        <div className="bg-card border border-border rounded-md overflow-hidden">
+        {/* ── Glossary ───────────────────────────────────────────────────────── */}
+        <div className="mt-8">
           <button
-            onClick={() => setShowGlossary((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+            onClick={() => setShowGlossary(!showGlossary)}
+            className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
-            <span className="flex items-center gap-2">
-              <Info size={13} />
-              {t("Glossaire des acronymes WMS/ERP", "WMS/ERP Acronym Glossary")}
-            </span>
-            {showGlossary ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            <Info size={16} /> {t("Afficher le glossaire des acronymes", "Show acronym glossary")}
+            {showGlossary ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
+
           {showGlossary && (
-            <div className="px-4 pb-4 grid grid-cols-1 sm:grid-cols-2 gap-2 border-t border-border pt-3">
-              {ACRONYMS.map((a) => (
-                <div key={a.code} className="flex items-start gap-2 p-2 rounded bg-muted/40">
-                  <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded text-white shrink-0" style={{ backgroundColor: mod.color }}>
-                    {a.code}
-                  </span>
-                  <p className="text-[10px] text-muted-foreground leading-snug">
-                    {language === "FR" ? a.fr : a.en}
-                  </p>
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              {ACRONYMS.map((item) => (
+                <div key={item.code} className="bg-card p-3 rounded-md border">
+                  <p className="font-semibold text-foreground">{item.code}</p>
+                  <p className="text-muted-foreground">{language === "FR" ? item.fr : item.en}</p>
                 </div>
               ))}
             </div>
           )}
-        </div>
-
-        {/* ── Info box ─────────────────────────────────────────────────────── */}
-        <div className="flex items-start gap-3 px-4 py-3 rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-          <AlertCircle size={14} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-0.5">
-              {t("Instructions pédagogiques", "Pedagogical Instructions")}
-            </p>
-            <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed">
-              {t(
-                `Chaque scénario simule un contexte d'entrepôt réel. Suivez le flux séquentiel obligatoire — le système bloque toute action hors séquence. Score maximum : 100 points. Seuil de réussite : ${mod.passThreshold}/100.`,
-                `Each scenario simulates a real warehouse context. Follow the mandatory sequential flow — the system blocks any out-of-sequence action. Maximum score: 100 points. Pass threshold: ${mod.passThreshold}/100.`
-              )}
-            </p>
-          </div>
         </div>
 
       </div>
