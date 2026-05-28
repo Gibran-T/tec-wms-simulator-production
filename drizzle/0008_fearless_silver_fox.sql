@@ -1,0 +1,1 @@
+ALTER TABLE `transactions` MODIFY COLUMN `docType` enum('PO','GR','SO','GI','ADJ','PUTAWAY','PUTAWAY_M1','PICKING','PICKING_M1') NOT NULL;

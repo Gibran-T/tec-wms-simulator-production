@@ -1,0 +1,55 @@
+{
+  "query": "\nSELECT sr.id, sr.status, sr.isDemo, sr.startedAt, sr.completedAt, s.name as scenarioName, s.moduleId\nFROM scenario_runs sr\nJOIN scenarios s ON sr.scenarioId = s.id\nWHERE sr.userId = 1470015\nORDER BY sr.id ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nSELECT sr.id, sr.status, sr.isDemo, sr.startedAt, sr.completedAt, s.name as scenarioName, s.moduleId\nFROM scenario_runs sr\nJOIN scenarios s ON sr.scenarioId = s.id\nWHERE sr.userId = 1470015\nORDER BY sr.id ASC;\n",
+  "rows": [
+    {
+      "id": "270001",
+      "status": "completed",
+      "isDemo": "0",
+      "startedAt": "2026-03-26 02:23:19",
+      "completedAt": "2026-03-26 02:23:21",
+      "scenarioName": "Scénario 1 — Cycle propre",
+      "moduleId": "1"
+    },
+    {
+      "id": "270002",
+      "status": "completed",
+      "isDemo": "0",
+      "startedAt": "2026-03-26 02:23:20",
+      "completedAt": "2026-03-26 02:23:21",
+      "scenarioName": "M2 — Scénario 1 : Rangement structuré et affectation d'emplacement",
+      "moduleId": "2"
+    },
+    {
+      "id": "270003",
+      "status": "completed",
+      "isDemo": "0",
+      "startedAt": "2026-03-26 02:23:21",
+      "completedAt": "2026-03-26 02:23:22",
+      "scenarioName": "M3 — Scénario 1 : Inventaire cyclique simple",
+      "moduleId": "3"
+    },
+    {
+      "id": "270004",
+      "status": "completed",
+      "isDemo": "0",
+      "startedAt": "2026-03-26 02:23:21",
+      "completedAt": "2026-03-26 02:23:22",
+      "scenarioName": "M4 — Scénario 1 : Analyse de la rotation des stocks",
+      "moduleId": "4"
+    },
+    {
+      "id": "270005",
+      "status": "completed",
+      "isDemo": "0",
+      "startedAt": "2026-03-26 02:23:22",
+      "completedAt": "2026-03-26 02:23:23",
+      "scenarioName": "M5 — Scénario 1 : Cycle opérationnel complet",
+      "moduleId": "5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tstatus\tisDemo\tstartedAt\tcompletedAt\tscenarioName\tmoduleId\n270001\tcompleted\t0\t2026-03-26 02:23:19\t2026-03-26 02:23:21\tScénario 1 — Cycle propre\t1\n270002\tcompleted\t0\t2026-03-26 02:23:20\t2026-03-26 02:23:21\tM2 — Scénario 1 : Rangement structuré et affectation d'emplacement\t2\n270003\tcompleted\t0\t2026-03-26 02:23:21\t2026-03-26 02:23:22\tM3 — Scénario 1 : Inventaire cyclique simple\t3\n270004\tcompleted\t0\t2026-03-26 02:23:21\t2026-03-26 02:23:22\tM4 — Scénario 1 : Analyse de la rotation des stocks\t4\n270005\tcompleted\t0\t2026-03-26 02:23:22\t2026-03-26 02:23:23\tM5 — Scénario 1 : Cycle opérationnel complet\t5\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

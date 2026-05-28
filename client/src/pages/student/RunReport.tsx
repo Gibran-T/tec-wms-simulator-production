@@ -1,7 +1,7 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
-import { CheckCircle, AlertTriangle, Trophy, ArrowLeft, FlaskConical, TrendingUp, BookOpen, Lightbulb, RotateCcw, Award, ExternalLink } from "lucide-react";
+import { CheckCircle, AlertTriangle, Trophy, ArrowLeft, FlaskConical, TrendingUp, BookOpen, Lightbulb, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -174,17 +174,16 @@ export default function RunReport() {
   const { data, isLoading } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
   const { data: detail, isLoading: detailLoading } = trpc.runs.detailedReport.useQuery({ runId: parseInt(runId) });
   const recordModulePass = trpc.warehouse.recordModulePass.useMutation();
-  const selfResetMutation = trpc.runs.selfReset.useMutation({
-    onSuccess: () => navigate("/student/scenarios"),
-    onError: () => navigate("/student/scenarios"),
-  });
 
   useEffect(() => {
-    if (!data || data.run.isDemo || data.run.status !== "completed") return;
-    const moduleId = data.scenario?.moduleId ?? 1;
-    recordModulePass.mutate({ moduleId, score: data.totalScore });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.run?.id]);
+    if (data && scenario && !run.isDemo && run.status === "completed" && totalScore !== undefined) {
+      recordModulePass.mutate({ moduleId: scenario.moduleId, score: totalScore });
+    }
+  }, [data, scenario, run.isDemo, run.status, totalScore, recordModulePass]);
+
+
+
+
 
   if (isLoading || detailLoading) return (
     <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
@@ -257,6 +256,22 @@ export default function RunReport() {
               : compliance.compliant ? `✅ ${t("Module complété avec succès", "Module completed successfully")}`
               : `⚠ ${t("Module complété — Non conforme", "Module completed — Non-compliant")}`}
           </p>
+
+          {/* Certification Unlock Message */}
+          {detail?.certificationUnlocked && (
+            <div className="mt-4">
+              <p className="text-white/80 text-sm font-semibold mb-2">
+                {t("Certification M1 débloquée !", "M1 Certification Unlocked!")}
+              </p>
+              <button
+                onClick={() => navigate("/student/certifications")}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
+              >
+                {t("Voir ma certification M1", "View my M1 Certification")}
+              </button>
+            </div>
+          )}
+
         </div>
 
         {/* Scores détaillés par étape */}
@@ -507,72 +522,6 @@ export default function RunReport() {
         {/* Score Evolution Chart — only shown when student has > 1 attempt */}
         {!isDemo && scenario && <ScoreEvolutionChart scenarioId={scenario.id} currentRunId={parseInt(runId)} />}
 
-        {/* Certification Banner — shown when module is passed in official mode */}
-        {!isDemo && totalScore >= 60 && compliance.compliant && (() => {
-          const mod = scenario?.moduleId ?? 1;
-          if (mod === 1) return (
-            <div className="bg-gradient-to-r from-emerald-950 to-emerald-900 border border-emerald-600/40 rounded-md p-5">
-              <div className="flex items-start gap-4">
-                <Award size={28} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-emerald-300 text-[10px] font-bold uppercase tracking-widest mb-1">
-                    {t("Certification débloquée", "Certification unlocked")}
-                  </p>
-                  <p className="text-white font-bold text-sm mb-1">
-                    {t("TEC.LOG Fundamentals Certification", "TEC.LOG Fundamentals Certification")}
-                  </p>
-                  <p className="text-emerald-200 text-xs mb-3">
-                    {t(
-                      "Vous avez validé les fondements opérationnels ERP/WMS — Module 1. Consultez votre page de certification sur le portail Odoo EDU LAB.",
-                      "You have validated the ERP/WMS operational foundations — Module 1. View your certification page on the Odoo EDU LAB portal."
-                    )}
-                  </p>
-                  <a
-                    href="https://edu-concorde-logistics-lab.odoo.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors"
-                  >
-                    <ExternalLink size={12} />
-                    {t("Voir la certification M1 — Odoo EDU LAB", "View M1 Certification — Odoo EDU LAB")}
-                  </a>
-                </div>
-              </div>
-            </div>
-          );
-          if (mod === 5) return (
-            <div className="bg-gradient-to-r from-indigo-950 to-indigo-900 border border-indigo-600/40 rounded-md p-5">
-              <div className="flex items-start gap-4">
-                <Award size={28} className="text-indigo-400 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-indigo-300 text-[10px] font-bold uppercase tracking-widest mb-1">
-                    {t("Certification finale débloquée", "Final certification unlocked")}
-                  </p>
-                  <p className="text-white font-bold text-sm mb-1">
-                    {t("TEC.LOG — Integrated ERP/WMS Logistics Certification", "TEC.LOG — Integrated ERP/WMS Logistics Certification")}
-                  </p>
-                  <p className="text-indigo-200 text-xs mb-3">
-                    {t(
-                      "Félicitations ! Vous avez complété le parcours complet M2–M5. Consultez votre certification finale sur le portail Odoo EDU LAB.",
-                      "Congratulations! You have completed the full M2–M5 pathway. View your final certification on the Odoo EDU LAB portal."
-                    )}
-                  </p>
-                  <a
-                    href="https://edu-concorde-logistics-lab.odoo.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2 rounded-md transition-colors"
-                  >
-                    <ExternalLink size={12} />
-                    {t("Voir la certification finale — Odoo EDU LAB", "View Final Certification — Odoo EDU LAB")}
-                  </a>
-                </div>
-              </div>
-            </div>
-          );
-          return null;
-        })()}
-
         {/* Action Buttons */}
         <div className="flex items-center justify-between pb-4">
           <button onClick={() => navigate("/student/scenarios")}
@@ -581,14 +530,10 @@ export default function RunReport() {
           </button>
           {scenario && (
             <button
-              onClick={() => selfResetMutation.mutate({ runId: parseInt(runId) })}
-              disabled={selfResetMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md hover:bg-primary/90 transition-colors disabled:opacity-60"
+              onClick={() => navigate("/student/scenarios")}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-xs font-semibold rounded-md hover:bg-primary/90 transition-colors"
             >
-              <RotateCcw size={13} />
-              {selfResetMutation.isPending
-                ? t("Réinitialisation...", "Resetting...")
-                : t("Nouvelle tentative", "New attempt")}
+              <RotateCcw size={13} /> {t("Recommencer ce scénario", "Restart this scenario")}
             </button>
           )}
         </div>

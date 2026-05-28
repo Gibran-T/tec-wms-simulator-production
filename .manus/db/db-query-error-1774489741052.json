@@ -1,0 +1,8 @@
+{
+  "query": "SELECT s.id, s.name, s.module_id, s.initial_state_json FROM scenarios s JOIN modules m ON s.module_id = m.id WHERE m.code IN ('M3', 'M4', 'M5') AND s.is_active = 1 LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT s.id, s.name, s.module_id, s.initial_state_json FROM scenarios s JOIN modules m ON s.module_id = m.id WHERE m.code IN ('M3', 'M4', 'M5') AND s.is_active = 1 LIMIT 10;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 's.module_id' in 'on clause'"
+  ]
+}

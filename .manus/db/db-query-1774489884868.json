@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, name, moduleId, initialStateJson FROM scenarios WHERE moduleId = 5 AND isActive = 1 LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT id, name, moduleId, initialStateJson FROM scenarios WHERE moduleId = 5 AND isActive = 1 LIMIT 5;",
+  "rows": [
+    {
+      "id": "37",
+      "name": "M5 — Scénario 1 : Cycle opérationnel complet",
+      "moduleId": "5",
+      "initialStateJson": "NULL"
+    },
+    {
+      "id": "38",
+      "name": "M5 — Scénario 2 : Gestion d'écarts et réajustement",
+      "moduleId": "5",
+      "initialStateJson": "NULL"
+    },
+    {
+      "id": "39",
+      "name": "M5 — Scénario 3 : Analyse décisionnelle stratégique",
+      "moduleId": "5",
+      "initialStateJson": "NULL"
+    },
+    {
+      "id": "30015",
+      "name": "M5 — Scénario 1 : Cycle opérationnel complet",
+      "moduleId": "5",
+      "initialStateJson": "NULL"
+    },
+    {
+      "id": "30016",
+      "name": "M5 — Scénario 2 : Gestion d'écarts et réajustement",
+      "moduleId": "5",
+      "initialStateJson": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tmoduleId\tinitialStateJson\n37\tM5 — Scénario 1 : Cycle opérationnel complet\t5\tNULL\n38\tM5 — Scénario 2 : Gestion d'écarts et réajustement\t5\tNULL\n39\tM5 — Scénario 3 : Analyse décisionnelle stratégique\t5\tNULL\n30015\tM5 — Scénario 1 : Cycle opérationnel complet\t5\tNULL\n30016\tM5 — Scénario 2 : Gestion d'écarts et réajustement\t5\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

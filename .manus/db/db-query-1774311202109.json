@@ -1,0 +1,9 @@
+{
+  "query": "\n-- Update scenarios pointing to old M4 (id=19) and M5 (id=24) to new IDs\n-- First, insert M4 and M5 with correct IDs by updating existing records\nUPDATE modules SET id = 4, code = 'M4', titleFr = 'Indicateurs de performance logistique', titleEn = 'Logistics Performance Indicators', `order` = 4 WHERE id = 19;\nUPDATE modules SET id = 5, code = 'M5', titleFr = 'Simulation opérationnelle intégrée', titleEn = 'Integrated Operational Simulation', `order` = 5 WHERE id = 24;\n-- Update scenarios to point to new module IDs\nUPDATE scenarios SET moduleId = 4 WHERE moduleId = 19;\nUPDATE scenarios SET moduleId = 5 WHERE moduleId = 24;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \n-- Update scenarios pointing to old M4 (id=19) and M5 (id=24) to new IDs\n-- First, insert M4 and M5 with correct IDs by updating existing records\nUPDATE modules SET id = 4, code = 'M4', titleFr = 'Indicateurs de performance logistique', titleEn = 'Logistics Performance Indicators', `order` = 4 WHERE id = 19;\nUPDATE modules SET id = 5, code = 'M5', titleFr = 'Simulation opérationnelle intégrée', titleEn = 'Integrated Operational Simulation', `order` = 5 WHERE id = 24;\n-- Update scenarios to point to new module IDs\nUPDATE scenarios SET moduleId = 4 WHERE moduleId = 19;\nUPDATE scenarios SET moduleId = 5 WHERE moduleId = 24;\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 124
+}

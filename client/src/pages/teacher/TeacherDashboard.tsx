@@ -12,13 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-const SLIDE_COUNT_PER_MODULE: Record<number, number> = {
-  1: 12,
-  2: 10,
-  3: 10,
-  4: 10,
-  5: 8,
-};
+const SLIDE_COUNT_PER_MODULE = 17;
 
 function fmtTime(dateVal: string | Date | undefined, lang: "FR" | "EN"): string {
   if (!dateVal) return "";
@@ -186,7 +180,7 @@ export default function TeacherDashboard() {
                 >
                   <Presentation size={11} />
                   Slides M{mod.id}
-                  <span className="opacity-60 font-normal">({SLIDE_COUNT_PER_MODULE[mod.id] ?? 0})</span>
+                  <span className="opacity-60 font-normal">({SLIDE_COUNT_PER_MODULE})</span>
                 </Link>
 
                 {runs.length === 0 ? (

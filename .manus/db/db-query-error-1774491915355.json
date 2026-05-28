@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT sr.id, sr.status, sr.totalScore, sr.userId, s.name as scenarioName, s.moduleId\nFROM scenario_runs sr\nJOIN scenarios s ON sr.scenarioId = s.id\nWHERE sr.userId = 1470015\nORDER BY sr.id ASC;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nSELECT sr.id, sr.status, sr.totalScore, sr.userId, s.name as scenarioName, s.moduleId\nFROM scenario_runs sr\nJOIN scenarios s ON sr.scenarioId = s.id\nWHERE sr.userId = 1470015\nORDER BY sr.id ASC;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'sr.totalscore' in 'field list'"
+  ]
+}

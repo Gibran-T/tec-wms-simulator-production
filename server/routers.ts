@@ -56,7 +56,12 @@ import {
   getQuizAttemptsByUser,
   getBestQuizAttempt,
   saveQuizAttempt,
-  deleteQuizAttempts,
+  checkM1QuizPassed,
+  checkAllM1ScenariosCompleted,
+  checkM1ComplianceValidated,
+  checkNoUnresolvedBlockers,
+  unlockSilverCertification,
+  unlockGoldCertification,
 } from "./db";
 import {
   calculateBinLoad,
@@ -171,11 +176,8 @@ async function buildRunState(runId: number) {
   };
 }
 
-import { certificationRouter } from "./certificationRouter";
-
 export const appRouter = router({
   system: systemRouter,
-  certification: certificationRouter,
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
   auth: router({
@@ -406,32 +408,9 @@ export const appRouter = router({
       .mutation(({ ctx, input }) =>
         createScenario({ ...input, initialStateJson: input.initialStateJson ?? null, createdBy: ctx.user.id })
       ),
-    /** Persist student's manual confirmation of a scenario panel observation */
-    confirmPanel: protectedProcedure
-      .input(z.object({
-        runId: z.number(),
-        scenarioId: z.string(),
-        studentAnswer: z.string().min(1),
-      }))
-      .mutation(async ({ ctx, input }) => {
-        const run = await getRunById(input.runId);
-        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
-        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin")
-          throw new TRPCError({ code: "FORBIDDEN" });
-        const stepCode = `${input.scenarioId}-CONFIRMED`;
-        await markStepComplete(input.runId, stepCode as any);
-        if (!run.isDemo) {
-          await addScoringEvent({
-            runId: input.runId,
-            eventType: "SCENARIO_PANEL_CONFIRMED",
-            pointsDelta: 5,
-            message: `${input.scenarioId} observé et confirmé : ${input.studentAnswer.substring(0, 120)}`,
-          });
-        }
-        return { success: true, stepCode };
-      }),
   }),
-  // ─── Modules progresss ─────────────────────────────────────────────────────
+
+  // ─── Modules progress ─────────────────────────────────────────────────────
   modules: router({
     progress: protectedProcedure.query(async ({ ctx }) => {
       const db = await import("./db").then((m) => m.getDb());
@@ -598,6 +577,127 @@ export const appRouter = router({
         await removePreAuthorizedEmail(input.id);
         return { success: true };
       }),
+    
+    // Reset student certification state (admin only, for validation)
+    resetStudentCertification: protectedProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const user = await getUserByEmail(input.email);
+        if (!user) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+        await upsertProfile(user.id, { silverCertified: false, goldCertified: false });
+        return { success: true, message: `Certification reset for ${input.email}` };
+      }),
+    
+    // Comprehensive admin cleanup: recalculate certifications and generate audit report
+    cleanupAndAudit: protectedProcedure
+      .input(z.object({ 
+        dryRun: z.boolean().optional().default(true)
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        
+        // Official real students to preserve
+        const officialStudents = [
+          'fredlolabio@gmail.com',
+          'aissatasoukeinacamara@gmail.com',
+          'nappodaniella@gmail.com',
+          'dcparedes2010@gmail.com',
+          'francisagbodjan10@gmail.com'
+        ];
+        
+        // Test/demo/QA account patterns
+        const testPatterns = ['test', 'demo', 'qa', 'pedagogical', 'student@concorde', 'prof@concorde', 'etudiant@concorde', 'student@manus'];
+        
+        const allUsers = await getAllUsers();
+        const auditReport = {
+          timestamp: new Date().toISOString(),
+          dryRun: input.dryRun,
+          accountsModified: [] as any[],
+          accountsPreserved: [] as any[],
+          accountsMovedToQA: [] as any[],
+          certificationChanges: [] as any[]
+        };
+        
+        // Process each user
+        for (const user of allUsers) {
+          if (user.role === 'admin' || user.role === 'teacher') continue; // Skip non-students
+          
+          const isOfficialStudent = officialStudents.includes(user.email);
+          const isTestAccount = testPatterns.some(p => user.email.toLowerCase().includes(p));
+          
+          // Get current profile
+          const profile = await getProfileByUserId(user.id);
+          const currentSilver = profile?.silverCertified ?? false;
+          const currentGold = profile?.goldCertified ?? false;
+          
+          // Recalculate eligibility
+          const quizPassed = await checkM1QuizPassed(user.id);
+          const scenariosCompleted = await checkAllM1ScenariosCompleted(user.id);
+          const complianceValidated = await checkM1ComplianceValidated(user.id);
+          const noBlockers = await checkNoUnresolvedBlockers(user.id);
+          
+          const shouldHaveSilver = quizPassed && scenariosCompleted && complianceValidated && noBlockers;
+          
+          // Check if certification state is stale
+          const silverIsStale = currentSilver !== shouldHaveSilver;
+          
+          if (isOfficialStudent) {
+            auditReport.accountsPreserved.push({
+              email: user.email,
+              name: user.name,
+              silverCertified: currentSilver,
+              shouldHaveSilver,
+              reason: 'Official student - preserved'
+            });
+          } else if (isTestAccount) {
+            auditReport.accountsMovedToQA.push({
+              email: user.email,
+              name: user.name,
+              reason: 'Test/demo account - marked for QA cohort'
+            });
+          } else if (silverIsStale) {
+            auditReport.certificationChanges.push({
+              email: user.email,
+              name: user.name,
+              silverBefore: currentSilver,
+              silverAfter: shouldHaveSilver,
+              goldBefore: currentGold,
+              goldAfter: false,
+              quizPassed,
+              scenariosCompleted,
+              complianceValidated,
+              noBlockers,
+              reason: 'Stale certification flag - recalculated'
+            });
+            
+            if (!input.dryRun) {
+              await upsertProfile(user.id, { 
+                silverCertified: shouldHaveSilver,
+                goldCertified: false
+              });
+              auditReport.accountsModified.push({
+                email: user.email,
+                name: user.name,
+                action: 'Certification recalculated',
+                details: auditReport.certificationChanges[auditReport.certificationChanges.length - 1]
+              });
+            }
+          }
+        }
+        
+        return {
+          success: true,
+          auditReport,
+          summary: {
+            totalUsersProcessed: allUsers.length,
+            accountsModified: auditReport.accountsModified.length,
+            accountsPreserved: auditReport.accountsPreserved.length,
+            accountsMovedToQA: auditReport.accountsMovedToQA.length,
+            certificationChanges: auditReport.certificationChanges.length
+          }
+        };
+      })
   }),
 
   // ─── Runs ────────────────────────────────────────────────────────────────────
@@ -709,6 +809,12 @@ export const appRouter = router({
         const events = await getScoringEventsByRun(input.runId);
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
+
+        // Check if M1 Silver Certification is unlocked
+        const silverCertified = await checkM1QuizPassed(ctx.user.id) &&
+                                await checkAllM1ScenariosCompleted(ctx.user.id) &&
+                                await checkM1ComplianceValidated(ctx.user.id) &&
+                                await checkNoUnresolvedBlockers(ctx.user.id);
 
         // ── Determine module from scenario ──────────────────────────────────
         const scenario = await getScenarioById(run.scenarioId);
@@ -922,6 +1028,7 @@ export const appRouter = router({
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
           totalSteps: MODULE1_STEPS.length,
+          certificationUnlocked: silverCertified,
         };
       }),
 
@@ -936,20 +1043,6 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         await resetRun(input.runId);
         return { success: true, message: `Run ${input.runId} has been reset successfully.` };
-      }),
-
-    /** Student self-reset: allows a student to reset their own run (any status) */
-    selfReset: protectedProcedure
-      .input(z.object({ runId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        const run = await getRunById(input.runId);
-        if (!run) throw new TRPCError({ code: "NOT_FOUND", message: "Session introuvable" });
-        // Students can only reset their own runs; teachers/admins can reset any
-        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Vous ne pouvez réinitialiser que vos propres sessions" });
-        }
-        await resetRun(input.runId);
-        return { success: true, message: "Session réinitialisée. Vous pouvez démarrer une nouvelle tentative." };
       }),
 
     state: protectedProcedure
@@ -1022,7 +1115,7 @@ export const appRouter = router({
         if (!validation.allowed) {
           if (!run.isDemo) {
             // Evaluation mode: penalize and block
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
           // Demo mode: warn but allow (return warning in response)
@@ -1054,7 +1147,7 @@ export const appRouter = router({
         const validation = canExecuteStep("GR", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1062,7 +1155,7 @@ export const appRouter = router({
         const zoneCheck = validateGRZone(input.bin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GR: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1096,7 +1189,7 @@ export const appRouter = router({
         const validation = canExecuteStep("PUTAWAY_M1", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1104,7 +1197,7 @@ export const appRouter = router({
         const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PUTAWAY_M1: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY_M1: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1139,7 +1232,7 @@ export const appRouter = router({
         const validation = canExecuteStep("SO", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1169,14 +1262,14 @@ export const appRouter = router({
         const validation = canExecuteStep("GI", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
         const stockCheck = canIssueStock(input.sku, input.bin, input.qty, state.inventory);
         if (!stockCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, /* Erreur stock corrigée */ message: stockCheck.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: stockCheck.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(stockCheck, ctx.req) });
           }
           // Demo: allow negative stock with warning
@@ -1185,7 +1278,7 @@ export const appRouter = router({
         const zoneCheckGI = validateGIZone(input.bin);
         if (!zoneCheckGI.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GI", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GI: ${zoneCheckGI.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GI", pointsDelta: -3, message: `GI: ${zoneCheckGI.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheckGI, ctx.req) });
           }
         }
@@ -1219,7 +1312,7 @@ export const appRouter = router({
         const validation = canExecuteStep("PICKING_M1", state);
         if (!validation.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: validation.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1227,7 +1320,7 @@ export const appRouter = router({
         const zoneCheck = validatePickingM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PICKING", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PICKING_M1: ${zoneCheck.reasonFr}` });
+            await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PICKING", pointsDelta: -3, message: `PICKING_M1: ${zoneCheck.reasonFr}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
@@ -1235,7 +1328,7 @@ export const appRouter = router({
         const stockCheck = canIssueStock(input.sku, input.fromBin, input.qty, state.inventory);
         if (!stockCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, /* Erreur stock corrigée */ message: stockCheck.reasonFr ?? "" });
+            await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: stockCheck.reasonFr ?? "" });
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(stockCheck, ctx.req) });
           }
         }
@@ -1331,37 +1424,20 @@ export const appRouter = router({
         const compliance = checkCompliance(state);
 
         if (!run.isDemo) {
-          // Evaluation mode: allow finalization even if non-compliant (e.g. Scenario 2 ghost GR)
-          // Apply penalties for each compliance issue, then close the run
+          // Evaluation mode: hard block on non-compliance
+          if (!compliance.compliant) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: compliance.issuesFr.join("; ") });
+          }
           await markStepComplete(input.runId, "COMPLIANCE");
-          if (compliance.compliant) {
-            // Perfect compliance: award COMPLIANCE_OK points
-            const rule = getScoringRule("COMPLIANCE_OK");
-            await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_OK", pointsDelta: rule!.points, message: rule!.descriptionFr });
-            // Check for perfect run bonus
-            const events = await getScoringEventsByRun(input.runId);
-            const hasErrors = events.some((e) => e.pointsDelta < 0);
-            if (!hasErrors) {
-              const bonus = getScoringRule("PERFECT_RUN_BONUS");
-              await addScoringEvent({ runId: input.runId, eventType: "PERFECT_RUN_BONUS", pointsDelta: bonus!.points, message: bonus!.descriptionFr });
-            }
-          } else {
-            // Non-compliant: apply penalty for each issue type
-            const state = await buildRunState(input.runId);
-            const unpostedCount = state.transactions.filter((t: { posted: boolean }) => !t.posted).length;
-            if (unpostedCount > 0) {
-              const penaltyRule = getScoringRule("UNPOSTED_TX_LEFT");
-              for (let i = 0; i < unpostedCount; i++) {
-                await addScoringEvent({ runId: input.runId, eventType: "UNPOSTED_TX_LEFT", pointsDelta: penaltyRule!.points, message: penaltyRule!.descriptionFr });
-              }
-            }
-            const unresolvedCount = state.cycleCounts.filter((c: { variance: number; resolved: boolean }) => c.variance !== 0 && !c.resolved).length;
-            if (unresolvedCount > 0) {
-              const penaltyRule = getScoringRule("UNRESOLVED_VARIANCE");
-              for (let i = 0; i < unresolvedCount; i++) {
-                await addScoringEvent({ runId: input.runId, eventType: "UNRESOLVED_VARIANCE", pointsDelta: penaltyRule!.points, message: penaltyRule!.descriptionFr });
-              }
-            }
+          const rule = getScoringRule("COMPLIANCE_OK");
+          await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_OK", pointsDelta: rule!.points, message: rule!.descriptionFr });
+
+          // Check for perfect run bonus
+          const events = await getScoringEventsByRun(input.runId);
+          const hasErrors = events.some((e) => e.pointsDelta < 0);
+          if (!hasErrors) {
+            const bonus = getScoringRule("PERFECT_RUN_BONUS");
+            await addScoringEvent({ runId: input.runId, eventType: "PERFECT_RUN_BONUS", pointsDelta: bonus!.points, message: bonus!.descriptionFr });
           }
           await completeRun(input.runId);
         } else {
@@ -1511,6 +1587,21 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const passed = input.score >= 60;
         await upsertModuleProgress({ userId: ctx.user.id, moduleId: input.moduleId, passed, bestScore: input.score, completedAt: passed ? new Date() : undefined });
+
+        // Check for M1 Silver Certification unlock conditions
+        if (input.moduleId === 1) {
+          const m1QuizPassed = await checkM1QuizPassed(ctx.user.id);
+          const allM1ScenariosCompleted = await checkAllM1ScenariosCompleted(ctx.user.id);
+          const m1ComplianceValidated = await checkM1ComplianceValidated(ctx.user.id);
+          const noUnresolvedBlockers = await checkNoUnresolvedBlockers(ctx.user.id);
+
+          if (m1QuizPassed && allM1ScenariosCompleted && m1ComplianceValidated && noUnresolvedBlockers) {
+            await unlockSilverCertification(ctx.user.id);
+          }
+        }
+
+        // TODO: Implement Gold Certification logic for M5 completion
+
         return { passed };
       }),
   }),
@@ -1820,12 +1911,12 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("GR" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const zoneCheck = validateGRZone(input.bin);
         if (!zoneCheck.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, /* Erreur mineure corrigée */ message: `GR M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_GR", pointsDelta: -3, message: `GR M2: ${zoneCheck.reasonFr}` });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
@@ -1856,12 +1947,12 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("PUTAWAY" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const zoneCheck = validatePutawayM1Zone(input.fromBin, input.toBin);
         if (!zoneCheck.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, /* Erreur mineure corrigée */ message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
@@ -1893,7 +1984,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("FIFO_PICK" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         // FIFO validation: lotNumber must be the oldest lot in fromBin
@@ -1904,7 +1995,7 @@ export const appRouter = router({
         const oldestLot = lotsInBin[0]?.lotNumber;
         if (oldestLot && oldestLot !== input.lotNumber) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "FIFO_VIOLATION", pointsDelta: -8, message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${oldestLot} — Erreur opérationnelle corrigée (-8 pts)` });
+            await addScoringEvent({ runId: input.runId, eventType: "FIFO_VIOLATION", pointsDelta: -10, message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${oldestLot}` });
             throw new TRPCError({ code: "BAD_REQUEST", message: `Violation FIFO : le lot ${oldestLot} doit être prélevé en premier (plus ancien)` });
           }
         }
@@ -1930,7 +2021,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("STOCK_ACCURACY" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const variance = input.countedQty - input.systemQty;
@@ -1950,7 +2041,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("COMPLIANCE_ADV" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_ADV");
@@ -1972,7 +2063,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_LIST" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "CC_LIST");
@@ -1998,7 +2089,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_COUNT" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         for (const c of input.counts) {
@@ -2029,7 +2120,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         for (const adj of input.adjustments) {
@@ -2061,7 +2152,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("REPLENISH" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
@@ -2083,7 +2174,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, /* Erreur séquence corrigée */ message: check.reasonFr ?? "" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_M3");
@@ -2376,17 +2467,6 @@ export const appRouter = router({
           explanationFr: q.explanationFr,
           explanationEn: q.explanationEn,
         };
-      }),
-
-    /** Teacher/admin: reset all quiz attempts for a student on a given module */
-    resetAttempts: protectedProcedure
-      .input(z.object({ userId: z.number(), moduleId: z.number() }))
-      .mutation(async ({ ctx, input }) => {
-        if (ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
-          throw new TRPCError({ code: "FORBIDDEN", message: "Only teachers and admins can reset quiz attempts" });
-        }
-        await deleteQuizAttempts(input.userId, input.moduleId);
-        return { success: true, message: `Quiz attempts for user ${input.userId} on module ${input.moduleId} have been reset.` };
       }),
   }),
 });

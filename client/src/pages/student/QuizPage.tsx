@@ -126,12 +126,7 @@ export default function QuizPage() {
                   M{moduleId}
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground font-mono uppercase tracking-wide">{t("Évaluation formative", "Formative Assessment")}</p>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700">
-                    {t("Mode pratique — Tentatives illimitées", "Practice mode — Unlimited attempts")}
-                  </span>
-                </div>
                   <CardTitle className="text-lg leading-tight">
                     {lang === "fr" ? quiz.titleFr : quiz.titleEn}
                   </CardTitle>
@@ -176,25 +171,6 @@ export default function QuizPage() {
                   </div>
                 </div>
               )}
-
-              {/* Mode info banner */}
-              <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3 space-y-1.5">
-                <p className="text-xs font-semibold text-blue-800 dark:text-blue-200">
-                  {t("Mode Pratique — Aucune limite de tentatives", "Practice Mode — No attempt limit")}
-                </p>
-                <p className="text-[11px] text-blue-700 dark:text-blue-300">
-                  {t(
-                    "Ce quiz est en mode pratique : vous pouvez le refaire autant de fois que vous le souhaitez. Votre meilleur score est conservé. Le score minimum de 60% est requis pour accéder aux scénarios de simulation.",
-                    "This quiz is in practice mode: you can retake it as many times as you wish. Your best score is saved. A minimum score of 60% is required to access simulation scenarios."
-                  )}
-                </p>
-                <p className="text-[10px] text-blue-600 dark:text-blue-400 italic">
-                  {t(
-                    "Mode examen : votre enseignant peut réinitialiser vos tentatives pour une évaluation officielle.",
-                    "Exam mode: your teacher can reset your attempts for an official evaluation."
-                  )}
-                </p>
-              </div>
 
               {/* Instructions */}
               <div className="space-y-2 text-sm text-muted-foreground">
@@ -489,38 +465,30 @@ export default function QuizPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col gap-3">
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setAnswers([]);
-                  setCurrentQ(0);
-                  setSelectedOption(null);
-                  setShowFeedback(false);
-                  setResults(null);
-                  setQuizState("intro");
-                }}
-              >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                {t("Refaire le quiz (mode pratique)", "Retake quiz (practice mode)")}
-              </Button>
-              <Button
-                className="flex-1 text-white"
-                style={{ backgroundColor: color }}
-                onClick={() => navigate("/student")}
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t("Tableau de bord", "Dashboard")}
-              </Button>
-            </div>
-            <p className="text-center text-[10px] text-muted-foreground">
-              {t(
-                "Mode pratique : tentatives illimitées, aucun impact sur votre dossier officiel. Pour une évaluation officielle, contactez votre enseignant.",
-                "Practice mode: unlimited attempts, no impact on your official record. For an official evaluation, contact your teacher."
-              )}
-            </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => {
+                setAnswers([]);
+                setCurrentQ(0);
+                setSelectedOption(null);
+                setShowFeedback(false);
+                setResults(null);
+                setQuizState("intro");
+              }}
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              {t("Recommencer", "Retake")}
+            </Button>
+            <Button
+              className="flex-1 text-white"
+              style={{ backgroundColor: color }}
+              onClick={() => navigate("/student")}
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              {t("Tableau de bord", "Dashboard")}
+            </Button>
           </div>
         </div>
       </div>

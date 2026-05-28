@@ -1,405 +1,492 @@
-# TEC.WMS Production — Migration TODO
+# Mini-WMS Concorde — Simulateur ERP/WMS TODO
 
-- [x] Migrate drizzle/schema.ts from wms-simulatorV2
-- [x] Migrate drizzle/relations.ts from wms-simulatorV2
-- [x] Run pnpm db:push to initialize all tables
-- [x] Migrate shared/const.ts and shared/types.ts
-- [x] Migrate server/db.ts
-- [x] Migrate server/rulesEngine.ts
-- [x] Migrate server/scoringEngine.ts
-- [x] Migrate server/seed.ts
-- [x] Migrate server/storage.ts
-- [x] Migrate server/routers.ts
-- [x] Migrate all server test files
-- [x] Migrate client/src/index.css
-- [x] Migrate client/src/App.tsx
-- [x] Migrate client/src/main.tsx
-- [x] Migrate client/src/const.ts
-- [x] Migrate all client pages (student, teacher, admin)
-- [x] Migrate all client components (including ui/)
-- [x] Migrate client contexts, hooks, data, lib
-- [x] Add additional dependencies (bcryptjs, etc.)
-- [x] Run pnpm test — must pass 100% (218/218)
-- [x] Validate stock pick/GI logic in dev server
-- [x] Save checkpoint "TEC.WMS production deploy with stock fix" (version: 1a77f251)
-- [x] Publish project — checkpoint 21439496 ready, user to click Publish button
+## Phase 1: Setup & Schema
+- [x] Write todo.md
+- [x] Extend Drizzle schema with all WMS tables (13 tables)
+- [x] Configure SAP Fiori theme (CSS variables, fonts, badges)
+- [x] Setup auth routing (student/teacher/admin roles)
+- [x] Push DB migrations
 
-## Database Seeding
+## Phase 2: Backend (tRPC Routers)
+- [x] Rules engine (Module 1 flow + compliance + dependency blocking)
+- [x] Scoring engine (points + penalties + perfect run bonus)
+- [x] Inventory calculation (SUMPRODUCT per SKU/BIN from transactions)
+- [x] Router: master (skus, bins)
+- [x] Router: scenarios (list, create)
+- [x] Router: cohorts (list, create)
+- [x] Router: assignments (create, all)
+- [x] Router: runs (start, state, myRuns)
+- [x] Router: transactions (PO, GR, SO, GI, ADJ)
+- [x] Router: cycleCounts (submit, resolve)
+- [x] Router: compliance (check, finalize)
+- [x] Router: scoring (events)
+- [x] Router: monitor (allRuns)
+- [x] Seed data: 10 SKUs, 13 bins, 5 Module 1 scenarios
 
-- [x] Audit seed.ts and scenario/module definitions in the repository
-- [x] Create and run seed-production.mjs — 17 unique scenarios (5+3+3+3+3) across M1–M5 seeded (the 68 were duplicates)
-- [x] Verify teacher dashboard shows 17 scenarios across M1–M5 (confirmed in screenshot)
-- [x] Verify student view shows M1–M5 scenarios correctly
+## Phase 3: Student UI
+- [x] Home landing page with role-based redirect
+- [x] FioriShell layout component (SAP Fiori style)
+- [x] /student/scenarios — assigned scenarios list
+- [x] /student/run/:runId — MISSION_CONTROL dashboard (progress, compliance, next step)
+- [x] /student/run/:runId/:step — StepForm (PO/GR/SO/GI/CC/ADJ/Compliance + M2/M3/M4/M5 all steps)
+- [x] /student/run/:runId/report — Final Report with pedagogical summary
 
-## QA Walkthrough & Odoo Lab Integration
+## Phase 4: Teacher UI
+- [x] /teacher — TeacherDashboard (KPI cards + recent activity)
+- [x] /teacher/cohorts — CohortManager
+- [x] /teacher/scenarios — ScenarioManager (create + assign)
+- [x] /teacher/assignments — AssignmentManager
+- [x] /teacher/monitor — MonitorDashboard with CSV export
 
-- [x] Validate M1 Scenario 1 stock logic: initial=100, pick 50 (TOTAL=100), GI (TOTAL=50), CC — PASSED
-- [x] Walk through M1 full path: quiz (100%), all steps validated, compliance confirmed
-- [x] Walk through M2 path and confirm Odoo Lab placement after PUTAWAY/FIFO_PICK
-- [x] Walk through M3 path and confirm Odoo Lab placement after CC_RECON
-- [x] Walk through M4 path and confirm Odoo Lab placement after KPI_SERVICE
-- [x] Walk through M5 path and confirm Odoo Lab placement after M5_DECISION
-- [x] Implement Odoo Lab button M2: "Odoo Lab — Warehouse Locations" (putaway_m1 + fifo_pick)
-- [x] Implement Odoo Lab button M3: "Odoo Lab — Inventory Adjustment" (cc_recon)
-- [x] Implement Odoo Lab button M4: "Odoo Lab — Reporting & Stock Moves" (kpi_service)
-- [x] Implement Odoo Lab button M5: "Odoo Lab — Traceability / Manufacturing Flow" (m5_decision)
-- [x] Fix all bugs found during walkthrough (quiz seed missing, bcryptjs version conflict)
-- [x] Save checkpoint after Odoo Lab implementation (version: 0595f2a5)
+## Phase 5: Final
+- [x] Vitest tests (16 tests passing — rules engine + scoring + auth)
+- [x] AdminPanel
+- [ ] README with setup instructions
+- [x] Checkpoint and deliver
 
-## Real-Time Stock Display Fix
+## Phase 6: Mode Démonstration
+- [x] Extend scenario_runs table: add `isDemo` boolean column
+- [x] Push DB migration (pnpm db:push)
+- [x] Update `runs.start` router: accept `isDemo` param, store in DB
+- [x] Update all transaction routers: skip scoring/penalties when run.isDemo=true
+- [x] Update `monitor.allRuns`: exclude demo sessions from analytics
+- [x] Build ModeSelectionScreen component (pre-Mission Control)
+- [x] Role gate: only teacher can select demo mode
+- [x] Add demo banner to student pages
+- [x] Unlock step blocking in demo mode (warn but allow)
+- [x] Add pedagogical explanation panels to PO, GR, SO, GI, CC, ADJ pages
+- [x] Add backend transparency panel (stock, pending txs, dependencies)
+- [x] Write/update Vitest tests for demo mode isolation (15 tests)
 
-- [x] Diagnose root cause: stock panel hidden by !isDemo gate + missing step keys
-- [x] Fix: removed !isDemo gate, stock panel now shows in all modes
-- [x] Improve UX: all 4 rows always visible, color-coded zones, bold TOTAL row
-- [x] Validate: PUTAWAY 50 → RECEPTION=50, STOCKAGE=50, TOTAL=100 in real time
-- [x] Save checkpoint after fix (version: 0595f2a5)
+## Module 2: Advanced Warehouse Execution
 
-## Full UI Walkthrough QA (M1–M5)
+- [ ] Add `bin_capacity` table to drizzle/schema.ts
+- [ ] Add `unlockedByModuleId` field to modules table
+- [ ] Push DB migration (pnpm db:push)
+- [ ] Extend rulesEngine.ts: putaway validation (bin exists, capacity, FIFO)
+- [ ] Add scoring penalties: -10 capacity overflow, -15 FIFO violation
+- [ ] Add module unlock check in backend (Module 2 requires Module 1 passed)
+- [ ] Add putaway router (warehouse.putaway)
+- [ ] Update seed.ts: Module 2 entry + 3 Module 2 scenarios + bin capacities
+- [ ] Build PutawayStep.tsx UI component
+- [ ] Update ScenarioList to show module grouping and lock state
+- [ ] Extend TeacherDashboard: per-module stats
+- [ ] Write server/module2.rules.test.ts
+- [ ] Run pnpm test — all pass
 
-- [x] M1: Login as student, take quiz, run Scenario 1 full flow (PO→GR→PUTAWAY→SO→PICKING→GI→CC→COMPLIANCE)
-- [x] M1: Run Scenarios 2–5, verify final reports and teacher monitoring
-- [x] M1: Verify slides accessible from teacher dashboard
-- [x] M2: Slides, quiz, all 3 scenarios, verify Odoo Lab button at PUTAWAY/FIFO_PICK
-- [x] M3: Slides, quiz, all 3 scenarios, verify Odoo Lab button at CC_RECON
-- [x] M4: Slides, quiz, all 3 scenarios, verify Odoo Lab button at KPI_SERVICE
-- [x] M5: Slides, quiz, all 3 scenarios, verify Odoo Lab button at M5_DECISION
-- [x] Teacher dashboard: monitoring, analytics, cohort management, scenario assignment
-- [x] Fix all bugs found during walkthrough
-- [x] Save final checkpoint after walkthrough
+## UX Fixes
+- [ ] Fix assignment dropdown: support cohort OR individual student
+- [ ] Add backend router: teacher.listStudents
+- [ ] Add collapsible arrow sections to ScenarioList, Module2ScenarioList, MissionControl, StepForm
 
-## Odoo Lab URL Fix (demo6.odoo.com broken — 404 Not Found)
+## Module 3: Contrôle des stocks & réapprovisionnement
 
-- [x] Find working Odoo demo instance URL (demo6 expired/reset) — demo.odoo.com → demo5
-- [x] Update all 18 ODOO_LAB_CONFIG entries with working URLs — active labs use demo.odoo.com/odoo; disabled labs use #
-- [x] Verify all updated URLs return valid pages (not 404/database selector)
-- [x] Save checkpoint and publish fix — awaiting approval
+- [ ] DB: inventory_counts, inventory_adjustments, replenishment_params, replenishment_suggestions tables
+- [ ] DB: teacherValidated + teacherValidatedAt in module_progress
+- [ ] DB: push migration
+- [ ] rulesEngine: variance, threshold, adjustment, replenishment rules
+- [ ] scoringEngine: Module 3 penalties/bonuses, pass threshold 70
+- [ ] db.ts: Module 3 helpers
+- [ ] routers.ts: m3 student + teacher procedures
+- [ ] seed.ts: Module 3 + replenishment_params + 3 scenarios
+- [ ] UI: Module 3 hub card with hybrid lock gate
+- [ ] UI: CycleCountList, CountEntryForm, VarianceReview, ReplenishmentSuggestions, ComplianceSummary pages
+- [ ] Teacher: Module 3 section + variance view + validate button
+- [ ] Tests: module3.rules, module3.scoring, moduleGate.module3
+- [ ] Run pnpm test — all pass
 
-## Professional Hybrid Odoo Lab Model (Option C + A)
+## Feature: Scores détaillés et résumé d'erreurs (RunReport enrichi)
 
-- [x] Rewrite ODOO_LAB_CONFIG: add embedded guided walkthrough content (FR+EN) for all 5 Core Labs — implemented via OdooLabSlide.tsx + LAB_SLIDE_MAP dispatch
-- [x] Rewrite ODOO_LAB_CONFIG: add embedded guided content for all 3 Error Labs (fifo_pick, adj, compliance)
-- [x] Change all active lab Odoo URLs to safe base URL: https://demo.odoo.com/odoo (not deep links)
-- [x] Add warning text to all active labs (FR + EN) about optional Odoo button
-- [x] Keep disabled labs unchanged (url: "#", greyed, "À venir")
-- [x] Update OdooLabButton component to render embedded guided walkthrough as primary content
-- [x] Keep "Ouvrir Odoo Lab ↗" button as secondary/optional action
-- [x] Run pnpm build — 0 errors
-- [x] Run pnpm test — all pass
-- [x] Save checkpoint and request user approval before publish
+- [ ] Backend : créer `runs.detailedReport` avec scores par étape + liste d'erreurs pédagogiques
+- [ ] Backend : mapper les scoring events par étape (PO, GR, STOCK, SO, GI, CC, COMPLIANCE)
+- [ ] Frontend RunReport : tableau de scores détaillé par étape (points obtenus / points max)
+- [ ] Frontend RunReport : section "Résumé des erreurs" avec description pédagogique
+- [ ] Frontend RunReport : section "Recommandations" basée sur les erreurs commises
+- [ ] Frontend RunReport : graphique barre de progression par étape (Chart.js)
+- [ ] Tests unitaires pour les nouvelles fonctions backend
 
-## Visual Didactic Lab Panels (Rich JSX Slides)
-- [x] Create OdooLabSlide component with rich visual layout (header, concept card, diagram, mapping table, warning)
-- [x] M1 GR: warehouse flow diagram (PO→GR→WH/Input), validation concept, TEC.WMS↔Odoo mapping table
-- [x] M2 Putaway: warehouse hierarchy tree diagram, bin location visual, putaway rules table
-- [x] M3 Replenish: Min/Max gauge visual, reorder logic diagram, formula cards
-- [x] M4 KPI: KPI metric cards with formulas, reporting navigation diagram, 4-KPI comparison table
-- [x] M5 Manufacturing: integrated ERP flow diagram (GR→MO→GR→GI), BoM concept, TEC.WMS↔TEC.SYS table
-- [x] Error Lab FIFO: FIFO vs LIFO visual comparison, lot timeline diagram, correction steps
-- [x] Error Lab ADJ: variance calculation visual, discrepancy types table, correction checklist
-- [x] Error Lab Compliance: 3-anomaly type cards, compliance checklist visual, period-close impact diagram
-- [x] Optional Odoo button: clearly secondary, below separator, with availability disclaimer
-- [x] pnpm build: 0 errors (2433 modules, 11.04s)
-- [x] pnpm test: 218/218 passed
+## Feature: Scoring visible en mode démonstration
 
-## DevOps Checkpoint v1.0 — GitHub Publish
-- [x] Health check: project structure analysis
-- [x] Health check: TypeScript 0 errors
-- [x] Health check: pnpm build passes
-- [x] Health check: pnpm test 218/218 pass
-- [x] Cleanup: remove .manus-logs temp files from git tracking
-- [x] Cleanup: verify .gitignore covers node_modules, dist, .env, logs
-- [x] Git: verify remote user_github is connected — https://github.com/Gibran-T/tec-wms-simulator-production
-- [x] Git: create clean commit "Checkpoint v1 - TEC.WMS stable version before classroom deployment" (c7d2b55)
-- [x] GitHub: push to main branch — 990f04a..c7d2b55
-- [x] Git: tag v1.0-classroom-ready with release notes — https://github.com/Gibran-T/tec-wms-simulator-production/releases/tag/v1.0-classroom-ready
-- [x] Final validation report delivered
+- [x] Backend : activer les scoring events en mode démo (retirer le guard `if (!run.isDemo)`)
+- [x] Backend : scoring démo calculé via isDemo flag sur le run (pas besoin de flag sur chaque event)
+- [x] Backend : `runs.state` retourne le score démo (non zéro) avec label "DÉMO"
+- [x] Backend : `monitor.allRuns` continue d'exclure les scores démo des statistiques officielles
+- [x] Frontend MissionControl : afficher le score démo avec badge "Score Pédagogique (non officiel)"
+- [x] Frontend MissionControl : score mis à jour en temps réel après chaque étape (via query refetch)
+- [x] Frontend RunReport : afficher le score démo avec mention "Score non comptabilisé"
 
-## Strict Execution Mode — Phases 1-6
-- [x] Phase 1: Verify SKU-001 to SKU-010 exist in Odoo (storable, FIFO, lot-tracked)
-- [x] Phase 1: Verify WH/Input, WH/Stock, WH/Output locations exist
-- [x] Phase 1: Verify P00003 exists and receipt is in Ready status
-- [x] Phase 2: Open P00003, click Receive Products, validate receipt
-- [x] Phase 2: Confirm stock = 0 before validation, stock increases after
-- [x] Phase 2: Confirm destination is WH/Input
-- [x] Phase 2: Execute putaway internal transfer to WH/Stock (WH/STOR/00001 Ready)
-- [x] Phase 4 (CRITICAL): Replace ALL demo.odoo.com / demo5.odoo.com URLs with https://concorde-logistics-lab.odoo.com in TEC.WMS simulator
-- [x] Phase 4: Verify all 8 active Odoo Lab buttons open concorde-logistics-lab.odoo.com
-- [x] Phase 4: Run pnpm build and pnpm test after URL fix (TypeScript 0 errors, HMR OK)
-- [x] Phase 4: Save checkpoint and push to GitHub (version: c485ba1e)
-- [x] Phase 5+6: Deliver pedagogical guide + final validation report
+## Bug Fix: SKU Validation + Context Panel
+- [ ] Fix: SKU field must be required — form must NOT submit when SKU is empty string
+- [ ] Fix: Backend must reject transactions with empty sku field (zod validation)
+- [ ] Feature: Add context panel in StepForm showing SKU/Bin/Qty from previous steps
 
-## URL Enforcement — Eliminate ALL demo.odoo.com References (CRITICAL)
+## Feature: Admin Reset de Sessão
+- [ ] Backend: runs.resetRun procedure (admin only) — anula run, deleta transactions/cycleCounts/scoringEvents
+- [ ] Frontend MonitorDashboard: botão "Reinicializar" por linha de estudante com confirmação
+- [ ] Fix: SKU obrigatório no StepForm — bloquear submit se sku === ""
+- [ ] Fix: Backend zod validation — rejeitar sku vazio nas transactions
+- [ ] Feature: Painel de contexto no StepForm mostrando SKU/Bin/Qty das etapas anteriores
 
-- [x] Grep entire codebase for demo.odoo.com, demo5.odoo.com, odoo.com/start
-- [x] Replace ALL occurrences with deep links to concorde-logistics-lab.odoo.com
-- [x] Enforce specific deep links per module (receipts, products, reporting, warehouses, reordering-rules, manufacturing)
-- [x] Add session-failure guard: show "Odoo session required — please log in to Concorde Logistics Lab" instead of redirecting to demo
-- [x] Validate all 8 Odoo Lab buttons open correct concorde-logistics-lab.odoo.com pages
-- [x] Confirm zero occurrences of demo.odoo.com in final codebase (0 in source, 0 in dist bundle)
-- [x] Run pnpm build (0 errors, 2433 modules) and pnpm test (218/218)
-- [x] Save checkpoint and push to GitHub
+## Bug Fix: Acesso Admin aos Módulos + Sidebar Recolhível
+- [x] Admin/professor tem acesso livre a todos os módulos sem bloqueio de pré-requisitos
+- [x] Adicionar botão de recolhimento da navegação + menu mobile hamburger no FioriShell
 
-## Scenario Implementation — SCN-004 & SCN-005
+## Feature: Acesso Direto ao Simulador para Professor
+- [x] Adicionar link "Simulateur" na barra de navegação do professor (TeacherShell/nav)
+- [x] Adicionar card "Simulateur" no dashboard do professor com acesso direto
+- [x] Criar página /teacher/simulator que redireciona para /student/scenarios com banner "Vue Enseignant"
 
-- [x] Audit existing SCN-001/002/003 implementation in StepForm.tsx to understand scenario rendering pattern
-- [x] Implement SCN-004: Stock négatif (M3/GI) — negative stock scenario with Odoo trigger at /odoo/inventory/reporting, manual confirmation, no auto-resolution
-- [x] Implement SCN-005: Erreur cachée (M5/Compliance) — hidden error audit scenario with Odoo trigger at /odoo/inventory/receipts, manual confirmation, no auto-resolution
-- [x] Ensure both scenarios follow JSON schema: trigger, route, action, expected_observation, resolution, wms_return_logic, instructor_script
-- [x] UI: clear action panel + clear explanation panel + clear validation/confirmation step
-- [x] FR/EN bilingual support for all new scenario text
-- [x] Run pnpm build (0 errors, 2707kB bundle) and pnpm test (218/218)
-- [x] Save checkpoint and push to GitHub
+## Integrações Novas (2026-03-15)
+- [x] FR/EN toggle global no FioriShell (muda toda a interface)
+- [x] Dark Mode toggle no FioriShell (opção do aluno)
+- [x] Botão Slides M1 no ScenarioList
+- [x] Botão Slides M2 no Module2ScenarioList
+- [x] Botão Slides M3 no Module3ScenarioList
+- [x] Botão Slides M4 no Module4Dashboard
+- [x] Botão Slides M5 no Module5SimulationPage
+- [x] SlideViewer com guard de login + modo professor/aluno
+- [x] 5 módulos × ~17 slides bilingues (FR/EN) integrados
+- [x] Seed completo: 5 módulos, 39 cenários, 10 SKUs, 13 bins
 
-## Scenario Implementation — SCN-001, SCN-002, SCN-003
+## Bug Fixes (2026-03-15 — Teste de Funcionalidade)
+- [x] Fix: SlideViewer — hooks chamados após early return condicional (React hooks rule violation)
+- [x] Fix: Banco de dados — tabela cycle_counts com colunas desatualizadas (bin, physicalQty, variance, resolved)
+- [x] Fix: Banco de dados — tabela profiles com coluna desatualizada (studentNumber)
+- [x] Fix: Banco de dados — tabela progress reestruturada (runId, stepCode, completed, completedAt)
 
-- [x] Audit module step codes (M1, M2, M4) to determine correct wiring points for SCN-001/002/003
-- [x] Design SCN-001 JSON config (M1 — negative, GR step: Réception fantôme / Ghost Receipt)
-- [x] Design SCN-002 JSON config (M2 — negative, FIFO_PICK step: Violation FIFO)
-- [x] Design SCN-003 JSON config (M4 — positive, KPI_DIAGNOSTIC step: Diagnostic KPI)
-- [x] Add SCN-001/002/003 to SCENARIO_REGISTRY in ScenarioPanel.tsx
-- [x] Wire SCN-001 to GR step in StepForm.tsx
-- [x] Wire SCN-002 to FIFO_PICK step in StepForm.tsx
-- [x] Wire SCN-003 to KPI_DIAGNOSTIC step in StepForm.tsx
-- [x] Run pnpm build (0 errors) and pnpm test (218/218)
-- [x] Save checkpoint and push to GitHub
+## Feature: Hub de Slides para o Professor
+- [x] Criar página /teacher/slides — hub com acesso a todos os 5 módulos de slides
+- [x] Registrar rota /teacher/slides no App.tsx
+- [x] Adicionar botões "Slides M1-M5" nos cards de módulo do TeacherDashboard
+- [x] Verificar que o link "Slides" no FioriShell aponta para /teacher/slides
 
-## ScenarioPanel Guided Discovery Refactor
+## Feature: Hub de Slides para Alunos
+- [x] Corrigir /teacher/slides (página em branco — problema de carregamento)
+- [x] Criar página /student/slides — hub de slides para alunos com acesso a todos os 5 módulos
+- [x] Registrar rota /student/slides no App.tsx
+- [x] Adicionar botão "Slides" na interface do aluno (FioriShell nav + ScenarioList)
 
-- [x] Rewrite ScenarioPanel.tsx: collapsed alert banner (default) → Step 1 (Odoo task, no explanation) → Step 2 (reveal explanation + root cause) → Step 3 (written answer required before confirm)
-- [x] Collapsed state: small amber banner "⚠️ Situation détectée (optionnel)" + short hint + "Vérifier dans Odoo" button
-- [x] Step 1: show ONLY Odoo instructions + where to look + 1 discovery question (no explanation)
-- [x] Step 2: reveal after user types first input (≥10 chars) — show explanation, root cause, correction
-- [x] Step 3: require non-empty written answer before enabling confirmation button
-- [x] Do NOT block normal WMS transaction flow (scenario is always optional/collapsible)
-- [x] Teacher script section: hidden by default, collapsible accordion
-- [x] Bilingual FR/EN support maintained across all 3 steps
-- [x] Validate all 5 SCN placements: correct module, correct step, correct Odoo URL
-- [x] Run pnpm build (0 errors, 9.62s) and pnpm test (218/218)
-- [x] Save checkpoint and deliver validation table
+## Bug Fix: FR/EN Toggle + Dark Mode Global (2026-03-15)
+- [ ] Fix: LanguageContext — toggle FR/EN deve mudar TODOS os textos da interface (professor e aluno)
+- [ ] Fix: Todos os componentes devem usar `useLang()` / `t()` para textos traduzíveis
+- [ ] Fix: ThemeContext — dark mode deve funcionar em ambos os ambientes (professor e aluno)
+- [ ] Fix: Cenários duplicados na lista do professor (ScenarioManager)
 
-## ScenarioPanel & Dashboard Improvements
+## QA Sênior — Diagnóstico e Correções (2026-03-15)
+- [ ] Fix: FR/EN toggle não muda textos da interface do professor (TeacherDashboard, ScenarioManager, etc.)
+- [ ] Fix: FR/EN toggle não muda textos da interface do aluno (ScenarioList, MissionControl, StepForm, etc.)
+- [ ] Fix: Dark mode não aplica corretamente em ambos os ambientes
+- [ ] Fix: Cenários duplicados na lista do professor (ScenarioManager)
+- [ ] Auditoria completa: mapear todos os componentes que NÃO usam t() para tradução
 
-- [x] Enforce minimum 20 characters in ScenarioPanel Step 3 final answer (disable confirm button + show character counter)
-- [x] Add SCN-001 to SCN-005 confirmation indicators to teacher monitoring dashboard (per-student, per-scenario status)
-- [x] Expose SCN confirmation data via tRPC (completedSteps already contains "SCN-00X-CONFIRMED" entries from existing procedure)
-- [x] Run pnpm build (0 errors) and pnpm test (218/218)
-- [x] Save checkpoint
+## QA Global: Dark Mode + FR/EN em Todo o Sistema (2026-03-15)
 
-## M1 Scenario Redesign — SCN-001 to SCN-005 (Full Rebuild)
+- [x] TeacherDashboard — dark mode (bg-card, text-foreground, border-border)
+- [x] ScenarioManager — dark mode
+- [x] Cenários duplicados removidos do banco (11 duplicatas)
+- [ ] MissionControl — dark mode + FR/EN
+- [ ] StepForm — dark mode + FR/EN
+- [ ] RunReport — dark mode + FR/EN
+- [ ] MonitorDashboard — dark mode + FR/EN
+- [ ] ScenarioList (aluno) — dark mode + FR/EN completo
+- [ ] index.css — adicionar variáveis Fiori para dark mode (.dark block)
+- [ ] Testar dark mode em todas as páginas
+- [ ] Testar FR/EN em todas as páginas
 
-- [x] Audit current ScenarioPanel registry for existing SCN-001 content
-- [x] Design SCN-001: Positive baseline (GR posted correctly, stock visible) — Réception conforme
-- [x] Design SCN-002: GR not posted (receipt in READY, stock = 0) — Réception fantôme
-- [x] Design SCN-003: Stock issue (quantity mismatch between PO and GR) — Marchandise mal rangée (putaway incomplete)
-- [x] Design SCN-004: Inventory mismatch (physical vs system discrepancy) — Écart de quantité (PO/GR mismatch)
-- [x] Design SCN-005: Multi-error (hidden receipt + wrong lot + negative stock chain) — Erreur en cascade
-- [x] Validate all 5 scenarios against real Odoo data (SKU-001, SKU-004, BOX-001)
-- [x] Implement all 5 in ScenarioPanel registry with 3-step guided UX
-- [x] Wire each SCN to correct M1 step in StepForm.tsx (GR, GR, PUTAWAY_M1, GI, COMPLIANCE)
-- [x] Add instructor guidance, expected answers, common mistakes to each (in instructor_script block)
-- [x] Run pnpm build (0 errors, 10.04s) and pnpm test (218/218)
-- [x] Save checkpoint (582aa2ff) and deliver structured scenario document
+## Feature: Gerenciamento de Usuários no AdminPanel
+- [ ] Backend: admin.listAllUsers — listar todos os usuários com id, nome, email, role, lastSignedIn
+- [ ] Backend: admin.changeUserRole — promover/rebaixar role (já existe, verificar)
+- [ ] Frontend AdminPanel: tabela de usuários com botões de promoção/rebaixamento de role
+- [ ] Frontend AdminPanel: badge colorido por role (admin=vermelho, teacher=azul, student=verde)
+- [ ] Frontend AdminPanel: confirmação antes de mudar role
+- [ ] Testar: Nadia faz login → aparece como student → admin promove para teacher
 
-## Teacher Trigger — Scenario Entry Point Redesign
+## Student Scenarios Page — Redesign & Consistency (2026-03-15)
+- [x] Student Scenarios: corrigir inconsistência M1 vs M2-M5 (todos os módulos devem ter o mesmo layout)
+- [x] Student Scenarios: redesenho visual — mais agradável, pedagógico e claro para o aluno
+- [x] Student Scenarios: adicionar glossário de acrônimos (PO, GR, SO, GI, CC, COMPLIANCE)
+- [x] Student Scenarios: mostrar progresso (X/Y étapes) e barra de progresso nos cards "En cours"
+- [x] Student Scenarios: mostrar estado "Complété" com score e opção de reiniciar
+- [x] Student Scenarios: mostrar duração estimada e critério de aprovação (≥60%) por cenário
+- [x] Student Scenarios: seletor de módulo visível para navegar entre M1-M5
 
-- [x] Design Teacher Trigger (FR + EN) for SCN-001: tension around "stock visible but is it real?"
-- [x] Design Teacher Trigger (FR + EN) for SCN-002: tension around "receipt created but stock = 0"
-- [x] Design Teacher Trigger (FR + EN) for SCN-003: tension around "goods received but cannot be picked"
-- [x] Design Teacher Trigger (FR + EN) for SCN-004: tension around "supplier invoice blocked, no one knows why"
-- [x] Design Teacher Trigger (FR + EN) for SCN-005: tension around "period close tomorrow, system is not clean"
-- [x] Design Teacher Trigger (FR + EN) for SCN-M2-001: tension around "wrong lot shipped to customer"
-- [x] Design Teacher Trigger (FR + EN) for SCN-M3-001: tension around "delivery impossible, stock shows negative"
-- [x] Design Teacher Trigger (FR + EN) for SCN-M4-001: tension around "KPI dashboard shows red, no one can explain why"
-- [x] Design Teacher Trigger (FR + EN) for SCN-M5-001: tension around "old receipt still open, audit is tomorrow"
-- [x] Add teacher_trigger + teacher_triggerEn fields to ScenarioConfig TypeScript interface
-- [x] Add teacher_trigger text to all 9 scenario entries in SCENARIO_REGISTRY
-- [x] Update ScenarioPanel UI: show Teacher Trigger as the first visible element in collapsed banner
-- [x] Update ScenarioPanel UI: repeat Teacher Trigger as a styled "situation" card at top of Step 1
-- [x] Run pnpm build (0 errors, 9.90s) and pnpm test (218/218)
-- [x] Save checkpoint (6abcae52) and deliver updated scenario document
+## Bug Fix: FioriShell JSX Structure (2026-03-15)
+- [x] Fix: FioriShell.tsx — mobile menu conditional `{mobileMenuOpen && (` missing closing `)}` before Page Header section (line 379). Page Header, main content, and footer were all nested inside the mobile menu conditional, causing rendering issues on desktop.
 
-## Full Scenario Validation & Stress-Test (All 9 SCN)
+## Bug Fix: Language Toggle na Página de Login (2026-03-15)
+- [ ] Fix: Home.tsx — dropdown de língua não está conectado ao LanguageContext global (não muda textos)
+- [ ] Fix: Todos os textos da Home.tsx devem usar t() para FR/EN
 
-- [x] Stress-test SCN-001 to SCN-005 (M1): simulate execution, validate visual contrast, confirm classroom readiness
-- [x] Stress-test SCN-M2-001, SCN-M3-001, SCN-M4-001, SCN-M5-001: same validation
-- [x] Improve discovery questions, expected answers, and common mistakes where weak (SCN-M2-001 observation note, SCN-M4-001 question sharpened)
-- [x] Update ScenarioPanel registry with improved content (checkpoint 1b9356ea)
-- [x] Write comprehensive validated scenario document (all 9 SCN, FR+EN, with instructor guidance)
-- [x] Export scenario document to PDF (TEC_WMS_Scenarios_Validated_Complete.pdf)
-- [x] Run pnpm build (0 errors) and pnpm test (218/218)
-- [x] Save checkpoint (1b9356ea) and deliver to professor
+## Bug Fix: FR/EN Toggle Global — Auditoria Completa (2026-03-15 — Sessão 2)
+- [x] Fix: TeacherDashboard — todos os textos traduzidos com t()
+- [x] Fix: FioriShell — nav items já usavam t() (já estava correto)
+- [x] Fix: CohortManager — textos traduzidos com t()
+- [x] Fix: AssignmentManager — textos traduzidos com t()
+- [x] Fix: ScenarioManager — textos traduzidos com t()
+- [ ] Fix: ModeSelectionScreen — pendente
+- [ ] Fix: Module2ModeSelectionPage — pendente
+- [ ] Fix: Module3ModeSelectionPage — pendente
+- [ ] Fix: PutawayForm — pendente
+- [ ] Fix: PutawayFormPage — pendente
 
-## Single Odoo Lab Per Step — Architecture Fix
+## Feature: Warehouse Zone Logic + PUTAWAY/PICKING Steps (2026-03-15 — Phase 1+2)
+- [ ] rulesEngine: add PUTAWAY step (REC → STOCKAGE) and PICKING step (STOCKAGE → EXPEDITION) to MODULE1_STEPS (9 steps total)
+- [ ] rulesEngine: zone validation — GR must use RECEPTION bin, PUTAWAY moves from RECEPTION to STOCKAGE, PICKING moves from STOCKAGE to EXPEDITION, GI must use EXPEDITION bin
+- [ ] rulesEngine: update canExecuteStep for new 9-step sequence
+- [ ] routers: add submitPUTAWAY procedure with zone validation and scoring
+- [ ] routers: add submitPICKING procedure with zone validation and scoring
+- [ ] routers: update scoring step breakdown to include PUTAWAY and PICKING
+- [ ] routers: add detailed per-field error tracking (which field was wrong, expected vs actual)
+- [ ] StepForm: filter bins by zone per step (GR→RECEPTION, PUTAWAY from/to, PICKING from/to, GI→EXPEDITION, CC→all)
+- [ ] StepForm: add PUTAWAY form config (fromBin RECEPTION, toBin STOCKAGE)
+- [ ] StepForm: add PICKING form config (fromBin STOCKAGE, toBin EXPEDITION)
+- [ ] MissionControl: show 9 steps in progress tracker
+- [ ] RunReport: show detailed per-field error feedback per step
+- [ ] RunReport: show zone movement diagram (REC→STOCK→EXP)
 
-- [x] Audit all ScenarioPanel and OdooLabButton render sites in StepForm.tsx
-- [x] Implement getActiveScenarioForStep(moduleId, scenarioId, stepCode) single-source-of-truth function
-- [x] Remove all duplicate ScenarioPanel renders on same step
-- [x] Enforce mutual exclusion: suppress OdooLabButton when ScenarioPanel is active for that step
-- [x] M1 Scenario 1 GR → only SCN-001; M1 Scenario 2 GR → only SCN-002
-- [x] Add dev warning guard: if >1 scenario matches a step, render only highest-priority
-- [x] Verify no screen shows 2+ Odoo buttons or duplicate "Vérifier dans Odoo"
-- [x] Run pnpm build (0 errors) and pnpm test (218/218)
-- [x] Save checkpoint "Fix single Odoo Lab per scenario-step rendering"
-- [x] Deliver validation table: each scenario, step, exactly one visible lab
+## Feature: Dashboard Power BI — Analytics Avancé (2026-03-15)
+- [ ] Backend: monitor.powerAnalytics — agregação completa: KPIs, scores por etapa, heatmap de erros, ranking de alunos, dados por coorte, tendências temporais
+- [ ] Frontend: /teacher/analytics — página de dashboard Power BI com Recharts
+- [ ] Dashboard: KPI cards (total alunos, score médio, taxa de conclusão, taxa de conformidade)
+- [ ] Dashboard: Gráfico de barras — Score médio por aluno (ranking)
+- [ ] Dashboard: Gráfico de barras empilhadas — Erros por etapa (PO/GR/PUTAWAY/SO/PICKING/GI/CC)
+- [ ] Dashboard: Gráfico de linha — Evolução do score médio ao longo do tempo
+- [ ] Dashboard: Heatmap — Taxa de erro por etapa × aluno
+- [ ] Dashboard: Gráfico radar — Perfil de desempenho da turma por etapa
+- [ ] Dashboard: Tabela de ranking de alunos com score, progresso, status
+- [ ] Dashboard: Filtros dinâmicos por módulo, coorte, modo (eval/demo)
+- [ ] Dashboard: Painel de análise pedagógica inteligente com recomendações
+- [ ] Registrar rota /teacher/analytics no App.tsx
+- [ ] Adicionar link "Analytics" no FioriShell para professores
 
-## Compliance Recovery Flow — Full Implementation
+## Feature: Dashboard Power BI Analytics (2026-03-15)
+- [x] Backend: tRPC `monitor.powerAnalytics` — agregação completa (KPIs, ranking, heatmap, erros, timeline)
+- [x] Frontend: página `/teacher/analytics` estilo Power BI com Recharts
+- [x] KPI cards: estudantes, score médio, taxa de aprovação, conformidade, complétion, progresso, sessões
+- [x] Gráfico: ranking de alunos (melhor score vs score médio)
+- [x] Gráfico: distribuição de scores (donut chart)
+- [x] Gráfico: taxa de complétion por etapa M1 (barras horizontais coloridas)
+- [x] Gráfico: frequência de erros pedagógicos (barras horizontais)
+- [x] Gráfico: evolução do score médio no tempo (area chart)
+- [x] Gráfico: perfil de maestria por etapa (radar chart)
+- [x] Gráfico: atividade por módulo (barras empilhadas)
+- [x] Tabela: classamento detalhado com medalhas 🥇🥈🥉
+- [x] Heatmap: complétion por aluno × etapa (matriz colorida)
+- [x] FR/EN bilíngue COMPLETO — todos os textos via t() conectados ao toggle global FR/EN
+- [x] Nav item "Analytics" adicionado ao FioriShell (sidebar do professor)
+- [x] Rota `/teacher/analytics` registrada no App.tsx
+- [x] Auto-refresh a cada 60 segundos + botão "Actualiser / Refresh"
 
-- [x] Extend ComplianceResult type in rulesEngine.ts: add rootCauseStep, recoveryStepCode, impactFr, impactEn, odooAuditUrl per issue
-- [x] Update checkCompliance() to return structured ComplianceIssue objects with root cause + recovery target
-- [x] Add compliance.diagnose tRPC query returning detailed audit report (non-destructive, no run close)
-- [x] Create ComplianceAuditPanel.tsx: root-cause cards, corrective action cards, smart recovery buttons
-- [x] Wire recovery navigation in StepForm.tsx: return-to-step without full reset, preserve completed steps
-- [x] Add compliance.retryCheck tRPC procedure (re-run compliance without closing run)
-- [x] Add pedagogical fallback message when rollback is not technically possible
-- [x] Add Odoo-ready audit hooks (odooAuditUrl per issue type for future EDU LAB integration)
-- [x] Update compliance step rendering in StepForm.tsx to use ComplianceAuditPanel
-- [x] Run pnpm build (0 errors) and pnpm test (218/218 pass)
-- [x] Save checkpoint and deliver implementation report
+## Feature: Score Evolution Line Chart (2026-03-16)
+- [x] Backend: `monitor.studentScoreEvolution` — retorna tentativas ordenadas por data para um aluno + cenário
+- [x] Frontend: seção "Évolution du score" no AnalyticsDashboard com seletor de aluno + seletor de cenário
+- [x] Gráfico de linha: eixo X = tentativas (1ª, 2ª, 3ª…), eixo Y = score (0-100), linha por aluno selecionado
+- [x] Mostrar linha de aprovação (60 pts) como referência horizontal
+- [x] Tooltip com data, score, penalidades e status (Réussi/Échoué)
+- [x] FR/EN bilíngue via t()
 
-## TEC.LOG Final Completion — Phases 1-8
+## Feature: Student Score Evolution View (2026-03-16)
+- [x] Backend: `runs.myScoreEvolution` — retorna todas as tentativas do aluno logado para um cenário específico (score, penalidades, data, status)
+- [x] Frontend: seção "Mon évolution" na página RunReport — gráfico de linha mostrando score por tentativa
+- [x] Mostrar linha de aprovação (60 pts) como referência horizontal
+- [x] Tooltip com data, score, penalidades e status por tentativa
+- [x] Ponto atual destacado em amarelo no gráfico do aluno
+- [x] FR/EN bilíngue via t()
+- [ ] Push to GitHub after all features complete
 
-### Phase 1 — Reset Path Validation & Fix
-- [x] Audit existing resetRun path: teacher MonitorDashboard → runs.resetRun tRPC → db.resetRun (deletes run + child records)
-- [x] Add student self-reset: runs.selfReset tRPC procedure (student can reset their own in_progress or completed run)
-- [x] Fix RunReport.tsx "Recommencer ce scénario" button: wired to selfReset mutation
-- [x] Add teacher quiz reset: quiz.resetAttempts tRPC procedure (teacher can clear quiz attempts for a student/module)
-- [x] Wire quiz reset button in MonitorDashboard (per-student, per-module)
-- [x] Verify reset restores: scenario state, scoring history, stocks, lots, compliance state
+## Bug: FioriShell nav bar overflow
+- [x] Fix nav items cramped/overlapping on medium screens — icons only on md, icons+labels on lg+, overflow-x scroll with hidden scrollbar
+- [x] Fix Analytics page not opening — session expiry issue (login required after sandbox reset); nav fix applied
 
-### Phase 2 — M1 Quiz Retake Fix
-- [x] Investigate why M1 quiz button appears inactive after one attempt (quizPassed gate confirmed working)
-- [x] Confirm quiz is already retakeable (QuizPage shows "Recommencer le quiz" — gate not blocking)
-- [x] Add "Mode pratique" label to quiz intro (unlimited retakes, no lock)
-- [x] Add "Mode examen" label for certification attempts (teacher-controlled)
-- [x] Ensure practice mode and exam mode are clearly separated in UI
+## Feature: Email/Password Authentication for Students
+- [ ] Add email + password login option (no Manus account required)
+- [ ] Teacher can create student accounts from admin panel
+- [ ] Student receives credentials by email or from teacher
+- [ ] Both Manus OAuth and email/password work simultaneously
 
-### Phase 3 — Odoo Certification Structure (2 certifications only)
-- [x] Create Odoo article: "TEC.LOG Fundamentals Certification" (M1 scope, seq 39)
-- [x] Create Odoo article: "TEC.LOG — Integrated ERP/WMS Logistics Certification" (M2–M5 scope, seq 69)
-- [x] Remove/update existing M1 certification article if it has wrong scope
-- [x] Update TEC.WMS CertificationPage to show 2-cert structure (M1 Fundamentals + M2–M5 Final)
-- [x] Update TEC.WMS M1 completion logic → triggers Fundamentals Cert display
-- [x] Update TEC.WMS M2–M5 all complete → triggers Final Cert display
-- [x] Do NOT create per-module M2/M3/M4/M5 certifications
+## Feature: 30-Hour Content Gap Analysis & Additions
+- [ ] Audit current content hours per module (real vs declared)
+- [ ] Identify missing content to reach 30h with quality
+- [ ] Add quiz/QCM activities per module (10-15 min each)
+- [ ] Add case study readings per module
+- [ ] Add glossary/reference sheets per module
+- [ ] Produce content gap analysis PDF for professor
 
-### Phase 4 — Odoo Dataset Validation
-- [x] Verify SKU-001 to SKU-010 exist in Odoo (all 10 present; type=consu, SKU-003/004 lot-tracked)
-- [x] Verify/create WH/Input, WH/Stock, WH/Output, WH/Quality locations (created Output+Quality, Allée-A/B/C exist)
-- [x] Verify Min/Max replenishment rules for SKU-004 (10/50), SKU-005 (20/100), SKU-003 (30/150) created
-- [x] Verify lot-tracked products: SKU-003 has LOT-A/B/C; SKU-004 lots LOT-2024-A/B created
-- [x] Verify cycle count data: SKU-003 multi-lot stock confirmed (50+30+20=100 units)
-- [x] Verify KPI data: stock quants confirmed (SKU-001=130, BOX-001=75, SKU-003=100)
-- [x] Created: WH/Output, WH/Quality locations; putaway rules SKU-001→Allée-A, SKU-003→Allée-B, SKU-004→Allée-C; lots LOT-SKU004-2024-A/B; reorder rule SKU-003
+## Feature: Visual Quality Upgrade (SAP Fiori / Odoo Level)
+- [ ] Upgrade StepForm to SAP Fiori-inspired transaction panel
+- [ ] Improve MissionControl layout with professional WMS dashboard feel
+- [ ] Add color-coded status indicators (green/amber/red) like real WMS
+- [ ] Improve RunReport with professional score card design
+- [ ] Upgrade student ScenarioList to look like Odoo module selection
 
-### Phase 5 — M2-M5 Odoo Readiness
-- [x] M2: Validate putaway rules, bin locations, internal transfers, FIFO picking
-- [x] M3: Validate Min/Max, replenishment, safety stock, cycle count, multi-lot
-- [x] M4: Validate KPI datasets, dashboards, OTIF, Fill Rate, Lead Time, Inventory Turnover
-- [x] M5: Validate end-to-end flow: receipt → putaway → picking → shipping → cycle count → audit
+## Audit: Teacher Environment Functional Review
+- [ ] Test all 8 teacher nav items and document what works/broken
+- [ ] Verify cohort creation and student assignment flow
+- [ ] Verify scenario assignment to cohort flow
+- [ ] Verify monitoring real-time view
+- [ ] Verify analytics charts with real data
+- [ ] Document missing teacher features
 
-### Phase 6 — Student/Teacher UX Fixes
-- [x] Fix empty pages or inactive buttons found during audit
-- [x] Fix broken Odoo links (all 64 Odoo URLs confirmed pointing to edu-concorde-logistics-lab.odoo.com)
-- [x] Ensure teacher notes are hidden from students (isTeacherOrAdmin gate confirmed in SlideViewer)
-- [x] Fix certification visibility: banners shown in RunReport after M1 pass (green) and M5 pass (indigo)
+## Audit: Student Environment Functional Review
+- [ ] Test complete scenario flow as student (all 7 steps)
+- [ ] Verify step validation feedback
+- [ ] Verify score report after completion
+- [ ] Verify score evolution chart
+- [ ] Document missing student features
 
-### Phase 7 — Guide de facilitation TEC.LOG PDF
-- [x] Write Guide de facilitation TEC.LOG (French, 10 classes × 3h)
-- [x] Include: module flow, TEC.WMS usage, Odoo EDU LAB, demo/exam modes, reset procedure, quiz/certification, evaluation criteria, student mistakes, teacher script, final checklist
-- [x] Export to PDF
+## Bug Fixes & Improvements (Audit 2026-03-23)
+- [ ] Fix Module 19/24 bug in ScenarioManager — M4/M5 show wrong IDs because seed ran multiple times; fix by mapping module code to label
+- [ ] Add /student redirect to /student/scenarios (currently 404)
+- [ ] Add student onboarding/welcome page before first scenario
+- [ ] Fix teacher Assignments page — verify full functionality
+- [ ] Add cohort quick-create from teacher dashboard
 
-### Phase 8 — Final Validation Report
-- [x] Run TypeScript check (0 errors)
-- [x] Run pnpm test (218/218)
-- [x] Validate student flow M1-M5
-- [x] Validate teacher flow (reset, monitoring, quiz management)
-- [x] Validate Odoo certification pages (2 articles: M1 Fundamentals + M2–M5 Final)
-- [x] Produce FINAL TEC.LOG VALIDATION REPORT
-- [x] Save checkpoint
+## Feature: Teacher-Managed Student Accounts (2026-03-24)
+- [x] DB: isActive + notes columns added to users table (migration 0010 applied)
+- [x] Backend: auth.localLogin — email/password login (bcrypt, JWT session)
+- [x] Backend: auth.localRegister — student self-registration with optional access code
+- [x] Backend: auth.createAccount — teacher/admin creates student/teacher accounts
+- [x] Backend: auth.resetPassword — admin resets any user's password
+- [x] Backend: auth guard blocks isActive=false users from logging in
+- [x] Backend: students.list — teacher lists all students (with cohort, lastSignedIn, isActive, score stats)
+- [x] Backend: students.create — teacher creates student account (email, name, password, cohort)
+- [x] Backend: students.setActive — teacher activates/deactivates (includes/excludes) student
+- [x] Backend: students.updateNotes — teacher adds notes to student profile
+- [x] Backend: students.resetPassword — teacher resets student password
+- [x] Backend: students.assignCohort — teacher assigns student to cohort
+- [x] Frontend: /teacher/students — Student Management page with full table
+- [x] Frontend: Create Student dialog (name, email, password, cohort)
+- [x] Frontend: Activate/Deactivate toggle per student (include/exclude)
+- [x] Frontend: Reset Password dialog per student
+- [x] Frontend: Notes field per student (inline edit)
+- [x] Frontend: Assign to Cohort dropdown per student
+- [x] Frontend: Search/filter by name, email, cohort, status
+- [x] FioriShell: add "Étudiants" nav item for teacher
+- [x] Seed test accounts: 4 students + 1 teacher + 1 admin
 
-## Production Hardening — Phases 1-8 (pasted_content_39)
+## Bug Fix: StepForm PUTAWAY_M1 / PICKING_M1 / STOCK (2026-03-23)
+- [x] Add PUTAWAY_M1 config (LT0A, fromBin/toBin fields) to StepForm STEP_CONFIG
+- [x] Add STOCK config (MB52, auto-validated info panel) to StepForm STEP_CONFIG
+- [x] Add PICKING_M1 config (VL01N, fromBin/toBin fields) to StepForm STEP_CONFIG
+- [x] Add submitPUTAWAY_M1 and submitPICKING_M1 mutations to StepForm
+- [x] Add fromBin/toBin field rendering with zone hints (RÉCEPTION/STOCKAGE/EXPÉDITION)
+- [x] Add PUTAWAY_M1, STOCK, PICKING_M1 to MissionControl STEPS array
+- [x] Add PUTAWAY_M1, STOCK, PICKING_M1 to PEDAGOGICAL_OBJECTIVES in MissionControl
+- [x] All 50 vitest tests pass, zero TypeScript errors
 
-### PH1 — Odoo Dataset Coverage Matrix
-- [x] Audit all Odoo products (SKU-001 to SKU-010, BOX-001) — confirmed (all 11 products, type=consu)
-- [x] Audit all locations (WH/Input, WH/Stock, Allée-A/B/C, WH/Output, WH/Quality) — all confirmed
-- [x] Audit all lots (LOT-SKU003-A/B/C, LOT-SKU004-2024-A/B) — all confirmed
-- [x] Audit putaway rules (6), reorder rules (3), stock quants (9 quants across 3 Allées)
-- [x] Build M1–M5 coverage matrix — documented in classroom_dataset_standard.md
-- [x] Create missing products/lots/locations/rules — WH/Output, WH/Quality, putaway rules, lots created
+## QA Priority Fixes (2026-03-25)
+- [x] Testes unitários M3: ROP, EOQ, calculateVariance, computeReplenishmentSuggestion (73 novos testes)
+- [x] Testes unitários M4: calculateKpis (rotation, service, errorRate, DSI, stockValue)
+- [x] Testes unitários M5: scoreM5Decision (NLP scoring, bonus, feedback)
+- [x] RunReport: tabela de scores por etapa dinâmica M1-M5 (pontos obtidos / pontos máx)
+- [x] RunReport: seção "Resumo de erros pedagógicos" com descrição e recomendação
+- [x] RunReport: backend procedure runs.detailedReport expandido para M1-M5
+- [x] FR/EN toggle: TeacherDashboard — todos os textos via t() (já estava correto)
+- [x] FR/EN toggle: ScenarioManager — todos os textos via t() (já estava correto)
+- [x] FR/EN toggle: MonitorDashboard — todos os textos via t() (já estava correto)
+- [x] FR/EN toggle: AssignmentManager — todos os textos via t() (já estava correto)
+- [x] FR/EN toggle: CohortManager — todos os textos via t() (já estava correto)
+- [x] Experiência didática M3: painel ROP/EOQ com fórmulas visíveis + feedback de precisão no réapprovisionnement
+- [x] Experiência didática M3: feedback CC_COUNT mostra variância total + orientação para CC_RECON
+- [x] Experiência didática M3: feedback CC_RECON mostra número de ajustamentos aplicados
+- [x] RunReport: competências dinâmicas por módulo (M1-M5 cada um com suas competências específicas)
+- [x] Backend: submitCcRecon retorna adjustmentsApplied; submitReplenish retorna studentQty para feedback de precisão
 
-### PH2 — Classroom Dataset Standard
-- [x] Define per-module SKU roles — documented in classroom_dataset_standard.md
-- [x] Ensure every stock quantity has a pedagogical reason — all quantities documented with rationale
-- [x] Document the classroom dataset standard — classroom_dataset_standard.md + PDF
+## QA Senior Mission — 10 Steps (2026-03-25)
 
-### PH3 — Exam Snapshot / Reset State
-- [x] Document exact Odoo state before each module exam — exam_snapshot_procedure.md + PDF
-- [x] Create teacher reset procedure — exam_snapshot_procedure.md section 2
-- [x] Create reset script — odoo_stock_adjust.py + pre-exam checklist in exam_snapshot_procedure.md
+- [x] Step 1: Internal email+password auth — Manus OAuth removed from login page
+- [x] Step 1: Create account gibranlog@gmail.com / 161878Log$ with admin role
+- [x] Step 1: Login flow validated (localLogin + bcrypt + JWT session)
+- [x] Step 2: Quiz system — 5 quizzes (M1: 5q, M2-M5: 4q each), 60% gate, explanations
+- [x] Step 2: Quiz button added to StudentSlidesHub module cards; route /student/quiz/:moduleId
+- [x] Step 3: ScenarioList fixed — M2-M5 now use unified run flow (ModeSelectionScreen)
+- [x] Step 4: Persistent feedback panel in StepForm — pedagogicalDeep content shown post-submit
+- [x] Step 5: MissionControl now uses dynamic steps from backend (M1-M5 all supported)
+- [x] Step 5: runs.state uses getNextRequiredStepAllModules + calculateProgressPctAllModules
+- [x] Step 8: 123/123 tests passing, TypeScript 0 errors, DB verified (5 quizzes, 21 questions)
+- [x] Step 9: Final checkpoint + push to GitHub (158dde16)
+- [x] Step 10: Final QA Senior report (verdict + action plan) — QA_Senior_Mission_Final_2026.pdf
 
-### PH4 — M4 KPI Data Hardening
-- [x] Create stock movement history for KPI analysis — 5 receipts + 6 deliveries created (KPI-IN/OUT-001–006)
-- [x] Create delayed receipt example — KPI-OUT-004 and KPI-OUT-006 (late deliveries, OTIF=67%)
-- [x] Create delivery issue example — documented in addendum KPI table
-- [x] Create inventory discrepancy example — LOT-SKU003-B cycle count scenario documented
-- [x] Create replenishment delay example — DSI calculation documented in addendum (DSI ≈ 423 days)
-- [x] Verify M4 Odoo Reporting page — 11 pickings visible (5 receipts + 6 deliveries)
+## Sprint: 3 QA Priorities + Student Experience (2026-03-25)
 
-### PH5 — TEC.WMS ↔ Odoo URL Coherence
-- [x] Audit all active Odoo Lab URLs — 64 URLs in 6 files, all pointing to edu-concorde-logistics-lab.odoo.com
-- [x] Verify each URL opens correct Odoo page — 12 unique deep link paths validated
-- [x] Fix any broken, generic, or misleading links — no broken links found (0 demo.odoo.com references)
+- [x] Priority 1: Quiz gate — block simulation start if quiz not passed (≥60%)
+- [x] Priority 1: Add quiz.getBestAttempt procedure to backend
+- [x] Priority 1: Show quiz status badge on ScenarioList module cards
+- [x] Priority 2: Glossary page /student/glossary with 80 TEC.LOG terms FR/EN
+- [x] Priority 2: Add "Aide" button in StepForm linking to glossary
+- [x] Priority 2: Add glossary link in FioriShell navigation
+- [x] Priority 3: server/trpc.integration.test.ts — M1 full flow (PO→GR→PUTAWAY→SO→PICKING→GI→CC→COMPLIANCE)
+- [x] Priority 3: server/trpc.integration.test.ts — M3 full flow (CC_LIST→CC_COUNT→CC_RECON→REPLENISH)
+- [ ] Student experience run: create account, M1-M5 complete, honest journal
+- [ ] Student journey report PDF
 
-### PH6 — Certification Logic Final Check
-- [x] Confirm M1 cert banner appears only on M1 pass (score ≥60 + conformity) — confirmed in RunReport.tsx:513
-- [x] Confirm M5 cert banner appears only on M5 pass (score ≥60 + conformity) — confirmed in RunReport.tsx:543
-- [x] Confirm no M2/M3/M4 standalone certifications exist — only mod===1 and mod===5 trigger banners
-- [x] Verify Odoo certification articles — slide ID 7 (M1 Fundamentals) + slide ID 44 (M2–M5 Final) updated
+## Student Journey Simulation — Bugs Found & Fixed (2026-03-25)
 
-### PH7 — Teacher Guide Addendum
-- [x] Write addendum: before-class checklist, before-exam checklist, after-exam reset — guide_facilitation_addendum.md
-- [x] Write Odoo dataset validation checklist — Addendum A + F in guide_facilitation_addendum.md
-- [x] Write module-by-module SKU guide — Addendum B in guide_facilitation_addendum.md
-- [x] Write troubleshooting section — Addendum E in guide_facilitation_addendum.md
-- [x] Export updated guide to PDF — guide_facilitation_addendum.pdf + classroom_dataset_standard.pdf + exam_snapshot_procedure.pdf
+- [x] Bug: Quiz options.map crash — optionsFr/optionsEn stored as JSON strings, not parsed arrays (fixed in QuizPage.tsx parseOpts helper + router JSON.parse)
+- [x] Bug: Sonner toast not showing — sonner.tsx used next-themes useTheme (not installed), fixed to use custom ThemeContext
+- [x] Bug: quiz.getBestAttempt returns undefined when no attempt — fixed to return null
+- [x] Bug: PUTAWAY_M1 stock debit missing — GR posted +50 to REC-01 but PUTAWAY never debited REC-01, leaving phantom stock (fixed: PUTAWAY now records negative debit transaction for fromBin)
+- [x] Bug: COMPLIANCE step gives no resolution path for unposted transactions — added actionable hints and "Retour au Mission Control" button
+- [x] Feature: Quiz immediate feedback — added quiz.checkAnswer procedure + updated QuizPage to show correct/wrong with explanation after each answer (not just at results)
 
-### PH8 — Final Validation Report
-- [x] Compile full inventory — classroom_dataset_standard.md
-- [x] Validate certification pages — 2 Odoo articles + 2 TEC.WMS banners confirmed
-- [x] Confirm reset procedure status — exam_snapshot_procedure.md + odoo_stock_adjust.py
-- [x] Run pnpm test (218/218) and build (0 errors) — confirmed 2026-05-18
-- [x] Save checkpoint — version 1d0691bd
+## UX Improvements Sprint (25 mars 2026)
 
-## Final Operational Hardening — Golden Stable State (2026-05-18)
+- [x] Password recovery flow — "Mot de passe oublié" link on login + /forgot-password + /reset-password/:token + DB token table + requestPasswordReset + resetPasswordWithToken procedures
+- [x] Student number onboarding — N° étudiant field in registration form (optional, auto-saved via profiles.upsert after register)
+- [x] Bin zone hints in StepForm — binZoneHint config added to GR, PUTAWAY_M1, SO, PICKING_M1, GI, FIFO_PICK, M5_PUTAWAY; blue hint shown below each bin dropdown
+- [x] Expert end-to-end validation run M1→M5 — PASS (3 bugs fixed: M2 GR routing, PUTAWAY_COMPLETED scoring rule, completeRun() missing in M2-M5 COMPLIANCE procedures)
 
-- [x] Generate Odoo EDU LAB Recovery Snapshot (42/42 slides: PDF ✓, image ✓, published ✓)
-- [x] Produce odoo_rollback_procedure.md (detection, restore, cache refresh, validation checklist)
-- [x] Validate M1→M5 fullscreen: PDF binary confirmed server-side (document_binary_content present all 42 slides)
-- [x] Confirm 218/218 tests passing, 0 TypeScript errors, build clean
-- [x] Save golden stable state checkpoint
+## Final Polish & Stability Sprint (26 mars 2026)
 
-## TEC.LOG Digital Certification System
+- [ ] Fix 1: Inventory isolation per run — scope all stock/CC/compliance calculations by runId
+- [ ] Fix 2: Password reset flow end-to-end — token validation, expiry, new password login
+- [ ] Fix 3: Controlled dropdowns in StepForm — SKU, bin, fromBin, toBin retain selected values
+- [ ] Fix 4: Persistent orange banner — hide when compliance.compliant === true
+- [ ] Final clean validation M1→M5 (no hotfix mode)
+- [ ] Final verdict report
 
-- [x] DB schema: certifications table added and migrated
-- [x] Server: certificationRouter.ts — issue, getByCredentialId, getMine, generatePDF, seedDemo
-- [x] Server: certificationRouter registered in appRouter
-- [x] Frontend: CertificationEarned.tsx — premium screen with PDF download, LinkedIn helper, copy link
-- [x] Frontend: CredentialVerify.tsx — public verification page at /verify/:credentialId
-- [x] Routes: /student/certification/:certType and /verify/:credentialId registered in App.tsx
-- [x] TypeScript: 0 errors across all new files
-- [x] End-to-end validation with demo student data — PASS (screenshot confirmed)
-- [x] Golden checkpoint saved — be784cb4
+## Feature: Full Bilingual System FR/EN (2026-03-29)
+- [x] Seed: add descriptionEn to all 34 scenarios (M1-M5) — SQL UPDATE applied to all 68 rows
+- [x] Schema: add descriptionEn column to scenarios table (drizzle schema + DB column added)
+- [x] Routers: bilingualize all error messages — pickReason() helper + Accept-Language header wired
+- [x] rulesEngine: add reasonEn to ValidationResult interface + all canExecuteStep/validateGRZone/validatePutaway returns
+- [x] UI: ModeSelectionScreen — fully bilingual with useLanguage() + t()
+- [x] UI: Module2ModeSelectionPage — fully bilingual with useLanguage() + t()
+- [x] UI: Module3ModeSelectionPage — fully bilingual with useLanguage() + t()
+- [x] UI: ForgotPasswordPage — fully bilingual with useLanguage() + t()
+- [x] UI: ResetPasswordPage — fully bilingual with useLanguage() + t()
+- [x] Backend: error messages returned to frontend use { reasonFr, reasonEn } + pickReason(validation, req)
+- [x] tRPC client: sends Accept-Language header from localStorage lang preference
+- [x] Final validation: bilingual error messages confirmed (FR: "L'étape…" / EN: "Step…")
 
-## TEC.LOG Next-Gen Certification System v2 (2026-05-18)
-- [x] Dark premium design system — Silver (M1) / Gold (M2-M5) tiers, no score exposure
-- [x] CertificationEarned screen — fullscreen unlock, animated metallic badge, no score
-- [x] CredentialVerify page — dark premium, real QR code from server (getQRCode procedure), Silver/Gold tier rendering
-- [x] PDF export — dark navy background, tier badge, no score, real QR embedded, grid texture
-- [x] getQRCode public procedure added to certificationRouter
-- [x] CertificationCenter page — student hub with Silver/Gold status cards, locked/earned states
-- [x] FioriShell nav — Certifications tab added for students (Award icon)
-- [x] Route /student/certifications registered in App.tsx
-- [x] TypeScript: 0 errors
-- [x] Tests: 218/218 passing
-- [x] Build: clean (10.60s)
-- [x] Golden checkpoint saved — d834acd9
+## Production Account Seed (2026-04-08)
+- [x] Seed default student account: student@concorde.ca / Student123!
+- [x] Seed teacher/admin account: prof@concorde.ca / Teacher123!
+- [x] Seed FR student account: etudiant@concorde.ca / Student123!
+- [x] Verified live login — student dashboard accessible at /student/scenarios
+- [x] All 5 modules visible with 20 scenarios each (M1–M5)
+
+## Phase 9: Stock Fix & QA Walkthrough
+- [x] Fix PICKING double-negation bug in calculateInventory (rulesEngine.ts)
+- [x] Fix calculateBinLoad same double-negation bug
+- [x] Add 4 stock invariant tests (218/218 tests pass)
+- [x] Update StepForm.tsx to show per-location stock breakdown (STOCKAGE / EXPÉDITION / TOTAL)
+- [ ] Re-initialize webdev project to restore deployment connection
+- [ ] Save checkpoint with stock fix via webdev_save_checkpoint
+- [ ] Publish live deployment with stock fix
+- [ ] Verify PICKING stock fix on live UI: STOCKAGE 40 + EXP 60 = TOTAL 100
+- [ ] Complete M1 Scenarios 1-5 full walkthrough with QA
+- [ ] Complete M2-M5 full walkthrough with QA
+- [ ] Write and deliver final QA + readiness report
+
+## Phase 9: Stock Fix and QA Walkthrough
+- [x] Fix PICKING double-negation bug in calculateInventory (rulesEngine.ts)
+- [x] Fix calculateBinLoad same double-negation bug
+- [x] Add 4 stock invariant tests (218/218 tests pass)
+- [x] Update StepForm.tsx to show per-location stock breakdown
+- [ ] Re-initialize webdev project to restore deployment connection
+- [ ] Save checkpoint with stock fix via webdev_save_checkpoint
+- [ ] Publish live deployment with stock fix
+- [ ] Verify PICKING stock fix on live UI: STOCKAGE 40 + EXP 60 = TOTAL 100
+- [ ] Complete M1-M5 full walkthrough with QA
+- [ ] Write and deliver final QA + readiness report

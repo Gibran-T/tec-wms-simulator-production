@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, moduleId, titleFr, passingScore FROM quizzes ORDER BY moduleId;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT id, moduleId, titleFr, passingScore FROM quizzes ORDER BY moduleId;",
+  "rows": [
+    {
+      "id": "1",
+      "moduleId": "1",
+      "titleFr": "Quiz M1 — Fondements de la chaîne logistique et ERP/WMS",
+      "passingScore": "60"
+    },
+    {
+      "id": "2",
+      "moduleId": "2",
+      "titleFr": "Quiz M2 — Exécution d'entrepôt avancée",
+      "passingScore": "60"
+    },
+    {
+      "id": "3",
+      "moduleId": "3",
+      "titleFr": "Quiz M3 — Contrôle des stocks et réapprovisionnement",
+      "passingScore": "60"
+    },
+    {
+      "id": "4",
+      "moduleId": "4",
+      "titleFr": "Quiz M4 — Indicateurs de performance logistique (KPI)",
+      "passingScore": "60"
+    },
+    {
+      "id": "5",
+      "moduleId": "5",
+      "titleFr": "Quiz M5 — Simulation intégrée et décision stratégique",
+      "passingScore": "60"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tmoduleId\ttitleFr\tpassingScore\n1\t1\tQuiz M1 — Fondements de la chaîne logistique et ERP/WMS\t60\n2\t2\tQuiz M2 — Exécution d'entrepôt avancée\t60\n3\t3\tQuiz M3 — Contrôle des stocks et réapprovisionnement\t60\n4\t4\tQuiz M4 — Indicateurs de performance logistique (KPI)\t60\n5\t5\tQuiz M5 — Simulation intégrée et décision stratégique\t60\n",
+  "stderr": "",
+  "execution_time_ms": 232
+}

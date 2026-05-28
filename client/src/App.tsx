@@ -2,9 +2,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
-import CertificationEarned from "@/pages/student/CertificationEarned";
-import CertificationCenter from "@/pages/student/CertificationCenter";
-import CredentialVerify from "@/pages/CredentialVerify";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -35,6 +32,7 @@ import SlideViewer from "./pages/SlideViewer";
 import StudentSlidesHub from "./pages/student/StudentSlidesHub";
 import QuizPage from "./pages/student/QuizPage";
 import GlossaryPage from "./pages/student/GlossaryPage";
+import { CertificationsPage } from "./pages/student/CertificationsPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
@@ -63,6 +61,7 @@ function Router() {
       <Route path="/student/quiz/:moduleId" component={QuizPage} />
       {/* Glossary route */}
       <Route path="/student/glossary" component={() => <GlossaryPage />} />
+      <Route path="/student/certifications" component={() => <CertificationsPage />} />
       {/* Slides routes — requires authentication (handled by SlideViewer via FioriShell guard) */}
       <Route path="/student/slides" component={StudentSlidesHub} />
       <Route path="/student/slides/:moduleId" component={SlideViewer} />
@@ -81,9 +80,6 @@ function Router() {
       <Route path="/login" component={LocalLogin} />
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
-      <Route path="/student/certifications" component={CertificationCenter} />
-      <Route path="/student/certification/:certType" component={CertificationEarned} />
-      <Route path="/verify/:credentialId" component={CredentialVerify} />
       <Route path="/legal" component={Legal} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />

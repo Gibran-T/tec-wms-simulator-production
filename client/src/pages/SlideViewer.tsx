@@ -1,7 +1,7 @@
 /**
  * TEC.LOG — Slide Viewer
  * Design: Industrial-Academic Precision
- * Full-screen slide canvas with FR/EN toggle, dark mode, keyboard navigation
+ * Full-screen slide canvas with professor/student mode toggle
  * FR/EN global toggle, dark mode, keyboard navigation
  */
 import { useState, useEffect, useCallback } from "react";
@@ -14,11 +14,9 @@ import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
-  Clock, Tag, Lightbulb,
-  List, X, ZoomIn, AlertTriangle,
-  BookOpen, GraduationCap, Link2
+  BookOpen, GraduationCap, Clock, Tag, Lightbulb,
+  List, X
 } from "lucide-react";
-import { MacroProcessVisual, MODULE_PROCESS_MAP } from "@/components/MacroProcessVisual";
 
 // ── Slide type badge colors ──────────────────────────────────────────────────
 const typeColors: Record<string, string> = {
@@ -84,104 +82,18 @@ function SlideLine({ line }: { line: string }) {
   );
 }
 
-
-// ── Warehouse Image Slide Component ─────────────────────────────────────────
-function WarehouseImageSlide({ src, alt, body }: { src: string; alt: string; body: string[] }) {
-  const [imgState, setImgState] = useState<"loading" | "loaded" | "error">("loading");
-  const [zoomOpen, setZoomOpen] = useState(false);
-
-  return (
-    <>
-      <div className="mb-4">
-        {/* Image container */}
-        <div
-          className="relative w-full rounded-xl border border-border overflow-hidden bg-secondary/30 cursor-zoom-in"
-          style={{ minHeight: "220px" }}
-          onClick={() => imgState === "loaded" && setZoomOpen(true)}
-          title={imgState === "loaded" ? "Cliquer pour agrandir" : undefined}
-        >
-          {/* Loading skeleton */}
-          {imgState === "loading" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 animate-pulse">
-              <div className="w-16 h-16 rounded-full bg-border" />
-              <div className="h-3 w-40 rounded bg-border" />
-              <div className="h-2 w-28 rounded bg-border" />
-            </div>
-          )}
-          {/* Error state */}
-          {imgState === "error" && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-muted-foreground">
-              <AlertTriangle className="w-8 h-8 text-amber-500" />
-              <p className="text-sm font-medium">Image non disponible</p>
-              <p className="text-xs opacity-60 font-mono break-all px-4 text-center">{src}</p>
-            </div>
-          )}
-          {/* Zoom hint badge */}
-          {imgState === "loaded" && (
-            <div className="absolute top-2 right-2 bg-black/50 text-white rounded-md px-2 py-1 flex items-center gap-1 text-xs pointer-events-none">
-              <ZoomIn className="w-3 h-3" />
-              <span>Agrandir</span>
-            </div>
-          )}
-          <img
-            src={src}
-            alt={alt}
-            className={`w-full object-contain transition-opacity duration-300 ${imgState === "loaded" ? "opacity-100" : "opacity-0"}`}
-            style={{ maxHeight: "480px" }}
-            onLoad={() => setImgState("loaded")}
-            onError={() => {
-              console.warn("Warehouse image not found:", src);
-              setImgState("error");
-            }}
-          />
-        </div>
-        {/* Body text below image */}
-        <div className="rounded-xl border border-border bg-card px-5 py-3 mt-3">
-          <div className="space-y-0.5">
-            {body.map((line, i) => (
-              <SlideLine key={i} line={line} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Zoom modal */}
-      {zoomOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
-          onClick={() => setZoomOpen(false)}
-        >
-          <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/10 rounded-full p-2 transition-colors"
-            onClick={() => setZoomOpen(false)}
-            title="Fermer"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          <img
-            src={src}
-            alt={alt}
-            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          />
-        </div>
-      )}
-    </>
-  );
-}
-
 /// ── Main SlideViewer component ───────────────────────────────────────────────
 export default function SlideViewer() {
   const params = useParams<{ moduleId: string }>();
   const [, navigate] = useLocation();
   const { theme, toggleTheme } = useTheme();
   const { language: lang, setLanguage: setLang, t } = useLanguage();
-  const { isAuthenticated, loading: authLoading, user } = useAuth();
-  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
+  const { isAuthenticated, loading: authLoading } = useAuth();
   const moduleId = parseInt(params.moduleId || "1", 10);
 
   // ── ALL hooks must be declared before any conditional returns ──────────────
   const [slideIndex, setSlideIndex] = useState(0);
+  const [professorMode, setProfessorMode] = useState(false);
   const [showNav, setShowNav] = useState(false);
   const [animKey, setAnimKey] = useState(0);
 
@@ -217,6 +129,8 @@ export default function SlideViewer() {
         goPrev();
       } else if (e.key === "Escape") {
         navigate("/student/scenarios");
+      } else if (e.key === "p" || e.key === "P") {
+        setProfessorMode(m => !m);
       }
     };
     window.addEventListener("keydown", handler);
@@ -254,6 +168,7 @@ export default function SlideViewer() {
   const title = lang === "FR" ? slide.titleFr : slide.titleEn;
   const subtitle = lang === "FR" ? slide.subtitleFr : slide.subtitleEn;
   const body = lang === "FR" ? slide.bodyFr : slide.bodyEn;
+  const notes = lang === "FR" ? slide.notesFr : slide.notesEn;
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
   const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
   const progress = ((slideIndex + 1) / totalSlides) * 100;
@@ -290,6 +205,21 @@ export default function SlideViewer() {
 
           <div className="w-px h-5 bg-border mx-1 hidden sm:block" />
 
+          {/* Professor mode toggle */}
+          <button
+            onClick={() => setProfessorMode(m => !m)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-colors ${
+              professorMode
+                ? "bg-amber-500 text-white"
+                : "border border-border hover:bg-secondary text-muted-foreground hover:text-foreground"
+            }`}
+            title={t("Mode Professeur (P)", "Professor Mode (P)")}
+          >
+            {professorMode ? <GraduationCap className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+            <span className="hidden md:inline">
+              {professorMode ? t("Prof", "Prof") : t("Étudiant", "Student")}
+            </span>
+          </button>
 
           {/* Slide list toggle */}
           <button
@@ -410,31 +340,14 @@ export default function SlideViewer() {
               </div>
 
               {/* Slide body */}
-              {slide.warehouseImage ? (
-                <WarehouseImageSlide
-                  src={slide.warehouseImage}
-                  alt={title}
-                  body={body}
-                />
-              ) : (
-                <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
-                  <div className="space-y-0.5">
-                    {body.map((line, i) => (
-                      <SlideLine key={i} line={line} />
-                    ))}
-                  </div>
+              <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
+                <div className="space-y-0.5">
+                  {body.map((line, i) => (
+                    <SlideLine key={i} line={line} />
+                  ))}
                 </div>
-              )}
+              </div>
 
-              {/* Macro Process Visual — shown on cover slides */}
-              {slide.type === "cover" && MODULE_PROCESS_MAP[mod.id] && (
-                <MacroProcessVisual
-                  steps={MODULE_PROCESS_MAP[mod.id]}
-                  moduleColor={mod.color}
-                  titleFr="Flux opérationnel du module"
-                  titleEn="Module operational flow"
-                />
-              )}
               {/* Highlight badge */}
               {slide.highlight && (
                 <div className="flex items-start gap-2 px-4 py-3 rounded-lg border mb-4"
@@ -456,49 +369,22 @@ export default function SlideViewer() {
                 </div>
               )}
 
+              {/* Professor Notes Panel */}
+              {professorMode && notes && (
+                <div className="notes-panel rounded-r-xl p-4 sm:p-5 mb-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <GraduationCap className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">
+                      {t("Notes du professeur", "Professor Notes")}
+                    </span>
+                    <span className="text-xs text-muted-foreground font-mono ml-auto">
+                      ~{slide.timingMin} min {t("à l'oral", "speaking")}
+                    </span>
+                  </div>
+                  <p className="text-sm text-foreground/85 leading-relaxed">{notes}</p>
+                </div>
+              )}
 
-              {/* ── À RETENIR ─────────────────────────────────────────── */}
-              {(lang === "FR" ? slide.aRetenir : slide.aRetenirEn) && (
-                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-amber-400/30 bg-amber-50/10 dark:bg-amber-950/20 mb-3">
-                  <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-500" />
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500 mb-0.5">
-                      {lang === "FR" ? "À retenir" : "Key takeaway"}
-                    </p>
-                    <p className="text-xs text-foreground leading-snug">
-                      {lang === "FR" ? slide.aRetenir : slide.aRetenirEn}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {/* ── ODOO MOMENT ───────────────────────────────────────────── */}
-              {(lang === "FR" ? slide.odooMoment : slide.odooMomentEn) && (
-                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-purple-400/30 bg-purple-50/10 dark:bg-purple-950/20 mb-3">
-                  <Link2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-purple-500" />
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-purple-500 mb-0.5">
-                      {lang === "FR" ? "Lien TEC.WMS ↔ Odoo" : "TEC.WMS ↔ Odoo Link"}
-                    </p>
-                    <p className="text-xs text-foreground leading-snug whitespace-pre-line">
-                      {lang === "FR" ? slide.odooMoment : slide.odooMomentEn}
-                    </p>
-                  </div>
-                </div>
-              )}
-              {/* ── TEACHER NOTE — visible to admin/teacher only ─────────── */}
-              {isTeacherOrAdmin && (lang === "FR" ? slide.teacherNote : slide.teacherNoteEn) && (
-                <div className="flex items-start gap-2.5 px-4 py-3 rounded-lg border border-emerald-400/30 bg-emerald-50/10 dark:bg-emerald-950/20 mb-3">
-                  <GraduationCap className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
-                  <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-0.5">
-                      {lang === "FR" ? "Note professeur" : "Teacher note"}
-                    </p>
-                    <p className="text-xs text-foreground leading-snug">
-                      {lang === "FR" ? slide.teacherNote : slide.teacherNoteEn}
-                    </p>
-                  </div>
-                </div>
-              )}
               {/* Spacer for nav buttons */}
               <div className="h-16" />
             </div>

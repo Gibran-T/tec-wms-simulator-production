@@ -1,0 +1,16 @@
+{
+  "query": "\nUPDATE users SET role = 'admin' WHERE id = 1470067;\nSELECT id, email, name, role FROM users WHERE id = 1470067;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nUPDATE users SET role = 'admin' WHERE id = 1470067;\nSELECT id, email, name, role FROM users WHERE id = 1470067;\n",
+  "rows": [
+    {
+      "id": "1470067",
+      "email": "qa.admin.1774491799613@teclog.test",
+      "name": "QA Admin Teacher",
+      "role": "admin"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1470067\tqa.admin.1774491799613@teclog.test\tQA Admin Teacher\tadmin\n",
+  "stderr": "",
+  "execution_time_ms": 62
+}

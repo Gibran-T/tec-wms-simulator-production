@@ -1,0 +1,9 @@
+{
+  "query": "\nALTER TABLE `master_skus` \n  ADD COLUMN IF NOT EXISTS `descriptionFr` varchar(255) NOT NULL DEFAULT '',\n  ADD COLUMN IF NOT EXISTS `descriptionEn` varchar(255),\n  ADD COLUMN IF NOT EXISTS `unitOfMeasure` varchar(32) DEFAULT 'UN',\n  ADD COLUMN IF NOT EXISTS `maxCapacity` int DEFAULT 1000;\n\nALTER TABLE `master_bins`\n  ADD COLUMN IF NOT EXISTS `description` varchar(255),\n  MODIFY COLUMN `zone` enum('RECEPTION','PICKING','STOCKAGE','RESERVE','EXPEDITION') DEFAULT 'STOCKAGE';\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nALTER TABLE `master_skus` \n  ADD COLUMN IF NOT EXISTS `descriptionFr` varchar(255) NOT NULL DEFAULT '',\n  ADD COLUMN IF NOT EXISTS `descriptionEn` varchar(255),\n  ADD COLUMN IF NOT EXISTS `unitOfMeasure` varchar(32) DEFAULT 'UN',\n  ADD COLUMN IF NOT EXISTS `maxCapacity` int DEFAULT 1000;\n\nALTER TABLE `master_bins`\n  ADD COLUMN IF NOT EXISTS `description` varchar(255),\n  MODIFY COLUMN `zone` enum('RECEPTION','PICKING','STOCKAGE','RESERVE','EXPEDITION') DEFAULT 'STOCKAGE';\n",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 1158
+}

@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, name, moduleId, initialStateJson FROM scenarios WHERE moduleId = 1 AND isActive = 1 LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT id, name, moduleId, initialStateJson FROM scenarios WHERE moduleId = 1 AND isActive = 1 LIMIT 5;",
+  "rows": [
+    {
+      "id": "1",
+      "name": "Scénario 1 — Cycle propre",
+      "moduleId": "1",
+      "initialStateJson": "{\"context\": \"Entrepôt vide — démarrage à zéro.\", \"preloadedTransactions\": []}"
+    },
+    {
+      "id": "2",
+      "name": "Scénario 2 — Réception fantôme (GR non postée)",
+      "moduleId": "1",
+      "initialStateJson": "{\"context\": \"GR non postée détectée — transaction fantôme.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-001\", \"docType\": \"PO\", \"posted\": true, \"qty\": 100, \"sku\": \"SKU-001\"}, {\"bin\": \"B-01-R1-L1\", \"docRef\": \"GR-2025-001\", \"docType\": \"GR\", \"posted\": false, \"qty\": 100, \"sku\": \"SKU-001\"}]}"
+    },
+    {
+      "id": "3",
+      "name": "Scénario 3 — Stock insuffisant",
+      "moduleId": "1",
+      "initialStateJson": "{\"context\": \"Stock de 50 unités — SO demande 80 unités.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-002\", \"docType\": \"PO\", \"posted\": true, \"qty\": 50, \"sku\": \"SKU-003\"}, {\"bin\": \"A-01-R1-L1\", \"docRef\": \"GR-2025-002\", \"docType\": \"GR\", \"posted\": true, \"qty\": 50, \"sku\": \"SKU-003\"}]}"
+    },
+    {
+      "id": "4",
+      "name": "Scénario 4 — Écart d'inventaire",
+      "moduleId": "1",
+      "initialStateJson": "{\"context\": \"Stock système : 200 | Stock physique : 185 — écart de -15.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-003\", \"docType\": \"PO\", \"posted\": true, \"qty\": 200, \"sku\": \"SKU-006\"}, {\"bin\": \"B-02-R1-L1\", \"docRef\": \"GR-2025-003\", \"docType\": \"GR\", \"posted\": true, \"qty\": 200, \"sku\": \"SKU-006\"}]}"
+    },
+    {
+      "id": "5",
+      "name": "Scénario 5 — Non-conformités multiples",
+      "moduleId": "1",
+      "initialStateJson": "{\"context\": \"GR non postée + écart inventaire SKU-005 (-8 unités).\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-004\", \"docType\": \"PO\", \"posted\": true, \"qty\": 30, \"sku\": \"SKU-004\"}, {\"bin\": \"A-02-R1-L1\", \"docRef\": \"GR-2025-004\", \"docType\": \"GR\", \"posted\": false, \"qty\": 30, \"sku\": \"SKU-004\"}, {\"bin\": \"REC-02\", \"docRef\": \"PO-2025-005\", \"docType\": \"PO\", \"posted\": true, \"qty\": 60, \"sku\": \"SKU-005\"}, {\"bin\": \"B-01-R1-L2\", \"docRef\": \"GR-2025-005\", \"docType\": \"GR\", \"posted\": true, \"qty\": 60, \"sku\": \"SKU-005\"}]}"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tmoduleId\tinitialStateJson\n1\tScénario 1 — Cycle propre\t1\t{\"context\": \"Entrepôt vide — démarrage à zéro.\", \"preloadedTransactions\": []}\n2\tScénario 2 — Réception fantôme (GR non postée)\t1\t{\"context\": \"GR non postée détectée — transaction fantôme.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-001\", \"docType\": \"PO\", \"posted\": true, \"qty\": 100, \"sku\": \"SKU-001\"}, {\"bin\": \"B-01-R1-L1\", \"docRef\": \"GR-2025-001\", \"docType\": \"GR\", \"posted\": false, \"qty\": 100, \"sku\": \"SKU-001\"}]}\n3\tScénario 3 — Stock insuffisant\t1\t{\"context\": \"Stock de 50 unités — SO demande 80 unités.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-002\", \"docType\": \"PO\", \"posted\": true, \"qty\": 50, \"sku\": \"SKU-003\"}, {\"bin\": \"A-01-R1-L1\", \"docRef\": \"GR-2025-002\", \"docType\": \"GR\", \"posted\": true, \"qty\": 50, \"sku\": \"SKU-003\"}]}\n4\tScénario 4 — Écart d'inventaire\t1\t{\"context\": \"Stock système : 200 | Stock physique : 185 — écart de -15.\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-003\", \"docType\": \"PO\", \"posted\": true, \"qty\": 200, \"sku\": \"SKU-006\"}, {\"bin\": \"B-02-R1-L1\", \"docRef\": \"GR-2025-003\", \"docType\": \"GR\", \"posted\": true, \"qty\": 200, \"sku\": \"SKU-006\"}]}\n5\tScénario 5 — Non-conformités multiples\t1\t{\"context\": \"GR non postée + écart inventaire SKU-005 (-8 unités).\", \"preloadedTransactions\": [{\"bin\": \"REC-01\", \"docRef\": \"PO-2025-004\", \"docType\": \"PO\", \"posted\": true, \"qty\": 30, \"sku\": \"SKU-004\"}, {\"bin\": \"A-02-R1-L1\", \"docRef\": \"GR-2025-004\", \"docType\": \"GR\", \"posted\": false, \"qty\": 30, \"sku\": \"SKU-004\"}, {\"bin\": \"REC-02\", \"docRef\": \"PO-2025-005\", \"docType\": \"PO\", \"posted\": true, \"qty\": 60, \"sku\": \"SKU-005\"}, {\"bin\": \"B-01-R1-L2\", \"docRef\": \"GR-2025-005\", \"docType\": \"GR\", \"posted\": true, \"qty\": 60, \"sku\": \"SKU-005\"}]}\n",
+  "stderr": "",
+  "execution_time_ms": 192
+}

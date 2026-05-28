@@ -1,0 +1,75 @@
+{
+  "query": "SELECT binCode, zone, description FROM master_bins ORDER BY zone, binCode LIMIT 50;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT binCode, zone, description FROM master_bins ORDER BY zone, binCode LIMIT 50;",
+  "rows": [
+    {
+      "binCode": "REC-01",
+      "zone": "RECEPTION",
+      "description": "Quai de réception 01"
+    },
+    {
+      "binCode": "REC-02",
+      "zone": "RECEPTION",
+      "description": "Quai de réception 02"
+    },
+    {
+      "binCode": "A-01-R1-L1",
+      "zone": "PICKING",
+      "description": "Zone A, Rangée 1, Niveau 1"
+    },
+    {
+      "binCode": "A-01-R1-L2",
+      "zone": "PICKING",
+      "description": "Zone A, Rangée 1, Niveau 2"
+    },
+    {
+      "binCode": "A-02-R1-L1",
+      "zone": "PICKING",
+      "description": "Zone A, Rangée 2, Niveau 1"
+    },
+    {
+      "binCode": "B-01-R1-L1",
+      "zone": "STOCKAGE",
+      "description": "Zone B, Rangée 1, Niveau 1"
+    },
+    {
+      "binCode": "B-01-R1-L2",
+      "zone": "STOCKAGE",
+      "description": "Zone B, Rangée 1, Niveau 2"
+    },
+    {
+      "binCode": "B-02-R1-L1",
+      "zone": "STOCKAGE",
+      "description": "Zone B, Rangée 2, Niveau 1"
+    },
+    {
+      "binCode": "TRANSIT-01",
+      "zone": "STOCKAGE",
+      "description": "Zone de transit"
+    },
+    {
+      "binCode": "C-01-R1-L1",
+      "zone": "RESERVE",
+      "description": "Zone C, Rangée 1, Niveau 1 — Réserve"
+    },
+    {
+      "binCode": "C-01-R1-L2",
+      "zone": "RESERVE",
+      "description": "Zone C, Rangée 1, Niveau 2 — Réserve"
+    },
+    {
+      "binCode": "EXP-01",
+      "zone": "EXPEDITION",
+      "description": "Quai d'expédition 01"
+    },
+    {
+      "binCode": "EXP-02",
+      "zone": "EXPEDITION",
+      "description": "Quai d'expédition 02"
+    }
+  ],
+  "messages": [],
+  "stdout": "binCode\tzone\tdescription\nREC-01\tRECEPTION\tQuai de réception 01\nREC-02\tRECEPTION\tQuai de réception 02\nA-01-R1-L1\tPICKING\tZone A, Rangée 1, Niveau 1\nA-01-R1-L2\tPICKING\tZone A, Rangée 1, Niveau 2\nA-02-R1-L1\tPICKING\tZone A, Rangée 2, Niveau 1\nB-01-R1-L1\tSTOCKAGE\tZone B, Rangée 1, Niveau 1\nB-01-R1-L2\tSTOCKAGE\tZone B, Rangée 1, Niveau 2\nB-02-R1-L1\tSTOCKAGE\tZone B, Rangée 2, Niveau 1\nTRANSIT-01\tSTOCKAGE\tZone de transit\nC-01-R1-L1\tRESERVE\tZone C, Rangée 1, Niveau 1 — Réserve\nC-01-R1-L2\tRESERVE\tZone C, Rangée 1, Niveau 2 — Réserve\nEXP-01\tEXPEDITION\tQuai d'expédition 01\nEXP-02\tEXPEDITION\tQuai d'expédition 02\n",
+  "stderr": "",
+  "execution_time_ms": 1304
+}

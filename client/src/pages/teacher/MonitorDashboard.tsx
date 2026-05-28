@@ -13,21 +13,6 @@ export default function MonitorDashboard() {
   const [filterMode, setFilterMode] = useState<FilterMode>("evaluation");
   const [resettingRunId, setResettingRunId] = useState<number | null>(null);
   const [confirmResetId, setConfirmResetId] = useState<number | null>(null);
-  const [quizResetKey, setQuizResetKey] = useState<string | null>(null); // "userId-moduleId"
-
-  const resetQuizMutation = trpc.quiz.resetAttempts.useMutation({
-    onSuccess: (_, variables) => {
-      toast.success(t(
-        `Quiz M${variables.moduleId} de l'étudiant #${variables.userId} réinitialisé.`,
-        `Quiz M${variables.moduleId} for student #${variables.userId} reset.`
-      ));
-      setQuizResetKey(null);
-    },
-    onError: (err) => {
-      toast.error(t(`Erreur quiz reset : ${err.message}`, `Quiz reset error: ${err.message}`));
-      setQuizResetKey(null);
-    },
-  });
 
   const resetRunMutation = trpc.runs.resetRun.useMutation({
     onSuccess: (_, variables) => {
@@ -80,9 +65,7 @@ export default function MonitorDashboard() {
       t("Progression %", "Progress %"),
       t("Score", "Score"),
       t("Conforme", "Compliant"),
-      t("Étapes complétées", "Completed steps"),
-      "SCN-001", "SCN-002", "SCN-003", "SCN-004", "SCN-005",
-      "SCN-M2-001", "SCN-M3-001", "SCN-M4-001", "SCN-M5-001"
+      t("Étapes complétées", "Completed steps")
     ];
     const rows = displayedRuns.map((r: any) => [
       r.run?.id ?? r.runId,
@@ -93,16 +76,7 @@ export default function MonitorDashboard() {
       r.progressPct,
       r.run?.isDemo ? "N/A" : (r.score ?? 0),
       r.compliant ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.filter((s: string) => !s.startsWith("SCN-")).join("|") ?? "",
-      r.completedSteps?.includes("SCN-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-002-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-003-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-004-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-005-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-M2-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-M3-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-M4-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No"),
-      r.completedSteps?.includes("SCN-M5-001-CONFIRMED") ? t("Oui", "Yes") : t("Non", "No")
+      r.completedSteps?.join("|") ?? ""
     ]);
     const csv = [headers, ...rows].map(row => row.map(String).map(v => `"${v.replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -242,7 +216,6 @@ export default function MonitorDashboard() {
                 t("Score", "Score"),
                 t("Conformité", "Compliance"),
                 t("Étapes", "Steps"),
-                t("SCN", "SCN"),
                 t("Actions", "Actions")
               ].map(h => (
                 <th key={h} className="px-4 py-2.5 text-left text-[10px] font-semibold text-foreground uppercase tracking-wider">{h}</th>
@@ -252,14 +225,14 @@ export default function MonitorDashboard() {
           <tbody className="divide-y divide-border">
             {isLoading && (
               <tr>
-                <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="py-10 text-center text-muted-foreground">
                   {t("Chargement...", "Loading...")}
                 </td>
               </tr>
             )}
             {!isLoading && displayedRuns.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-10 text-center text-muted-foreground">
+                <td colSpan={9} className="py-10 text-center text-muted-foreground">
                   <Monitor size={24} className="mx-auto mb-2 opacity-40" />
                   {t("Aucune simulation enregistrée dans ce mode", "No simulations recorded in this mode")}
                 </td>
@@ -328,41 +301,7 @@ export default function MonitorDashboard() {
                       {r.compliant ? `✅ ${t("Conforme", "Compliant")}` : isDemo ? `⚠ ${t("Non conforme", "Non-compliant")}` : `🔴 ${t("Non conforme", "Non-compliant")}`}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-[10px] text-muted-foreground">
-                    {r.completedSteps?.filter((s: string) => !s.startsWith("SCN-")).join(" → ") ?? "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1">
-                      {[
-                        { key: "SCN-001", label: "001" },
-                        { key: "SCN-002", label: "002" },
-                        { key: "SCN-003", label: "003" },
-                        { key: "SCN-004", label: "004" },
-                        { key: "SCN-005", label: "005" },
-                        { key: "SCN-M2-001", label: "M2" },
-                        { key: "SCN-M3-001", label: "M3" },
-                        { key: "SCN-M4-001", label: "M4" },
-                        { key: "SCN-M5-001", label: "M5" },
-                      ].map(({ key: scn, label }) => {
-                        const confirmed = r.completedSteps?.includes(`${scn}-CONFIRMED`);
-                        return (
-                          <span
-                            key={scn}
-                            title={confirmed
-                              ? `${scn} — ${t("Confirmé", "Confirmed")}`
-                              : `${scn} — ${t("Non effectué", "Not done")}`}
-                            className={`text-[9px] font-mono px-1 py-0.5 rounded border ${
-                              confirmed
-                                ? "bg-emerald-100 dark:bg-emerald-900/40 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300"
-                                : "bg-secondary border-border text-muted-foreground opacity-50"
-                            }`}
-                          >
-                            {confirmed ? "✅" : "□"} {label}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </td>
+                  <td className="px-4 py-3 text-[10px] text-muted-foreground">{r.completedSteps?.join(" → ") ?? "—"}</td>
                   <td className="px-4 py-3">
                     {confirmResetId === (r.run?.id ?? r.runId) ? (
                       <div className="flex items-center gap-1">
@@ -381,43 +320,13 @@ export default function MonitorDashboard() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-1">
-                        <button
-                          onClick={() => handleReset(r.run?.id ?? r.runId)}
-                          title={t("Réinitialiser la session de cet étudiant", "Reset this student's session")}
-                          className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
-                        >
-                          <RotateCcw size={10} /> {t("Réinit. session", "Reset session")}
-                        </button>
-                        {r.run?.userId && r.scenario?.moduleId && (() => {
-                          const qKey = `${r.run.userId}-${r.scenario.moduleId}`;
-                          return quizResetKey === qKey ? (
-                            <div className="flex items-center gap-1">
-                              <button
-                                onClick={() => resetQuizMutation.mutate({ userId: r.run.userId, moduleId: r.scenario.moduleId })}
-                                disabled={resetQuizMutation.isPending}
-                                className="text-[10px] font-semibold px-2 py-1 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
-                              >
-                                {resetQuizMutation.isPending ? "..." : t("Confirmer", "Confirm")}
-                              </button>
-                              <button
-                                onClick={() => setQuizResetKey(null)}
-                                className="text-[10px] font-semibold px-2 py-1 rounded border border-border text-muted-foreground hover:border-muted-foreground transition-colors"
-                              >
-                                {t("Annuler", "Cancel")}
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => setQuizResetKey(qKey)}
-                              title={t("Réinitialiser le quiz de cet étudiant pour ce module", "Reset this student's quiz for this module")}
-                              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-blue-600 dark:text-blue-400 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors"
-                            >
-                              <RotateCcw size={10} /> {t("Réinit. quiz", "Reset quiz")}
-                            </button>
-                          );
-                        })()}
-                      </div>
+                      <button
+                        onClick={() => handleReset(r.run?.id ?? r.runId)}
+                        title={t("Réinitialiser la session de cet étudiant", "Reset this student's session")}
+                        className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
+                      >
+                        <RotateCcw size={10} /> {t("Réinitialiser", "Reset")}
+                      </button>
                     )}
                   </td>
                 </tr>

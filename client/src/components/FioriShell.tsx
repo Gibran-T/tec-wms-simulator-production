@@ -7,7 +7,7 @@ import {
   BarChart2, Settings, ChevronRight, Menu, X, ChevronLeft,
   ChevronRight as ChevronRightIcon, MonitorPlay, Moon, Sun, Globe,
   Presentation, UserCircle, ShieldCheck, GraduationCap, TrendingUp, UserCog,
-  BookMarked, Award,
+  BookMarked,
 } from "lucide-react";
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -88,7 +88,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         { href: "/student/scenarios", label: t("Mes Scénarios", "My Scenarios"), icon: BookOpen },
         { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
         { href: "/student/glossary", label: t("Glossaire", "Glossary"), icon: BookMarked },
-        { href: "/student/certifications", label: t("Certifications", "Certifications"), icon: Award },
+        { href: "/student/certifications", label: t("Mes Certifications", "My Certifications"), icon: ShieldCheck },
       ];
 
   if (isAdmin) {
@@ -309,7 +309,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
 
                 {/* Profile */}
                 <button
-                  onClick={() => { setUserMenuOpen(false); navigate("/student/scenarios"); }}
+                  onClick={() => { setUserMenuOpen(false); navigate("/student/profile"); }}
                   className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
                     theme === "dark" ? "text-gray-300 hover:bg-white/10 hover:text-white" : "text-gray-700 hover:bg-gray-50"
                   }`}

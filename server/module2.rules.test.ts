@@ -41,7 +41,7 @@ describe("Module 2 — Bin Capacity Rules", () => {
     const result = validatePutaway(ctx);
     expect(result.allowed).toBe(false);
     expect(result.penaltyEvent).toBe("CAPACITY_OVERFLOW");
-    expect(result.penaltyPoints).toBe(-8);
+    expect(result.penaltyPoints).toBe(-10);
     expect(result.reasonFr).toMatch(/capacité/i);
   });
 
@@ -56,7 +56,7 @@ describe("Module 2 — Bin Capacity Rules", () => {
     const result = validatePutaway(ctx);
     expect(result.allowed).toBe(false);
     expect(result.penaltyEvent).toBe("CAPACITY_OVERFLOW");
-    expect(result.penaltyPoints).toBe(-8);
+    expect(result.penaltyPoints).toBe(-10);
   });
 
   it("rejects putaway when bin does not exist", () => {
@@ -102,7 +102,7 @@ describe("Module 2 — FIFO Rules", () => {
     const result = validatePutaway(ctx);
     expect(result.allowed).toBe(false);
     expect(result.penaltyEvent).toBe("FIFO_VIOLATION");
-    expect(result.penaltyPoints).toBe(-10);
+    expect(result.penaltyPoints).toBe(-15);
     expect(result.reasonFr).toMatch(/FIFO/i);
     expect(result.reasonFr).toContain("LOT-001");
   });
@@ -177,20 +177,20 @@ describe("Module 2 — Sequential Unlock Logic", () => {
 // ─── Penalty Accumulation Tests ───────────────────────────────────────────────
 
 describe("Module 2 — Penalty Points", () => {
-  it("capacity overflow penalty is -8 points (calibrated for practice mode)", () => {
+  it("capacity overflow penalty is -10 points", () => {
     const ctx = makePutawayCtx({ qty: 999, binCurrentLoad: { "BIN-A01": 0 }, binCapacities: { "BIN-A01": 100 } });
     const result = validatePutaway(ctx);
-    expect(result.penaltyPoints).toBe(-8);
+    expect(result.penaltyPoints).toBe(-10);
   });
 
-  it("FIFO violation penalty is -10 points (calibrated for practice mode)", () => {
+  it("FIFO violation penalty is -15 points", () => {
     const ctx = makePutawayCtx({
       lotNumber: "LOT-NEW",
       receivedAt: new Date("2025-12-01"),
       existingLots: [{ lotNumber: "LOT-OLD", receivedAt: new Date("2024-01-01"), qty: 50 }],
     });
     const result = validatePutaway(ctx);
-    expect(result.penaltyPoints).toBe(-10);
+    expect(result.penaltyPoints).toBe(-15);
   });
 
   it("no penalty on valid putaway", () => {

@@ -1,0 +1,1 @@
+ALTER TABLE `scenarios` ADD CONSTRAINT `scenarios_name_module_idx` UNIQUE(`name`,`moduleId`);

@@ -1,0 +1,157 @@
+{
+  "query": "SELECT q.moduleId, qq.orderIndex, qq.questionFr, qq.correctIndex, qq.optionsFr FROM quiz_questions qq JOIN quizzes q ON qq.quizId = q.id ORDER BY q.moduleId, qq.orderIndex;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT q.moduleId, qq.orderIndex, qq.questionFr, qq.correctIndex, qq.optionsFr FROM quiz_questions qq JOIN quizzes q ON qq.quizId = q.id ORDER BY q.moduleId, qq.orderIndex;",
+  "rows": [
+    {
+      "moduleId": "1",
+      "orderIndex": "1",
+      "questionFr": "Qu'est-ce qu'un WMS (Warehouse Management System) ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Un logiciel de gestion des transports\\\",\\\"Un système de gestion des opérations d'entrepôt (réception, stockage, expédition)\\\",\\\"Un outil de planification de la production\\\",\\\"Un système de gestion des ressources humaines\\\"]\""
+    },
+    {
+      "moduleId": "1",
+      "orderIndex": "2",
+      "questionFr": "Dans le flux logistique standard, quelle est la séquence correcte des opérations ?",
+      "correctIndex": "0",
+      "optionsFr": "\"[\\\"PO → GR → Putaway → SO → Picking → GI\\\",\\\"GR → PO → SO → Picking → GI → Putaway\\\",\\\"SO → PO → GR → GI → Picking → Putaway\\\",\\\"Picking → PO → GR → SO → Putaway → GI\\\"]\""
+    },
+    {
+      "moduleId": "1",
+      "orderIndex": "3",
+      "questionFr": "Qu'est-ce qu'un Goods Receipt (GR) dans un WMS ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"L'expédition d'une commande client\\\",\\\"La confirmation de réception physique des marchandises et mise à jour du stock\\\",\\\"La création d'une commande d'achat\\\",\\\"L'inventaire cyclique des stocks\\\"]\""
+    },
+    {
+      "moduleId": "1",
+      "orderIndex": "4",
+      "questionFr": "Quelle est la conséquence d'un Goods Issue (GI) sans Goods Receipt préalable ?",
+      "correctIndex": "0",
+      "optionsFr": "\"[\\\"Le stock devient négatif, créant une anomalie comptable et logistique\\\",\\\"Le GI est automatiquement annulé par le WMS\\\",\\\"Le stock reste inchangé\\\",\\\"Une commande d'achat est automatiquement créée\\\"]\""
+    },
+    {
+      "moduleId": "1",
+      "orderIndex": "5",
+      "questionFr": "Qu'est-ce qu'un inventaire cyclique (Cycle Count) et pourquoi est-il préféré à l'inventaire annuel ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Un comptage mensuel de tous les articles\\\",\\\"Un comptage rotatif d'un sous-ensemble d'articles, permettant une correction continue sans arrêt d'activité\\\",\\\"Un inventaire automatique par le WMS\\\",\\\"Un comptage trimestriel obligatoire\\\"]\""
+    },
+    {
+      "moduleId": "2",
+      "orderIndex": "1",
+      "questionFr": "Qu'est-ce que la méthode FIFO en gestion d'entrepôt ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Les articles les plus récents sont expédiés en premier\\\",\\\"Les articles les plus anciens (reçus en premier) sont expédiés en premier\\\",\\\"Les articles les plus chers sont expédiés en premier\\\",\\\"Les articles les plus légers sont expédiés en premier\\\"]\""
+    },
+    {
+      "moduleId": "2",
+      "orderIndex": "2",
+      "questionFr": "Qu'est-ce qu'un ASN (Advanced Shipping Notice) ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Une notification d'expédition envoyée au client après livraison\\\",\\\"Un avis d'expédition préalable envoyé par le fournisseur avant la livraison\\\",\\\"Un bon de commande électronique\\\",\\\"Un rapport d'inventaire automatique\\\"]\""
+    },
+    {
+      "moduleId": "2",
+      "orderIndex": "3",
+      "questionFr": "Qu'est-ce que la traçabilité par lot et pourquoi est-elle obligatoire dans certains secteurs ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Un système de suivi GPS des camions\\\",\\\"La capacité de suivre un produit de sa fabrication à sa livraison finale via chaque étape logistique\\\",\\\"Un système de gestion des retours clients\\\",\\\"Un outil de planification des tournées\\\"]\""
+    },
+    {
+      "moduleId": "2",
+      "orderIndex": "4",
+      "questionFr": "Quelle est la différence entre la précision des stocks et le taux de service ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Ce sont deux termes pour le même indicateur\\\",\\\"La précision mesure l'écart entre stock physique et système; le taux de service mesure la capacité à satisfaire les commandes à temps\\\",\\\"La précision mesure le taux de service; le taux de service mesure la précision\\\",\\\"La précision concerne les fournisseurs; le taux de service concerne les clients\\\"]\""
+    },
+    {
+      "moduleId": "3",
+      "orderIndex": "1",
+      "questionFr": "Qu'est-ce que le Point de Réapprovisionnement (ROP) ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Le stock maximum autorisé\\\",\\\"Le niveau de stock qui déclenche automatiquement une commande de réapprovisionnement\\\",\\\"La quantité commandée lors de chaque réapprovisionnement\\\",\\\"Le délai entre deux commandes fournisseur\\\"]\""
+    },
+    {
+      "moduleId": "3",
+      "orderIndex": "2",
+      "questionFr": "La formule EOQ est : EOQ = √(2DS/H). Que représentent D, S et H ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"D=Délai, S=Stock de sécurité, H=Hauteur\\\",\\\"D=Demande annuelle, S=Coût de passation de commande, H=Coût de possession unitaire annuel\\\",\\\"D=Demande quotidienne, S=Surface d'entrepôt, H=Hauteur des rayonnages\\\",\\\"D=Durée de vie, S=Stock minimum, H=Hauteur maximale\\\"]\""
+    },
+    {
+      "moduleId": "3",
+      "orderIndex": "3",
+      "questionFr": "Qu'est-ce que le stock de sécurité (Safety Stock) ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Le stock réservé pour les urgences\\\",\\\"Un stock tampon pour absorber les variations de demande et les retards fournisseurs, évitant les ruptures\\\",\\\"Le stock minimum légalement requis\\\",\\\"Le stock endommagé non vendable\\\"]\""
+    },
+    {
+      "moduleId": "3",
+      "orderIndex": "4",
+      "questionFr": "Lors d'un inventaire cyclique, vous comptez 45 unités alors que le système en indique 50. Quelle est la variance et quelle action prendre ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Variance = +5, commander 5 unités supplémentaires\\\",\\\"Variance = -5, investiguer la cause puis ajuster le stock système à 45\\\",\\\"Variance = -5, ignorer car moins de 10% d'écart\\\",\\\"Variance = +5, retourner 5 unités au fournisseur\\\"]\""
+    },
+    {
+      "moduleId": "4",
+      "orderIndex": "1",
+      "questionFr": "Qu'est-ce que l'indicateur OTIF (On Time In Full) ?",
+      "correctIndex": "0",
+      "optionsFr": "\"[\\\"Le taux de commandes livrées à temps ET complètes\\\",\\\"Le taux de commandes livrées à temps uniquement\\\",\\\"Le taux de commandes livrées complètes uniquement\\\",\\\"Le délai moyen de livraison en jours\\\"]\""
+    },
+    {
+      "moduleId": "4",
+      "orderIndex": "2",
+      "questionFr": "Le taux de rotation des stocks est de 12. Qu'est-ce que cela signifie ?",
+      "correctIndex": "0",
+      "optionsFr": "\"[\\\"Le stock est renouvelé 12 fois par an, soit environ tous les 30 jours\\\",\\\"Il y a 12 articles différents en stock\\\",\\\"Le stock a une valeur de 12 000 $\\\",\\\"Le stock a été compté 12 fois cette année\\\"]\""
+    },
+    {
+      "moduleId": "4",
+      "orderIndex": "3",
+      "questionFr": "Qu'est-ce que le DSI (Durée de Stock en Jours) ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Le nombre de jours depuis la dernière livraison\\\",\\\"Le nombre de jours pendant lesquels le stock actuel peut couvrir la demande sans réapprovisionnement\\\",\\\"Le délai de livraison fournisseur\\\",\\\"Le nombre de jours travaillés dans l'entrepôt\\\"]\""
+    },
+    {
+      "moduleId": "4",
+      "orderIndex": "4",
+      "questionFr": "Lors d'une RCA d'un OTIF de 78% (objectif 95%), quelles sont les deux premières questions à poser ?",
+      "correctIndex": "2",
+      "optionsFr": "\"[\\\"Qui est responsable? et Quand?\\\",\\\"Combien de commandes? et Quel est le coût?\\\",\\\"Les retards sont-ils dus aux livraisons tardives ou aux commandes incomplètes? et Quels articles/clients sont les plus affectés?\\\",\\\"Le WMS fonctionne-t-il? et Les employés sont-ils formés?\\\"]\""
+    },
+    {
+      "moduleId": "5",
+      "orderIndex": "1",
+      "questionFr": "Dans une crise logistique (rupture de stock critique), quelle est la première action prioritaire ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Informer immédiatement la direction\\\",\\\"Évaluer l'impact sur les commandes clients et identifier les alternatives d'approvisionnement d'urgence\\\",\\\"Commander en urgence auprès du fournisseur habituel\\\",\\\"Réduire les expéditions de 50%\\\"]\""
+    },
+    {
+      "moduleId": "5",
+      "orderIndex": "2",
+      "questionFr": "Vous devez choisir entre : (A) Commander fréquemment de petites quantités, (B) Commander rarement de grandes quantités. Dans quel contexte choisissez-vous A ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Produits à faible rotation et coût de stockage élevé\\\",\\\"Produits périssables, à forte rotation, ou quand l'espace de stockage est limité\\\",\\\"Produits avec un délai fournisseur très long\\\",\\\"Produits avec une demande très stable\\\"]\""
+    },
+    {
+      "moduleId": "5",
+      "orderIndex": "3",
+      "questionFr": "Votre entrepôt a un LPH de 45 (objectif 60). Quels sont les deux leviers d'amélioration les plus efficaces ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"Augmenter les heures supplémentaires et recruter\\\",\\\"Optimiser les tournées de picking et améliorer le slotting (articles à forte rotation près des zones d'expédition)\\\",\\\"Investir dans un nouveau WMS\\\",\\\"Réduire le nombre de références\\\"]\""
+    },
+    {
+      "moduleId": "5",
+      "orderIndex": "4",
+      "questionFr": "Après les 5 modules TEC.LOG, quelle compétence différencie un gestionnaire logistique expert d'un débutant ?",
+      "correctIndex": "1",
+      "optionsFr": "\"[\\\"La capacité à utiliser tous les menus du WMS\\\",\\\"La capacité à interpréter les KPI, identifier les causes racines et proposer des actions correctives mesurables\\\",\\\"La vitesse d'exécution des transactions\\\",\\\"La connaissance de tous les codes d'articles\\\"]\""
+    }
+  ],
+  "messages": [],
+  "stdout": "moduleId\torderIndex\tquestionFr\tcorrectIndex\toptionsFr\n1\t1\tQu'est-ce qu'un WMS (Warehouse Management System) ?\t1\t\"[\\\"Un logiciel de gestion des transports\\\",\\\"Un système de gestion des opérations d'entrepôt (réception, stockage, expédition)\\\",\\\"Un outil de planification de la production\\\",\\\"Un système de gestion des ressources humaines\\\"]\"\n1\t2\tDans le flux logistique standard, quelle est la séquence correcte des opérations ?\t0\t\"[\\\"PO → GR → Putaway → SO → Picking → GI\\\",\\\"GR → PO → SO → Picking → GI → Putaway\\\",\\\"SO → PO → GR → GI → Picking → Putaway\\\",\\\"Picking → PO → GR → SO → Putaway → GI\\\"]\"\n1\t3\tQu'est-ce qu'un Goods Receipt (GR) dans un WMS ?\t1\t\"[\\\"L'expédition d'une commande client\\\",\\\"La confirmation de réception physique des marchandises et mise à jour du stock\\\",\\\"La création d'une commande d'achat\\\",\\\"L'inventaire cyclique des stocks\\\"]\"\n1\t4\tQuelle est la conséquence d'un Goods Issue (GI) sans Goods Receipt préalable ?\t0\t\"[\\\"Le stock devient négatif, créant une anomalie comptable et logistique\\\",\\\"Le GI est automatiquement annulé par le WMS\\\",\\\"Le stock reste inchangé\\\",\\\"Une commande d'achat est automatiquement créée\\\"]\"\n1\t5\tQu'est-ce qu'un inventaire cyclique (Cycle Count) et pourquoi est-il préféré à l'inventaire annuel ?\t1\t\"[\\\"Un comptage mensuel de tous les articles\\\",\\\"Un comptage rotatif d'un sous-ensemble d'articles, permettant une correction continue sans arrêt d'activité\\\",\\\"Un inventaire automatique par le WMS\\\",\\\"Un comptage trimestriel obligatoire\\\"]\"\n2\t1\tQu'est-ce que la méthode FIFO en gestion d'entrepôt ?\t1\t\"[\\\"Les articles les plus récents sont expédiés en premier\\\",\\\"Les articles les plus anciens (reçus en premier) sont expédiés en premier\\\",\\\"Les articles les plus chers sont expédiés en premier\\\",\\\"Les articles les plus légers sont expédiés en premier\\\"]\"\n2\t2\tQu'est-ce qu'un ASN (Advanced Shipping Notice) ?\t1\t\"[\\\"Une notification d'expédition envoyée au client après livraison\\\",\\\"Un avis d'expédition préalable envoyé par le fournisseur avant la livraison\\\",\\\"Un bon de commande électronique\\\",\\\"Un rapport d'inventaire automatique\\\"]\"\n2\t3\tQu'est-ce que la traçabilité par lot et pourquoi est-elle obligatoire dans certains secteurs ?\t1\t\"[\\\"Un système de suivi GPS des camions\\\",\\\"La capacité de suivre un produit de sa fabrication à sa livraison finale via chaque étape logistique\\\",\\\"Un système de gestion des retours clients\\\",\\\"Un outil de planification des tournées\\\"]\"\n2\t4\tQuelle est la différence entre la précision des stocks et le taux de service ?\t1\t\"[\\\"Ce sont deux termes pour le même indicateur\\\",\\\"La précision mesure l'écart entre stock physique et système; le taux de service mesure la capacité à satisfaire les commandes à temps\\\",\\\"La précision mesure le taux de service; le taux de service mesure la précision\\\",\\\"La précision concerne les fournisseurs; le taux de service concerne les clients\\\"]\"\n3\t1\tQu'est-ce que le Point de Réapprovisionnement (ROP) ?\t1\t\"[\\\"Le stock maximum autorisé\\\",\\\"Le niveau de stock qui déclenche automatiquement une commande de réapprovisionnement\\\",\\\"La quantité commandée lors de chaque réapprovisionnement\\\",\\\"Le délai entre deux commandes fournisseur\\\"]\"\n3\t2\tLa formule EOQ est : EOQ = √(2DS/H). Que représentent D, S et H ?\t1\t\"[\\\"D=Délai, S=Stock de sécurité, H=Hauteur\\\",\\\"D=Demande annuelle, S=Coût de passation de commande, H=Coût de possession unitaire annuel\\\",\\\"D=Demande quotidienne, S=Surface d'entrepôt, H=Hauteur des rayonnages\\\",\\\"D=Durée de vie, S=Stock minimum, H=Hauteur maximale\\\"]\"\n3\t3\tQu'est-ce que le stock de sécurité (Safety Stock) ?\t1\t\"[\\\"Le stock réservé pour les urgences\\\",\\\"Un stock tampon pour absorber les variations de demande et les retards fournisseurs, évitant les ruptures\\\",\\\"Le stock minimum légalement requis\\\",\\\"Le stock endommagé non vendable\\\"]\"\n3\t4\tLors d'un inventaire cyclique, vous comptez 45 unités alors que le système en indique 50. Quelle est la variance et quelle action prendre ?\t1\t\"[\\\"Variance = +5, commander 5 unités supplémentaires\\\",\\\"Variance = -5, investiguer la cause puis ajuster le stock système à 45\\\",\\\"Variance = -5, ignorer car moins de 10% d'écart\\\",\\\"Variance = +5, retourner 5 unités au fournisseur\\\"]\"\n4\t1\tQu'est-ce que l'indicateur OTIF (On Time In Full) ?\t0\t\"[\\\"Le taux de commandes livrées à temps ET complètes\\\",\\\"Le taux de commandes livrées à temps uniquement\\\",\\\"Le taux de commandes livrées complètes uniquement\\\",\\\"Le délai moyen de livraison en jours\\\"]\"\n4\t2\tLe taux de rotation des stocks est de 12. Qu'est-ce que cela signifie ?\t0\t\"[\\\"Le stock est renouvelé 12 fois par an, soit environ tous les 30 jours\\\",\\\"Il y a 12 articles différents en stock\\\",\\\"Le stock a une valeur de 12 000 $\\\",\\\"Le stock a été compté 12 fois cette année\\\"]\"\n4\t3\tQu'est-ce que le DSI (Durée de Stock en Jours) ?\t1\t\"[\\\"Le nombre de jours depuis la dernière livraison\\\",\\\"Le nombre de jours pendant lesquels le stock actuel peut couvrir la demande sans réapprovisionnement\\\",\\\"Le délai de livraison fournisseur\\\",\\\"Le nombre de jours travaillés dans l'entrepôt\\\"]\"\n4\t4\tLors d'une RCA d'un OTIF de 78% (objectif 95%), quelles sont les deux premières questions à poser ?\t2\t\"[\\\"Qui est responsable? et Quand?\\\",\\\"Combien de commandes? et Quel est le coût?\\\",\\\"Les retards sont-ils dus aux livraisons tardives ou aux commandes incomplètes? et Quels articles/clients sont les plus affectés?\\\",\\\"Le WMS fonctionne-t-il? et Les employés sont-ils formés?\\\"]\"\n5\t1\tDans une crise logistique (rupture de stock critique), quelle est la première action prioritaire ?\t1\t\"[\\\"Informer immédiatement la direction\\\",\\\"Évaluer l'impact sur les commandes clients et identifier les alternatives d'approvisionnement d'urgence\\\",\\\"Commander en urgence auprès du fournisseur habituel\\\",\\\"Réduire les expéditions de 50%\\\"]\"\n5\t2\tVous devez choisir entre : (A) Commander fréquemment de petites quantités, (B) Commander rarement de grandes quantités. Dans quel contexte choisissez-vous A ?\t1\t\"[\\\"Produits à faible rotation et coût de stockage élevé\\\",\\\"Produits périssables, à forte rotation, ou quand l'espace de stockage est limité\\\",\\\"Produits avec un délai fournisseur très long\\\",\\\"Produits avec une demande très stable\\\"]\"\n5\t3\tVotre entrepôt a un LPH de 45 (objectif 60). Quels sont les deux leviers d'amélioration les plus efficaces ?\t1\t\"[\\\"Augmenter les heures supplémentaires et recruter\\\",\\\"Optimiser les tournées de picking et améliorer le slotting (articles à forte rotation près des zones d'expédition)\\\",\\\"Investir dans un nouveau WMS\\\",\\\"Réduire le nombre de références\\\"]\"\n5\t4\tAprès les 5 modules TEC.LOG, quelle compétence différencie un gestionnaire logistique expert d'un débutant ?\t1\t\"[\\\"La capacité à utiliser tous les menus du WMS\\\",\\\"La capacité à interpréter les KPI, identifier les causes racines et proposer des actions correctives mesurables\\\",\\\"La vitesse d'exécution des transactions\\\",\\\"La connaissance de tous les codes d'articles\\\"]\"\n",
+  "stderr": "",
+  "execution_time_ms": 60
+}

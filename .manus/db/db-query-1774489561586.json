@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, code FROM modules ORDER BY id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute SELECT id, code FROM modules ORDER BY id;",
+  "rows": [
+    {
+      "id": "1",
+      "code": "M1"
+    },
+    {
+      "id": "2",
+      "code": "M2"
+    },
+    {
+      "id": "3",
+      "code": "M3"
+    },
+    {
+      "id": "4",
+      "code": "M4"
+    },
+    {
+      "id": "5",
+      "code": "M5"
+    },
+    {
+      "id": "60001",
+      "code": "M1"
+    },
+    {
+      "id": "60002",
+      "code": "M2"
+    },
+    {
+      "id": "60003",
+      "code": "M3"
+    },
+    {
+      "id": "60004",
+      "code": "M4"
+    },
+    {
+      "id": "60005",
+      "code": "M5"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tcode\n1\tM1\n2\tM2\n3\tM3\n4\tM4\n5\tM5\n60001\tM1\n60002\tM2\n60003\tM3\n60004\tM4\n60005\tM5\n",
+  "stderr": "",
+  "execution_time_ms": 53
+}

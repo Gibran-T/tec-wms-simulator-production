@@ -1,0 +1,16 @@
+{
+  "query": "\nSELECT id, email, name, role FROM users WHERE email LIKE 'qa.final.%' ORDER BY id DESC LIMIT 3;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nSELECT id, email, name, role FROM users WHERE email LIKE 'qa.final.%' ORDER BY id DESC LIMIT 3;\n",
+  "rows": [
+    {
+      "id": "1470015",
+      "email": "qa.final.1774491799613@teclog.test",
+      "name": "QA Final Validator",
+      "role": "student"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\n1470015\tqa.final.1774491799613@teclog.test\tQA Final Validator\tstudent\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

@@ -292,6 +292,11 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
+    // Block deactivated accounts (excluded by teacher)
+    if (user.isActive === false) {
+      throw ForbiddenError("Compte désactivé. Contactez votre enseignant.");
+    }
+
     await db.upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt,

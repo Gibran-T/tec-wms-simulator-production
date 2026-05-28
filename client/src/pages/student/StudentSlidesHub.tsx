@@ -119,8 +119,8 @@ export default function StudentSlidesHub() {
             </h1>
             <p className="text-sm text-white/70 mt-0.5">
               {t(
-                "5 modules · Disponibles en français et en anglais",
-                "5 modules · Available in French and English"
+                "5 modules · 80 slides · Disponibles en français et en anglais",
+                "5 modules · 80 slides · Available in French and English"
               )}
             </p>
           </div>
@@ -132,8 +132,8 @@ export default function StudentSlidesHub() {
           </div>
           <div className="w-px h-10 bg-white/20" />
           <div>
-            <p className="text-2xl font-bold">M1–M5</p>
-            <p className="text-xs text-white/60">{t("Modules", "Modules")}</p>
+            <p className="text-2xl font-bold">80</p>
+            <p className="text-xs text-white/60">{t("Slides", "Slides")}</p>
           </div>
         </div>
       </div>
@@ -145,8 +145,8 @@ export default function StudentSlidesHub() {
         </div>
         <p className="text-xs text-blue-800">
           {t(
-            "Consultez les slides avant de démarrer une simulation. Utilisez ← → pour naviguer et FR/EN pour changer la langue. Tous les modules sont accessibles librement pour la révision.",
-            "Review slides before starting a simulation. Use ← → to navigate and FR/EN to change language. All modules are freely accessible for review."
+            "Consultez les slides avant de démarrer une simulation. Utilisez ← → pour naviguer et FR/EN pour changer la langue. Les modules verrouillés nécessitent de réussir le module précédent (score ≥ 60 ou 70).",
+            "Review slides before starting a simulation. Use ← → to navigate and FR/EN to change language. Locked modules require passing the previous module (score ≥ 60 or 70)."
           )}
         </p>
       </div>

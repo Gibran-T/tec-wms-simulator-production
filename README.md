@@ -1,217 +1,328 @@
-# TEC.WMS — Simulateur Pédagogique ERP/WMS
-### Collège de la Concorde — Montréal | Programme 1 — TEC.LOG
+<div align="center">
 
-> **Gestion intégrée des stocks et performance logistique**  
-> Simulateur interactif conçu pour l'enseignement des systèmes WMS (Warehouse Management System) et ERP (Enterprise Resource Planning) dans un contexte académique professionnel.
+<img src="https://img.shields.io/badge/TEC.LOG-Simulateur%20WMS%20P%C3%A9dagogique-1e3a5f?style=for-the-badge&labelColor=1e3a5f&color=f59e0b" alt="TEC.LOG"/>
 
----
+# Mini-WMS Concorde
 
-## Aperçu du projet
+### Pedagogical ERP/WMS Simulator — Collège de la Concorde, Montréal
 
-TEC.WMS est une application web pédagogique complète développée pour le **Collège de la Concorde à Montréal**, dans le cadre du programme **TEC.LOG — Gestion intégrée des stocks et performance logistique**. Elle permet aux étudiants de simuler l'ensemble des opérations d'un entrepôt réel — de la réception des marchandises à l'expédition, en passant par le rangement, le picking, l'inventaire cyclique et l'analyse des KPI — dans un environnement sécurisé et évaluatif.
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-tecslides--s5kvdsbv.manus.space-22c55e?style=flat-square&logo=vercel)](https://tecslides-s5kvdsbv.manus.space)
+[![TypeScript](https://img.shields.io/badge/TypeScript-0%20errors-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/Tests-214%20passed-22c55e?style=flat-square&logo=vitest)](./server)
+[![Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-35%2C085-6366f1?style=flat-square)](.)
+[![License](https://img.shields.io/badge/License-Educational%20Use-f59e0b?style=flat-square)](./LEGAL.md)
 
-Le simulateur reproduit fidèlement les flux opérationnels des grands systèmes ERP du marché (SAP, Microsoft Dynamics 365, Odoo), en insistant sur le fait que **la logique métier est identique** d'un système à l'autre — seuls les noms d'interface et les terminologies varient. Cette approche prépare les étudiants à s'adapter rapidement à n'importe quel environnement ERP professionnel.
-
----
-
-## Fonctionnalités principales
-
-### Côté étudiant
-
-The student experience is structured around a progressive, module-locked curriculum. Each module requires passing a knowledge quiz before unlocking the practical scenarios, ensuring students have the theoretical foundation before attempting hands-on simulation.
-
-| Fonctionnalité | Description |
-|---|---|
-| **5 modules progressifs** | M1 à M5, chacun avec quiz de déverrouillage et 3 à 5 scénarios |
-| **17 scénarios d'évaluation** | Flux WMS complets avec scoring automatisé et feedback pédagogique |
-| **Mode Évaluation** | Score officiel enregistré, conformité WMS calculée, rapport détaillé généré |
-| **Mode Démonstration** | Exploration libre sans impact sur les statistiques officielles |
-| **Diapositives intégrées** | 16 slides par module, accessibles directement depuis l'interface |
-| **Rapport de scénario** | Score détaillé par étape, erreurs commises, leçons pédagogiques, recommandations |
-| **Bascule FR / EN** | Interface disponible en français et en anglais |
-| **Mode sombre / clair** | Thème adaptatif pour le confort visuel |
-| **Liens Odoo Lab** | Accès direct aux exercices pratiques Odoo correspondant à chaque module |
-
-### Côté enseignant
-
-The teacher dashboard provides real-time visibility into every student's progress across all modules and scenarios, with granular step-by-step tracking and automated pedagogical analytics.
-
-| Fonctionnalité | Description |
-|---|---|
-| **Tableau de bord enseignant** | Vue globale : scénarios, cohortes, devoirs, simulations actives |
-| **Tableau de surveillance** | Suivi en temps réel de toutes les sessions (progression, score, conformité, étapes) |
-| **Analytics pédagogiques** | KPI globaux, classement, distribution des scores, heatmap des étapes, erreurs fréquentes |
-| **Gestion des cohortes** | Création et gestion des groupes d'étudiants par session |
-| **Système d'assignments** | Assignation de scénarios spécifiques à des cohortes |
-| **Réinitialisation de sessions** | L'enseignant peut réinitialiser la session d'un étudiant en un clic |
-| **Export CSV** | Export des données de surveillance pour analyse externe |
-| **Mode démonstration en classe** | Lancement direct du simulateur pour les démonstrations en présentiel |
+</div>
 
 ---
 
-## Architecture technique
+## Overview
 
-The application is built on a modern full-stack TypeScript architecture, with end-to-end type safety enforced through tRPC, a React 19 frontend, and an Express 4 backend connected to a MySQL/TiDB database via Drizzle ORM.
+**Mini-WMS Concorde** is a full-stack pedagogical simulator designed for the **TEC.LOG certification programme** at Collège de la Concorde (Montréal). It replicates the core transactional workflows of industrial Warehouse Management Systems (WMS) and ERP platforms — specifically SAP S/4HANA — in a structured, gamified learning environment.
+
+Students progress through **5 modules** covering the complete logistics cycle: from purchase order creation and goods receipt, to inventory cycle counting, KPI analysis, and integrated crisis simulation. Each module combines a knowledge quiz, a step-by-step WMS simulation, and a compliance validation engine that mirrors real-world SAP transaction logic.
+
+The system is fully **bilingual (French / English)**, supports both **Evaluation mode** (scored, penalised, compliance-gated) and **Demo mode** (free progression with pedagogical explanations), and provides teachers with a real-time monitoring dashboard, cohort management, and CSV export.
+
+---
+
+## Live Demo
+
+> **URL:** [https://tecslides-s5kvdsbv.manus.space](https://tecslides-s5kvdsbv.manus.space)
+
+| Role | Email | Password |
+|------|-------|----------|
+| Student | `student@concorde.ca` | `Student123!` |
+| Teacher / Admin | `gibranlog@gmail.com` | *(contact maintainer)* |
+
+---
+
+## Programme Structure — TEC.LOG (30 hours)
+
+| Module | Title | SAP Transactions | Steps | Duration |
+|--------|-------|-----------------|-------|----------|
+| **M1** | Fondements ERP/WMS — Cycle logistique de base | ME21N · MIGO · LT0A · VL01N · PGI · MI01/MI04 | 9 | 6h |
+| **M2** | Execution d'entrepot — Rangement structure & FIFO | MIGO · LT0A · VL01N (FIFO) · Compliance | 5 | 6h |
+| **M3** | Controle des stocks — Inventaire cyclique & reappro | MI01 · MI04 · MI07 · MB52 · MRP | 5 | 6h |
+| **M4** | Indicateurs de performance logistique — KPI & analyse | OTIF · Fill Rate · DSI · LPH · Lean | 5 | 6h |
+| **M5** | Simulation integree — Cycle operationnel complet | Full cycle + crisis management | 7 | 6h |
+
+Each module is gated by a **quiz (60% minimum to unlock simulation)** and concludes with a **compliance check** that validates the student's transactional state against system rules before the run is marked complete.
+
+---
+
+## Key Features
+
+### Student Interface
+
+The student experience is built around progressive discovery. Each module begins with a bilingual knowledge quiz that must be passed at 60% before the simulation unlocks. Once inside the simulation, students interact with SAP Fiori-inspired transaction forms that enforce real-world rules: zone validation (RECEPTION / STOCKAGE / EXPEDITION), step sequencing, FIFO compliance, and bin assignment logic.
+
+After every completed step, a **pedagogical panel** opens automatically to explain why the action matters, its real SAP equivalent transaction, the most common student errors, and the dependency chain. A **glossary of 80 TEC.LOG terms** is accessible at any point during the simulation. At the end of each run, a **detailed Run Report** shows per-step scores, penalty analysis, and personalised improvement recommendations.
+
+Additional features include a **password recovery flow** (forgot password / reset via secure expiring token) and a persistent dark/light mode toggle.
+
+### Teacher Interface
+
+The teacher dashboard provides full visibility into all student activity. Key capabilities include:
+
+- **Real-time monitoring** — active simulations, live progress, scores per student
+- **Cohort management** — create groups, assign students, track collective performance
+- **Scenario manager** — 68 scenarios across 5 modules, configurable difficulty
+- **Assignment manager** — assign specific scenarios to cohorts with deadlines
+- **Student management** — create accounts, reset passwords, activate/deactivate, add notes
+- **Analytics** — module-level KPIs, score distributions, completion rates
+- **CSV export** — full results export for grade reporting
+
+### Simulation Engine
+
+The core simulation engine is built around three interconnected systems. The **rules engine** (`rulesEngine.ts`) enforces step sequencing, zone validation, and FIFO compliance — returning bilingual error messages via `pickReason()` which reads the `Accept-Language` header. The **scoring engine** computes automatic scores with perfect-cycle bonuses, penalty deductions, and a compliance multiplier. The **compliance engine** validates positive stock levels, posted transactions, and resolved inventory variances before allowing a run to be marked complete.
+
+---
+
+## Architecture
 
 ```
-client/                     ← React 19 + Tailwind CSS 4 + shadcn/ui
-  src/
-    pages/
-      student/              ← Parcours étudiant (scénarios, quiz, slides, rapports)
-      teacher/              ← Tableaux de bord enseignant (monitoring, analytics, cohortes)
-    components/             ← Composants réutilisables (DashboardLayout, charts, etc.)
-    contexts/               ← Auth context, language context
-    hooks/                  ← Custom hooks (useAuth, useLanguage)
-
-server/
-  routers.ts                ← Procédures tRPC (auth, transactions M1–M5, quiz, analytics)
-  db.ts                     ← Helpers de requêtes Drizzle
-  _core/                    ← OAuth Manus, LLM, context, env
-
-drizzle/
-  schema.ts                 ← Schéma de base de données (users, scenarios, runs, transactions)
++----------------------------------------------------------+
+|                     CLIENT (React 19)                    |
+|  FioriShell · StudentPages · TeacherPages · AdminPanel   |
+|  34 pages · 60 components · Tailwind 4 · shadcn/ui       |
++---------------------+------------------------------------+
+                      | tRPC 11 (type-safe RPC)
+                      | Accept-Language header (FR/EN)
++---------------------v------------------------------------+
+|                   SERVER (Express 4)                     |
+|  routers.ts · rulesEngine.ts · db.ts · seed.ts           |
+|  pickReason() · calculateProgressPctAllModules()         |
++---------------------+------------------------------------+
+                      | Drizzle ORM
++---------------------v------------------------------------+
+|               DATABASE (MySQL / TiDB)                    |
+|  13 tables: users · modules · scenarios · runs ·         |
+|  transactions · cycleCounts · inventoryCounts ·          |
+|  quizQuestions · quizAttempts · cohorts · assignments    |
++----------------------------------------------------------+
 ```
 
-**Stack technologique :**
+---
 
-| Couche | Technologie |
-|---|---|
-| Frontend | React 19, Tailwind CSS 4, shadcn/ui, Recharts |
-| Backend | Node.js, Express 4, tRPC 11 |
-| Base de données | MySQL / TiDB via Drizzle ORM |
-| Authentification | Manus OAuth (session cookie JWT) |
-| Typage | TypeScript (end-to-end via tRPC + Zod) |
-| Tests | Vitest (218 tests — 100% passing) |
-| Déploiement | Manus Cloud (tecwmssim-nahgw8xk.manus.space) |
+## Tech Stack
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Frontend | React | 19 |
+| Styling | Tailwind CSS + shadcn/ui | 4 |
+| RPC Layer | tRPC | 11 |
+| Backend | Express | 4 |
+| ORM | Drizzle | 0.44 |
+| Database | MySQL / TiDB | — |
+| Auth | JWT (session cookie) + bcrypt | — |
+| Language | TypeScript | 5.9 |
+| Tests | Vitest | — |
+| Runtime | Node.js | 22 |
+| Package Manager | pnpm | 9 |
 
 ---
 
-## Curriculum pédagogique
+## Project Stats
 
-### Module 1 — Fondements de la chaîne logistique et intégration ERP/WMS
-**Durée :** 4 heures | **Flux :** PO → GR → PUTAWAY → STOCK → SO → PICKING → GI → CC → COMPLIANCE
-
-Ce module introduit les concepts fondamentaux du WMS et de l'ERP à travers le flux logistique complet d'un entrepôt. Les étudiants apprennent à créer une commande d'achat (PO — Purchase Order), confirmer la réception physique des marchandises (GR — Goods Receipt), ranger les articles dans les emplacements de stockage (PUTAWAY), créer une commande de vente (SO — Sales Order), préparer les articles (PICKING), expédier (GI — Goods Issue), réaliser un inventaire cyclique (CC — Cycle Count) et valider la conformité globale du cycle.
-
-**Scénarios :** Cycle propre | Réception fantôme (GR non postée) | Stock insuffisant | Écart d'inventaire | Non-conformités multiples
-
-### Module 2 — Exécution d'entrepôt et gestion des emplacements
-**Durée :** 8 heures | **Prérequis :** M1 ≥ 60/100 | **Flux :** GR → PUTAWAY → FIFO_PICK → STOCK_ACCURACY → COMPLIANCE_ADV
-
-Ce module approfondit la gestion physique de l'entrepôt : stratégies de rangement structuré, validation des capacités d'emplacement, et application rigoureuse de la méthode FIFO (First In, First Out — Premier entré, premier sorti) dans un contexte multi-lots.
-
-**Scénarios :** Rangement structuré | Validation capacité d'emplacement | FIFO multi-lots
-
-### Module 3 — Contrôle des stocks et réapprovisionnement
-**Durée :** 8 heures | **Flux :** CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3
-
-Ce module couvre le cycle complet de contrôle des stocks : planification de l'inventaire cyclique, comptage physique, réconciliation des écarts, génération des ajustements (ADJ), et calcul du réapprovisionnement selon les paramètres Min/Max et le stock de sécurité.
-
-**Scénarios :** Inventaire cyclique simple | Analyse d'écart et ajustement | Réapprovisionnement Min/Max
-
-### Module 4 — Indicateurs de performance logistique (KPI)
-**Durée :** 8 heures | **Flux :** KPI_DATA → KPI_ROTATION → KPI_SERVICE → KPI_DIAGNOSTIC → COMPLIANCE_M4
-
-Ce module développe la capacité analytique des étudiants à travers l'interprétation des indicateurs clés de performance : taux de rotation des stocks, taux de service (OTIF — On Time In Full), taux d'erreur opérationnel, lead time, et diagnostic global de la performance logistique. Les réponses sont évaluées par analyse sémantique des mots-clés.
-
-**Scénarios :** Analyse de la rotation | Taux de service et erreurs | Diagnostic global
-
-### Module 5 — Simulation opérationnelle intégrée
-**Durée :** 8 heures | **Flux :** M5_RECEPTION → M5_PUTAWAY → M5_CYCLE_COUNT → M5_REPLENISH → M5_KPI → M5_DECISION → COMPLIANCE_M5
-
-Module de synthèse qui intègre l'ensemble des compétences acquises dans un cycle opérationnel complet. Les étudiants doivent gérer simultanément les flux physiques, les écarts d'inventaire, les indicateurs de performance, et prendre des décisions stratégiques argumentées.
-
-**Scénarios :** Cycle opérationnel complet | Gestion d'écarts et réajustement | Analyse décisionnelle stratégique
+| Metric | Value |
+|--------|-------|
+| TypeScript files | 143 |
+| Lines of code | 35,085 |
+| Pages | 34 |
+| Components | 60 |
+| Test files | 6 |
+| Tests | **214 / 214 passing** |
+| TypeScript errors | **0** |
+| Scenarios | 68 (across 5 modules) |
+| Quiz questions | 21 (bilingual FR/EN) |
+| Bilingual strings | 800+ (all UI + all error messages) |
 
 ---
 
-## Logique de scoring et de conformité
+## Getting Started
 
-Each scenario is scored automatically on a 100-point scale. The scoring engine evaluates both the correctness of each transaction (field values, bin selection, quantities) and the student's adherence to WMS compliance rules (posting all transactions, resolving inventory discrepancies, following the correct sequence).
+### Prerequisites
 
-| Composante | Points | Description |
-|---|---|---|
-| Étapes complétées | 8 × 10 pts | Chaque étape du flux vaut 10 points |
-| Conformité système | 5 pts | Aucune transaction non postée, aucun ADJ non résolu |
-| Précision des champs | Variable | Bonus/malus selon l'exactitude des valeurs saisies |
-| Pénalité hors séquence | -5 pts | Toute tentative d'exécution hors ordre |
+- Node.js >= 22
+- pnpm >= 9
+- MySQL or TiDB (local or cloud)
 
-**Seuil de réussite :** 60/100. Un étudiant peut obtenir un statut "Non conforme" tout en passant le seuil de réussite — ce comportement est intentionnel et pédagogiquement significatif : il enseigne que la conformité WMS est un objectif distinct de la simple complétion des étapes.
-
----
-
-## Installation et développement local
+### Installation
 
 ```bash
-# Cloner le dépôt
-git clone https://github.com/Gibran-T/tec-wms-simulator-production.git
-cd tec-wms-simulator-production
+# 1. Clone the repository
+git clone https://github.com/Gibran-T/erp-simulator.git
+cd erp-simulator
 
-# Installer les dépendances
+# 2. Install dependencies
 pnpm install
 
-# Configurer les variables d'environnement
-# (Copier .env.example et renseigner DATABASE_URL, JWT_SECRET, etc.)
+# 3. Configure environment variables
+# Copy the example file and fill in your values
+# (see Environment Variables section below)
 
-# Pousser le schéma de base de données
+# 4. Push the database schema
 pnpm db:push
 
-# Démarrer le serveur de développement
-pnpm dev
+# 5. Seed the database (modules, scenarios, quizzes)
+npx tsx server/seed.ts
 
-# Lancer la suite de tests (218 tests)
+# 6. Start the development server
+pnpm dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development server (Express + Vite HMR) |
+| `pnpm build` | Production build (Vite + esbuild) |
+| `pnpm test` | Run full Vitest test suite (214 tests) |
+| `pnpm db:push` | Generate and apply Drizzle migrations |
+| `pnpm format` | Format code with Prettier |
+
+---
+
+## Environment Variables
+
+The following environment variables are required:
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | MySQL/TiDB connection string | Yes |
+| `JWT_SECRET` | Session cookie signing secret (min. 32 chars) | Yes |
+| `VITE_APP_ID` | OAuth application ID | Yes |
+| `OAUTH_SERVER_URL` | OAuth backend base URL | Yes |
+| `VITE_OAUTH_PORTAL_URL` | OAuth login portal URL (frontend) | Yes |
+| `BUILT_IN_FORGE_API_KEY` | Server-side API key | Yes |
+| `VITE_FRONTEND_FORGE_API_KEY` | Frontend API key | Yes |
+| `BUILT_IN_FORGE_API_URL` | API base URL (server) | Yes |
+| `VITE_FRONTEND_FORGE_API_URL` | API base URL (frontend) | Yes |
+
+**Security:** Never expose `BUILT_IN_FORGE_API_KEY` to the client. Never commit `.env` files to version control.
+
+---
+
+## Test Coverage
+
+```bash
 pnpm test
 ```
 
-**Variables d'environnement requises :**
-
-| Variable | Description |
-|---|---|
-| `DATABASE_URL` | Chaîne de connexion MySQL/TiDB |
-| `JWT_SECRET` | Secret pour la signature des cookies de session |
-| `VITE_APP_ID` | Identifiant de l'application Manus OAuth |
-| `OAUTH_SERVER_URL` | URL du serveur OAuth Manus |
-| `BUILT_IN_FORGE_API_KEY` | Clé API Manus (côté serveur) |
+| Test File | Coverage Area | Tests |
+|-----------|--------------|-------|
+| `server/wms.test.ts` | Rules engine, scoring, compliance | 15 |
+| `server/demo.mode.test.ts` | Demo mode isolation | 15 |
+| `server/module2.rules.test.ts` | M2 FIFO + putaway rules | 19 |
+| `server/module3.rules.test.ts` | M3 ROP, EOQ, variance, replenishment | 73 |
+| `server/module4.rules.test.ts` | M4 KPI calculations | 51 |
+| `server/module5.rules.test.ts` | M5 NLP decision scoring | 40 |
+| `server/auth.logout.test.ts` | Auth / logout | 1 |
+| **Total** | | **214 / 214 passed** |
 
 ---
 
-## Tests
+## Project Structure
 
-The test suite covers all critical business logic: transaction scoring, WMS compliance rules, step sequencing enforcement, quiz validation, and analytics aggregation.
-
-```bash
-pnpm test          # Lancer tous les tests (218 tests)
-pnpm test --watch  # Mode watch pour le développement
+```
+concorde-slides/
+├── client/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── student/        <- ScenarioList, MissionControl, StepForm,
+│   │   │   │                      RunReport, QuizPage, GlossaryPage
+│   │   │   ├── teacher/        <- TeacherDashboard, CohortManager,
+│   │   │   │                      ScenarioManager, AssignmentManager,
+│   │   │   │                      MonitorDashboard, StudentManagement
+│   │   │   └── admin/          <- AdminPanel
+│   │   ├── components/
+│   │   │   ├── FioriShell.tsx  <- Global layout (header + institutional footer)
+│   │   │   ├── StepForm.tsx    <- Transaction forms (all 5 modules)
+│   │   │   └── ui/             <- shadcn/ui components (60 total)
+│   │   ├── contexts/
+│   │   │   ├── LanguageContext.tsx  <- FR/EN toggle (t() helper)
+│   │   │   └── ThemeContext.tsx     <- Dark/light mode
+│   │   └── data/
+│   │       └── modules.ts      <- Module metadata + slide content
+├── drizzle/
+│   └── schema.ts               <- 13 database tables + relations
+├── server/
+│   ├── routers.ts              <- All tRPC procedures (~2,000 lines)
+│   ├── rulesEngine.ts          <- Step validation + compliance engine
+│   ├── db.ts                   <- Drizzle query helpers
+│   ├── seed.ts                 <- Module/scenario/quiz seeding
+│   └── *.test.ts               <- 6 test files (214 tests)
+└── shared/
+    └── const.ts                <- Shared constants
 ```
 
-**Couverture :** Routers tRPC, logique de scoring M1–M5, calcul de conformité, séquençage des étapes, validation des quiz, agrégation analytique.
+---
+
+## Bilingual Support
+
+The system is fully bilingual (French / English) at every layer. Language is toggled via the FR / EN button in the top navigation bar. The selection is persisted in `localStorage` and automatically sent to the server on every API call via the `Accept-Language` header.
+
+| Layer | Implementation |
+|-------|---------------|
+| UI strings | All pages use `useLanguage()` + `t(frText, enText)` helper |
+| Error messages | `pickReason(validation, req)` reads `Accept-Language` header |
+| Scenario descriptions | `descriptionFr` / `descriptionEn` columns in database |
+| Quiz content | `questionFr/En`, `optionsFr/En`, `explanationFr/En` in database |
+| Pedagogical panels | `whyFr/En`, `realSAPFr/En`, `dependencyFr/En`, `realErrorFr/En` in StepForm config |
+| Glossary | 80 terms with FR/EN definitions |
 
 ---
 
-## Déploiement
+## Deployment
 
-L'application est déployée sur **Manus Cloud** et accessible à l'adresse :
+### Manus Platform (Recommended)
 
-**[https://tecwmssim-nahgw8xk.manus.space](https://tecwmssim-nahgw8xk.manus.space)**
+This project is optimised for the Manus platform. After creating a checkpoint, click **Publish** in the Manus Management UI. The live instance is available at [https://tecslides-s5kvdsbv.manus.space](https://tecslides-s5kvdsbv.manus.space).
 
-Le déploiement est géré via l'interface Manus. Pour déployer une nouvelle version, sauvegarder un checkpoint puis cliquer sur le bouton **Publier** dans l'interface de gestion.
+### External Hosting (Railway, Render)
 
----
-
-## Auteur et contexte académique
-
-**Développé par :** Thiago Gibran  
-**Institution :** Collège de la Concorde — Montréal, Québec, Canada  
-**Programme :** TEC.LOG — Gestion intégrée des stocks et performance logistique  
-**Contact :** gibranlog@gmail.com  
-**Dépôt GitHub :** [Gibran-T/tec-wms-simulator-production](https://github.com/Gibran-T/tec-wms-simulator-production)
-
-Ce projet a été conçu pour combler un manque pédagogique identifié dans l'enseignement des systèmes ERP/WMS au niveau collégial : l'absence d'environnements de simulation accessibles, progressifs et évaluatifs qui permettent aux étudiants de pratiquer les flux opérationnels réels sans risque pour des systèmes de production. TEC.WMS offre un environnement sécurisé où l'erreur est une opportunité d'apprentissage, et où chaque décision opérationnelle a des conséquences mesurables et expliquées.
+This project uses a persistent Express server and a MySQL database. It is **not compatible with Vercel** without significant refactoring. For external hosting, connect the GitHub repository to Railway or Render, add all environment variables in the hosting dashboard, and use `pnpm build` as the build command and `node dist/index.js` as the start command.
 
 ---
 
-## Licence
+## Security
 
-Usage pédagogique uniquement. Reproduction, diffusion ou utilisation commerciale interdite sans autorisation écrite du Collège de la Concorde.
+The application follows standard security practices throughout. Server-side API keys are never exposed to the client. Sessions are signed with JWT and transmitted via `HttpOnly` cookie. All protected procedures verify authentication on every request. Admin operations are protected by role check. Passwords are hashed with bcrypt (10 rounds). Password reset tokens are single-use and expire after 1 hour.
 
-© 2026 Collège de la Concorde — Montréal. Tous droits réservés.
+---
+
+## Roadmap
+
+- [ ] `nameEn` field for scenario names (currently French-only)
+- [ ] Inventory isolation per run (scope all stock calculations by `runId`)
+- [ ] Controlled dropdowns in StepForm (retain selected values on re-render)
+- [ ] Persistent compliance banner (hide when `compliance.compliant === true`)
+- [ ] Email notifications for assignment deadlines
+- [ ] Mobile-responsive StepForm layout
+
+---
+
+## Contributing
+
+This project is developed for educational use at Collège de la Concorde. For contributions or institutional partnerships, open an issue in the repository.
+
+---
+
+## Legal
+
+Educational use only — Collège de la Concorde, Montreal.
+Copyright 2026 College de la Concorde. All rights reserved.
+See [/legal](/legal) for full legal notices.
+
+---
+
+<div align="center">
+
+**Built with care for logistics education**
+
+*College de la Concorde — Programme TEC.LOG — Montreal, Quebec*
+
+</div>

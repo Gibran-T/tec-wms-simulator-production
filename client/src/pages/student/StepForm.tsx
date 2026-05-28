@@ -7,9 +7,6 @@ import React, { useState } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
-import { LabGR, LabStock, LabFifoM1, LabLots, LabPutaway, LabReplenish, LabKpiDiagnostic, LabM5Decision, LabFifoPick, LabAdj, LabCompliance, LabFifoPick_M2, LabStockAccuracy, LabCcRecon, LabKpiData, LabKpiRotation, LabKpiService, LabM5Reception, LabM5Putaway, LabM5Replenish, LabM5Kpi } from "@/components/OdooLabSlide";
-import { ScenarioPanel } from "@/components/ScenarioPanel";
-import { ComplianceAuditPanel } from "@/components/ComplianceAuditPanel";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -595,1027 +592,6 @@ type FormValues = {
   stockValue?: string;
 };
 
-// ─── ODOO LAB BUTTON ─────────────────────────────────────────────────────────
-const ODOO_LAB_CONFIG: Record<string, {
-  label: string;
-  labelEn: string;
-  url: string;
-  instruction: string;
-  instructionEn: string;
-  type?: "core" | "error";
-  warningFr?: string;
-  warningEn?: string;
-  disabled?: boolean;
-}> = {
-  // ═══════════════════════════════════════════════════════════════════════
-  // LAYER 1 — CORE LABS (blue/primary, one per module, mandatory)
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // M1 — GR / Goods Receipt
-  gr: {
-    type: "core",
-    label: "Odoo Lab — Réception marchandises",
-    labelEn: "Odoo Lab — Goods Receipt",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
-    instruction:
-      "📋 GUIDE VISUEL — Réception marchandises dans un ERP\n\n" +
-      "Concept clé : Dans tout ERP (Odoo, SAP, Dynamics), le stock n'augmente QUE lorsque la réception est validée (postée). Avant validation = brouillon, aucun impact stock.\n\n" +
-      "Étapes dans Odoo Inventaire :\n" +
-      "  1. Menu : Inventaire → Opérations → Réceptions\n" +
-      "  2. Ouvrir une réception liée à un Bon de Commande (statut : Prêt)\n" +
-      "  3. Vérifier : produit, quantité attendue, emplacement destination (WH/Input)\n" +
-      "  4. Cliquer sur [Valider] → statut passe à Fait\n" +
-      "  5. Observer : le stock WH/Input augmente immédiatement\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • MIGO (GR) dans TEC.WMS = Valider une Réception dans Odoo\n" +
-      "  • REC-01 dans TEC.WMS = WH/Input dans Odoo\n" +
-      "  • Statut VALIDÉ dans TEC.WMS = Statut Fait (Done) dans Odoo\n\n" +
-      "⚠️ Erreur fréquente : créer un GR sans PO → exception d'audit interne.",
-    instructionEn:
-      "📋 VISUAL GUIDE — Goods Receipt in an ERP\n\n" +
-      "Key concept: In any ERP (Odoo, SAP, Dynamics), stock only increases WHEN the receipt is validated (posted). Before validation = draft, no stock impact.\n\n" +
-      "Steps in Odoo Inventory:\n" +
-      "  1. Menu: Inventory → Operations → Receipts\n" +
-      "  2. Open a receipt linked to a Purchase Order (status: Ready)\n" +
-      "  3. Check: product, expected quantity, destination location (WH/Input)\n" +
-      "  4. Click [Validate] → status changes to Done\n" +
-      "  5. Observe: WH/Input stock increases immediately\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • MIGO (GR) in TEC.WMS = Validate a Receipt in Odoo\n" +
-      "  • REC-01 in TEC.WMS = WH/Input in Odoo\n" +
-      "  • VALIDÉ status in TEC.WMS = Done status in Odoo\n\n" +
-      "⚠️ Common error: creating a GR without a PO → internal audit exception.",
-  },
-
-  // M1 — STOCK / Stock Visibility
-  stock: {
-    type: "core",
-    label: "Odoo Lab — Visibilité stock (MMBE)",
-    labelEn: "Odoo Lab — Stock Visibility (MMBE)",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
-    instruction:
-      "📋 GUIDE VISUEL — Visibilité stock dans Odoo\n\n" +
-      "Concept clé : Le stock système n'est fiable que si chaque transaction est validée. Un GR non validé = stock inchangé.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Rapport → Stock par emplacement\n" +
-      "  2. Observer les colonnes : Disponible / Réservé / En transit\n" +
-      "  3. Comparer WH/Input vs WH/Stock vs WH/Output\n" +
-      "  4. Identifier les écarts entre stock attendu et stock réel\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • MMBE dans TEC.WMS = Rapport Stock par emplacement dans Odoo\n" +
-      "  • Stock disponible TEC.WMS = Quantité disponible Odoo\n" +
-      "  • Écart stock → Ajustement d'inventaire obligatoire",
-    instructionEn:
-      "📋 VISUAL GUIDE — Stock Visibility in Odoo\n\n" +
-      "Key concept: System stock is only reliable if every transaction is validated. An unvalidated GR = stock unchanged.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Reporting → Stock by Location\n" +
-      "  2. Observe columns: Available / Reserved / In transit\n" +
-      "  3. Compare WH/Input vs WH/Stock vs WH/Output\n" +
-      "  4. Identify discrepancies between expected and actual stock\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • MMBE in TEC.WMS = Stock by Location report in Odoo\n" +
-      "  • Available stock TEC.WMS = On-hand quantity Odoo\n" +
-      "  • Stock discrepancy → Inventory adjustment mandatory",
-  },
-  // M1 — FIFO_M1 / FIFO Logic
-  fifo_m1: {
-    type: "core",
-    label: "Odoo Lab — Logique FIFO et sortie de stock",
-    labelEn: "Odoo Lab — FIFO Logic & Stock Issue",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/delivery-orders",
-    instruction:
-      "📋 GUIDE VISUEL — FIFO dans Odoo\n\n" +
-      "Concept clé : FIFO = Premier Entré, Premier Sorti. Le lot le plus ancien sort en premier.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Livraisons → Ouvrir une livraison\n" +
-      "  2. Observer le champ Lot/Numéro de série\n" +
-      "  3. Vérifier que le lot le plus ancien est sélectionné\n" +
-      "  4. Valider la livraison → stock réduit\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • GI FIFO dans TEC.WMS = Valider une Livraison dans Odoo\n" +
-      "  • Sélection lot FIFO = Stratégie de retrait FIFO dans Odoo\n" +
-      "  • Violation FIFO −20pts = Alerte de conformité Odoo",
-    instructionEn:
-      "📋 VISUAL GUIDE — FIFO in Odoo\n\n" +
-      "Key concept: FIFO = First In, First Out. The oldest lot exits first.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Deliveries → Open a delivery\n" +
-      "  2. Observe the Lot/Serial Number field\n" +
-      "  3. Verify that the oldest lot is selected\n" +
-      "  4. Validate the delivery → stock reduced\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • GI FIFO in TEC.WMS = Validate a Delivery in Odoo\n" +
-      "  • FIFO lot selection = FIFO removal strategy in Odoo\n" +
-      "  • FIFO violation −20pts = Odoo compliance alert",
-  },
-  // M1 — LOTS / Lot Traceability
-  lots: {
-    type: "core",
-    label: "Odoo Lab — Numéros de lot et traçabilité",
-    labelEn: "Odoo Lab — Lot Numbers & Traceability",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/lots",
-    instruction:
-      "📋 GUIDE VISUEL — Traçabilité des lots dans Odoo\n\n" +
-      "Concept clé : Traçabilité complète = Fournisseur → Lot → Emplacement → Client.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Lots/Numéros de série\n" +
-      "  2. Rechercher LOT-SKU005-A\n" +
-      "  3. Cliquer sur le lot → voir les détails\n" +
-      "  4. Onglet Traçabilité → voir tous les mouvements\n" +
-      "  5. Observer : GR d'entrée + GI de sortie\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • LOT-001, LOT-002 dans TEC.WMS = Numéros de lot Odoo\n" +
-      "  • Historique mouvements = Onglet Traçabilité Odoo\n" +
-      "  • Conformité lot = Rapport de traçabilité Odoo",
-    instructionEn:
-      "📋 VISUAL GUIDE — Lot Traceability in Odoo\n\n" +
-      "Key concept: Full traceability = Supplier → Lot → Location → Customer.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Lots/Serial Numbers\n" +
-      "  2. Search for LOT-SKU005-A\n" +
-      "  3. Click on the lot → view details\n" +
-      "  4. Traceability tab → view all movements\n" +
-      "  5. Observe: GR entry + GI exit\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • LOT-001, LOT-002 in TEC.WMS = Odoo lot numbers\n" +
-      "  • Movement history = Odoo Traceability tab\n" +
-      "  • Lot compliance = Odoo traceability report",
-  },
-  // M2 — PUTAWAY / Warehouse Locations
-  putaway: {
-    type: "core",
-    label: "Odoo Lab — Emplacements et structure d'entrepôt",
-    labelEn: "Odoo Lab — Warehouse Locations & Structure",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/configuration/warehouses",
-    instruction:
-      "📋 GUIDE VISUEL — Structure d'entrepôt dans un ERP\n\n" +
-      "Concept clé : Tout entrepôt ERP est organisé en hiérarchie d'emplacements. Le rangement automatique (putaway) dirige chaque article vers le bon emplacement selon des règles prédéfinies.\n\n" +
-      "Structure d'entrepôt Odoo (à mémoriser) :\n" +
-      "  ┌─ WH/ (Entrepôt principal)\n" +
-      "  │  ├─ WH/Input    → Zone de réception (= REC-01 dans TEC.WMS)\n" +
-      "  │  ├─ WH/Quality  → Zone de contrôle qualité\n" +
-      "  │  ├─ WH/Stock    → Zone de stockage (= B-01-R1-L1 dans TEC.WMS)\n" +
-      "  │  └─ WH/Output   → Zone d'expédition (= EXP-01 dans TEC.WMS)\n\n" +
-      "Règles de rangement (Putaway Rules) :\n" +
-      "  • Définies dans Configuration → Règles de rangement\n" +
-      "  • Exemple : Catégorie 'Réfrigéré' → WH/Stock/Froid\n" +
-      "  • Sans règle = rangement manuel obligatoire\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • LT0A (Transfer Order) dans TEC.WMS = Mouvement de stock automatique dans Odoo\n" +
-      "  • Bin B-01-R1-L1 dans TEC.WMS = Emplacement WH/Stock/Allée-01 dans Odoo\n\n" +
-      "⚠️ Sans putaway : le stock reste en WH/Input et ne peut pas être prélevé pour les commandes.",
-    instructionEn:
-      "📋 VISUAL GUIDE — Warehouse Structure in an ERP\n\n" +
-      "Key concept: Every ERP warehouse is organized as a location hierarchy. Automatic putaway routes each item to the correct bin based on predefined rules.\n\n" +
-      "Odoo warehouse structure (memorize this):\n" +
-      "  ┌─ WH/ (Main Warehouse)\n" +
-      "  │  ├─ WH/Input    → Receiving zone (= REC-01 in TEC.WMS)\n" +
-      "  │  ├─ WH/Quality  → Quality control zone\n" +
-      "  │  ├─ WH/Stock    → Storage zone (= B-01-R1-L1 in TEC.WMS)\n" +
-      "  │  └─ WH/Output   → Shipping zone (= EXP-01 in TEC.WMS)\n\n" +
-      "Putaway Rules:\n" +
-      "  • Defined in Configuration → Putaway Rules\n" +
-      "  • Example: Category 'Refrigerated' → WH/Stock/Cold\n" +
-      "  • Without rules = manual placement required\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • LT0A (Transfer Order) in TEC.WMS = Automatic stock move in Odoo\n" +
-      "  • Bin B-01-R1-L1 in TEC.WMS = Location WH/Stock/Aisle-01 in Odoo\n\n" +
-      "⚠️ Without putaway: stock stays in WH/Input and cannot be picked for orders.",
-  },
-
-  // M3 — REPLENISH / Reordering Rules
-  replenish: {
-    type: "core",
-    label: "Odoo Lab — Règles de réapprovisionnement",
-    labelEn: "Odoo Lab — Replenishment Rules",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules",
-    instruction:
-      "📋 GUIDE VISUEL — Réapprovisionnement et règles Min/Max\n\n" +
-      "Concept clé : Le réapprovisionnement automatique repose sur des règles Min/Max. Quand le stock descend sous le seuil Min, le système génère automatiquement une demande d'achat.\n\n" +
-      "Logique Min/Max (à comprendre) :\n" +
-      "  • Stock Min = seuil d'alerte → déclenche la commande\n" +
-      "  • Stock Max = quantité cible après réapprovisionnement\n" +
-      "  • Qté commandée = Max − Stock actuel\n" +
-      "  Exemple : Min=20, Max=100, Stock actuel=15 → Commander 85 unités\n\n" +
-      "Étapes dans Odoo :\n" +
-      "  1. Menu : Inventaire → Opérations → Réapprovisionnement\n" +
-      "  2. Observer les règles par produit (colonnes : Min, Max, Qté multiple)\n" +
-      "  3. Identifier les lignes en rouge (stock < Min)\n" +
-      "  4. Cliquer [Commander une fois] ou [Automatiser] pour déclencher\n" +
-      "  5. Un Bon de Commande est automatiquement créé dans le module Achats\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • Analyse CC + décision manuelle dans TEC.WMS = Règle Min/Max automatique dans Odoo\n" +
-      "  • Transaction REPLENISH dans TEC.WMS = Bon de Commande auto dans Odoo\n\n" +
-      "⚠️ Sans règle Min/Max : rupture de stock possible sans alerte système.",
-    instructionEn:
-      "📋 VISUAL GUIDE — Replenishment and Min/Max Rules\n\n" +
-      "Key concept: Automatic replenishment relies on Min/Max rules. When stock drops below the Min threshold, the system automatically generates a purchase request.\n\n" +
-      "Min/Max logic (understand this):\n" +
-      "  • Stock Min = alert threshold → triggers the order\n" +
-      "  • Stock Max = target quantity after replenishment\n" +
-      "  • Order qty = Max − Current stock\n" +
-      "  Example: Min=20, Max=100, Current=15 → Order 85 units\n\n" +
-      "Steps in Odoo:\n" +
-      "  1. Menu: Inventory → Operations → Replenishment\n" +
-      "  2. Observe rules per product (columns: Min, Max, Multiple Qty)\n" +
-      "  3. Identify red rows (stock < Min)\n" +
-      "  4. Click [Order Once] or [Automate] to trigger\n" +
-      "  5. A Purchase Order is automatically created in the Purchase module\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • CC analysis + manual decision in TEC.WMS = Automatic Min/Max rule in Odoo\n" +
-      "  • REPLENISH transaction in TEC.WMS = Auto Purchase Order in Odoo\n\n" +
-      "⚠️ Without Min/Max rules: stockout possible with no system alert.",
-  },
-
-  // M4 — KPI_DIAGNOSTIC / Inventory Reporting
-  kpi_diagnostic: {
-    type: "core",
-    label: "Odoo Lab — Rapports d'inventaire et KPI",
-    labelEn: "Odoo Lab — Inventory Reporting & KPI",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
-    instruction:
-      "📋 GUIDE VISUEL — KPI Logistiques et Rapports d'inventaire\n\n" +
-      "Concept clé : Les KPI logistiques mesurent la performance opérationnelle. Un ERP centralise ces indicateurs en temps réel pour permettre la prise de décision.\n\n" +
-      "Les 4 KPI essentiels (TEC.WMS ↔ Odoo) :\n" +
-      "  ┌─────────────────────────────────────────────────────────┐\n" +
-      "  │ KPI TEC.WMS          │ Équivalent Odoo                  │\n" +
-      "  │──────────────────────│──────────────────────────────────│\n" +
-      "  │ Taux de rotation     │ Inventory Turnover (Rapports)    │\n" +
-      "  │ Taux de service      │ OTIF — On-Time In-Full           │\n" +
-      "  │ Taux d'erreur        │ Inventory Adjustments (écarts)   │\n" +
-      "  │ Valeur du stock      │ Inventory Valuation              │\n" +
-      "  └─────────────────────────────────────────────────────────┘\n\n" +
-      "Formules à retenir :\n" +
-      "  • Taux de rotation = Coût des ventes ÷ Stock moyen\n" +
-      "  • Taux de service  = Commandes livrées à temps ÷ Total commandes × 100\n" +
-      "  • Taux d'erreur    = Erreurs opérationnelles ÷ Total opérations × 100\n\n" +
-      "Navigation dans Odoo :\n" +
-      "  1. Inventaire → Rapports → Valorisation des stocks\n" +
-      "  2. Inventaire → Rapports → Mouvements de stock\n" +
-      "  3. Filtrer par période, produit ou emplacement\n\n" +
-      "⚠️ Un taux de rotation < 2 indique un stock dormant qui immobilise du capital.",
-    instructionEn:
-      "📋 VISUAL GUIDE — Logistics KPIs and Inventory Reporting\n\n" +
-      "Key concept: Logistics KPIs measure operational performance. An ERP centralizes these indicators in real time to support decision-making.\n\n" +
-      "The 4 essential KPIs (TEC.WMS ↔ Odoo):\n" +
-      "  ┌─────────────────────────────────────────────────────────┐\n" +
-      "  │ TEC.WMS KPI          │ Odoo Equivalent                  │\n" +
-      "  │──────────────────────│──────────────────────────────────│\n" +
-      "  │ Inventory Turnover   │ Inventory Turnover (Reporting)   │\n" +
-      "  │ Service Level        │ OTIF — On-Time In-Full           │\n" +
-      "  │ Error Rate           │ Inventory Adjustments            │\n" +
-      "  │ Stock Value          │ Inventory Valuation              │\n" +
-      "  └─────────────────────────────────────────────────────────┘\n\n" +
-      "Formulas to remember:\n" +
-      "  • Turnover Rate = Cost of Goods Sold ÷ Average Inventory\n" +
-      "  • Service Level = On-time deliveries ÷ Total orders × 100\n" +
-      "  • Error Rate    = Operational errors ÷ Total operations × 100\n\n" +
-      "Navigation in Odoo:\n" +
-      "  1. Inventory → Reporting → Inventory Valuation\n" +
-      "  2. Inventory → Reporting → Stock Moves\n" +
-      "  3. Filter by period, product, or location\n\n" +
-      "⚠️ A turnover rate < 2 indicates dormant stock that ties up capital.",
-  },
-
-  // M5 — MANUFACTURING / Integrated ERP Flow
-  m5_decision: {
-    type: "core",
-    label: "Odoo Lab — Fabrication et flux ERP intégré",
-    labelEn: "Odoo Lab — Manufacturing & Integrated ERP Flow",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/manufacturing",
-    instruction:
-      "📋 GUIDE VISUEL — Fabrication et flux ERP intégré\n\n" +
-      "Concept clé : La fabrication est une extension naturelle du flux WMS. Les mêmes principes (GR, stock, GI) s'appliquent, mais avec une étape de transformation entre la réception et l'expédition.\n\n" +
-      "Flux ERP intégré complet :\n" +
-      "  1. GR Matières premières  → Stock augmente (composants)\n" +
-      "  2. Ordre de Fabrication   → Composants consommés (stock ↓)\n" +
-      "  3. GR Produit fini        → Stock augmente (produit fini)\n" +
-      "  4. SO + GI Expédition     → Stock diminue (livraison client)\n\n" +
-      "Documents clés dans Odoo Manufacturing :\n" +
-      "  • BoM (Bill of Materials) = liste des composants requis\n" +
-      "  • MO (Manufacturing Order) = ordre de production\n" +
-      "  • Work Order = opération sur poste de travail\n\n" +
-      "Correspondance TEC.WMS ↔ TEC.SYS :\n" +
-      "  ┌──────────────────────────────────────────────────────┐\n" +
-      "  │ TEC.WMS (ce cours)    │ TEC.SYS (prochain cours)     │\n" +
-      "  │──────────────────────│──────────────────────────────│\n" +
-      "  │ GR + Putaway          │ GR + Putaway + BoM           │\n" +
-      "  │ Stock management      │ Stock + Production planning  │\n" +
-      "  │ GI + Compliance       │ GI + MRP + Costing           │\n" +
-      "  └──────────────────────────────────────────────────────┘\n\n" +
-      "⚠️ Ce module est conceptuel — aucune exécution détaillée requise dans TEC.WMS.",
-    instructionEn:
-      "📋 VISUAL GUIDE — Manufacturing & Integrated ERP Flow\n\n" +
-      "Key concept: Manufacturing is a natural extension of the WMS flow. The same principles (GR, stock, GI) apply, but with a transformation step between receipt and shipment.\n\n" +
-      "Full integrated ERP flow:\n" +
-      "  1. GR Raw materials       → Stock increases (components)\n" +
-      "  2. Manufacturing Order    → Components consumed (stock ↓)\n" +
-      "  3. GR Finished goods      → Stock increases (finished product)\n" +
-      "  4. SO + GI Shipment       → Stock decreases (customer delivery)\n\n" +
-      "Key documents in Odoo Manufacturing:\n" +
-      "  • BoM (Bill of Materials) = list of required components\n" +
-      "  • MO (Manufacturing Order) = production order\n" +
-      "  • Work Order = operation on a work center\n\n" +
-      "TEC.WMS ↔ TEC.SYS mapping:\n" +
-      "  ┌──────────────────────────────────────────────────────┐\n" +
-      "  │ TEC.WMS (this course)  │ TEC.SYS (next course)        │\n" +
-      "  │──────────────────────│──────────────────────────────│\n" +
-      "  │ GR + Putaway          │ GR + Putaway + BoM           │\n" +
-      "  │ Stock management      │ Stock + Production planning  │\n" +
-      "  │ GI + Compliance       │ GI + MRP + Costing           │\n" +
-      "  └──────────────────────────────────────────────────────┘\n\n" +
-      "⚠️ This module is conceptual — no detailed execution required in TEC.WMS.",
-  },
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // LAYER 2 — ERROR LABS (orange/warning, contextual, optional)
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // ERROR LAB 1 — FIFO violation (appears after picking steps)
-  fifo_pick: {
-    type: "error",
-    label: "Odoo Lab — Mauvaise méthode de picking",
-    labelEn: "Odoo Lab — Wrong Picking Method",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/products",
-    warningFr: "⚠️ Erreur fréquente en production : mauvaise méthode de picking — FIFO non respecté.",
-    warningEn: "⚠️ Common production error: wrong picking method — FIFO not respected.",
-    instruction:
-      "📋 ANALYSE D'ERREUR — Violation FIFO en picking\n\n" +
-      "Qu'est-ce que le FIFO ?\n" +
-      "  FIFO = First In, First Out = Premier entré, Premier sorti\n" +
-      "  Règle : le lot le plus ancien doit TOUJOURS être prélevé en premier.\n\n" +
-      "Pourquoi le FIFO est critique :\n" +
-      "  • Produits périssables → risque de péremption si FIFO non respecté\n" +
-      "  • Traçabilité → lot incorrect = problème de rappel produit\n" +
-      "  • Audit → violation FIFO = non-conformité réglementaire\n\n" +
-      "Comment identifier une violation FIFO :\n" +
-      "  Scénario : Lot A (reçu le 01/01) et Lot B (reçu le 15/01) en stock\n" +
-      "  ✅ Correct   : Prélever Lot A en premier (plus ancien)\n" +
-      "  ❌ Violation : Prélever Lot B en premier (plus récent)\n\n" +
-      "Correction dans TEC.WMS :\n" +
-      "  1. Annuler le transfert de picking incorrect\n" +
-      "  2. Identifier le lot le plus ancien dans la zone STOCKAGE\n" +
-      "  3. Recréer le picking avec le bon lot\n" +
-      "  4. Valider et documenter l'écart\n\n" +
-      "⚠️ Dans Odoo : Inventaire → Configuration → Produits → activer 'Traçabilité par lot' + méthode FIFO.",
-    instructionEn:
-      "📋 ERROR ANALYSIS — FIFO Violation in Picking\n\n" +
-      "What is FIFO?\n" +
-      "  FIFO = First In, First Out\n" +
-      "  Rule: the oldest lot must ALWAYS be picked first.\n\n" +
-      "Why FIFO is critical:\n" +
-      "  • Perishable products → expiry risk if FIFO not respected\n" +
-      "  • Traceability → wrong lot = product recall issue\n" +
-      "  • Audit → FIFO violation = regulatory non-compliance\n\n" +
-      "How to identify a FIFO violation:\n" +
-      "  Scenario: Lot A (received Jan 1) and Lot B (received Jan 15) in stock\n" +
-      "  ✅ Correct   : Pick Lot A first (older)\n" +
-      "  ❌ Violation : Pick Lot B first (newer)\n\n" +
-      "Correction in TEC.WMS:\n" +
-      "  1. Cancel the incorrect picking transfer\n" +
-      "  2. Identify the oldest lot in the STOCKAGE zone\n" +
-      "  3. Recreate the picking with the correct lot\n" +
-      "  4. Validate and document the discrepancy\n\n" +
-      "⚠️ In Odoo: Inventory → Configuration → Products → enable 'Lot Tracking' + FIFO removal strategy.",
-  },
-
-  // ERROR LAB 2 — Inventory Adjustment (appears after CC with discrepancy)
-  adj: {
-    type: "error",
-    label: "Odoo Lab — Ajustement d'inventaire",
-    labelEn: "Odoo Lab — Inventory Adjustment",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
-    warningFr: "⚠️ Écart de stock détecté — un ajustement d'inventaire est requis pour corriger le solde.",
-    warningEn: "⚠️ Stock discrepancy detected — an inventory adjustment is required to correct the balance.",
-    instruction:
-      "📋 ANALYSE D'ERREUR — Ajustement d'inventaire après écart CC\n\n" +
-      "Pourquoi un ajustement est nécessaire :\n" +
-      "  Après un comptage cyclique (CC), si le stock physique ≠ stock système → écart détecté.\n" +
-      "  L'ajustement (ADJ) corrige le solde système pour qu'il reflète la réalité physique.\n\n" +
-      "Processus d'ajustement (TEC.WMS) :\n" +
-      "  1. CC détecte un écart : Stock système = 50, Stock physique = 43\n" +
-      "  2. Écart = −7 unités (perte, vol, erreur de picking)\n" +
-      "  3. ADJ créé : ajustement de −7 avec justification obligatoire\n" +
-      "  4. Validation : stock système mis à jour à 43\n" +
-      "  5. Document d'audit généré automatiquement\n\n" +
-      "Types d'écarts et causes probables :\n" +
-      "  • Écart négatif (−) : vol, casse, erreur de picking, péremption\n" +
-      "  • Écart positif (+) : double réception, retour non enregistré\n" +
-      "  • Écart récurrent : problème de processus → audit approfondi requis\n\n" +
-      "Processus équivalent dans Odoo :\n" +
-      "  Inventaire → Opérations → Inventaire physique\n" +
-      "  → Saisir la quantité comptée → Appliquer l'ajustement\n\n" +
-      "⚠️ Tout ajustement doit être justifié et approuvé — traçabilité obligatoire en audit.",
-    instructionEn:
-      "📋 ERROR ANALYSIS — Inventory Adjustment after CC Discrepancy\n\n" +
-      "Why an adjustment is necessary:\n" +
-      "  After a cycle count (CC), if physical stock ≠ system stock → discrepancy detected.\n" +
-      "  The adjustment (ADJ) corrects the system balance to reflect physical reality.\n\n" +
-      "Adjustment process (TEC.WMS):\n" +
-      "  1. CC detects discrepancy: System stock = 50, Physical stock = 43\n" +
-      "  2. Variance = −7 units (loss, theft, picking error)\n" +
-      "  3. ADJ created: adjustment of −7 with mandatory justification\n" +
-      "  4. Validation: system stock updated to 43\n" +
-      "  5. Audit document automatically generated\n\n" +
-      "Variance types and probable causes:\n" +
-      "  • Negative variance (−): theft, breakage, picking error, expiry\n" +
-      "  • Positive variance (+): double receipt, unrecorded return\n" +
-      "  • Recurring variance: process issue → deep audit required\n\n" +
-      "Equivalent process in Odoo:\n" +
-      "  Inventory → Operations → Physical Inventory\n" +
-      "  → Enter counted quantity → Apply adjustment\n\n" +
-      "⚠️ Every adjustment must be justified and approved — mandatory traceability in audit.",
-  },
-
-  // ERROR LAB 3 — Compliance / Missing transaction (appears after compliance step)
-  compliance: {
-    type: "error",
-    label: "Odoo Lab — Conformité et audit des transactions",
-    labelEn: "Odoo Lab — Transaction Compliance & Audit",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting/moves",
-    warningFr: "⚠️ Écart de conformité détecté — audit système requis",
-    warningEn: "⚠️ Compliance issue detected — system audit required",
-    instruction:
-      "📋 ANALYSE D'ERREUR — Conformité et audit des transactions\n\n" +
-      "Qu'est-ce que la non-conformité ?\n" +
-      "  Une transaction est non conforme si elle viole les règles du processus ERP :\n" +
-      "  séquence incorrecte, document manquant, ou validation non effectuée.\n\n" +
-      "Les 3 types d'anomalies de conformité :\n\n" +
-      "  1. Transaction non postée\n" +
-      "     → GR ou GI créé mais jamais validé\n" +
-      "     → Impact : stock non mis à jour, paiement bloqué\n" +
-      "     → Correction : valider ou annuler le document brouillon\n\n" +
-      "  2. Écart de stock non résolu\n" +
-      "     → CC a détecté un écart mais aucun ADJ n'a été créé\n" +
-      "     → Impact : stock système ≠ stock réel → erreurs de picking\n" +
-      "     → Correction : créer et valider l'ADJ correspondant\n\n" +
-      "  3. Mouvement sans document source\n" +
-      "     → Transfert de stock sans PO ou SO traçable\n" +
-      "     → Impact : non-conformité audit interne / externe\n" +
-      "     → Correction : créer le document source rétroactivement ou annuler\n\n" +
-      "Checklist de conformité TEC.WMS :\n" +
-      "  ✅ PO validé avant GR\n" +
-      "  ✅ GR posté avant Putaway\n" +
-      "  ✅ SO validé avant Picking\n" +
-      "  ✅ Picking posté avant GI\n" +
-      "  ✅ CC avec écart → ADJ obligatoire\n\n" +
-      "⚠️ En production réelle : une clôture de période avec des transactions non conformes crée des erreurs de réconciliation entre WMS, MM et FI.",
-    instructionEn:
-      "📋 ERROR ANALYSIS — Transaction Compliance & Audit\n\n" +
-      "What is non-compliance?\n" +
-      "  A transaction is non-compliant if it violates ERP process rules:\n" +
-      "  incorrect sequence, missing document, or validation not performed.\n\n" +
-      "The 3 types of compliance anomalies:\n\n" +
-      "  1. Unposted transaction\n" +
-      "     → GR or GI created but never validated\n" +
-      "     → Impact: stock not updated, payment blocked\n" +
-      "     → Fix: validate or cancel the draft document\n\n" +
-      "  2. Unresolved stock variance\n" +
-      "     → CC detected a discrepancy but no ADJ was created\n" +
-      "     → Impact: system stock ≠ real stock → picking errors\n" +
-      "     → Fix: create and validate the corresponding ADJ\n\n" +
-      "  3. Movement without source document\n" +
-      "     → Stock transfer with no traceable PO or SO\n" +
-      "     → Impact: internal/external audit non-compliance\n" +
-      "     → Fix: create source document retroactively or cancel\n\n" +
-      "TEC.WMS compliance checklist:\n" +
-      "  ✅ PO validated before GR\n" +
-      "  ✅ GR posted before Putaway\n" +
-      "  ✅ SO validated before Picking\n" +
-      "  ✅ Picking posted before GI\n" +
-      "  ✅ CC with variance → ADJ mandatory\n\n" +
-      "⚠️ In real production: a period close with non-compliant transactions creates reconciliation errors between WMS, MM, and FI.",
-  },
-
-  // M2 — FIFO_PICK
-  fifo_pick_m2: {
-    type: "core",
-    label: "Odoo Lab — Prélèvement FIFO",
-    labelEn: "Odoo Lab — FIFO Picking",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/picking-type-all",
-    instruction:
-      "📋 GUIDE VISUEL — Prélèvement FIFO dans Odoo\n\n" +
-      "Concept clé : FIFO = le stock le plus ancien est prélevé en premier.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Produits → SKU-001\n" +
-      "  2. Onglet 'Prélèvements' → voir les mouvements en attente\n" +
-      "  3. Vérifier : lot le plus ancien sélectionné en premier\n" +
-      "  4. Comparer date entrée lot A vs lot B\n" +
-      "  5. Confirmer : FIFO = premier entré, premier sorti\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • FIFO_PICK dans TEC.WMS = Stratégie retrait FIFO Odoo\n" +
-      "  • Lot le plus ancien = Date de réception la plus ancienne\n" +
-      "  • Validation FIFO = Transfert validé Odoo",
-    instructionEn:
-      "📋 VISUAL GUIDE — FIFO Picking in Odoo\n\n" +
-      "Key concept: FIFO = oldest stock is picked first.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Products → SKU-001\n" +
-      "  2. Tab 'Pickings' → view pending moves\n" +
-      "  3. Verify: oldest lot selected first\n" +
-      "  4. Compare entry date lot A vs lot B\n" +
-      "  5. Confirm: FIFO = first in, first out\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • FIFO_PICK in TEC.WMS = Odoo FIFO removal strategy\n" +
-      "  • Oldest lot = Oldest receipt date\n" +
-      "  • FIFO validation = Validated Odoo transfer",
-  },
-  // M2 — STOCK_ACCURACY
-  stock_accuracy: {
-    type: "core",
-    label: "Odoo Lab — Précision inventaire",
-    labelEn: "Odoo Lab — Stock Accuracy",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
-    instruction:
-      "📋 GUIDE VISUEL — Précision d'inventaire dans Odoo\n\n" +
-      "Concept clé : Précision = Stock système / Stock physique × 100. Objectif ≥ 98%.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Produits → Vérifier quantité disponible\n" +
-      "  2. Comparer : stock système vs stock physique compté\n" +
-      "  3. Identifier les écarts (variance positive ou négative)\n" +
-      "  4. Créer ajustement d'inventaire si écart > seuil\n" +
-      "  5. Valider l'ajustement → stock mis à jour\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • STOCK_ACCURACY dans TEC.WMS = Ajustement d'inventaire Odoo\n" +
-      "  • Variance détectée = Écart de stock Odoo\n" +
-      "  • ADJ créé + validé = Ajustement validé → stock corrigé",
-    instructionEn:
-      "📋 VISUAL GUIDE — Inventory Accuracy in Odoo\n\n" +
-      "Key concept: Accuracy = System stock / Physical stock × 100. Target ≥ 98%.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Products → Check on-hand quantity\n" +
-      "  2. Compare: system stock vs physical count\n" +
-      "  3. Identify variances (positive or negative)\n" +
-      "  4. Create inventory adjustment if variance > threshold\n" +
-      "  5. Validate adjustment → stock updated\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • STOCK_ACCURACY in TEC.WMS = Odoo inventory adjustment\n" +
-      "  • Detected variance = Odoo stock variance\n" +
-      "  • ADJ created + validated = Validated adjustment → corrected stock",
-  },
-  // M3 — CC_RECON
-  cc_recon_active: {
-    type: "core",
-    label: "Odoo Lab — Réconciliation inventaire cyclique",
-    labelEn: "Odoo Lab — Cycle Count Reconciliation",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/inventory-adjustments",
-    instruction:
-      "📋 GUIDE VISUEL — Inventaire cyclique dans Odoo\n\n" +
-      "Concept clé : L'inventaire cyclique compte une partie du stock en continu.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Inventaires physiques → Créer\n" +
-      "  2. Sélectionner les emplacements à compter\n" +
-      "  3. Saisir les quantités comptées réellement\n" +
-      "  4. Valider → Odoo calcule les écarts automatiquement\n" +
-      "  5. Créer ajustement pour chaque écart détecté\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • CC_LIST → CC_COUNT dans TEC.WMS = Inventaire physique Odoo\n" +
-      "  • Variance détectée = Ligne d'ajustement Odoo\n" +
-      "  • CC_RECON (ADJ) = Validation ajustement Odoo",
-    instructionEn:
-      "📋 VISUAL GUIDE — Cycle Count in Odoo\n\n" +
-      "Key concept: Cycle counting counts part of the stock continuously.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Physical Inventories → Create\n" +
-      "  2. Select locations to count\n" +
-      "  3. Enter physically counted quantities\n" +
-      "  4. Validate → Odoo calculates variances automatically\n" +
-      "  5. Create adjustment for each detected variance\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • CC_LIST → CC_COUNT in TEC.WMS = Odoo physical inventory\n" +
-      "  • Detected variance = Odoo adjustment line\n" +
-      "  • CC_RECON (ADJ) = Odoo adjustment validation",
-  },
-  // M4 — KPI_DATA
-  kpi_data: {
-    type: "core",
-    label: "Odoo Lab — Collecte données KPI",
-    labelEn: "Odoo Lab — KPI Data Collection",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
-    instruction:
-      "📋 GUIDE VISUEL — Collecte données KPI dans Odoo\n\n" +
-      "Concept clé : Les KPI logistiques se calculent à partir des mouvements de stock.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Rapports → Mouvements de stock\n" +
-      "  2. Filtrer par période (mois en cours)\n" +
-      "  3. Exporter les données : entrées, sorties, valeur\n" +
-      "  4. Inventaire → Produits → Voir quantité disponible\n" +
-      "  5. Calculer : Rotation = Consommation / Stock moyen\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • Consommation annuelle = Rapports → Mouvements sortants\n" +
-      "  • Stock moyen = Produits → Quantité disponible\n" +
-      "  • Valeur stock immobilisé = Valorisation de l'inventaire",
-    instructionEn:
-      "📋 VISUAL GUIDE — KPI Data Collection in Odoo\n\n" +
-      "Key concept: Logistics KPIs are calculated from stock moves.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Reporting → Stock Moves\n" +
-      "  2. Filter by period (current month)\n" +
-      "  3. Export data: inflows, outflows, value\n" +
-      "  4. Inventory → Products → View on-hand quantity\n" +
-      "  5. Calculate: Turnover = Consumption / Average Stock\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • Annual consumption = Reports → Outgoing moves\n" +
-      "  • Average stock = Products → On-hand quantity\n" +
-      "  • Immobilized stock value = Inventory valuation",
-  },
-  // M4 — KPI_ROTATION
-  kpi_rotation: {
-    type: "core",
-    label: "Odoo Lab — Taux de rotation des stocks",
-    labelEn: "Odoo Lab — Inventory Turnover Rate",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
-    instruction:
-      "📋 GUIDE VISUEL — Taux de rotation dans Odoo\n\n" +
-      "Formule : Rotation = Consommation annuelle ÷ Stock moyen\n" +
-      "  • < 4 rotations → Surstock — réduire les commandes\n" +
-      "  • 4–12 rotations → Zone normale — maintenir\n" +
-      "  • > 12 rotations → Risque rupture — augmenter stock sécurité\n\n" +
-      "Navigation Odoo :\n" +
-      "  Rapports → Analyse de stock → Rotation\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • KPI_ROTATION dans TEC.WMS = Analyse de stock Odoo\n" +
-      "  • Surstock détecté = Rotation < 4 → alerte\n" +
-      "  • Action plan = Règles de réappro à ajuster",
-    instructionEn:
-      "📋 VISUAL GUIDE — Inventory Turnover in Odoo\n\n" +
-      "Formula: Turnover = Annual consumption ÷ Average stock\n" +
-      "  • < 4 turns → Overstock — reduce orders\n" +
-      "  • 4–12 turns → Normal zone — maintain\n" +
-      "  • > 12 turns → Stockout risk — increase safety stock\n\n" +
-      "Odoo navigation:\n" +
-      "  Reports → Stock Analysis → Turnover\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • KPI_ROTATION in TEC.WMS = Odoo stock analysis\n" +
-      "  • Overstock detected = Turnover < 4 → alert\n" +
-      "  • Action plan = Reorder rules to adjust",
-  },
-  // M4 — KPI_SERVICE
-  kpi_service: {
-    type: "core",
-    label: "Odoo Lab — Taux de service (OTIF)",
-    labelEn: "Odoo Lab — Service Level (OTIF)",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
-    instruction:
-      "📋 GUIDE VISUEL — Taux de service OTIF dans Odoo\n\n" +
-      "Formule : Taux de service = Commandes livrées / Total commandes × 100\n" +
-      "  • < 90% → Problème critique — analyser les causes\n" +
-      "  • ≥ 95% → Performance acceptable — maintenir\n\n" +
-      "Navigation Odoo :\n" +
-      "  Ventes → Commandes → Filtrer 'Livré'\n" +
-      "  Comparer date promise vs date réelle de livraison\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • KPI_SERVICE dans TEC.WMS = Bons de livraison Odoo\n" +
-      "  • Commandes livrées = Transferts validés\n" +
-      "  • Taux d'erreur = Retours / Annulations",
-    instructionEn:
-      "📋 VISUAL GUIDE — OTIF Service Level in Odoo\n\n" +
-      "Formula: Service level = Orders fulfilled / Total orders × 100\n" +
-      "  • < 90% → Critical issue — analyze root causes\n" +
-      "  • ≥ 95% → Acceptable performance — maintain\n\n" +
-      "Odoo navigation:\n" +
-      "  Sales → Orders → Filter 'Done'\n" +
-      "  Compare promised date vs actual delivery date\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • KPI_SERVICE in TEC.WMS = Odoo delivery orders\n" +
-      "  • Orders fulfilled = Validated transfers\n" +
-      "  • Error rate = Returns / Cancellations",
-  },
-  // M5 — M5_RECEPTION
-  m5_reception: {
-    type: "core",
-    label: "Odoo Lab — Réception intégrée M5",
-    labelEn: "Odoo Lab — M5 Integrated Reception",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/receipts",
-    instruction:
-      "📋 GUIDE VISUEL — Réception fournisseur dans Odoo (M5)\n\n" +
-      "Concept clé : En M5, chaque action a un impact sur toutes les étapes suivantes.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Achats → Bons de commande → Valider le PO\n" +
-      "  2. Inventaire → Réceptions → Trouver le bon de réception\n" +
-      "  3. Vérifier les quantités reçues vs commandées\n" +
-      "  4. Valider la réception → stock mis à jour automatiquement\n" +
-      "  5. Vérifier : Inventaire → Produits → Quantité disponible\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • M5_RECEPTION = Bon de réception validé\n" +
-      "  • PO → GR = Achat → Réception Odoo\n" +
-      "  • Stock mis à jour = Qté disponible +",
-    instructionEn:
-      "📋 VISUAL GUIDE — Supplier Reception in Odoo (M5)\n\n" +
-      "Key concept: In M5, every action impacts all subsequent steps.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Purchases → Purchase Orders → Validate PO\n" +
-      "  2. Inventory → Receipts → Find the receipt\n" +
-      "  3. Verify received quantities vs ordered\n" +
-      "  4. Validate receipt → stock updated automatically\n" +
-      "  5. Verify: Inventory → Products → On-hand quantity\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • M5_RECEPTION = Validated receipt\n" +
-      "  • PO → GR = Purchase → Odoo Receipt\n" +
-      "  • Stock updated = On-hand qty +",
-  },
-  // M5 — M5_PUTAWAY
-  m5_putaway: {
-    type: "core",
-    label: "Odoo Lab — Rangement FIFO M5",
-    labelEn: "Odoo Lab — M5 FIFO Putaway",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/configuration/putaway-rules",
-    instruction:
-      "📋 GUIDE VISUEL — Rangement FIFO dans Odoo (M5)\n\n" +
-      "Concept clé : En M5, rangement correct ET FIFO sont tous les deux requis.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Transferts internes → Voir rangement\n" +
-      "  2. Vérifier : emplacement destination = règle putaway\n" +
-      "  3. Inventaire → Lots → Vérifier date entrée\n" +
-      "  4. Confirmer : lot le plus ancien = emplacement accessible\n" +
-      "  5. Valider le transfert interne\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • M5_PUTAWAY = Transfert interne Odoo\n" +
-      "  • Règle putaway = Configuration → Règles rangement\n" +
-      "  • FIFO validé = Stratégie retrait = FIFO",
-    instructionEn:
-      "📋 VISUAL GUIDE — FIFO Putaway in Odoo (M5)\n\n" +
-      "Key concept: In M5, correct putaway AND FIFO are both required.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Internal Transfers → View putaway\n" +
-      "  2. Verify: destination location = putaway rule\n" +
-      "  3. Inventory → Lots → Check entry date\n" +
-      "  4. Confirm: oldest lot = accessible location\n" +
-      "  5. Validate the internal transfer\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • M5_PUTAWAY = Odoo internal transfer\n" +
-      "  • Putaway rule = Configuration → Putaway rules\n" +
-      "  • FIFO validated = Removal strategy = FIFO",
-  },
-  // M5 — M5_REPLENISH
-  m5_replenish: {
-    type: "core",
-    label: "Odoo Lab — Réapprovisionnement intégré M5",
-    labelEn: "Odoo Lab — M5 Integrated Replenishment",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reordering-rules",
-    instruction:
-      "📋 GUIDE VISUEL — Réapprovisionnement dans Odoo (M5)\n\n" +
-      "Concept clé : En M5, le réapprovisionnement est déclenché par les résultats du cycle count.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Réapprovisionnement → Voir les alertes\n" +
-      "  2. Identifier les SKU sous le seuil Min\n" +
-      "  3. Cliquer 'Commander' → Bon de commande créé automatiquement\n" +
-      "  4. Vérifier : Achats → Bons de commande → Nouveau PO\n" +
-      "  5. Valider le PO → En attente de réception\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • M5_REPLENISH = Règle de réapprovisionnement\n" +
-      "  • Stock < Min = Alerte réapprovisionnement\n" +
-      "  • Demande d'achat = Bon de commande automatique",
-    instructionEn:
-      "📋 VISUAL GUIDE — Replenishment in Odoo (M5)\n\n" +
-      "Key concept: In M5, replenishment is triggered by cycle count results.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Replenishment → View alerts\n" +
-      "  2. Identify SKUs below Min threshold\n" +
-      "  3. Click 'Order' → Purchase order created automatically\n" +
-      "  4. Verify: Purchases → Purchase Orders → New PO\n" +
-      "  5. Validate PO → Awaiting receipt\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • M5_REPLENISH = Replenishment rule\n" +
-      "  • Stock < Min = Replenishment alert\n" +
-      "  • Purchase request = Automatic purchase order",
-  },
-  // M5 — M5_KPI
-  m5_kpi: {
-    type: "core",
-    label: "Odoo Lab — KPI flux intégré M5",
-    labelEn: "Odoo Lab — M5 Integrated KPI",
-    url: "https://edu-concorde-logistics-lab.odoo.com/odoo/inventory/reporting",
-    instruction:
-      "📋 GUIDE VISUEL — KPI flux intégré dans Odoo (M5)\n\n" +
-      "Concept clé : En M5, les KPI reflètent la performance de TOUTES les étapes précédentes.\n\n" +
-      "Navigation Odoo :\n" +
-      "  1. Inventaire → Rapports → Vue d'ensemble\n" +
-      "  2. Vérifier : Rotation, Taux de service, Valeur stock\n" +
-      "  3. Identifier le KPI le plus faible → cause racine\n" +
-      "  4. Croiser avec les mouvements de stock de la session\n" +
-      "  5. Proposer une action corrective justifiée par les données\n\n" +
-      "Correspondance TEC.WMS ↔ Odoo :\n" +
-      "  • M5_KPI = Tableau de bord inventaire\n" +
-      "  • Rotation calculée = Analyse de stock Odoo\n" +
-      "  • Décision stratégique = Plan d'action basé sur KPI",
-    instructionEn:
-      "📋 VISUAL GUIDE — Integrated KPI in Odoo (M5)\n\n" +
-      "Key concept: In M5, KPIs reflect the performance of ALL previous steps.\n\n" +
-      "Odoo navigation:\n" +
-      "  1. Inventory → Reporting → Overview\n" +
-      "  2. Check: Turnover, Service level, Stock value\n" +
-      "  3. Identify weakest KPI → root cause\n" +
-      "  4. Cross with stock moves from the session\n" +
-      "  5. Propose corrective action justified by data\n\n" +
-      "TEC.WMS ↔ Odoo mapping:\n" +
-      "  • M5_KPI = Inventory dashboard\n" +
-      "  • Calculated turnover = Odoo stock analysis\n" +
-      "  • Strategic decision = KPI-based action plan",
-  },
-  // ═══════════════════════════════════════════════════════════════════════
-  // DISABLED LABS — code preserved, url="#", unclickable, À venir label
-  // ═══════════════════════════════════════════════════════════════════════
-
-  po: {
-    disabled: true,
-    label: "Odoo Lab — Bon de Commande (PO)",
-    labelEn: "Odoo Lab — Purchase Order (PO)",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-  putaway_m1: {
-    disabled: true,
-    label: "Odoo Lab — Règles de rangement M1",
-    labelEn: "Odoo Lab — Putaway Rules M1",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-  gi: {
-    disabled: true,
-    label: "Odoo Lab — Sortie de stock / Livraison",
-    labelEn: "Odoo Lab — Goods Issue / Delivery",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-  cc: {
-    disabled: true,
-    label: "Odoo Lab — Inventaire Physique",
-    labelEn: "Odoo Lab — Physical Inventory",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-  so: {
-    disabled: true,
-    label: "Odoo Lab — Commande Client (SO)",
-    labelEn: "Odoo Lab — Sales Order (SO)",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-  cc_recon: {
-    disabled: true,
-    label: "Odoo Lab — Réconciliation d'inventaire",
-    labelEn: "Odoo Lab — Inventory Reconciliation",
-    url: "#",
-    instruction: "",
-    instructionEn: "",
-  },
-
-
-
-};
-
-// ─── Visual slide dispatch map ────────────────────────────────────────────────
-const LAB_SLIDE_MAP: Record<string, React.FC> = {
-  gr: LabGR,
-  stock: LabStock,
-  fifo_m1: LabFifoM1,
-  lots: LabLots,
-  putaway: LabPutaway,
-  replenish: LabReplenish,
-  kpi_diagnostic: LabKpiDiagnostic,
-  m5_decision: LabM5Decision,
-  fifo_pick: LabFifoPick,
-  adj: LabAdj,
-  compliance: LabCompliance,
-  fifo_pick_m2: LabFifoPick_M2,
-  stock_accuracy: LabStockAccuracy,
-  cc_recon_active: LabCcRecon,
-  kpi_data: LabKpiData,
-  kpi_rotation: LabKpiRotation,
-  kpi_service: LabKpiService,
-  m5_reception: LabM5Reception,
-  m5_putaway: LabM5Putaway,
-  m5_replenish: LabM5Replenish,
-  m5_kpi: LabM5Kpi,
-};
-
-function OdooLabButton({ step }: { step: string }) {
-  const { t } = useLanguage();
-  const KEY_ALIAS: Record<string, string> = {
-    cc_recon: "cc_recon_active",
-  };
-  const rawKey = step?.toLowerCase() ?? "";
-  const key = KEY_ALIAS[rawKey] ?? rawKey;
-  const cfg = ODOO_LAB_CONFIG[key];
-  if (!cfg) return null;
-
-  // ── DISABLED STATE: greyed out, unclickable, "À venir" label ───────────────────
-  if (cfg.disabled) {
-    return (
-      <div className="mt-4 border border-gray-200 dark:border-gray-700 rounded-md overflow-hidden opacity-40">
-        <div className="bg-gray-50 dark:bg-gray-900/40 px-4 py-2.5">
-          <div className="flex items-center gap-2">
-            <span className="text-base grayscale">⚪</span>
-            <span className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider line-through">
-              {t(cfg.label, cfg.labelEn)}
-            </span>
-          </div>
-          <p className="text-[10px] text-gray-400 dark:text-gray-500 italic mt-1">
-            {t("À venir — Non requis pour cette séance", "Coming soon — Not required for this class")}
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // ── VISUAL SLIDE: dispatch to rich JSX component ───────────────────────────
-  const VisualSlide = LAB_SLIDE_MAP[key];
-  if (VisualSlide) return <VisualSlide />;
-
-  // ── LAYER 2 — ERROR LAB (orange/warning, contextual, optional) ────────────
-  if (cfg.type === "error") {
-    return (
-      <div className="mt-4 border border-orange-300 dark:border-orange-700 rounded-md overflow-hidden">
-        {/* Warning banner */}
-        <div className="bg-orange-50 dark:bg-orange-950/50 px-4 py-2 border-b border-orange-200 dark:border-orange-800">
-          <p className="text-[11px] font-semibold text-orange-700 dark:text-orange-300 leading-snug">
-            {t(cfg.warningFr ?? "", cfg.warningEn ?? "")}
-          </p>
-        </div>
-        {/* PRIMARY: Embedded guided analysis */}
-        <div className="bg-orange-50/60 dark:bg-orange-950/30 px-4 py-3">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-base">🟠</span>
-            <span className="text-xs font-bold text-orange-800 dark:text-orange-300 uppercase tracking-wider">
-              {t(cfg.label, cfg.labelEn)}
-            </span>
-          </div>
-          {/* Embedded guide — primary learning content */}
-          <p className="text-[11px] text-orange-700 dark:text-orange-400 leading-relaxed mb-4 whitespace-pre-line">
-            {t(cfg.instruction, cfg.instructionEn)}
-          </p>
-          {/* SECONDARY: Optional Odoo link — clearly separated */}
-          <div className="border-t border-orange-200 dark:border-orange-800 pt-3 mt-1">
-            <p className="text-[10px] text-orange-500 dark:text-orange-400 italic mb-2">
-              {t(
-                "Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien. Si la session expire, reconnectez-vous sur edu-concorde-logistics-lab.odoo.com.",
-                "Odoo session required — please log in to Odoo EDU LAB before opening this link. If the session expires, reconnect at edu-concorde-logistics-lab.odoo.com."
-              )}
-            </p>
-            <a
-              href={cfg.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/40 dark:hover:bg-orange-900/60 text-orange-700 dark:text-orange-300 border border-orange-300 dark:border-orange-700 text-[10px] font-medium rounded transition-colors"
-            >
-              <BookOpen size={11} />
-              {t("Optionnel : Explorer dans Odoo ↗", "Optional: Explore in Odoo ↗")}
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── LAYER 1 — CORE LAB (blue/primary, mandatory, one per module) ────────
-  return (
-    <div className="mt-4 border border-blue-300 dark:border-blue-700 rounded-md overflow-hidden">
-      {/* PRIMARY: Embedded guided walkthrough */}
-      <div className="bg-blue-50 dark:bg-blue-950/40 px-4 py-3">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg">🔵</span>
-          <span className="text-xs font-bold text-blue-800 dark:text-blue-300 uppercase tracking-wider">
-            {t(cfg.label, cfg.labelEn)}
-          </span>
-        </div>
-        {/* Embedded guide — primary learning content */}
-        <p className="text-[11px] text-blue-700 dark:text-blue-400 leading-relaxed mb-4 whitespace-pre-line">
-          {t(cfg.instruction, cfg.instructionEn)}
-        </p>
-        {/* SECONDARY: Optional Odoo link — clearly separated */}
-        <div className="border-t border-blue-200 dark:border-blue-800 pt-3 mt-1">
-          <p className="text-[10px] text-blue-500 dark:text-blue-400 italic mb-2">
-            {t(
-              "Session Odoo requise — connectez-vous à Odoo EDU LAB avant d'ouvrir ce lien. Si la session expire, reconnectez-vous sur edu-concorde-logistics-lab.odoo.com.",
-              "Odoo session required — please log in to Odoo EDU LAB before opening this link. If the session expires, reconnect at edu-concorde-logistics-lab.odoo.com."
-            )}
-          </p>
-          <a
-            href={cfg.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/40 dark:hover:bg-blue-900/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-700 text-[10px] font-medium rounded transition-colors"
-          >
-            <BookOpen size={11} />
-            {t("Optionnel : Ouvrir Odoo ↗", "Optional: Open Odoo ↗")}
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
 function PedagogicalPanel({ cfg, isDemo }: { cfg: typeof STEP_CONFIG[string]; isDemo: boolean }) {
   const [open, setOpen] = useState(false);
   const { t } = useLanguage();
@@ -1885,24 +861,7 @@ export default function StepForm() {
   }
 
   function handleError(err: any) {
-    // Extract error message from tRPC error structure
-    const message = 
-      err?.data?.message || 
-      err?.message || 
-      t("Erreur de validation", "Validation error");
-    
-    // Log for debugging
-    console.error("Step submission error:", { 
-      code: err?.data?.code,
-      message: message,
-      fullError: err 
-    });
-    
-    // Display error with longer duration for readability
-    toast.error(message, { 
-      duration: 5000,
-      position: "top-center"
-    });
+    toast.error(err.message ?? t("Erreur de validation", "Validation error"));
   }
 
   function onSubmit(values: FormValues) {
@@ -2253,22 +1212,6 @@ export default function StepForm() {
             </div>
             <BackendTransparencyPanel runData={runData} />
             <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
-            {/* Completed-state lab: same mutual exclusion — no OdooLabButton if ScenarioPanel is active */}
-            {![
-              { step: "gr",           module: 1, nameFragment: "Cycle propre" },
-              { step: "gr",           module: 1, nameFragment: "R\u00e9ception fant\u00f4me" },
-              { step: "putaway_m1",   module: 1, nameFragment: "Stock insuffisant" },
-              { step: "gi",           module: 1, nameFragment: "\u00c9cart d'inventaire" },
-              { step: "compliance",   module: 1, nameFragment: "Non-conformit\u00e9s" },
-              { step: "fifo_pick",      module: 2, nameFragment: "" },
-              { step: "replenish",      module: 3, nameFragment: "" },
-              { step: "kpi_diagnostic", module: 4, nameFragment: "" },
-              { step: "compliance_m5",  module: 5, nameFragment: "" },
-            ].some(s =>
-              s.step === (step?.toLowerCase() ?? "") &&
-              s.module === (runData?.moduleId ?? 0) &&
-              (s.nameFragment === "" || ((runData?.scenario as any)?.name ?? "").includes(s.nameFragment))
-            ) && <OdooLabButton step={step ?? ""} />}
             <button onClick={() => navigate(`/student/run/${runId}`)}
               className="flex items-center gap-2 text-xs text-primary hover:underline mt-4">
               <ArrowLeft size={13} /> {t("Retour au Mission Control", "Back to Mission Control")}
@@ -2301,10 +1244,11 @@ export default function StepForm() {
               <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.objectiveFr, cfg.objectiveEn)}</p>
             </div>
 
-            {/* Context Panel: Stock by zone — shown in ALL modes for all relevant steps */}
-            {(["gr","gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count","m5_reception","stock"].includes(step?.toLowerCase() ?? "")) && (() => {
+            {/* Context Panel: Stock for evaluation mode */}
+            {(["gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
               const inv = runData?.inventory ?? {};
               const RECEPTION_BINS_UI  = ["REC-01", "REC-02"];
+              const STOCKAGE_BINS_UI   = Object.keys(inv).map(k => k.split("::")[1]).filter(b => b && !RECEPTION_BINS_UI.includes(b) && !b.startsWith("EXP") && !b.startsWith("PICK") && !b.startsWith("RES"));
               const EXPEDITION_BINS_UI = ["EXP-01", "EXP-02"];
               const sumZone = (bins: string[]) =>
                 Object.entries(inv)
@@ -2317,8 +1261,7 @@ export default function StepForm() {
               const stockageTotal = sumAll(b => !RECEPTION_BINS_UI.includes(b) && !b.startsWith("EXP") && !b.startsWith("PICK") && !b.startsWith("RES"));
               const expeditionTotal = sumZone(EXPEDITION_BINS_UI);
               const receptionTotal = sumZone(RECEPTION_BINS_UI);
-              // grandTotal = sum of all positive bin balances (TOTAL must never change during PICKING)
-              const grandTotal = receptionTotal + stockageTotal + expeditionTotal;
+              const grandTotal = Object.entries(inv).filter(([, q]) => (q as number) > 0).reduce((s, [, q]) => s + (q as number), 0);
               const hasStock = grandTotal > 0;
               return (
                 <div className="mx-4 mt-4 bg-primary/5 border border-primary/20 rounded-md p-3">
@@ -2331,16 +1274,28 @@ export default function StepForm() {
                     </p>
                   ) : (
                     <div className="space-y-1">
-                      {/* Zone summary table — always shows all 4 rows so students see every zone */}
+                      {/* Zone summary table */}
                       <div className="grid grid-cols-2 gap-x-3 text-[10px] font-mono border border-border rounded overflow-hidden">
-                        <span className={`px-2 py-0.5 font-semibold transition-colors ${receptionTotal > 0 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("RÉCEPTION", "RECEPTION")}</span>
-                        <span className={`px-2 py-0.5 text-right font-bold transition-colors ${receptionTotal > 0 ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300' : 'bg-muted/30 text-muted-foreground'}`}>{receptionTotal} {t("u.", "u.")}</span>
-                        <span className={`px-2 py-0.5 font-semibold border-t border-border transition-colors ${stockageTotal > 0 ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("STOCKAGE", "STORAGE")}</span>
-                        <span className={`px-2 py-0.5 text-right font-bold border-t border-border transition-colors ${stockageTotal > 0 ? 'bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300' : 'bg-muted/30 text-muted-foreground'}`}>{stockageTotal} {t("u.", "u.")}</span>
-                        <span className={`px-2 py-0.5 font-semibold border-t border-border transition-colors ${expeditionTotal > 0 ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300' : 'bg-muted/30 text-muted-foreground'}`}>{t("EXPÉDITION", "DISPATCH")}</span>
-                        <span className={`px-2 py-0.5 text-right font-bold border-t border-border transition-colors ${expeditionTotal > 0 ? 'bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300' : 'bg-muted/30 text-muted-foreground'}`}>{expeditionTotal} {t("u.", "u.")}</span>
-                        <span className="px-2 py-0.5 bg-primary/10 font-bold border-t-2 border-primary/30 text-primary">{t("TOTAL", "TOTAL")}</span>
-                        <span className="px-2 py-0.5 bg-primary/10 font-bold border-t-2 border-primary/30 text-right text-primary">{grandTotal} {t("u.", "u.")}</span>
+                        {receptionTotal > 0 && (
+                          <>
+                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-semibold">{t("RÉCEPTION", "RECEPTION")}</span>
+                            <span className="px-2 py-0.5 bg-blue-50 dark:bg-blue-950/30 text-right text-blue-700 dark:text-blue-300">{receptionTotal} {t("u.", "u.")}</span>
+                          </>
+                        )}
+                        {stockageTotal > 0 && (
+                          <>
+                            <span className="px-2 py-0.5 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-300 font-semibold">{t("STOCKAGE", "STORAGE")}</span>
+                            <span className="px-2 py-0.5 bg-green-50 dark:bg-green-950/30 text-right text-green-700 dark:text-green-300">{stockageTotal} {t("u.", "u.")}</span>
+                          </>
+                        )}
+                        {expeditionTotal > 0 && (
+                          <>
+                            <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-semibold">{t("EXPÉDITION", "DISPATCH")}</span>
+                            <span className="px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-right text-purple-700 dark:text-purple-300">{expeditionTotal} {t("u.", "u.")}</span>
+                          </>
+                        )}
+                        <span className="px-2 py-0.5 bg-muted font-bold border-t border-border">{t("TOTAL", "TOTAL")}</span>
+                        <span className="px-2 py-0.5 bg-muted font-bold border-t border-border text-right">{grandTotal} {t("u.", "u.")}</span>
                       </div>
                       {/* Per-bin detail */}
                       <details className="text-[10px]">
@@ -2366,45 +1321,53 @@ export default function StepForm() {
               {/* ── Compliance / Auto steps ─────────────────────────────── */}
               {step?.toLowerCase() === "compliance" && (
                 <div>
-                  {/* ── Compliant state ─────────────────────────────────── */}
-                  {runData?.compliance.compliant && (
-                    <div className="rounded-md p-4 mb-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
-                      <p className="font-bold text-sm text-green-700 dark:text-green-400 mb-1">
-                        ✅ {t("Système conforme — Prêt pour clôture", "System compliant — Ready for closing")}
-                      </p>
-                      <p className="text-xs text-green-600 dark:text-green-400">
-                        {t("Toutes les transactions sont postées, le stock est cohérent et les écarts sont résolus.", "All transactions are posted, stock is consistent and variances are resolved.")}
-                      </p>
-                    </div>
-                  )}
-                  {/* ── Non-compliant: demo mode ─────────────────────────── */}
-                  {!runData?.compliance.compliant && isDemo && (
-                    <>
-                      <div className="rounded-md p-3 mb-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700">
-                        <p className="font-bold text-xs text-amber-700 dark:text-amber-300 mb-1">
-                          ⚠ {t("Non conforme (démo) — Clôture autorisée en mode démonstration", "Non-compliant (demo) — Closing allowed in demo mode")}
-                        </p>
-                      </div>
-                      <ComplianceAuditPanel
-                        issuesFr={runData?.compliance.issuesFr ?? []}
-                        issuesEn={runData?.compliance.issues ?? []}
-                        isDemo={true}
-                        runId={parseInt(runId)}
-                        onNavigateToStep={(stepCode) => navigate(`/student/run/${runId}/step/${stepCode}`)}
-                        onRetryCompliance={() => refetch()}
-                      />
-                    </>
-                  )}
-                  {/* ── Non-compliant: evaluation mode ──────────────────── */}
+                  <div className={`rounded-md p-4 mb-4 ${
+                    runData?.compliance.compliant
+                      ? "bg-green-50 dark:bg-green-950/30"
+                      : isDemo ? "bg-amber-50 dark:bg-amber-950/30" : "bg-red-50 dark:bg-red-950/30"
+                  }`}>
+                    <p className={`font-bold text-sm mb-2 ${
+                      runData?.compliance.compliant
+                        ? "text-green-700 dark:text-green-400"
+                        : isDemo ? "text-amber-700 dark:text-amber-400" : "text-destructive"
+                    }`}>
+                      {runData?.compliance.compliant
+                        ? t("✅ Système conforme — Prêt pour clôture", "✅ System compliant — Ready for closing")
+                        : isDemo
+                        ? t("⚠ Non conforme (démo) — Clôture autorisée en mode démonstration", "⚠ Non-compliant (demo) — Closing allowed in demo mode")
+                        : t("🔴 Système non conforme — Résoudre les problèmes", "🔴 System non-compliant — Resolve issues")}
+                    </p>
+                    {runData?.compliance.issuesFr?.map((issue: string, i: number) => (
+                      <p key={i} className={`text-xs ${isDemo ? "text-amber-700 dark:text-amber-400" : "text-destructive"}`}>• {issue}</p>
+                    ))}
+                  </div>
                   {!runData?.compliance.compliant && !isDemo && (
-                    <ComplianceAuditPanel
-                      issuesFr={runData?.compliance.issuesFr ?? []}
-                      issuesEn={runData?.compliance.issues ?? []}
-                      isDemo={false}
-                      runId={parseInt(runId)}
-                      onNavigateToStep={(stepCode) => navigate(`/student/run/${runId}/step/${stepCode}`)}
-                      onRetryCompliance={() => refetch()}
-                    />
+                    <div className="space-y-2 mb-4">
+                      <div className="alert-blocked flex items-start gap-2">
+                        <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                        <p className="text-xs">{t("Résolvez tous les problèmes de conformité avant de clôturer le module.", "Resolve all compliance issues before closing the module.")}</p>
+                      </div>
+                      {/* Show actionable resolution hints per issue */}
+                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('non postée')) && (
+                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-xs">
+                          <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 {t("Comment résoudre : transactions non postées", "How to resolve: unposted transactions")}</p>
+                          <p className="text-amber-700 dark:text-amber-400">{t("Ce scénario simule une GR fantôme (réception non comptabilisée). Dans un vrai WMS, vous devez localiser et poster la transaction manquante via MB01/MIGO. Ici, retournez au tableau de bord, démarrez un nouveau scénario et veillez à poster chaque GR immédiatement après réception.", "This scenario simulates a ghost GR (unposted receipt). In a real WMS, you must locate and post the missing transaction via MB01/MIGO. Here, return to the dashboard, start a new scenario and make sure to post each GR immediately after receipt.")}</p>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/student/run/${runId}`)}
+                            className="mt-2 text-amber-800 dark:text-amber-300 underline text-xs font-semibold"
+                          >
+                            ← {t("Retour au Mission Control", "Back to Mission Control")}
+                          </button>
+                        </div>
+                      )}
+                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('écart')) && (
+                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 text-xs">
+                          <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">💡 {t("Comment résoudre : écarts d'inventaire", "How to resolve: inventory variances")}</p>
+                          <p className="text-blue-700 dark:text-blue-400">{t("Des écarts ont été détectés lors du Cycle Count. Retournez exécuter un nouveau CC pour les emplacements concernés et entrez la quantité physique réelle pour générer un ajustement (ADJ).", "Variances were detected during the Cycle Count. Go back and run a new CC for the affected locations, entering the actual physical quantity to generate an adjustment (ADJ).")}</p>
+                        </div>
+                      )}
+                    </div>
                   )}
                   <input {...register("comment")} placeholder={t("Ex: Module complété avec succès", "Ex: Module completed successfully")} className="fiori-field-input" />
                 </div>
@@ -2845,63 +1808,6 @@ export default function StepForm() {
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
               <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
-              {/* ── Single Odoo Lab per step — getActiveScenarioForStep() ─────────────── */}
-              {/* RULE: At most ONE pedagogical panel per step.                           */}
-              {/* ScenarioPanel takes priority over OdooLabButton (mutual exclusion).    */}
-              {(() => {
-                const stepCode = step?.toLowerCase() ?? "";
-                const moduleId = runData?.moduleId ?? 0;
-                const scenarioName = (runData?.scenario as any)?.name ?? "";
-
-                // Single source of truth: scenario-to-step mapping
-                // Each entry: { id, step, module, nameFragment }
-                // nameFragment = "" means "match all scenarios in that module"
-                const SCENARIO_MAP = [
-                  // M1 — each scenario maps to exactly one SCN at exactly one step
-                  { id: "SCN-001", step: "gr",           module: 1, nameFragment: "Cycle propre" },
-                  { id: "SCN-002", step: "gr",           module: 1, nameFragment: "R\u00e9ception fant\u00f4me" },
-                  { id: "SCN-003", step: "putaway_m1",   module: 1, nameFragment: "Stock insuffisant" },
-                  { id: "SCN-004", step: "gi",           module: 1, nameFragment: "\u00c9cart d'inventaire" },
-                  { id: "SCN-005", step: "compliance",   module: 1, nameFragment: "Non-conformit\u00e9s" },
-                  // Cross-module — appear for all scenarios in that module at that step
-                  { id: "SCN-M2-001", step: "fifo_pick",      module: 2, nameFragment: "" },
-                  { id: "SCN-M3-001", step: "replenish",      module: 3, nameFragment: "" },
-                  { id: "SCN-M4-001", step: "kpi_diagnostic", module: 4, nameFragment: "" },
-                  { id: "SCN-M5-001", step: "compliance_m5",  module: 5, nameFragment: "" },
-                ];
-
-                // Find the ONE matching scenario for this step + module + scenario name
-                const matches = SCENARIO_MAP.filter(s =>
-                  s.step === stepCode &&
-                  s.module === moduleId &&
-                  (s.nameFragment === "" || scenarioName.includes(s.nameFragment))
-                );
-
-                // Dev guard: warn if multiple matches (should never happen)
-                if (matches.length > 1 && import.meta.env.DEV) {
-                  console.warn(
-                    `[ScenarioPanel] Multiple scenarios match step="${stepCode}" module=${moduleId} ` +
-                    `scenario="${scenarioName}". Using first match: ${matches[0].id}`
-                  );
-                }
-
-                const active = matches[0] ?? null;
-
-                if (active) {
-                  // ScenarioPanel is active — render ONLY the scenario panel, suppress OdooLabButton
-                  return (
-                    <ScenarioPanel
-                      key={active.id}
-                      scenarioId={active.id}
-                      runId={parseInt(runId)}
-                      alreadyConfirmed={runData?.completedSteps?.includes(`${active.id}-CONFIRMED`)}
-                    />
-                  );
-                }
-
-                // No scenario panel for this step — fall back to legacy OdooLabButton
-                return <OdooLabButton step={stepCode} />;
-              })()}
             </div>
           </div>
         )}

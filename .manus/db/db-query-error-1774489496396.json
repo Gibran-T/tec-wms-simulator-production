@@ -1,0 +1,8 @@
+{
+  "query": "\nSELECT q.moduleId, qq.questionIndex, qq.correctIndex\nFROM quizzes q\nJOIN quiz_questions qq ON qq.quizId = q.id\nORDER BY q.moduleId, qq.questionIndex;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway04.us-east-1.prod.aws.tidbcloud.com --port 4000 --user M2p26uMeyZfN57L.7f2cda2e67ce --database S5Kvdsbv47gJwCwLVS8V8T --execute \nSELECT q.moduleId, qq.questionIndex, qq.correctIndex\nFROM quizzes q\nJOIN quiz_questions qq ON qq.quizId = q.id\nORDER BY q.moduleId, qq.questionIndex;\n",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 2: Unknown column 'qq.questionIndex' in 'order clause'"
+  ]
+}
