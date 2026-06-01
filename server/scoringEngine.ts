@@ -48,7 +48,7 @@ export const MODULE1_SCORING: ScoringRule[] = [
   { eventType: "WRONG_LOT_FIFO", points: -5, descriptionFr: "Lot FIFO incorrect (pas le plus ancien)" },
 
   // Bonus
-  { eventType: "PERFECT_RUN_BONUS", points: 5, descriptionFr: "Bonus : simulation complétée sans erreur" },
+  { eventType: "PERFECT_RUN_BONUS", points: 10, descriptionFr: "Bonus : simulation complétée sans erreur" },
 ];
 
 export function getScoringRule(eventType: string): ScoringRule | undefined {
