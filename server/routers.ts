@@ -1085,6 +1085,8 @@ export const appRouter = router({
             cycleCounts: state.cycleCounts,
             inventory: state.inventory,
           } : null,
+          // Unposted transactions always exposed for Ghost GR recovery (SCN-002, SCN-005)
+          unpostedTransactions: state.transactions.filter((t) => !t.posted),
         };
       }),
   }),
@@ -1360,6 +1362,54 @@ export const appRouter = router({
         // Fix 4: Auto-resolve all pending cycle count variances for this run after ADJ is posted
         await resolveAllCycleCountsByRun(input.runId);
         return { success: true };
+      }),
+
+    // ── SCN-002 Ghost GR Recovery: Post an existing unposted transaction ──────
+    // Pedagogical intent: student "locates" the phantom GR and posts it via MB01/MIGO
+    postExistingTransaction: protectedProcedure
+      .input(
+        z.object({
+          runId: z.number(),
+          txDocRef: z.string(), // docRef of the unposted transaction to post
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const txs = await getTransactionsByRun(input.runId);
+        const target = txs.find((t: any) => t.docRef === input.txDocRef && !t.posted);
+        if (!target) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Transaction non postée introuvable ou déjà postée. Vérifiez la référence du document.",
+          });
+        }
+        await postTransaction((target as any).id);
+        // Mark GR step complete if not already done and this is a GR transaction
+        if ((target as any).docType === "GR") {
+          const prog = await getProgressByRun(input.runId);
+          const grDone = prog.some((p: any) => p.stepCode === "GR" && p.completed);
+          if (!grDone) {
+            await markStepComplete(input.runId, "GR");
+            if (!run.isDemo) {
+              const rule = getScoringRule("GR_COMPLETED");
+              if (rule) {
+                await addScoringEvent({
+                  runId: input.runId,
+                  eventType: "GR_COMPLETED",
+                  pointsDelta: rule.points,
+                  message: `GR fantôme détectée et postée : ${input.txDocRef}`,
+                });
+              }
+            }
+          }
+        }
+        return {
+          success: true,
+          message: `Transaction ${input.txDocRef} postée avec succès. Le stock a été mis à jour.`,
+          docType: (target as any).docType,
+        };
       }),
   }),
   // ─── Cycle Counts ─────────────────────────────────────────────────────────────

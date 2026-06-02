@@ -766,6 +766,7 @@ export default function StepForm() {
   const submitGI = trpc.transactions.submitGI.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitCC = trpc.cycleCounts.submit.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitADJ = trpc.transactions.submitADJ.useMutation({ onSuccess: handleSuccess, onError: handleError });
+  const postExistingTx = trpc.transactions.postExistingTransaction.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitCompliance = trpc.compliance.finalize.useMutation({ onSuccess: handleSuccess, onError: handleError });
 
   // ── M2 mutations ──────────────────────────────────────────────────────────
@@ -1348,19 +1349,45 @@ export default function StepForm() {
                         <p className="text-xs">{t("Résolvez tous les problèmes de conformité avant de clôturer le module.", "Resolve all compliance issues before closing the module.")}</p>
                       </div>
                       {/* Show actionable resolution hints per issue */}
-                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('non postée')) && (
-                        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-xs">
-                          <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 {t("Comment résoudre : transactions non postées", "How to resolve: unposted transactions")}</p>
-                          <p className="text-amber-700 dark:text-amber-400">{t("Ce scénario simule une GR fantôme (réception non comptabilisée). Dans un vrai WMS, vous devez localiser et poster la transaction manquante via MB01/MIGO. Ici, retournez au tableau de bord, démarrez un nouveau scénario et veillez à poster chaque GR immédiatement après réception.", "This scenario simulates a ghost GR (unposted receipt). In a real WMS, you must locate and post the missing transaction via MB01/MIGO. Here, return to the dashboard, start a new scenario and make sure to post each GR immediately after receipt.")}</p>
-                          <button
-                            type="button"
-                            onClick={() => navigate(`/student/run/${runId}`)}
-                            className="mt-2 text-amber-800 dark:text-amber-300 underline text-xs font-semibold"
-                          >
-                            ← {t("Retour au Mission Control", "Back to Mission Control")}
-                          </button>
-                        </div>
-                      )}
+                      {runData?.compliance.issuesFr?.some((i: string) => i.includes('non postée')) && (() => {
+                        // Find all unposted transactions for this run
+                        const unpostedTxs = (runData as any)?.demoBackendState?.transactions?.filter((t: any) => !t.posted) ?? [];
+                        return (
+                          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-xs">
+                            <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">🔍 {t("GR Fantôme détectée — Action requise", "Ghost GR Detected — Action Required")}</p>
+                            <p className="text-amber-700 dark:text-amber-400 mb-2">{t(
+                              "Une ou plusieurs transactions ont été créées mais non postées. Dans SAP, une GR non postée n'a aucun effet sur le stock. Localisez la transaction et postez-la via MB01/MIGO pour corriger l'état du système.",
+                              "One or more transactions were created but not posted. In SAP, an unposted GR has no effect on stock. Locate the transaction and post it via MB01/MIGO to correct the system state."
+                            )}</p>
+                            {/* Show unposted transactions list with post buttons */}
+                            {(() => {
+                              const pendingTxs: any[] = (runData as any)?.unpostedTransactions ?? [];
+                              if (pendingTxs.length === 0) return null;
+                              return (
+                                <div className="space-y-2 mt-2">
+                                  <p className="font-semibold text-amber-800 dark:text-amber-300">{t("Transactions en attente de posting :", "Transactions pending posting:")}</p>
+                                  {pendingTxs.map((tx: any) => (
+                                    <div key={tx.docRef} className="flex items-center justify-between bg-white dark:bg-amber-900/30 rounded p-2 border border-amber-200">
+                                      <div>
+                                        <span className="font-mono font-bold text-amber-900 dark:text-amber-200">{tx.docRef}</span>
+                                        <span className="ml-2 text-amber-700 dark:text-amber-400">{tx.docType} — {tx.sku} — {tx.bin} — {tx.qty} u.</span>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        disabled={postExistingTx.isPending}
+                                        onClick={() => postExistingTx.mutate({ runId: parseInt(runId), txDocRef: tx.docRef })}
+                                        className="ml-3 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded disabled:opacity-50"
+                                      >
+                                        {postExistingTx.isPending ? t("Posting...", "Posting...") : t("Poster (MIGO)", "Post (MIGO)")}
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                        );
+                      })()}
                       {runData?.compliance.issuesFr?.some((i: string) => i.includes('écart')) && (
                         <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 text-xs">
                           <p className="font-semibold text-blue-800 dark:text-blue-300 mb-1">💡 {t("Comment résoudre : écarts d'inventaire", "How to resolve: inventory variances")}</p>
@@ -1792,12 +1819,18 @@ export default function StepForm() {
                   {isAnyPending ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      {t("Validation...", "Validating...")}
+                      {["compliance", "compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5"].includes(stepLower ?? "")
+                        ? t("Validation...", "Validating...")
+                        : t("Posting...", "Posting...")}
                     </>
                   ) : (
                     <>
                       <CheckCircle size={14} />
-                      {t("Valider la transaction", "Validate transaction")}
+                      {["compliance", "compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5"].includes(stepLower ?? "")
+                        ? t("Valider la conformité", "Validate compliance")
+                        : ["gr", "po", "gi"].includes(stepLower ?? "")
+                        ? t("Poster (MIGO)", "Post (MIGO)")
+                        : t("Valider la transaction", "Validate transaction")}
                     </>
                   )}
                 </button>
