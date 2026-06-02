@@ -57,6 +57,10 @@ export default function MissionControl() {
     labelFr: s.labelFr ?? s.code,
     code: s.sapCode ?? s.code,
   }));
+  // For M1: ADJ is conditional — only count it in the denominator when variance exists
+  // The server already excludes ADJ from progressPct when no variance; mirror that here
+  const hasVariance = (data as any)?.demoBackendState?.cycleCounts?.some((c: any) => c.variance !== 0 && !c.resolved) ?? false;
+  const effectiveSteps = (moduleId === 1 && !hasVariance) ? STEPS.filter(s => s.key !== "ADJ") : STEPS;
 
   const nextStepCode = (nextStep as any)?.code as string | undefined;
   const nextStepDef = STEPS.find(s => s.key === nextStepCode);
@@ -284,7 +288,7 @@ export default function MissionControl() {
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-slate-500 font-bold uppercase">{t("Étapes Validées", "Steps Validated")}</span>
-                    <span className="font-mono font-bold">{completedSteps.length} / {STEPS.length}</span>
+                    <span className="font-mono font-bold">{completedSteps.length} / {effectiveSteps.length}</span>
                   </div>
                 </div>
               </div>

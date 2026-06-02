@@ -13,7 +13,7 @@
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 export type StepCode =
-  | "PO" | "GR" | "PUTAWAY_M1" | "STOCK" | "SO" | "PICKING_M1" | "GI" | "CC" | "COMPLIANCE"   // Module 1
+  | "PO" | "GR" | "PUTAWAY_M1" | "STOCK" | "SO" | "PICKING_M1" | "GI" | "CC" | "ADJ" | "COMPLIANCE"   // Module 1
   | "PUTAWAY" | "FIFO_PICK" | "STOCK_ACCURACY" | "COMPLIANCE_ADV" // Module 2
   | "CC_LIST" | "CC_COUNT" | "CC_RECON" | "REPLENISH" | "COMPLIANCE_M3"; // Module 3
 
@@ -59,7 +59,10 @@ export const PICKING_BINS    = ["A-01-R1-L1", "A-01-R1-L2", "A-02-R1-L1"];
 export const EXPEDITION_BINS = ["EXP-01", "EXP-02"];
 export const RESERVE_BINS    = ["C-01-R1-L1", "C-01-R1-L2"];
 
-// ─── Module 1 Step Definitions (9 steps with physical zone logic) ─────────────
+// ─── Module 1 Step Definitions (10 steps — ADJ is conditional on variance) ────
+// NOTE: ADJ (order 8.5) is only required when a Cycle Count reveals a variance.
+// For SCN-001/002/003 (no variance), ADJ is skipped by getNextRequiredStep.
+// For SCN-004/005 (variance detected), ADJ becomes the next step after CC.
 export const MODULE1_STEPS: StepDefinition[] = [
   { code: "PO",          labelFr: "Bon de commande (ME21N)",          labelEn: "Purchase Order (ME21N)",         order: 1, prerequisite: null,          moduleId: 1 },
   { code: "GR",          labelFr: "Réception quai (MIGO)",            labelEn: "Goods Receipt — Dock (MIGO)",    order: 2, prerequisite: "PO",          moduleId: 1 },
@@ -69,7 +72,8 @@ export const MODULE1_STEPS: StepDefinition[] = [
   { code: "PICKING_M1",  labelFr: "Prélèvement expédition (VL01N)",   labelEn: "Picking to Dispatch (VL01N)",    order: 6, prerequisite: "SO",          moduleId: 1 },
   { code: "GI",          labelFr: "Sortie marchandises (VL02N)",      labelEn: "Goods Issue (VL02N)",            order: 7, prerequisite: "PICKING_M1",  moduleId: 1 },
   { code: "CC",          labelFr: "Comptage cyclique (MI01)",         labelEn: "Cycle Count (MI01)",             order: 8, prerequisite: "GI",          moduleId: 1 },
-  { code: "COMPLIANCE",  labelFr: "Conformité système",               labelEn: "System Compliance",             order: 9, prerequisite: "CC",          moduleId: 1 },
+  { code: "ADJ",         labelFr: "Ajustement inventaire (MI07)",     labelEn: "Inventory Adjustment (MI07)",    order: 9, prerequisite: "CC",          moduleId: 1 },
+  { code: "COMPLIANCE",  labelFr: "Conformité système",               labelEn: "System Compliance",             order: 10, prerequisite: "CC",         moduleId: 1 },
 ];
 
 // ─── Module 2 Step Definitions ────────────────────────────────────────────────
@@ -288,7 +292,40 @@ export function canExecuteStep(step: StepCode, state: RunState): ValidationResul
     }
   }
 
+  // ADJ: only required when CC has been completed AND unresolved variances exist
+  if (step === "ADJ") {
+    const hasCCDone = state.completedSteps.includes("CC");
+    if (!hasCCDone) {
+      return {
+        allowed: false,
+        reason: "Cycle Count must be completed before Inventory Adjustment",
+        reasonFr: "Le Cycle Count (MI01) doit être complété avant l'ajustement d'inventaire (MI07)",
+        reasonEn: "Cycle Count must be completed before Inventory Adjustment.",
+      };
+    }
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    if (!hasVariance) {
+      return {
+        allowed: false,
+        reason: "No unresolved inventory variance detected — ADJ not required",
+        reasonFr: "Aucun écart d'inventaire non résolu détecté — l'ajustement ADJ n'est pas requis pour ce scénario",
+        reasonEn: "No unresolved inventory variance detected — ADJ step is not required for this scenario.",
+      };
+    }
+  }
+
   if (step === "COMPLIANCE") {
+    // For scenarios with variance (SCN-004, SCN-005), ADJ must be done before COMPLIANCE
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0);
+    const hasUnresolvedVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    if (hasVariance && hasUnresolvedVariance) {
+      return {
+        allowed: false,
+        reason: "Unresolved inventory variance — complete ADJ (MI07) before compliance check",
+        reasonFr: "Écart d'inventaire non résolu — complétez l'ajustement ADJ (MI07) avant la conformité",
+        reasonEn: "Unresolved inventory variance — complete ADJ (MI07) before the compliance check.",
+      };
+    }
     const result = checkCompliance(state);
     if (!result.compliant) {
       return {
@@ -695,20 +732,47 @@ export function checkCompliance(state: RunState): ComplianceResult {
 }
 
 // ─── Next Required Step ───────────────────────────────────────────────────────
-export function getNextRequiredStep(completedSteps: StepCode[], moduleId = 1): StepDefinition | null {
+/**
+ * Returns the next step the student must complete.
+ * For M1: ADJ is skipped when no unresolved variance exists (SCN-001/002/003).
+ * Pass state to enable conditional ADJ skipping.
+ */
+export function getNextRequiredStep(
+  completedSteps: StepCode[],
+  moduleId = 1,
+  state?: Pick<RunState, "cycleCounts">
+): StepDefinition | null {
   const steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
   for (const step of steps) {
-    if (!completedSteps.includes(step.code)) {
-      return step;
+    if (completedSteps.includes(step.code)) continue;
+    // Skip ADJ when no unresolved variance (SCN-001/002/003 have no variance)
+    if (step.code === "ADJ" && state) {
+      const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+      if (!hasVariance) continue;
     }
+    return step;
   }
   return null;
 }
 
-// ─── Progress Percentage ──────────────────────────────────────────────────────
-export function calculateProgressPct(completedSteps: StepCode[], moduleId = 1): number {
+/**
+ * Calculates progress as a percentage of steps completed.
+ * For M1: ADJ is excluded from the denominator when no variance exists,
+ * so SCN-001/002/003 still reach 100% without completing ADJ.
+ */
+export function calculateProgressPct(
+  completedSteps: StepCode[],
+  moduleId = 1,
+  state?: Pick<RunState, "cycleCounts">
+): number {
   const steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
-  return Math.round((completedSteps.length / steps.length) * 100);
+  if (moduleId === 1 && state) {
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    const effectiveSteps = hasVariance ? steps : steps.filter((s) => s.code !== "ADJ");
+    const effectiveCompleted = completedSteps.filter((c) => effectiveSteps.some((s) => s.code === c));
+    return Math.min(100, Math.round((effectiveCompleted.length / effectiveSteps.length) * 100));
+  }
+  return Math.min(100, Math.round((completedSteps.length / steps.length) * 100));
 }
 
 // ─── Module 4: Indicateurs de performance logistique ─────────────────────────
@@ -876,7 +940,11 @@ export function scoreM5Decision(studentDecision: string, kpiResult: KpiResult): 
 }
 
 // ─── Updated getNextRequiredStep (all modules) ────────────────────────────────
-export function getNextRequiredStepAllModules(completedSteps: StepCode[], moduleId: number): StepDefinition | null {
+export function getNextRequiredStepAllModules(
+  completedSteps: StepCode[],
+  moduleId: number,
+  state?: Pick<RunState, "cycleCounts">
+): StepDefinition | null {
   const stepsMap: Record<number, StepDefinition[]> = {
     1: MODULE1_STEPS,
     2: MODULE2_STEPS,
@@ -886,14 +954,22 @@ export function getNextRequiredStepAllModules(completedSteps: StepCode[], module
   };
   const steps = stepsMap[moduleId] ?? MODULE1_STEPS;
   for (const step of steps) {
-    if (!completedSteps.includes(step.code)) {
-      return step;
+    if (completedSteps.includes(step.code)) continue;
+    // M1 only: skip ADJ when no unresolved variance exists
+    if (moduleId === 1 && step.code === "ADJ" && state) {
+      const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+      if (!hasVariance) continue;
     }
+    return step;
   }
   return null;
 }
 
-export function calculateProgressPctAllModules(completedSteps: StepCode[], moduleId: number): number {
+export function calculateProgressPctAllModules(
+  completedSteps: StepCode[],
+  moduleId: number,
+  state?: Pick<RunState, "cycleCounts">
+): number {
   const stepsMap: Record<number, StepDefinition[]> = {
     1: MODULE1_STEPS,
     2: MODULE2_STEPS,
@@ -903,5 +979,12 @@ export function calculateProgressPctAllModules(completedSteps: StepCode[], modul
   };
   const steps = stepsMap[moduleId] ?? MODULE1_STEPS;
   if (steps.length === 0) return 0;
-  return Math.round((completedSteps.length / steps.length) * 100);
+  // M1 only: exclude ADJ from denominator when no variance exists
+  if (moduleId === 1 && state) {
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    const effectiveSteps = hasVariance ? steps : steps.filter((s) => s.code !== "ADJ");
+    const effectiveCompleted = completedSteps.filter((c) => effectiveSteps.some((s) => s.code === c));
+    return Math.min(100, Math.round((effectiveCompleted.length / effectiveSteps.length) * 100));
+  }
+  return Math.min(100, Math.round((completedSteps.length / steps.length) * 100));
 }

@@ -38,7 +38,7 @@ import {
   MODULE3_STEPS,
 } from "./rulesEngine";
 import { getScoringRule, calculateTotalScore, MODULE1_SCORING } from "./scoringEngine";
-import type { RunState } from "./rulesEngine";
+import type { RunState, StepCode } from "./rulesEngine";
 
 // ─── Shared Fixtures ──────────────────────────────────────────────────────────
 
@@ -466,8 +466,28 @@ describe("M1 Integration — Full Cycle PO→GR→PUTAWAY→STOCK→SO→PICKING
     });
   });
 
-  // ── Step 9: COMPLIANCE ──────────────────────────────────────────────────────
-  describe("Step 9 — COMPLIANCE (System Compliance)", () => {
+  // ── Step 9 (conditional): ADJ ────────────────────────────────────────────────────────────────────────
+  describe("Step 9 (conditional) — ADJ (Inventory Adjustment)", () => {
+    it("ADJ is the 9th step in MODULE1_STEPS", () => {
+      const adj = MODULE1_STEPS.find((s) => s.code === "ADJ");
+      expect(adj).toBeDefined();
+      expect(adj!.order).toBe(9);
+    });
+
+    it("ADJ prerequisite is CC", () => {
+      const adj = MODULE1_STEPS.find((s) => s.code === "ADJ");
+      expect(adj!.prerequisite).toBe("CC");
+    });
+
+    it("ADJ_COMPLETED scoring rule exists and is worth 10 points", () => {
+      const rule = getScoringRule("ADJ_COMPLETED");
+      expect(rule).toBeDefined();
+      expect(rule!.points).toBe(10);
+    });
+  });
+
+  // ── Step 10: COMPLIANCE ────────────────────────────────────────────────────────────────────────
+  describe("Step 10 — COMPLIANCE (System Compliance)", () => {
     it("COMPLIANCE is blocked when unposted transactions exist", () => {
       const state = makeState(
         ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC"],
@@ -516,9 +536,17 @@ describe("M1 Integration — Full Cycle PO→GR→PUTAWAY→STOCK→SO→PICKING
       expect(result.issues.some((i) => i.includes("unresolved"))).toBe(true);
     });
 
-    it("progress is 100% after all 9 M1 steps", () => {
+    it("progress is 100% after all 10 M1 steps (with ADJ)", () => {
       const allSteps = MODULE1_STEPS.map((s) => s.code);
       const pct = calculateProgressPct(allSteps, 1);
+      expect(pct).toBe(100);
+    });
+
+    it("progress is 100% after 9 M1 steps (without ADJ — no variance scenario)", () => {
+      // Must pass state with no variance so calculateProgressPct uses 9-step denominator
+      const stepsWithoutAdj = MODULE1_STEPS.filter(s => s.code !== "ADJ").map(s => s.code) as StepCode[];
+      const noVarianceState = { cycleCounts: [] };
+      const pct = calculateProgressPct(stepsWithoutAdj, 1, noVarianceState);
       expect(pct).toBe(100);
     });
   });

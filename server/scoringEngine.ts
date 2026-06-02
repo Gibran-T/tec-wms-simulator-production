@@ -18,6 +18,7 @@ export const MODULE1_SCORING: ScoringRule[] = [
   { eventType: "GI_COMPLETED", points: 10, descriptionFr: "Sortie marchandises (GI) sans stock négatif" },
   { eventType: "CC_COMPLETED", points: 10, descriptionFr: "Comptage cyclique (Cycle Count) complété" },
   { eventType: "COMPLIANCE_OK", points: 40, descriptionFr: "Conformité système validée" },
+  { eventType: "ADJ_COMPLETED", points: 10, descriptionFr: "Ajustement d'inventaire (ADJ/MI07) complété" },
   // M2 specific
   { eventType: "FIFO_PICK_COMPLETED", points: 15, descriptionFr: "Prélèvement FIFO complété avec lot correct" },
   { eventType: "STOCK_ACCURACY_COMPLETED", points: 10, descriptionFr: "Précision stock validée" },

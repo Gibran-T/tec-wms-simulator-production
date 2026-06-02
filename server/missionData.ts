@@ -27,7 +27,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       "Confirmer le rangement (Putaway) dans la zone de stockage."
     ],
     expectedOutcome: "Flux complété avec un inventaire final à zéro (flux tendu).",
-    supervisorNotes: "Assurez-vous de respecter la séquence opérationnelle : PO -> GR -> Putaway -> SO -> Picking -> GI.",
+    supervisorNotes: "Assurez-vous de respecter la séquence opérationnelle : PO → GR → Putaway → SO → Picking → GI.",
     technicalSpecs: {
       sku: "SKU-001",
       quantity: 100,
@@ -75,38 +75,44 @@ export const M1_MISSIONS: Record<number, MissionData> = {
   4: {
     scenarioId: 4,
     objective: "Réconciliation d'inventaire suite à un écart physique/système.",
-    context: "L'inventaire tournant a révélé une différence entre le stock théorique et le stock réel en bin. Un ajustement est nécessaire.",
+    context: "Stock système : 200 unités SKU-006 | Stock physique : 185 unités — écart de −15 unités détecté lors du comptage cyclique. Un ajustement MI07 (ADJ) est requis pour corriger le système.",
     role: "Auditeur d'Inventaire",
     module: "Contrôle d'Intégrité",
     controlPoints: [
-      "Comparer les résultats du Cycle Count avec le Cockpit.",
-      "Identifier le bin présentant l'écart.",
-      "Utiliser la transaction d'ajustement (ADJ) pour corriger le système."
+      "Effectuer le rangement (PUTAWAY) des 200 unités reçues vers la zone STOCKAGE.",
+      "Créer et expédier la commande client (SO → PICKING → GI).",
+      "Effectuer le Cycle Count (MI01) — entrez 185 comme quantité physique pour révéler l'écart de −15.",
+      "Créer une transaction ADJ (MI07) pour corriger l'écart de −15 unités.",
+      "Valider la conformité système."
     ],
     expectedOutcome: "Écart d'inventaire résolu et conformité système rétablie.",
-    supervisorNotes: "Tout ajustement (ADJ) doit être justifié par un comptage physique certifié.",
+    supervisorNotes: "Tout ajustement (ADJ) doit être justifié par un comptage physique certifié. L'écart de −15 unités est intentionnel — entrez la quantité physique réelle (185) lors du Cycle Count.",
     technicalSpecs: {
-      sku: "SKU-001",
-      quantity: 15,
-      suggestedBin: "STOCK-01"
+      sku: "SKU-006",
+      quantity: 200,
+      suggestedBin: "REC-01"
     }
   },
   5: {
     scenarioId: 5,
     objective: "Résolution de non-conformités multiples en environnement complexe.",
-    context: "Plusieurs incidents simultanés bloquent l'entrepôt : une réception non postée et un écart de comptage.",
+    context: "Deux anomalies simultanées : (1) GR non postée pour SKU-004 (30 unités, doc GR-2025-004) — à poster via MIGO. (2) Écart inventaire SKU-005 (−8 unités) — à corriger via ADJ (MI07). Résolvez dans l'ordre : Documents → Physique → Expédition.",
     role: "Superviseur Logistique",
     module: "Gestion de Crise / Multi-Module",
     controlPoints: [
-      "Prioriser les actions via le panneau de conformité.",
-      "Résoudre les anomalies documentaires avant les ajustements de stock.",
-      "Rétablir le flux d'expédition pour les commandes prioritaires."
+      "Localiser et poster la GR fantôme (GR-2025-004) pour SKU-004 via le moniteur de transactions.",
+      "Effectuer le PUTAWAY pour SKU-004 (REC-01 → STOCKAGE) et SKU-005 (REC-02 → STOCKAGE).",
+      "Créer et expédier la commande client (SO → PICKING → GI).",
+      "Effectuer le Cycle Count (MI01) — l'écart de −8 unités SKU-005 sera détecté.",
+      "Créer une transaction ADJ (MI07) pour corriger l'écart SKU-005.",
+      "Valider la conformité système."
     ],
     expectedOutcome: "Entrepôt 100% conforme et flux d'expédition débloqué.",
-    supervisorNotes: "En cas de crises multiples, suivez l'ordre logique : Documents -> Physique -> Expédition.",
+    supervisorNotes: "En cas de crises multiples, suivez l'ordre logique : Documents → Physique → Expédition. La GR fantôme doit être postée AVANT le PUTAWAY.",
     technicalSpecs: {
-      sku: "SKU-001",
-      quantity: 100
+      sku: "SKU-004 / SKU-005",
+      quantity: 90,
+      suggestedBin: "REC-01 / REC-02"
     }
   }
 };

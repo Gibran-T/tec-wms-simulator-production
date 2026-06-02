@@ -173,7 +173,7 @@ const STEP_CONFIG: Record<string, {
   },
   adj: {
     titleFr: "Ajustement inventaire", titleEn: "Inventory Adjustment", code: "ADJ", txCode: "MI07", tCode: "MI07",
-    etapeFr: "Étape 8b sur 9", etapeEn: "Step 8b of 9",
+    etapeFr: "Étape 9 sur 10", etapeEn: "Step 9 of 10",
     objectiveFr: "Corriger les écarts d'inventaire détectés lors du Cycle Count. L'ajustement est obligatoire avant la clôture.",
     objectiveEn: "Correct inventory variances detected during Cycle Count. Adjustment is mandatory before closing.",
     fields: ["sku", "bin", "qty", "comment"],
@@ -190,7 +190,7 @@ const STEP_CONFIG: Record<string, {
   },
   compliance: {
     titleFr: "Conformité Système", titleEn: "System Compliance", code: "COMPLIANCE", txCode: "MB52", tCode: "MB52",
-    etapeFr: "Étape 9 sur 9", etapeEn: "Step 9 of 9",
+    etapeFr: "Étape 10 sur 10", etapeEn: "Step 10 of 10",
     objectiveFr: "Valider la conformité complète du système. Tous les indicateurs doivent être au vert : aucune transaction non postée, aucun stock négatif, aucun écart non résolu.",
     objectiveEn: "Validate complete system compliance. All indicators must be green: no unposted transactions, no negative stock, no unresolved variances.",
     fields: ["comment"],

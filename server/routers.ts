@@ -760,7 +760,7 @@ export const appRouter = router({
           return {
             ...r,
             completedSteps: state.completedSteps as string[],
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             score: r.run.isDemo ? null : calculateTotalScore(events),
           };
         })
@@ -785,7 +785,7 @@ export const appRouter = router({
             const penalties = events.filter(e => e.pointsDelta < 0).length;
             const bonuses   = events.filter(e => e.pointsDelta > 0).length;
             const state     = await buildRunState(r.run.id);
-            const progress  = calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId);
+            const progress  = calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state);
             return {
               attempt:     idx + 1,
               runId:       r.run.id,
@@ -835,7 +835,7 @@ export const appRouter = router({
         // ── Step max points map (all modules) ───────────────────────────────
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
-          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, COMPLIANCE: 40,
+          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, ADJ: 10, COMPLIANCE: 40,
           // M2
           FIFO_PICK: 15, STOCK_ACCURACY: 15, COMPLIANCE_ADV: 20,
           // M3
@@ -849,7 +849,7 @@ export const appRouter = router({
           // M1
           PO: "PO_COMPLETED", GR: "GR_COMPLETED", PUTAWAY_M1: "PUTAWAY_M1_COMPLETED",
           SO: "SO_COMPLETED", PICKING_M1: "PICKING_M1_COMPLETED",
-          GI: "GI_COMPLETED", CC: "CC_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
+          GI: "GI_COMPLETED", CC: "CC_COMPLETED", ADJ: "ADJ_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
           // M2
           FIFO_PICK: "FIFO_PICK_COMPLETED", STOCK_ACCURACY: "STOCK_ACCURACY_COMPLETED", COMPLIANCE_ADV: "COMPLIANCE_ADV_COMPLETED",
           // M3
@@ -1034,13 +1034,13 @@ export const appRouter = router({
           recommendations,
           complianceIssues: compliance.issuesFr,
           completedSteps: state.completedSteps,
-          progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId),
+          progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId, state),
           zoneFlow,
           transactionTimeline,
           totalTransactions: state.transactions.filter(t => t.posted).length,
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
-          totalSteps: MODULE1_STEPS.length,
+          totalSteps: moduleId === 1 ? (state.cycleCounts.some(c => c.variance !== 0) ? MODULE1_STEPS.length : MODULE1_STEPS.length - 1) : MODULE1_STEPS.length,
           certificationUnlocked: silverCertified,
         };
       }),
@@ -1074,8 +1074,8 @@ export const appRouter = router({
         const totalScore = calculateTotalScore(await getScoringEventsByRun(input.runId));
         const compliance = checkCompliance(state);
          const moduleId = scenario?.moduleId ?? 1;
-        const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId);
-        const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId);
+        const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId, state);
+        const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId, state);
         return {
           run,
           scenario,
@@ -1370,10 +1370,22 @@ export const appRouter = router({
           comment: z.string().optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        // Fix 4: Auto-resolve all pending cycle count variances for this run after ADJ is posted
+        // Auto-resolve all pending cycle count variances for this run after ADJ is posted
         await resolveAllCycleCountsByRun(input.runId);
+        // Mark ADJ step complete
+        await markStepComplete(input.runId, "ADJ");
+        // Award ADJ_COMPLETED scoring event (once per run — covers SCN-004 and SCN-005)
+        if (!run.isDemo) {
+          const ruleAdj = getScoringRule("ADJ_COMPLETED");
+          if (ruleAdj) {
+            await addScoringEventOnce({ runId: input.runId, eventType: "ADJ_COMPLETED", pointsDelta: ruleAdj.points, message: ruleAdj.descriptionFr });
+          }
+        }
         return { success: true };
       }),
 
@@ -1682,7 +1694,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             score: r.run.isDemo ? null : calculateTotalScore(events),
             compliant: compliance.compliant,
@@ -1726,7 +1738,7 @@ export const appRouter = router({
             isDemo: r.run.isDemo,
             status: r.run.status,
             score,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             stepStatus,
             compliant: compliance.compliant,
@@ -1946,7 +1958,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             score: calculateTotalScore(events),
             compliant: compliance.compliant,

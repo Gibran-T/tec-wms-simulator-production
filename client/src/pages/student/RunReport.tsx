@@ -12,12 +12,12 @@ import {
 const STEP_LABELS_FR: Record<string, string> = {
   PO: "Bon de commande (ME21N)", GR: "Réception quai (MIGO)", PUTAWAY_M1: "Rangement stock (LT0A)",
   STOCK: "Stock Disponible", SO: "Commande client (VA01)", PICKING_M1: "Prélèvement expédition (VL01N)",
-  GI: "Sortie marchandises (VL02N)", CC: "Comptage cyclique (MI01)", COMPLIANCE: "Conformité Système"
+  GI: "Sortie marchandises (VL02N)", CC: "Comptage cyclique (MI01)", ADJ: "Ajustement inventaire (MI07)", COMPLIANCE: "Conformité Système"
 };
 const STEP_LABELS_EN: Record<string, string> = {
   PO: "Purchase Order (ME21N)", GR: "Goods Receipt — Dock (MIGO)", PUTAWAY_M1: "Putaway to Stock (LT0A)",
   STOCK: "Available Stock", SO: "Sales Order (VA01)", PICKING_M1: "Picking to Dispatch (VL01N)",
-  GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "System Compliance"
+  GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)", ADJ: "Inventory Adjustment (MI07)", COMPLIANCE: "System Compliance"
 };
 
 // ─── Score Evolution Chart component ─────────────────────────────────────────
