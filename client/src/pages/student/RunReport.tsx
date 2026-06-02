@@ -10,12 +10,14 @@ import {
 } from "recharts";
 
 const STEP_LABELS_FR: Record<string, string> = {
-  PO: "Bon de commande (ME21N)", GR: "Réception marchandises (MIGO)", STOCK: "Stock Disponible",
-  SO: "Commande client (VA01)", GI: "Sortie de stock (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "Conformité Système"
+  PO: "Bon de commande (ME21N)", GR: "Réception quai (MIGO)", PUTAWAY_M1: "Rangement stock (LT0A)",
+  STOCK: "Stock Disponible", SO: "Commande client (VA01)", PICKING_M1: "Prélèvement expédition (VL01N)",
+  GI: "Sortie marchandises (VL02N)", CC: "Comptage cyclique (MI01)", COMPLIANCE: "Conformité Système"
 };
 const STEP_LABELS_EN: Record<string, string> = {
-  PO: "Purchase Order (ME21N)", GR: "Goods Receipt (MIGO)", STOCK: "Available Stock",
-  SO: "Sales Order (VA01)", GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "System Compliance"
+  PO: "Purchase Order (ME21N)", GR: "Goods Receipt — Dock (MIGO)", PUTAWAY_M1: "Putaway to Stock (LT0A)",
+  STOCK: "Available Stock", SO: "Sales Order (VA01)", PICKING_M1: "Picking to Dispatch (VL01N)",
+  GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "System Compliance"
 };
 
 // ─── Score Evolution Chart component ─────────────────────────────────────────

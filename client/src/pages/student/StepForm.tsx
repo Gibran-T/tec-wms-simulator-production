@@ -1426,18 +1426,48 @@ export default function StepForm() {
                   {["compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5"].includes(step?.toLowerCase() ?? "") && (
                     <p className="text-xs mt-1">{t("Toutes les étapes précédentes ont été complétées. Cliquez sur Valider pour finaliser ce module.", "All previous steps have been completed. Click Validate to finalize this module.")}</p>
                   )}
-                  {step?.toLowerCase() === "stock" && (
-                    <div className="mt-3 space-y-0.5">
-                      {Object.entries(runData?.inventory ?? {}).filter(([, qty]) => (qty as number) > 0).map(([key, qty]) => {
-                        const [sku, bin] = key.split("::");
-                        return (
-                          <p key={key} className="text-[10px] font-mono">
-                            <span className="text-primary font-semibold">{sku}</span> @ <span className="text-green-600 dark:text-green-400">{bin}</span> — <strong>{qty as number} {t("unités", "units")}</strong>
-                          </p>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {step?.toLowerCase() === "stock" && (() => {
+                    const inv = runData?.inventory ?? {};
+                    // Calculate total stock in STOCKAGE bins (B-xx-Rx-Lx pattern)
+                    const stockageTotal = Object.entries(inv)
+                      .filter(([key, qty]) => {
+                        const bin = key.split("::")[1] ?? "";
+                        return /^[A-Z]-\d{2}-R\d-L\d/.test(bin) && (qty as number) > 0;
+                      })
+                      .reduce((sum, [, qty]) => sum + (qty as number), 0);
+                    // Parse SO demand from scenario context (e.g. "SO demande 80 unités")
+                    const ctxStr: string = (runData as any)?.scenario?.initialStateJson?.context ?? "";
+                    const demandMatch = ctxStr.match(/SO demande (\d+)/i);
+                    const soDemand = demandMatch ? parseInt(demandMatch[1]) : 0;
+                    const hasShortage = soDemand > 0 && stockageTotal < soDemand;
+                    return (
+                      <>
+                        {hasShortage && (
+                          <div className="mt-3 p-2 rounded border border-amber-400 bg-amber-50 dark:bg-amber-950/30">
+                            <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                              ⚠️ {t("Stock insuffisant pour le SO", "Insufficient stock for SO")}
+                            </p>
+                            <p className="text-[11px] mt-1 text-amber-600 dark:text-amber-300">
+                              {t(
+                                `Stock disponible : ${stockageTotal} unités — SO demande : ${soDemand} unités. Créez un PO + GR supplémentaire pour les ${soDemand - stockageTotal} unités manquantes, puis effectuez un nouveau rangement (PUTAWAY) avant de créer le SO.`,
+                                `Available stock : ${stockageTotal} units — SO demands : ${soDemand} units. Create a supplementary PO + GR for the ${soDemand - stockageTotal} missing units, then perform a new putaway before creating the SO.`
+                              )}
+                            </p>
+                          </div>
+                        )}
+                        <div className="mt-3 space-y-0.5">
+                          {Object.entries(inv).filter(([, qty]) => (qty as number) > 0).map(([key, qty]) => {
+                            const [sku, bin] = key.split("::");
+                            return (
+                              <p key={key} className="text-[10px] font-mono">
+                                <span className="text-primary font-semibold">{sku}</span> @ <span className="text-green-600 dark:text-green-400">{bin}</span> — <strong>{qty as number} {t("unités", "units")}</strong>
+                              </p>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -1828,8 +1858,16 @@ export default function StepForm() {
                       <CheckCircle size={14} />
                       {["compliance", "compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5"].includes(stepLower ?? "")
                         ? t("Valider la conformité", "Validate compliance")
-                        : ["gr", "po", "gi"].includes(stepLower ?? "")
+                        : ["gr", "po"].includes(stepLower ?? "")
                         ? t("Poster (MIGO)", "Post (MIGO)")
+                        : stepLower === "gi"
+                        ? t("Poster (VL02N)", "Post (VL02N)")
+                        : stepLower === "putaway_m1"
+                        ? t("Poster (LT0A)", "Post (LT0A)")
+                        : stepLower === "picking_m1"
+                        ? t("Poster (VL01N)", "Post (VL01N)")
+                        : stepLower === "so"
+                        ? t("Poster (VA01)", "Post (VA01)")
                         : t("Valider la transaction", "Validate transaction")}
                     </>
                   )}

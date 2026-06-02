@@ -18,7 +18,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
   1: {
     scenarioId: 1,
     objective: "Exécution d'un flux logistique nominal complet (End-to-End).",
-    context: "Concorde Logistics a reçu une commande standard. Vous devez assurer la réception, le rangement e l'expédition sans aucune anomalie système.",
+    context: "Concorde Logistics a reçu une commande standard. Vous devez assurer la réception, le rangement et l'expédition sans aucune anomalie système.",
     role: "Gestionnaire de Stocks",
     module: "WMS / ERP Core",
     controlPoints: [
@@ -37,7 +37,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
   2: {
     scenarioId: 2,
     objective: "Détection et résolution d'une anomalie de réception (Ghost GR).",
-    context: "Le système affiche un Bon de Commande validé, mas le stock n'est pas apparu dans le bin de réception. Une étape administrative a été omise.",
+    context: "Le système affiche un Bon de Commande validé, mais le stock n'est pas apparu dans le bin de réception. Une étape administrative a été omise.",
     role: "Contrôleur Qualité Logistique",
     module: "Gestion des Anomalies ERP",
     controlPoints: [
@@ -83,7 +83,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       "Identifier le bin présentant l'écart.",
       "Utiliser la transaction d'ajustement (ADJ) pour corriger le système."
     ],
-    expectedOutcome: "Écart d'inventaire résolu et conformidade système rétablie.",
+    expectedOutcome: "Écart d'inventaire résolu et conformité système rétablie.",
     supervisorNotes: "Tout ajustement (ADJ) doit être justifié par un comptage physique certifié.",
     technicalSpecs: {
       sku: "SKU-001",
@@ -94,11 +94,11 @@ export const M1_MISSIONS: Record<number, MissionData> = {
   5: {
     scenarioId: 5,
     objective: "Résolution de non-conformités multiples en environnement complexe.",
-    context: "Plusieurs incidents simultanés bloquent l'entrepôt : une réception non postée e um erro de comptage.",
+    context: "Plusieurs incidents simultanés bloquent l'entrepôt : une réception non postée et un écart de comptage.",
     role: "Superviseur Logistique",
     module: "Gestion de Crise / Multi-Module",
     controlPoints: [
-      "Prioriser les actions via le panneau de conformidade.",
+      "Prioriser les actions via le panneau de conformité.",
       "Résoudre les anomalies documentaires avant les ajustements de stock.",
       "Rétablir le flux d'expédition pour les commandes prioritaires."
     ],

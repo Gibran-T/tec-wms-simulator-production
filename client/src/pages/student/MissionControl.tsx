@@ -126,7 +126,7 @@ export default function MissionControl() {
                       : nextStepCode ? `${nextStepDef?.label || nextStepCode} (${nextStepDef?.code || ''})` : t("BLOQUAGE SYSTÈME", "SYSTEM BLOCK")}
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-                    {nextStepCode ? t("Consultez la fiche de missão e valide as transações no WMS.", "Check the mission sheet and validate transactions in WMS.") : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
+                    {nextStepCode ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.") : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
                   </p>
                 </div>
                 {nextStepCode && (

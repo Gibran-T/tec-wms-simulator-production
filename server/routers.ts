@@ -139,6 +139,19 @@ const studentProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Awards a scoring event only if the same eventType has NOT already been awarded
+ * for this run. Prevents double-scoring in multi-step scenarios (SCN-003, SCN-005).
+ */
+async function addScoringEventOnce(
+  params: { runId: number; eventType: string; pointsDelta: number; message: string }
+) {
+  const existing = await getScoringEventsByRun(params.runId);
+  const alreadyAwarded = existing.some((e: any) => e.eventType === params.eventType && e.pointsDelta > 0);
+  if (!alreadyAwarded) {
+    await addScoringEvent(params);
+  }
+}
 async function buildRunState(runId: number) {
   const txs = await getTransactionsByRun(runId);
   const ccs = await getCycleCountsByRun(runId);
@@ -822,7 +835,7 @@ export const appRouter = router({
         // ── Step max points map (all modules) ───────────────────────────────
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
-          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 15, CC: 10, COMPLIANCE: 5,
+          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, COMPLIANCE: 40,
           // M2
           FIFO_PICK: 15, STOCK_ACCURACY: 15, COMPLIANCE_ADV: 20,
           // M3
@@ -1126,7 +1139,7 @@ export const appRouter = router({
         await markStepComplete(input.runId, "PO");
         // Scoring applies in both eval and demo modes (demo score is non-official)
         const rulePO = getScoringRule("PO_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
       }),
 
@@ -1164,7 +1177,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GR");
         const ruleGR = getScoringRule("GR_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
         const demoWarnGR = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1208,7 +1221,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
         await markStepComplete(input.runId, "PUTAWAY_M1");
         await markStepComplete(input.runId, "STOCK");
-        await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1241,7 +1254,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "SO", moveType: "VA01", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "SO");
         const ruleSO = getScoringRule("SO_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
       }),
 
@@ -1287,7 +1300,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "GI", moveType: "261", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GI");
         const ruleGI = getScoringRule("GI_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
         const demoWarning = run.isDemo && (!validation.allowed || !stockCheck.allowed || !zoneCheckGI.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !stockCheck.allowed ? pickReason(stockCheck, ctx.req) : null, !zoneCheckGI.allowed ? pickReason(zoneCheckGI, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1338,7 +1351,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "VL01N", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
         await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "VL01N", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement arrivée ${input.toBin}` });
         await markStepComplete(input.runId, "PICKING_M1");
-        await addScoringEvent({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed || !stockCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !stockCheck.allowed ? pickReason(stockCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1395,7 +1408,7 @@ export const appRouter = router({
             if (!run.isDemo) {
               const rule = getScoringRule("GR_COMPLETED");
               if (rule) {
-                await addScoringEvent({
+                await addScoringEventOnce({
                   runId: input.runId,
                   eventType: "GR_COMPLETED",
                   pointsDelta: rule.points,
@@ -1444,7 +1457,7 @@ export const appRouter = router({
         });
         await markStepComplete(input.runId, "CC");
         const ruleCC = getScoringRule("CC_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
         return { success: true, variance };
       }),
 
@@ -1464,15 +1477,17 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         return checkCompliance(state);
       }),
-
     finalize: protectedProcedure
       .input(z.object({ runId: z.number() }))
       .mutation(async ({ input }) => {
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        // Guard: prevent double-finalization of already-completed runs
+        if ((run as any).status === "completed") {
+          return { success: true, isDemo: run.isDemo, demoWarning: null };
+        }
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
-
         if (!run.isDemo) {
           // Evaluation mode: hard block on non-compliance
           if (!compliance.compliant) {
