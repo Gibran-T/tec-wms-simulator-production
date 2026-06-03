@@ -95,6 +95,7 @@ import {
   canExecuteStepM3,
   computeReplenishmentSuggestion,
   scoreM5Decision,
+  getEffectiveM1Steps,
   type KpiData,
 } from "./rulesEngine";
 import {
@@ -139,6 +140,19 @@ const studentProcedure = protectedProcedure.use(({ ctx, next }) => {
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+/**
+ * Awards a scoring event only if the same eventType has NOT already been awarded
+ * for this run. Prevents double-scoring in multi-step scenarios (SCN-003, SCN-005).
+ */
+async function addScoringEventOnce(
+  params: { runId: number; eventType: string; pointsDelta: number; message: string }
+) {
+  const existing = await getScoringEventsByRun(params.runId);
+  const alreadyAwarded = existing.some((e: any) => e.eventType === params.eventType && e.pointsDelta > 0);
+  if (!alreadyAwarded) {
+    await addScoringEvent(params);
+  }
+}
 async function buildRunState(runId: number) {
   const txs = await getTransactionsByRun(runId);
   const ccs = await getCycleCountsByRun(runId);
@@ -747,7 +761,7 @@ export const appRouter = router({
           return {
             ...r,
             completedSteps: state.completedSteps as string[],
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             score: r.run.isDemo ? null : calculateTotalScore(events),
           };
         })
@@ -772,7 +786,7 @@ export const appRouter = router({
             const penalties = events.filter(e => e.pointsDelta < 0).length;
             const bonuses   = events.filter(e => e.pointsDelta > 0).length;
             const state     = await buildRunState(r.run.id);
-            const progress  = calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId);
+            const progress  = calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state);
             return {
               attempt:     idx + 1,
               runId:       r.run.id,
@@ -822,7 +836,7 @@ export const appRouter = router({
         // ── Step max points map (all modules) ───────────────────────────────
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
-          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 15, CC: 10, COMPLIANCE: 5,
+          PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, ADJ: 10, COMPLIANCE: 40,
           // M2
           FIFO_PICK: 15, STOCK_ACCURACY: 15, COMPLIANCE_ADV: 20,
           // M3
@@ -836,7 +850,7 @@ export const appRouter = router({
           // M1
           PO: "PO_COMPLETED", GR: "GR_COMPLETED", PUTAWAY_M1: "PUTAWAY_M1_COMPLETED",
           SO: "SO_COMPLETED", PICKING_M1: "PICKING_M1_COMPLETED",
-          GI: "GI_COMPLETED", CC: "CC_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
+          GI: "GI_COMPLETED", CC: "CC_COMPLETED", ADJ: "ADJ_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
           // M2
           FIFO_PICK: "FIFO_PICK_COMPLETED", STOCK_ACCURACY: "STOCK_ACCURACY_COMPLETED", COMPLIANCE_ADV: "COMPLIANCE_ADV_COMPLETED",
           // M3
@@ -1021,13 +1035,13 @@ export const appRouter = router({
           recommendations,
           complianceIssues: compliance.issuesFr,
           completedSteps: state.completedSteps,
-          progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId),
+          progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId, state),
           zoneFlow,
           transactionTimeline,
           totalTransactions: state.transactions.filter(t => t.posted).length,
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
-          totalSteps: MODULE1_STEPS.length,
+          totalSteps: getEffectiveM1Steps(moduleId === 1 ? state : null).length,
           certificationUnlocked: silverCertified,
         };
       }),
@@ -1061,8 +1075,8 @@ export const appRouter = router({
         const totalScore = calculateTotalScore(await getScoringEventsByRun(input.runId));
         const compliance = checkCompliance(state);
          const moduleId = scenario?.moduleId ?? 1;
-        const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId);
-        const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId);
+        const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId, state);
+        const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId, state);
         return {
           run,
           scenario,
@@ -1073,11 +1087,11 @@ export const appRouter = router({
           progressPct,
           totalScore,
           moduleId,
-          steps: scenario?.moduleId === 2 ? MODULE2_STEPS
-            : scenario?.moduleId === 3 ? MODULE3_STEPS
-            : scenario?.moduleId === 4 ? MODULE4_STEPS
-            : scenario?.moduleId === 5 ? MODULE5_STEPS
-            : MODULE1_STEPS,
+          steps: moduleId === 1 ? getEffectiveM1Steps(state)
+            : moduleId === 2 ? MODULE2_STEPS
+            : moduleId === 3 ? MODULE3_STEPS
+            : moduleId === 4 ? MODULE4_STEPS
+            : MODULE5_STEPS,
           isDemo: run.isDemo,
           // Backend transparency data (visible only in demo mode on frontend)
           demoBackendState: run.isDemo ? {
@@ -1085,6 +1099,8 @@ export const appRouter = router({
             cycleCounts: state.cycleCounts,
             inventory: state.inventory,
           } : null,
+          // Unposted transactions always exposed for Ghost GR recovery (SCN-002, SCN-005)
+          unpostedTransactions: state.transactions.filter((t) => !t.posted),
         };
       }),
   }),
@@ -1124,7 +1140,7 @@ export const appRouter = router({
         await markStepComplete(input.runId, "PO");
         // Scoring applies in both eval and demo modes (demo score is non-official)
         const rulePO = getScoringRule("PO_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
       }),
 
@@ -1162,7 +1178,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GR");
         const ruleGR = getScoringRule("GR_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
         const demoWarnGR = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1206,7 +1222,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
         await markStepComplete(input.runId, "PUTAWAY_M1");
         await markStepComplete(input.runId, "STOCK");
-        await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1239,7 +1255,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "SO", moveType: "VA01", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "SO");
         const ruleSO = getScoringRule("SO_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
       }),
 
@@ -1285,7 +1301,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "GI", moveType: "261", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GI");
         const ruleGI = getScoringRule("GI_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
         const demoWarning = run.isDemo && (!validation.allowed || !stockCheck.allowed || !zoneCheckGI.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !stockCheck.allowed ? pickReason(stockCheck, ctx.req) : null, !zoneCheckGI.allowed ? pickReason(zoneCheckGI, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1336,7 +1352,7 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "VL01N", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
         await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "VL01N", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement arrivée ${input.toBin}` });
         await markStepComplete(input.runId, "PICKING_M1");
-        await addScoringEvent({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
+        await addScoringEventOnce({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed || !stockCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !stockCheck.allowed ? pickReason(stockCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
@@ -1355,11 +1371,71 @@ export const appRouter = router({
           comment: z.string().optional(),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        // Fix 4: Auto-resolve all pending cycle count variances for this run after ADJ is posted
+        // Auto-resolve all pending cycle count variances for this run after ADJ is posted
         await resolveAllCycleCountsByRun(input.runId);
+        // Mark ADJ step complete
+        await markStepComplete(input.runId, "ADJ");
+        // Award ADJ_COMPLETED scoring event (once per run — covers SCN-004 and SCN-005)
+        if (!run.isDemo) {
+          const ruleAdj = getScoringRule("ADJ_COMPLETED");
+          if (ruleAdj) {
+            await addScoringEventOnce({ runId: input.runId, eventType: "ADJ_COMPLETED", pointsDelta: ruleAdj.points, message: ruleAdj.descriptionFr });
+          }
+        }
         return { success: true };
+      }),
+
+    // ── SCN-002 Ghost GR Recovery: Post an existing unposted transaction ──────
+    // Pedagogical intent: student "locates" the phantom GR and posts it via MB01/MIGO
+    postExistingTransaction: protectedProcedure
+      .input(
+        z.object({
+          runId: z.number(),
+          txDocRef: z.string(), // docRef of the unposted transaction to post
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const txs = await getTransactionsByRun(input.runId);
+        const target = txs.find((t: any) => t.docRef === input.txDocRef && !t.posted);
+        if (!target) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Transaction non postée introuvable ou déjà postée. Vérifiez la référence du document.",
+          });
+        }
+        await postTransaction((target as any).id);
+        // Mark GR step complete if not already done and this is a GR transaction
+        if ((target as any).docType === "GR") {
+          const prog = await getProgressByRun(input.runId);
+          const grDone = prog.some((p: any) => p.stepCode === "GR" && p.completed);
+          if (!grDone) {
+            await markStepComplete(input.runId, "GR");
+            if (!run.isDemo) {
+              const rule = getScoringRule("GR_COMPLETED");
+              if (rule) {
+                await addScoringEventOnce({
+                  runId: input.runId,
+                  eventType: "GR_COMPLETED",
+                  pointsDelta: rule.points,
+                  message: `GR fantôme détectée et postée : ${input.txDocRef}`,
+                });
+              }
+            }
+          }
+        }
+        return {
+          success: true,
+          message: `Transaction ${input.txDocRef} postée avec succès. Le stock a été mis à jour.`,
+          docType: (target as any).docType,
+        };
       }),
   }),
   // ─── Cycle Counts ─────────────────────────────────────────────────────────────
@@ -1394,7 +1470,7 @@ export const appRouter = router({
         });
         await markStepComplete(input.runId, "CC");
         const ruleCC = getScoringRule("CC_COMPLETED");
-        await addScoringEvent({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
+        await addScoringEventOnce({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
         return { success: true, variance };
       }),
 
@@ -1414,15 +1490,17 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         return checkCompliance(state);
       }),
-
     finalize: protectedProcedure
       .input(z.object({ runId: z.number() }))
       .mutation(async ({ input }) => {
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        // Guard: prevent double-finalization of already-completed runs
+        if ((run as any).status === "completed") {
+          return { success: true, isDemo: run.isDemo, demoWarning: null };
+        }
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
-
         if (!run.isDemo) {
           // Evaluation mode: hard block on non-compliance
           if (!compliance.compliant) {
@@ -1617,7 +1695,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             score: r.run.isDemo ? null : calculateTotalScore(events),
             compliant: compliance.compliant,
@@ -1661,7 +1739,7 @@ export const appRouter = router({
             isDemo: r.run.isDemo,
             status: r.run.status,
             score,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             stepStatus,
             compliant: compliance.compliant,
@@ -1881,7 +1959,7 @@ export const appRouter = router({
           const compliance = checkCompliance(state);
           return {
             ...r,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId),
+            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
             completedSteps: state.completedSteps,
             score: calculateTotalScore(events),
             compliant: compliance.compliant,
