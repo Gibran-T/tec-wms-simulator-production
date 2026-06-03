@@ -111,6 +111,11 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import type { ValidationResult } from "./rulesEngine";
+import {
+  resolveScenarioInitialState,
+  getScenarioFlags,
+  type PreloadedTransaction,
+} from "./scenarioInitialState";
 import type { IncomingMessage } from "http";
 
 // ─── Language Helper ────────────────────────────────────────────────────────────────────────────────
@@ -153,6 +158,33 @@ async function addScoringEventOnce(
     await addScoringEvent(params);
   }
 }
+
+async function markStepCompleteOnce(runId: number, stepCode: string) {
+  const prog = await getProgressByRun(runId);
+  if (!prog.some((p) => p.stepCode === stepCode && p.completed)) {
+    await markStepComplete(runId, stepCode);
+  }
+}
+
+/** Mark steps already completed by the morning shift (preloaded posted PO/GR). */
+async function applyPreloadedStepMarks(
+  runId: number,
+  scenarioId: number,
+  preloaded: PreloadedTransaction[]
+) {
+  const hasPostedPO = preloaded.some((t) => t.docType === "PO" && t.posted);
+  const grRows = preloaded.filter((t) => t.docType === "GR");
+  const hasUnpostedGR = grRows.some((t) => !t.posted);
+  const allGRPosted = grRows.length > 0 && grRows.every((t) => t.posted);
+
+  if (hasPostedPO) await markStepCompleteOnce(runId, "PO");
+
+  // SCN-003: receive already done — student starts at putaway
+  if (scenarioId === 3 && hasPostedPO && allGRPosted && !hasUnpostedGR) {
+    await markStepCompleteOnce(runId, "GR");
+  }
+}
+
 async function buildRunState(runId: number) {
   const txs = await getTransactionsByRun(runId);
   const ccs = await getCycleCountsByRun(runId);
@@ -724,26 +756,27 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const isDemo = input.isDemo ?? false;
         const result = await startRun(ctx.user.id, input.scenarioId, isDemo);
-        // Load initial state from scenario
         const scenario = await getScenarioById(input.scenarioId);
         const insertId = (result as any)[0]?.insertId as number;
-        if (scenario?.initialStateJson) {
-          const state = scenario.initialStateJson as any;
-          if (state.preloadedTransactions) {
-            for (const tx of state.preloadedTransactions) {
-              await addTransaction({
-                runId: insertId,
-                docType: tx.docType,
-                moveType: null,
-                sku: tx.sku,
-                bin: tx.bin,
-                qty: String(tx.qty),
-                posted: tx.posted ?? false,
-                docRef: tx.docRef ?? null,
-                comment: "Initial state",
-              });
-            }
+        const initialState = resolveScenarioInitialState(
+          input.scenarioId,
+          scenario?.initialStateJson as any
+        );
+        if (initialState?.preloadedTransactions) {
+          for (const tx of initialState.preloadedTransactions) {
+            await addTransaction({
+              runId: insertId,
+              docType: tx.docType,
+              moveType: null,
+              sku: tx.sku,
+              bin: tx.bin,
+              qty: String(tx.qty),
+              posted: tx.posted ?? false,
+              docRef: tx.docRef ?? null,
+              comment: "Initial state",
+            });
           }
+          await applyPreloadedStepMarks(insertId, input.scenarioId, initialState.preloadedTransactions);
         }
         return { runId: insertId, isDemo };
       }),
@@ -1136,8 +1169,7 @@ export const appRouter = router({
           // Demo mode: warn but allow (return warning in response)
         }
         await addTransaction({ runId: input.runId, docType: "PO", moveType: "ME21N", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "PO");
-        // Scoring applies in both eval and demo modes (demo score is non-official)
+        await markStepCompleteOnce(input.runId, "PO");
         const rulePO = getScoringRule("PO_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
@@ -1175,7 +1207,7 @@ export const appRouter = router({
           }
         }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "GR");
+        await markStepCompleteOnce(input.runId, "GR");
         const ruleGR = getScoringRule("GR_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
         const demoWarnGR = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
@@ -1219,8 +1251,8 @@ export const appRouter = router({
         // Record movement: debit fromBin (REC-01 → 0), credit toBin (STOCKAGE)
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Rangement sortie ${input.fromBin}` });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
-        await markStepComplete(input.runId, "PUTAWAY_M1");
-        await markStepComplete(input.runId, "STOCK");
+        await markStepCompleteOnce(input.runId, "PUTAWAY_M1");
+        await markStepCompleteOnce(input.runId, "STOCK");
         await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
@@ -1252,7 +1284,7 @@ export const appRouter = router({
           }
         }
         await addTransaction({ runId: input.runId, docType: "SO", moveType: "VA01", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "SO");
+        await markStepCompleteOnce(input.runId, "SO");
         const ruleSO = getScoringRule("SO_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
         return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
@@ -1298,7 +1330,7 @@ export const appRouter = router({
           }
         }
         await addTransaction({ runId: input.runId, docType: "GI", moveType: "261", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "GI");
+        await markStepCompleteOnce(input.runId, "GI");
         const ruleGI = getScoringRule("GI_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "GI_COMPLETED", pointsDelta: ruleGI!.points, message: ruleGI!.descriptionFr });
         const demoWarning = run.isDemo && (!validation.allowed || !stockCheck.allowed || !zoneCheckGI.allowed)
@@ -1350,7 +1382,7 @@ export const appRouter = router({
         // Record movement: deduct from fromBin, add to toBin (EXPEDITION)
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "VL01N", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
         await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "VL01N", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Prélèvement arrivée ${input.toBin}` });
-        await markStepComplete(input.runId, "PICKING_M1");
+        await markStepCompleteOnce(input.runId, "PICKING_M1");
         await addScoringEventOnce({ runId: input.runId, eventType: "PICKING_M1_COMPLETED", pointsDelta: 5, message: `Prélèvement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed || !stockCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !stockCheck.allowed ? pickReason(stockCheck, ctx.req) : null].filter(Boolean).join(" | ")
@@ -1374,12 +1406,31 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
-        await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        // Auto-resolve all pending cycle count variances for this run after ADJ is posted
+        const scenario = await getScenarioById(run.scenarioId);
+        const flags = getScenarioFlags(run.scenarioId, scenario?.initialStateJson as any);
+        const state = await buildRunState(input.runId);
+        const key = `${input.sku}::${input.bin}`;
+        const systemQty = state.inventory[key] ?? 0;
+        let adjQty = input.qty;
+        if (flags.ccAllowsNegativePhysical && systemQty + adjQty < 0) {
+          adjQty = -systemQty;
+        }
+        await addTransaction({
+          runId: input.runId,
+          docType: "ADJ",
+          moveType: "701",
+          sku: input.sku,
+          bin: input.bin,
+          qty: String(adjQty),
+          posted: true,
+          docRef: input.docRef,
+          comment:
+            adjQty !== input.qty
+              ? `${input.comment ?? ""} | Écriture demandée: ${input.qty}, appliquée: ${adjQty} (bin vide après expédition)`.trim()
+              : input.comment ?? null,
+        });
         await resolveAllCycleCountsByRun(input.runId);
-        // Mark ADJ step complete
-        await markStepComplete(input.runId, "ADJ");
-        // Award ADJ_COMPLETED scoring event (once per run — covers SCN-004 and SCN-005)
+        await markStepCompleteOnce(input.runId, "ADJ");
         if (!run.isDemo) {
           const ruleAdj = getScoringRule("ADJ_COMPLETED");
           if (ruleAdj) {
@@ -1416,7 +1467,7 @@ export const appRouter = router({
           const prog = await getProgressByRun(input.runId);
           const grDone = prog.some((p: any) => p.stepCode === "GR" && p.completed);
           if (!grDone) {
-            await markStepComplete(input.runId, "GR");
+            await markStepCompleteOnce(input.runId, "GR");
             if (!run.isDemo) {
               const rule = getScoringRule("GR_COMPLETED");
               if (rule) {
@@ -1449,12 +1500,20 @@ export const appRouter = router({
           runId: z.number(),
           sku: z.string(),
           bin: z.string(),
-          physicalQty: z.number().min(0),
+          physicalQty: z.number(),
         })
       )
       .mutation(async ({ input }) => {
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        const scenario = await getScenarioById(run.scenarioId);
+        const flags = getScenarioFlags(run.scenarioId, scenario?.initialStateJson as any);
+        if (!flags.ccAllowsNegativePhysical && input.physicalQty < 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "La quantité physique ne peut pas être négative pour ce scénario",
+          });
+        }
         const state = await buildRunState(input.runId);
         const key = `${input.sku}::${input.bin}`;
         const systemQty = state.inventory[key] ?? 0;
@@ -1467,7 +1526,7 @@ export const appRouter = router({
           physicalQty: String(input.physicalQty),
           variance: String(variance),
         });
-        await markStepComplete(input.runId, "CC");
+        await markStepCompleteOnce(input.runId, "CC");
         const ruleCC = getScoringRule("CC_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
         return { success: true, variance };

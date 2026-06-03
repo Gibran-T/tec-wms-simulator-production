@@ -102,7 +102,8 @@ export function validateGIZone(bin) {
   return { allowed: true };
 }
 export function canExecuteStep(step, state) {
-  const stepDef = MODULE1_STEPS.find((s) => s.code === step);
+  let stepDef = MODULE1_STEPS.find((s) => s.code === step);
+  if (!stepDef && step === "ADJ") stepDef = ADJ_STEP;
   if (!stepDef) return { allowed: false, reason: "Unknown step", reasonFr: "Étape inconnue", reasonEn: "Unknown step" };
   if (stepDef.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
     const prereqDef = MODULE1_STEPS.find((s) => s.code === stepDef.prerequisite);
@@ -200,7 +201,36 @@ export function canExecuteStep(step, state) {
       };
     }
   }
+  if (step === "ADJ") {
+    if (!state.completedSteps.includes("CC")) {
+      return {
+        allowed: false,
+        reason: "Cycle Count must be completed before Inventory Adjustment",
+        reasonFr: "Le Cycle Count (MI01) doit être complété avant l'ajustement d'inventaire (MI07)",
+        reasonEn: "Cycle Count must be completed before Inventory Adjustment."
+      };
+    }
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    if (!hasVariance) {
+      return {
+        allowed: false,
+        reason: "No unresolved inventory variance detected — ADJ not required",
+        reasonFr: "Aucun écart d'inventaire non résolu détecté — l'ajustement ADJ n'est pas requis pour ce scénario",
+        reasonEn: "No unresolved inventory variance detected — ADJ step is not required for this scenario."
+      };
+    }
+  }
   if (step === "COMPLIANCE") {
+    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0);
+    const hasUnresolvedVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    if (hasVariance && hasUnresolvedVariance) {
+      return {
+        allowed: false,
+        reason: "Unresolved inventory variance — complete ADJ (MI07) before compliance check",
+        reasonFr: "Écart d'inventaire non résolu — complétez l'ajustement ADJ (MI07) avant la conformité",
+        reasonEn: "Unresolved inventory variance — complete ADJ (MI07) before the compliance check."
+      };
+    }
     const result = checkCompliance(state);
     if (!result.compliant) {
       return {

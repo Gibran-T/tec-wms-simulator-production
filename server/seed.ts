@@ -133,9 +133,9 @@ async function seed() {
       initialStateJson: {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-001", bin: "REC-01", qty: 100, posted: true, docRef: "PO-2025-001" },
-          { docType: "GR", sku: "SKU-001", bin: "B-01-R1-L1", qty: 100, posted: false, docRef: "GR-2025-001" },
+          { docType: "GR", sku: "SKU-001", bin: "REC-01", qty: 100, posted: false, docRef: "GR-2025-001" },
         ],
-        context: "GR non postée détectée — transaction fantôme.",
+        context: "GR non postée détectée — transaction fantôme (quai REC-01).",
       },
       createdBy: 1,
     },
@@ -148,9 +148,10 @@ async function seed() {
       initialStateJson: {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "PO-2025-002" },
-          { docType: "GR", sku: "SKU-003", bin: "A-01-R1-L1", qty: 50, posted: true, docRef: "GR-2025-002" },
+          { docType: "GR", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "GR-2025-002" },
         ],
-        context: "Stock de 50 unités — SO demande 80 unités.",
+        context: "50 unités reçues au quai REC-01 — SO client demande 80 unités.",
+        multiFlow: true,
       },
       createdBy: 1,
     },
@@ -178,18 +179,20 @@ async function seed() {
       initialStateJson: {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-004", bin: "REC-01", qty: 30, posted: true, docRef: "PO-2025-004" },
-          { docType: "GR", sku: "SKU-004", bin: "A-02-R1-L1", qty: 30, posted: false, docRef: "GR-2025-004" },
+          { docType: "GR", sku: "SKU-004", bin: "REC-01", qty: 30, posted: false, docRef: "GR-2025-004" },
           { docType: "PO", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "PO-2025-005" },
-          { docType: "GR", sku: "SKU-005", bin: "B-01-R1-L2", qty: 60, posted: true, docRef: "GR-2025-005" },
+          { docType: "GR", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "GR-2025-005" },
         ],
-        context: "GR non postée + écart inventaire SKU-005 (-8 unités).",
+        context: "GR non postée SKU-004 + écart inventaire SKU-005 (-8 unités).",
+        multiFlow: true,
+        ccAllowsNegativePhysical: true,
       },
       createdBy: 1,
     },
   ];
 
   for (const s of module1Scenarios) {
-    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { name: s.name } });
+    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { name: s.name, initialStateJson: s.initialStateJson } });
   }
 
   // ─── Module 2 Scenarios ──────────────────────────────────────────────────────
