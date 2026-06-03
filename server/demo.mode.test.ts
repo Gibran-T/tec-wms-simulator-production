@@ -2,7 +2,7 @@
  * Demo Mode Isolation Tests
  *
  * Verifies that:
- * 1. runs.start accepts isDemo flag and only allows it for teacher/admin roles
+ * 1. runs.start accepts isDemo flag for all authenticated users
  * 2. Scoring is skipped in demo mode (no addScoringEvent calls)
  * 3. monitor.analytics excludes demo sessions
  * 4. runs.state returns isDemo flag and demoBackendState only for demo runs
@@ -41,36 +41,33 @@ function makeCtx(role: "student" | "teacher" | "admin"): TrpcContext {
 // ─── Unit Tests (pure logic, no DB) ───────────────────────────────────────────
 
 describe("Demo Mode — Role Gate Logic", () => {
-  it("student requesting isDemo=true should be silently downgraded to evaluation", () => {
-    // The router logic: isDemo = input.isDemo && (role === teacher || admin)
-    const studentRole = "student";
+  it("student requesting isDemo=true should get demo mode", () => {
     const inputIsDemo = true;
-    const isTeacherOrAdmin = studentRole === "teacher" || studentRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
+    const effectiveIsDemo = inputIsDemo ?? false;
+    expect(effectiveIsDemo).toBe(true);
+  });
+
+  it("student requesting isDemo=false should get evaluation mode", () => {
+    const inputIsDemo = false;
+    const effectiveIsDemo = inputIsDemo ?? false;
     expect(effectiveIsDemo).toBe(false);
   });
 
   it("teacher requesting isDemo=true should get demo mode", () => {
-    const teacherRole = "teacher";
     const inputIsDemo = true;
-    const isTeacherOrAdmin = teacherRole === "teacher" || teacherRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
+    const effectiveIsDemo = inputIsDemo ?? false;
     expect(effectiveIsDemo).toBe(true);
   });
 
   it("admin requesting isDemo=true should get demo mode", () => {
-    const adminRole = "admin";
     const inputIsDemo = true;
-    const isTeacherOrAdmin = adminRole === "teacher" || adminRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
+    const effectiveIsDemo = inputIsDemo ?? false;
     expect(effectiveIsDemo).toBe(true);
   });
 
   it("teacher requesting isDemo=false should get evaluation mode", () => {
-    const teacherRole = "teacher";
     const inputIsDemo = false;
-    const isTeacherOrAdmin = teacherRole === "teacher" || teacherRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
+    const effectiveIsDemo = inputIsDemo ?? false;
     expect(effectiveIsDemo).toBe(false);
   });
 });

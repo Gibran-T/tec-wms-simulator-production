@@ -722,8 +722,7 @@ export const appRouter = router({
         isDemo: z.boolean().optional().default(false),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Only teachers/admins can start demo sessions
-        const isDemo = input.isDemo && (ctx.user.role === "teacher" || ctx.user.role === "admin");
+        const isDemo = input.isDemo ?? false;
         const result = await startRun(ctx.user.id, input.scenarioId, isDemo);
         // Load initial state from scenario
         const scenario = await getScenarioById(input.scenarioId);

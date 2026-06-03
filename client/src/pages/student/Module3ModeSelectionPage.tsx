@@ -1,10 +1,9 @@
 import { useParams, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useState } from "react";
 import { toast } from "sonner";
-import { BookOpen, FlaskConical, ShieldCheck, Zap, AlertTriangle, Play, Lock, BarChart3 } from "lucide-react";
+import { BookOpen, FlaskConical, ShieldCheck, Zap, Play, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +13,6 @@ export default function Module3ModeSelectionPage() {
   const params = useParams<{ scenarioId: string }>();
   const scenarioId = parseInt(params.scenarioId ?? "0", 10);
   const [, navigate] = useLocation();
-  const { user } = useAuth();
   const { language } = useLanguage();
   const t = (fr: string, en: string) => language === "FR" ? fr : en;
   const [selectedMode, setSelectedMode] = useState<"evaluation" | "demonstration">("evaluation");
@@ -30,8 +28,6 @@ export default function Module3ModeSelectionPage() {
       toast.error(err.message ?? t("Erreur lors du démarrage", "Error starting simulation"));
     },
   });
-
-  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
   if (!scenarioId || !scenario) {
     return (
@@ -113,30 +109,21 @@ export default function Module3ModeSelectionPage() {
 
           {/* Demo mode */}
           <div
-            className={`rounded-lg border-2 p-4 transition-colors ${
-              !isTeacherOrAdmin
-                ? "border-slate-100 bg-slate-50 opacity-60 cursor-not-allowed"
-                : selectedMode === "demonstration"
-                ? "border-teal-500 bg-teal-50 cursor-pointer"
-                : "border-slate-200 hover:border-slate-300 cursor-pointer"
+            className={`rounded-lg border-2 p-4 cursor-pointer transition-colors ${
+              selectedMode === "demonstration" ? "border-teal-500 bg-teal-50" : "border-slate-200 hover:border-slate-300"
             }`}
-            onClick={() => isTeacherOrAdmin && setSelectedMode("demonstration")}
+            onClick={() => setSelectedMode("demonstration")}
           >
             <div className="flex items-start gap-3">
-              <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedMode === "demonstration" && isTeacherOrAdmin ? "border-teal-500" : "border-slate-400"}`}>
-                {selectedMode === "demonstration" && isTeacherOrAdmin && <div className="w-2 h-2 rounded-full bg-teal-500" />}
+              <div className={`mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selectedMode === "demonstration" ? "border-teal-500" : "border-slate-400"}`}>
+                {selectedMode === "demonstration" && <div className="w-2 h-2 rounded-full bg-teal-500" />}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-sm">{t("Mode Démonstration", "Demonstration Mode")}</span>
                   <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-xs" variant="outline">
-                    {t("ENSEIGNANTS", "TEACHERS")}
+                    {t("PRATIQUE", "PRACTICE")}
                   </Badge>
-                  {!isTeacherOrAdmin && (
-                    <span className="flex items-center gap-1 text-xs text-slate-500">
-                      <Lock className="w-3 h-3" /> {t("Réservé", "Restricted")}
-                    </span>
-                  )}
                 </div>
                 <p className="text-xs text-muted-foreground mb-2">
                   {t(
@@ -147,11 +134,7 @@ export default function Module3ModeSelectionPage() {
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><FlaskConical className="w-3 h-3 text-teal-500" /> {t("Progression libre", "Free progression")}</span>
                   <span className="flex items-center gap-1"><BookOpen className="w-3 h-3 text-purple-500" /> {t("Explications pédagogiques", "Pedagogical explanations")}</span>
-                  {!isTeacherOrAdmin && (
-                    <span className="text-amber-600 flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> {t("Accès réservé aux enseignants", "Restricted to teachers")}
-                    </span>
-                  )}
+                  <span>{t("Non comptabilisé pour la certification", "Not counted toward certification")}</span>
                 </div>
               </div>
             </div>

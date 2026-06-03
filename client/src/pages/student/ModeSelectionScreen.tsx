@@ -1,6 +1,5 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useState } from "react";
 import { BookOpen, GraduationCap, FlaskConical, ShieldCheck, Zap, AlertTriangle, Play } from "lucide-react";
@@ -15,11 +14,9 @@ interface ModeSelectionScreenProps {
 }
 
 export default function ModeSelectionScreen({ scenarioId, scenarioName, scenarioDifficulty, onCancel }: ModeSelectionScreenProps) {
-  const { user } = useAuth();
   const { language } = useLanguage();
   const t = (fr: string, en: string) => language === "FR" ? fr : en;
   const [, navigate] = useLocation();
-  const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
   const [selectedMode, setSelectedMode] = useState<"evaluation" | "demonstration">("evaluation");
 
   const startRun = trpc.runs.start.useMutation({
@@ -32,7 +29,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
   });
 
   function handleStart() {
-    const isDemo = isTeacherOrAdmin && selectedMode === "demonstration";
+    const isDemo = selectedMode === "demonstration";
     startRun.mutate({ scenarioId, isDemo });
   }
 
@@ -119,23 +116,20 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
               </div>
             </button>
 
-            {/* Demonstration Mode — teacher/admin only */}
+            {/* Demonstration Mode — practice copy of exam scenarios */}
             <button
-              onClick={() => isTeacherOrAdmin && setSelectedMode("demonstration")}
-              disabled={!isTeacherOrAdmin}
+              onClick={() => setSelectedMode("demonstration")}
               className={`w-full text-left border-2 rounded-md p-4 transition-all ${
-                !isTeacherOrAdmin
-                  ? "border-[#d9d9d9] bg-[#fafafa] opacity-60 cursor-not-allowed"
-                  : selectedMode === "demonstration"
+                selectedMode === "demonstration"
                   ? "border-[#0070f2] bg-[#f0f7ff]"
                   : "border-[#d9d9d9] bg-white hover:border-[#0070f2]/40"
               }`}
             >
               <div className="flex items-start gap-3">
                 <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
-                  selectedMode === "demonstration" && isTeacherOrAdmin ? "border-[#0070f2]" : "border-[#d9d9d9]"
+                  selectedMode === "demonstration" ? "border-[#0070f2]" : "border-[#d9d9d9]"
                 }`}>
-                  {selectedMode === "demonstration" && isTeacherOrAdmin && (
+                  {selectedMode === "demonstration" && (
                     <div className="w-2 h-2 rounded-full bg-[#0070f2]" />
                   )}
                 </div>
@@ -146,13 +140,8 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
                       {t("Mode Démonstration", "Demonstration Mode")}
                     </span>
                     <span className="text-[10px] bg-[#5b4b8a] text-white px-2 py-0.5 rounded-full font-semibold">
-                      {t("ENSEIGNANTS", "TEACHERS")}
+                      {t("PRATIQUE", "PRACTICE")}
                     </span>
-                    {!isTeacherOrAdmin && (
-                      <span className="text-[10px] bg-[#f0f0f0] text-gray-500 px-2 py-0.5 rounded-full">
-                        🔒 {t("Réservé", "Restricted")}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-gray-600 leading-relaxed">
                     {t(
@@ -168,14 +157,9 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
                       <BookOpen size={10} /> {t("Explications pédagogiques", "Pedagogical explanations")}
                     </span>
                     <span className="flex items-center gap-1 text-[10px] text-gray-400">
-                      {t("Score non enregistré", "Score not recorded")}
+                      {t("Non comptabilisé pour la certification", "Not counted toward certification")}
                     </span>
                   </div>
-                  {!isTeacherOrAdmin && (
-                    <p className="text-[10px] text-[#e9730c] mt-1.5 flex items-center gap-1">
-                      <AlertTriangle size={10} /> {t("Accès réservé aux enseignants et administrateurs.", "Access restricted to teachers and administrators.")}
-                    </p>
-                  )}
                 </div>
               </div>
             </button>
@@ -183,7 +167,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
         </div>
 
         {/* Info Box */}
-        {selectedMode === "demonstration" && isTeacherOrAdmin && (
+        {selectedMode === "demonstration" && (
           <div className="bg-[#ede7f6] border border-[#5b4b8a]/20 rounded-md p-4 mb-5">
             <p className="text-xs font-semibold text-[#5b4b8a] mb-1 flex items-center gap-1.5">
               <FlaskConical size={12} /> {t("Mode Démonstration — Informations importantes", "Demonstration Mode — Important Information")}
@@ -209,7 +193,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
             onClick={handleStart}
             disabled={startRun.isPending}
             className={`flex items-center gap-2 text-white text-xs font-bold px-6 py-2.5 rounded-md transition-colors disabled:opacity-50 ${
-              selectedMode === "demonstration" && isTeacherOrAdmin
+              selectedMode === "demonstration"
                 ? "bg-[#5b4b8a] hover:bg-[#4a3a72]"
                 : "bg-[#0070f2] hover:bg-[#0058c7]"
             }`}
