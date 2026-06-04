@@ -5,6 +5,7 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { CheckCircle, Clock, Lock, ArrowRight, Package, BarChart2, TrendingUp, AlertTriangle, FileText, Presentation } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModeSelectionScreen from "@/pages/student/ModeSelectionScreen";
 
 // ─── Step definitions for Module 5 ───────────────────────────────────────────
 const M5_STEPS = [
@@ -306,6 +307,7 @@ export default function Module5SimulationPage() {
   const isAdminOrTeacher = user?.role === "admin" || user?.role === "teacher";
   const isLocked = !isAdminOrTeacher && !m4Progress?.passed;
 
+  const [pendingScenario, setPendingScenario] = useState<{ id: number; name: string; difficulty?: string } | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<number | null>(null);
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [stepData, setStepData] = useState<Record<string, any>>({});
@@ -326,6 +328,18 @@ export default function Module5SimulationPage() {
     setStepData({});
     setCompleted(false);
   };
+
+  if (pendingScenario) {
+    return (
+      <ModeSelectionScreen
+        scenarioId={pendingScenario.id}
+        scenarioName={pendingScenario.name}
+        scenarioDifficulty={pendingScenario.difficulty}
+        moduleId={5}
+        onCancel={() => setPendingScenario(null)}
+      />
+    );
+  }
 
   if (isLocked) {
     return (
@@ -389,7 +403,7 @@ export default function Module5SimulationPage() {
             {m5Scenarios?.map((s: any) => (
               <button
                 key={s.id}
-                onClick={() => setSelectedScenario(s.id)}
+                onClick={() => setPendingScenario({ id: s.id, name: s.name, difficulty: s.difficulty })}
                 className="w-full text-left rounded border p-4 bg-white hover:border-[#7b1fa2] transition-colors"
               >
                 <div className="flex items-center justify-between">

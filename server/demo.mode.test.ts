@@ -2,15 +2,14 @@
  * Demo Mode Isolation Tests
  *
  * Verifies that:
- * 1. runs.start accepts isDemo flag and only allows it for teacher/admin roles
- * 2. Scoring is skipped in demo mode (no addScoringEvent calls)
+ * 1. runs.start honors isDemo for all roles (students included)
+ * 2. Scoring is skipped in demo mode for step completion (router pattern)
  * 3. monitor.analytics excludes demo sessions
  * 4. runs.state returns isDemo flag and demoBackendState only for demo runs
+ * 5. Certification checks ignore demo completions
  */
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { TrpcContext } from "./_core/context";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
@@ -38,40 +37,29 @@ function makeCtx(role: "student" | "teacher" | "admin"): TrpcContext {
   };
 }
 
-// ─── Unit Tests (pure logic, no DB) ───────────────────────────────────────────
-
-describe("Demo Mode — Role Gate Logic", () => {
-  it("student requesting isDemo=true should be silently downgraded to evaluation", () => {
-    // The router logic: isDemo = input.isDemo && (role === teacher || admin)
-    const studentRole = "student";
+describe("Demo Mode — Start Run Logic", () => {
+  it("student requesting isDemo=true should get demo mode", () => {
     const inputIsDemo = true;
-    const isTeacherOrAdmin = studentRole === "teacher" || studentRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
-    expect(effectiveIsDemo).toBe(false);
+    const isDemo = inputIsDemo === true;
+    expect(isDemo).toBe(true);
+  });
+
+  it("student requesting isDemo=false should get evaluation mode", () => {
+    const inputIsDemo = false;
+    const isDemo = inputIsDemo === true;
+    expect(isDemo).toBe(false);
   });
 
   it("teacher requesting isDemo=true should get demo mode", () => {
-    const teacherRole = "teacher";
     const inputIsDemo = true;
-    const isTeacherOrAdmin = teacherRole === "teacher" || teacherRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
-    expect(effectiveIsDemo).toBe(true);
-  });
-
-  it("admin requesting isDemo=true should get demo mode", () => {
-    const adminRole = "admin";
-    const inputIsDemo = true;
-    const isTeacherOrAdmin = adminRole === "teacher" || adminRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
-    expect(effectiveIsDemo).toBe(true);
+    const isDemo = inputIsDemo === true;
+    expect(isDemo).toBe(true);
   });
 
   it("teacher requesting isDemo=false should get evaluation mode", () => {
-    const teacherRole = "teacher";
     const inputIsDemo = false;
-    const isTeacherOrAdmin = teacherRole === "teacher" || teacherRole === "admin";
-    const effectiveIsDemo = inputIsDemo && isTeacherOrAdmin;
-    expect(effectiveIsDemo).toBe(false);
+    const isDemo = inputIsDemo === true;
+    expect(isDemo).toBe(false);
   });
 });
 
@@ -79,7 +67,6 @@ describe("Demo Mode — Scoring Isolation Logic", () => {
   it("evaluation mode: scoring event should be added when step completed", () => {
     const isDemo = false;
     const scoringEvents: string[] = [];
-    // Simulate the router logic
     if (!isDemo) {
       scoringEvents.push("PO_COMPLETED");
     }
@@ -125,7 +112,6 @@ describe("Demo Mode — Scoring Isolation Logic", () => {
           penalties.push(-5);
           throw new Error("BAD_REQUEST");
         }
-        // Demo: warn but allow
       }
     } catch {
       threw = true;
@@ -209,7 +195,6 @@ describe("Demo Mode — Compliance Finalization", () => {
       if (!isDemo && !compliant) {
         throw new Error("BAD_REQUEST: Non conforme");
       }
-      // Demo: allow with warning
       if (isDemo && !compliant) {
         demoWarning = "Conformité non atteinte — mode démonstration autorise la clôture";
       }
@@ -218,5 +203,35 @@ describe("Demo Mode — Compliance Finalization", () => {
     }
     expect(threw).toBe(false);
     expect(demoWarning).not.toBeNull();
+  });
+
+  it("demo mode: finalize should not award official COMPLIANCE_OK scoring", () => {
+    const isDemo = true;
+    const scoringEvents: string[] = [];
+    if (!isDemo) {
+      scoringEvents.push("COMPLIANCE_OK");
+    }
+    expect(scoringEvents).toHaveLength(0);
+  });
+});
+
+describe("Demo Mode — Certification eligibility", () => {
+  it("completed demo runs should not count toward scenario completion set", () => {
+    const runs = [
+      { scenarioId: 1, status: "completed", isDemo: true },
+      { scenarioId: 2, status: "completed", isDemo: false },
+    ];
+    const officialCompleted = new Set(
+      runs.filter(r => r.status === "completed" && !r.isDemo).map(r => r.scenarioId)
+    );
+    expect(officialCompleted.has(1)).toBe(false);
+    expect(officialCompleted.has(2)).toBe(true);
+  });
+});
+
+// smoke: context factory
+describe("Demo Mode — Context", () => {
+  it("makeCtx produces student context", () => {
+    expect(makeCtx("student").user?.role).toBe("student");
   });
 });

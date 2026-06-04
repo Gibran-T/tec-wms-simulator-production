@@ -721,8 +721,8 @@ export const appRouter = router({
         isDemo: z.boolean().optional().default(false),
       }))
       .mutation(async ({ ctx, input }) => {
-        // Only teachers/admins can start demo sessions
-        const isDemo = input.isDemo && (ctx.user.role === "teacher" || ctx.user.role === "admin");
+        // Students and teachers may start demo (practice) or evaluation (official) runs
+        const isDemo = input.isDemo === true;
         const result = await startRun(ctx.user.id, input.scenarioId, isDemo);
         // Load initial state from scenario
         const scenario = await getScenarioById(input.scenarioId);
@@ -1518,17 +1518,8 @@ export const appRouter = router({
           }
           await completeRun(input.runId);
         } else {
-          // Demo mode: allow finalization with scoring (non-official)
+          // Demo mode: allow finalization without official scoring or certification impact
           await markStepComplete(input.runId, "COMPLIANCE");
-          const ruleCOMPL = getScoringRule("COMPLIANCE_OK");
-          await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_OK", pointsDelta: ruleCOMPL!.points, message: ruleCOMPL!.descriptionFr });
-          // Check for perfect run bonus in demo too
-          const demoEvents = await getScoringEventsByRun(input.runId);
-          const demoHasErrors = demoEvents.some((e) => e.pointsDelta < 0);
-          if (!demoHasErrors) {
-            const bonus = getScoringRule("PERFECT_RUN_BONUS");
-            await addScoringEvent({ runId: input.runId, eventType: "PERFECT_RUN_BONUS", pointsDelta: bonus!.points, message: bonus!.descriptionFr });
-          }
           await completeRun(input.runId);
         }
         return { success: true, isDemo: run.isDemo, demoWarning: run.isDemo && !compliance.compliant ? compliance.issuesFr.join("; ") : null };
@@ -1660,8 +1651,14 @@ export const appRouter = router({
 
     /** Record module pass/fail after scenario completion */
     recordModulePass: protectedProcedure
-      .input(z.object({ moduleId: z.number(), score: z.number() }))
+      .input(z.object({ moduleId: z.number(), score: z.number(), runId: z.number().optional() }))
       .mutation(async ({ ctx, input }) => {
+        if (input.runId) {
+          const run = await getRunById(input.runId);
+          if (!run || run.isDemo) {
+            return { passed: false, demoIgnored: true as const };
+          }
+        }
         const passed = input.score >= 60;
         await upsertModuleProgress({ userId: ctx.user.id, moduleId: input.moduleId, passed, bestScore: input.score, completedAt: passed ? new Date() : undefined });
 
@@ -2118,13 +2115,18 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM2("COMPLIANCE_ADV" as any, state);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
-          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
+          }
         }
         await markStepComplete(input.runId, "COMPLIANCE_ADV");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_ADV_COMPLETED", pointsDelta: 20, message: "Conformité avancée M2 validée" });
         await completeRun(input.runId);
-        return { success: true };
+        return {
+          success: true,
+          demoWarning: run.isDemo && !check.allowed ? pickReason(check, ctx.req) : null,
+        };
       }),
   }),
 
@@ -2251,13 +2253,18 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any);
         if (!check.allowed) {
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
-          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
+          }
         }
         await markStepComplete(input.runId, "COMPLIANCE_M3");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M3_COMPLETED", pointsDelta: 15, message: "Conformité Module 3 validée" });
         await completeRun(input.runId);
-        return { success: true };
+        return {
+          success: true,
+          demoWarning: run.isDemo && !check.allowed ? pickReason(check, ctx.req) : null,
+        };
       }),
   }),
 

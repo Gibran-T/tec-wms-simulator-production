@@ -186,7 +186,7 @@ export default function ScenarioList() {
   const [showGlossary, setShowGlossary] = useState(false);
   const [editingStudentNum, setEditingStudentNum] = useState(false);
   const [studentNumInput, setStudentNumInput] = useState("");
-  const [pendingScenario, setPendingScenario] = useState<{ id: number; name: string; difficulty?: string } | null>(null);
+  const [pendingScenario, setPendingScenario] = useState<{ id: number; name: string; difficulty?: string; moduleId: number } | null>(null);
 
   const { data: scenarios, isLoading } = trpc.scenarios.list.useQuery();
   const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
@@ -209,7 +209,7 @@ export default function ScenarioList() {
   const moduleRuns = useMemo(() => myRuns?.filter(r => r.run.moduleId === selectedModule) || [], [myRuns, selectedModule]);
 
   const totalScenarios = moduleScenarios.length;
-  const completedScenarios = moduleRuns.filter(r => r.run.status === "completed").length;
+  const completedScenarios = moduleRuns.filter(r => r.run.status === "completed" && !r.run.isDemo).length;
   const inProgressScenarios = moduleRuns.filter(r => r.run.status === "in_progress").length;
   const avgScoreModule = useMemo(() => {
     const scoredRuns = moduleRuns.filter(r => r.run.score !== null && r.run.score !== undefined);
@@ -238,6 +238,7 @@ export default function ScenarioList() {
         scenarioId={pendingScenario.id}
         scenarioName={pendingScenario.name}
         scenarioDifficulty={pendingScenario.difficulty}
+        moduleId={pendingScenario.moduleId}
         onCancel={() => setPendingScenario(null)}
       />
     );
@@ -424,7 +425,7 @@ export default function ScenarioList() {
                             </button>
                           ) : (
                             <button
-                              onClick={() => setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty })}
+                              onClick={() => setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty, moduleId: selectedModule })}
                               className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
                             >
                               <Play size={16} className="inline mr-2" /> {t("Démarrer", "Start")}

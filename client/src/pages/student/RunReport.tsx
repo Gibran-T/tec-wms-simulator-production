@@ -178,10 +178,12 @@ export default function RunReport() {
   const recordModulePass = trpc.warehouse.recordModulePass.useMutation();
 
   useEffect(() => {
-    if (data && scenario && !run.isDemo && run.status === "completed" && totalScore !== undefined) {
-      recordModulePass.mutate({ moduleId: scenario.moduleId, score: totalScore });
+    if (!data) return;
+    const { run, scenario, totalScore } = data;
+    if (scenario && !run.isDemo && run.status === "completed" && totalScore !== undefined) {
+      recordModulePass.mutate({ moduleId: scenario.moduleId, score: totalScore, runId: run.id });
     }
-  }, [data, scenario, run.isDemo, run.status, totalScore, recordModulePass]);
+  }, [data, recordModulePass]);
 
 
 

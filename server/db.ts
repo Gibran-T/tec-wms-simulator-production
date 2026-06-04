@@ -949,7 +949,11 @@ export async function checkAllM1ScenariosCompleted(userId: number): Promise<bool
 
   const completedRuns = await db.select({ scenarioId: scenarioRuns.scenarioId })
     .from(scenarioRuns)
-    .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.status, "completed")));
+    .where(and(
+      eq(scenarioRuns.userId, userId),
+      eq(scenarioRuns.status, "completed"),
+      eq(scenarioRuns.isDemo, false),
+    ));
 
   const completedScenarioIds = new Set(completedRuns.map(run => run.scenarioId));
 
@@ -966,11 +970,16 @@ export async function checkM1ComplianceValidated(userId: number): Promise<boolea
   for (const scenario of m1Scenarios) {
     const latestRun = await db.select()
       .from(scenarioRuns)
-      .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.scenarioId, scenario.id), eq(scenarioRuns.status, "completed")))
+      .where(and(
+        eq(scenarioRuns.userId, userId),
+        eq(scenarioRuns.scenarioId, scenario.id),
+        eq(scenarioRuns.status, "completed"),
+        eq(scenarioRuns.isDemo, false),
+      ))
       .orderBy(scenarioRuns.completedAt.desc())
       .limit(1);
 
-    if (latestRun.length === 0) return false; // Scenario not completed
+    if (latestRun.length === 0) return false; // Scenario not completed in evaluation mode
 
     const complianceStep = await db.select()
       .from(progress)
@@ -994,11 +1003,16 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
   for (const scenario of m1Scenarios) {
     const latestRun = await db.select()
       .from(scenarioRuns)
-      .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.scenarioId, scenario.id), eq(scenarioRuns.status, "completed")))
+      .where(and(
+        eq(scenarioRuns.userId, userId),
+        eq(scenarioRuns.scenarioId, scenario.id),
+        eq(scenarioRuns.status, "completed"),
+        eq(scenarioRuns.isDemo, false),
+      ))
       .orderBy(scenarioRuns.completedAt.desc())
       .limit(1);
 
-    if (latestRun.length === 0) continue; // Scenario not completed, so no blockers to check for this scenario
+    if (latestRun.length === 0) continue; // Scenario not completed in evaluation mode
 
     const unpostedTransactions = await db.select()
       .from(transactions)

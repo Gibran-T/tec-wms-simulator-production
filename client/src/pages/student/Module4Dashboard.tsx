@@ -5,6 +5,7 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { TrendingDown, AlertTriangle, CheckCircle, BarChart2, ArrowRight, Lock, Presentation } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModeSelectionScreen from "@/pages/student/ModeSelectionScreen";
 
 // ─── KPI Thresholds & Helpers ─────────────────────────────────────────────────
 function kpiColor(status: string) {
@@ -93,6 +94,7 @@ export default function Module4Dashboard() {
   const isAdminOrTeacher = user?.role === "admin" || user?.role === "teacher";
   const isLocked = !isAdminOrTeacher && (!m3Progress?.passed || !m3Progress?.teacherValidated);
 
+  const [pendingScenario, setPendingScenario] = useState<{ id: number; name: string; difficulty?: string } | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<number | null>(null);
   const [kpiData] = useState({
     annualConsumption: 2400,
@@ -130,6 +132,18 @@ export default function Module4Dashboard() {
     submitInterpretation.mutate({ runId: selectedScenario, kpiKey: kpiKey as "rotationRate" | "serviceLevel" | "errorRate" | "diagnostic", studentAnswer: answer });
     setInterpretations((prev) => ({ ...prev, [kpiKey]: { submitted: true } }));
   };
+
+  if (pendingScenario) {
+    return (
+      <ModeSelectionScreen
+        scenarioId={pendingScenario.id}
+        scenarioName={pendingScenario.name}
+        scenarioDifficulty={pendingScenario.difficulty}
+        moduleId={4}
+        onCancel={() => setPendingScenario(null)}
+      />
+    );
+  }
 
   if (isLocked) {
     return (
@@ -191,7 +205,7 @@ export default function Module4Dashboard() {
             {m4Scenarios?.map((s: any, i: number) => (
               <button
                 key={s.id}
-                onClick={() => setSelectedScenario(s.id)}
+                onClick={() => setPendingScenario({ id: s.id, name: s.name, difficulty: s.difficulty })}
                 className="w-full text-left rounded border p-4 bg-white hover:border-[#0070f2] transition-colors"
               >
                 <div className="flex items-center justify-between">

@@ -103,7 +103,7 @@ export default function MissionControl() {
             {isDemo && (
               <div className="flex items-center gap-2 bg-indigo-950 border border-indigo-700 px-4 py-2 text-xs font-bold text-indigo-300">
                 <FlaskConical size={16} />
-                DEMO MODE
+                {t("MODE DÉMONSTRATION / PRATIQUE GUIDÉE", "DEMONSTRATION / GUIDED PRACTICE")}
               </div>
             )}
           </div>
