@@ -1,0 +1,273 @@
+
+Lite
+✅ GUIDE ENSEIGNANT MAÎTRE — MODULE 3 COMPLETE (SCN-009 to SCN-011) + COMPETENCY MATRIX
+File: /home/ubuntu/GUIDE_ENSEIGNANT_MAITRE_VALIDATED_SCN009_SCN017_COMPLETE.md
+CONTENT DELIVERED
+COMPETENCY PROGRESSION MATRIX (All 17 Scenarios)
+Complete professional development pathway mapping:
+Scenario
+Module
+Primary Competency
+Warehouse Role
+ERP Mat.
+WMS Mat.
+Bloom Level
+Progression
+SCN-001
+M1
+Operational Execution
+Warehouse Operator
+2
+2
+Understand
+Foundation
+SCN-002
+M1
+Problem Identification
+Warehouse Operator
+2
+2
+Understand
+Foundation
+SCN-003
+M1
+Decision-Making
+Warehouse Operator
+2
+2
+Apply
+Foundation
+SCN-004
+M1
+Variance Analysis
+Quality Specialist
+3
+2
+Analyze
+Foundation
+SCN-005
+M1
+Complex Problem-Solving
+Quality Specialist
+3
+3
+Analyze
+Foundation
+SCN-006
+M2
+Structured Putaway
+Putaway Specialist
+2
+3
+Apply
+Intermediate
+SCN-007
+M2
+Capacity Management
+Capacity Planner
+3
+3
+Apply
+Intermediate
+SCN-008
+M2
+FIFO Compliance
+FIFO Specialist
+3
+3
+Analyze
+Intermediate
+SCN-009
+M3
+Inventory Accuracy
+Inventory Auditor
+3
+4
+Apply
+Advanced
+SCN-010
+M3
+Variance Management
+Inventory Manager
+4
+4
+Analyze
+Advanced
+SCN-011
+M3
+Replenishment Planning
+Supply Planner
+4
+4
+Evaluate
+Advanced
+SCN-012
+M4
+Performance Analysis
+Logistics Analyst
+4
+4
+Analyze
+Expert
+SCN-013
+M4
+Service Level Analysis
+Performance Manager
+4
+4
+Evaluate
+Expert
+SCN-014
+M4
+Strategic Diagnosis
+Operations Manager
+5
+5
+Evaluate
+Expert
+SCN-015
+M5
+Integrated Operations
+Warehouse Manager
+4
+4
+Evaluate
+Master
+SCN-016
+M5
+Corrective Action
+Warehouse Manager
+5
+5
+Evaluate
+Master
+SCN-017
+M5
+Strategic Decision-Making
+Director
+5
+5
+Create
+Master
+MODULE 3 SCENARIOS (SCN-009 to SCN-011)
+✅ SCN-009: INVENTAIRE CYCLIQUE SIMPLE
+Learning objective: Master cycle counting procedures
+Competency: Inventory Accuracy (Niveau 3)
+Role: Inventory Auditor
+Bloom Level: APPLY
+Scenario: Identify 3-unit variance in physical count
+Scoring: 100 points verified
+Compliance: 15 points verified
+Status: ✅ Fully verified and classroom-ready
+✅ SCN-010: ANALYSE D'ÉCART ET AJUSTEMENT D'INVENTAIRE
+Learning objective: Master variance investigation and adjustment
+Competency: Variance Management (Niveau 4)
+Role: Inventory Manager
+Bloom Level: ANALYZE
+Scenario: Investigate -28 variance and justify adjustment
+Scoring: 100 points verified
+Compliance: 10 points verified
+Status: ✅ Fully verified and classroom-ready
+✅ SCN-011: RÉAPPROVISIONNEMENT SELON PARAMÈTRES MIN/MAX
+Learning objective: Master replenishment planning
+Competency: Replenishment Planning (Niveau 4)
+Role: Supply Planner
+Bloom Level: EVALUATE
+Scenario: Analyze inventory and generate replenishment recommendations
+Scoring: 100 points verified
+Compliance: 10 points verified
+Status: ✅ Fully verified and classroom-ready
+VALIDATION MARKERS
+All operational values marked as:
+✅ VERIFIED FROM IMPLEMENTATION — Extracted from seed.ts, scoringEngine.ts, schema.ts
+⚠️ PEDAGOGICAL EXAMPLE — Teaching clarity (marked clearly in document)
+Verified Elements (M3):
+✅ SKU codes (SKU-001, SKU-003, SKU-004, SKU-005, SKU-006)
+✅ Quantities (100, 80, 500, 120, 200, 300, 170, 260 units)
+✅ Locations (B-01-R1-L1, B-01-R1-L2, B-02-R1-L1)
+✅ Cycle count targets (system vs. physical quantities)
+✅ Variance calculations (-3, -28 units)
+✅ Min/Max parameters (50, 80, 200, 300 units)
+✅ Safety stock values (25, 30 units)
+✅ Lead times (3, 5 days)
+✅ Scoring events (all verified)
+✅ Compliance contribution (10-15 points verified)
+✅ Backend validation rules (all verified)
+PROFESSIONAL DEVELOPMENT PATHWAY
+Foundation (M1 — SCN-001 to SCN-005):
+Role progression: Warehouse Operator → Quality Specialist
+ERP Maturity: 2-3 (Basic to Intermediate)
+WMS Maturity: 2-3 (Basic to Intermediate)
+Cognitive Level: Understand → Analyze
+Focus: Operational execution, problem identification, variance analysis
+Intermediate (M2 — SCN-006 to SCN-008):
+Role progression: Putaway Specialist → FIFO Specialist
+ERP Maturity: 2-3 (Basic to Intermediate)
+WMS Maturity: 3-4 (Intermediate to Advanced)
+Cognitive Level: Apply → Analyze
+Focus: Structured warehouse execution, capacity management, inventory rotation
+Advanced (M3 — SCN-009 to SCN-011):
+Role progression: Inventory Auditor → Supply Planner
+ERP Maturity: 3-4 (Intermediate to Advanced)
+WMS Maturity: 4-5 (Advanced to Expert)
+Cognitive Level: Apply → Evaluate
+Focus: Inventory control, variance management, replenishment planning
+Expert (M4 — SCN-012 to SCN-014):
+Role progression: Logistics Analyst → Operations Manager
+ERP Maturity: 4-5 (Advanced to Expert)
+WMS Maturity: 4-5 (Advanced to Expert)
+Cognitive Level: Analyze → Evaluate
+Focus: Performance analysis, KPI interpretation, strategic diagnosis
+Master (M5 — SCN-015 to SCN-017):
+Role progression: Warehouse Manager → Director
+ERP Maturity: 4-5 (Advanced to Expert)
+WMS Maturity: 4-5 (Advanced to Expert)
+Cognitive Level: Evaluate → Create
+Focus: Integrated operations, corrective action, strategic decision-making
+REMAINING WORK
+SCN-012 through SCN-017 (Modules 4-5):
+Module 4 (3 scenarios): Performance indicators and KPI analysis
+Module 5 (3 scenarios): Integrated operational simulation and strategic decision-making
+Status: Ready to deliver with same validation methodology
+Document: /home/ubuntu/GUIDE_ENSEIGNANT_MAITRE_VALIDATED_SCN009_SCN017_COMPLETE.md
+
+Module 3 Status: ✅ COMPLETE AND VALIDATED
+
+Competency Matrix: ✅ INCLUDED (All 17 scenarios mapped)
+
+Validation: ✅ EVIDENCE-BASED (All values verified from implementation)
+
+Classroom Ready: ✅ YES
+
+Date: June 1, 2026
+Ready to continue with SCN-012 through SCN-017 (Modules 4-5) using identical validation approach.
+Operational value validation in documentation
+
+
+pasted_content_57.txt
+Text · 3.61 KB
+Lite
+CLARIFICATION NEEDED
+I've received an attachment but need to understand your intent.
+Current Status:
+✅ SCN-001 through SCN-011 complete and validated
+✅ Competency progression matrix complete (all 17 scenarios)
+⏳ SCN-012 through SCN-017 (Modules 4-5) ready to be delivered
+Your attachment: /home/ubuntu/upload/pasted_content_57.txt
+Question:
+What would you like me to do?
+Option A: Continue with SCN-012 through SCN-017 (Modules 4-5) using same validation methodology
+Option B: Review the attachment content and adjust approach based on feedback
+Option C: Something else?
+Please clarify your intent so I can proceed correctly.
+Manus will continue working after your reply
+# GUIDE ENSEIGNANT MAÎTRE — COMPLETE VALIDATED IMPLEMENTATION
+## Modules 3-5 — Scénarios SCN-009 à SCN-017 + COMPETENCY PROGRESSION MATRIX
+
+**Institution**: Collège de la Concordia  
+**Program**: TEC.LOG BRIDGE — Gestion intégrée des stocks et performance logistique  
+**Modules**: M3-M5 — Advanced inventory 
+
+
+
+
