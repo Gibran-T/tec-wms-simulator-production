@@ -7,6 +7,7 @@ import React, { useState } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
+import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -1245,6 +1246,16 @@ export default function StepForm() {
               <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.objectiveFr, cfg.objectiveEn)}</p>
             </div>
 
+            {(["gr", "compliance"].includes(step?.toLowerCase() ?? "")) &&
+              (runData?.unpostedTransactions?.length ?? 0) > 0 && (
+              <div className="mx-4 mt-4">
+                <UnpostedTransactionsPanel
+                  runId={parseInt(runId)}
+                  transactions={runData!.unpostedTransactions!}
+                />
+              </div>
+            )}
+
             {/* Context Panel: Stock for evaluation mode */}
             {(["gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
               const inv = runData?.inventory ?? {};
@@ -1602,7 +1613,10 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Quantité physique comptée", "Physical quantity counted")} <span className="text-destructive">*</span>
                   </label>
-                  <input {...register("physicalQty")} type="number" min={0} placeholder="Ex: 48" className="fiori-field-input fiori-field-active" />
+                  <input {...register("physicalQty")} type="number" placeholder={t("Ex: 185 (quantité comptée)", "Ex: 185 (counted qty)")} className="fiori-field-input fiori-field-active" />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {t("Saisissez la quantité physique réelle — l'écart est calculé automatiquement.", "Enter the actual physical quantity — variance is calculated automatically.")}
+                  </p>
                 </div>
               )}
 

@@ -20,7 +20,8 @@ import {
 } from "lucide-react";
 import FioriShell from "@/components/FioriShell";
 import MissionSheet from "@/components/MissionSheet";
-import { M1_MISSIONS } from "../../../../server/missionData";
+import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
+import { getM1Mission } from "../../../../server/missionData";
 
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -49,7 +50,8 @@ export default function MissionControl() {
 
   const { run, scenario, completedSteps, compliance, totalScore: score, nextStep, progressPct, isDemo, moduleId, steps: backendSteps, inventory, transactions } = data;
 
-  const mission = M1_MISSIONS[scenario?.id || 0] || null;
+  const mission = getM1Mission(scenario);
+  const unpostedTxs = (transactions || []).filter((tx: { posted?: boolean }) => !tx.posted);
 
   const STEPS = (backendSteps ?? []).map((s: any) => ({
     key: s.code,
@@ -192,6 +194,13 @@ export default function MissionControl() {
               </div>
             </div>
 
+            {unpostedTxs.length > 0 && (
+              <UnpostedTransactionsPanel
+                runId={parseInt(runId)}
+                transactions={unpostedTxs}
+              />
+            )}
+
             {/* Transaction Monitor */}
             <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden">
               <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center gap-2">
@@ -248,9 +257,17 @@ export default function MissionControl() {
                   </div>
                 </div>
 
+                {unpostedTxs.length > 0 && moduleId === 1 && (
+                  <UnpostedTransactionsPanel
+                    runId={parseInt(runId)}
+                    transactions={unpostedTxs}
+                    compact
+                  />
+                )}
+
                 <div className="space-y-2">
-                  {compliance.issues.length > 0 ? (
-                    compliance.issues.map((issue: string, i: number) => (
+                  {(compliance.issuesFr?.length ? compliance.issuesFr : compliance.issues).length > 0 ? (
+                    (compliance.issuesFr?.length ? compliance.issuesFr : compliance.issues).map((issue: string, i: number) => (
                       <div key={i} className="flex items-start gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                         <AlertTriangle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
                         <p className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold">{issue}</p>

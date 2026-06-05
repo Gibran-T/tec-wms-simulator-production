@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLanguage } from "@/contexts/LanguageContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FileText, ClipboardCheck, Info, ShieldAlert } from "lucide-react";
+import { FileText, ClipboardCheck, Info, ListOrdered } from "lucide-react";
 import { type MissionData } from "../../../server/missionData";
 
 interface MissionSheetProps {
@@ -41,7 +41,6 @@ export default function MissionSheet({ mission, open, onOpenChange }: MissionShe
         </DialogHeader>
 
         <div className="p-8 space-y-8 font-sans">
-          {/* Section 1: Context & Role */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 space-y-4">
               <div>
@@ -73,7 +72,6 @@ export default function MissionSheet({ mission, open, onOpenChange }: MissionShe
             </div>
           </div>
 
-          {/* Section 2: Technical Specs */}
           <div className="bg-slate-900 text-white p-6 rounded-none">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
               {t("Spécifications Techniques", "Technical Specifications")}
@@ -100,7 +98,22 @@ export default function MissionSheet({ mission, open, onOpenChange }: MissionShe
             </div>
           </div>
 
-          {/* Section 3: Control Points */}
+          <div className="space-y-4">
+            <h3 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+              <ListOrdered size={16} /> {t("Actions à réaliser (étudiant)", "Actions to perform (student)")}
+            </h3>
+            <ol className="space-y-2 list-none">
+              {mission.studentActions.map((action, idx) => (
+                <li key={idx} className="flex items-start gap-3 p-3 bg-primary/5 border border-primary/20">
+                  <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold">
+                    {idx + 1}
+                  </span>
+                  <span className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed">{action}</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+
           <div className="space-y-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
               <ClipboardCheck size={16} className="text-primary" /> {t("Points de Contrôle & Validation", "Control & Validation Points")}
@@ -117,14 +130,11 @@ export default function MissionSheet({ mission, open, onOpenChange }: MissionShe
             </ul>
           </div>
 
-          {/* Section 4: Supervisor Notes */}
-          <div className="bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-500 p-4">
-            <h3 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1 flex items-center gap-2">
-              <ShieldAlert size={14} /> {t("Notes du Superviseur", "Supervisor Notes")}
+          <div className="bg-green-50 dark:bg-green-950/20 border-l-4 border-green-600 p-4">
+            <h3 className="text-xs font-bold text-green-800 dark:text-green-400 uppercase tracking-wider mb-1">
+              {t("Résultat attendu", "Expected outcome")}
             </h3>
-            <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-              {mission.supervisorNotes}
-            </p>
+            <p className="text-xs text-green-900 dark:text-green-300 leading-relaxed">{mission.expectedOutcome}</p>
           </div>
 
           <div className="pt-6 border-t border-slate-200 dark:border-slate-800 flex justify-between items-end">

@@ -63,6 +63,7 @@ import {
   unlockSilverCertification,
   unlockGoldCertification,
 } from "./db";
+import { getM1StepsToAutoComplete } from "./m1Preload";
 import {
   calculateBinLoad,
   calculateInventory,
@@ -743,6 +744,11 @@ export const appRouter = router({
                 comment: "Initial state",
               });
             }
+            if (scenario.moduleId === 1) {
+              for (const stepCode of getM1StepsToAutoComplete(state.preloadedTransactions)) {
+                await markStepComplete(insertId, stepCode);
+              }
+            }
           }
         }
         return { runId: insertId, isDemo };
@@ -1174,6 +1180,17 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
+        const unpostedGRs = state.transactions.filter((t) => t.docType === "GR" && !t.posted);
+        if (unpostedGRs.length > 0) {
+          const refs = unpostedGRs.map((t) => t.docRef).filter(Boolean).join(", ");
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message:
+              ctx.req.headers["accept-language"]?.includes("en")
+                ? `Unposted GR already exists (${refs}). Use Post (MIGO) in Mission Control or on the GR step — do not create a new GR.`
+                : `Une GR non postée existe déjà (${refs}). Utilisez « Poster (MIGO) » dans le cockpit ou l'étape GR — ne créez pas une nouvelle GR.`,
+          });
+        }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await markStepComplete(input.runId, "GR");
         const ruleGR = getScoringRule("GR_COMPLETED");
@@ -1449,7 +1466,7 @@ export const appRouter = router({
           runId: z.number(),
           sku: z.string(),
           bin: z.string(),
-          physicalQty: z.number().min(0),
+          physicalQty: z.number(),
         })
       )
       .mutation(async ({ input }) => {

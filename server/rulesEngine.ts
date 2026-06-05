@@ -315,23 +315,15 @@ export function canExecuteStep(step: StepCode, state: RunState): ValidationResul
   }
 
   if (step === "COMPLIANCE") {
-    // For scenarios with variance (SCN-004, SCN-005), ADJ must be done before COMPLIANCE
-    const hasVariance = state.cycleCounts.some((c) => c.variance !== 0);
+    // SCN-004/005: ADJ required before opening compliance when variance is unresolved.
+    // Other blockers (unposted GR, negative stock) are resolved ON this step — do not block access.
     const hasUnresolvedVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
-    if (hasVariance && hasUnresolvedVariance) {
+    if (hasUnresolvedVariance && !state.completedSteps.includes("ADJ")) {
       return {
         allowed: false,
         reason: "Unresolved inventory variance — complete ADJ (MI07) before compliance check",
         reasonFr: "Écart d'inventaire non résolu — complétez l'ajustement ADJ (MI07) avant la conformité",
         reasonEn: "Unresolved inventory variance — complete ADJ (MI07) before the compliance check.",
-      };
-    }
-    const result = checkCompliance(state);
-    if (!result.compliant) {
-      return {
-        allowed: false,
-        reason: result.issues.join("; "),
-        reasonFr: result.issuesFr.join("; "),
       };
     }
   }
@@ -740,9 +732,18 @@ export function checkCompliance(state: RunState): ComplianceResult {
 export function getNextRequiredStep(
   completedSteps: StepCode[],
   moduleId = 1,
-  state?: Pick<RunState, "cycleCounts">
+  state?: Pick<RunState, "cycleCounts" | "transactions">
 ): StepDefinition | null {
   const steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
+
+  // SCN-002/005: ghost GR must be posted before later steps
+  if (moduleId === 1 && state?.transactions) {
+    const ghostGrPending = state.transactions.some((t) => t.docType === "GR" && !t.posted);
+    if (ghostGrPending && !completedSteps.includes("GR")) {
+      return steps.find((s) => s.code === "GR") ?? null;
+    }
+  }
+
   for (const step of steps) {
     if (completedSteps.includes(step.code)) continue;
     // Skip ADJ when no unresolved variance (SCN-001/002/003 have no variance)
