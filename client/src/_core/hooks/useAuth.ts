@@ -1,4 +1,3 @@
-import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback, useEffect, useMemo } from "react";
@@ -8,8 +7,10 @@ type UseAuthOptions = {
   redirectPath?: string;
 };
 
+const LOCAL_LOGIN_PATH = "/login";
+
 export function useAuth(options?: UseAuthOptions) {
-  const { redirectOnUnauthenticated = false, redirectPath = getLoginUrl() } =
+  const { redirectOnUnauthenticated = false, redirectPath = LOCAL_LOGIN_PATH } =
     options ?? {};
   const utils = trpc.useUtils();
 

@@ -1,27 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useParams, useLocation } from "wouter";
 import { 
   CheckCircle, 
-  Lock, 
-  ArrowRight, 
   AlertTriangle, 
   Trophy, 
   FlaskConical, 
   LayoutDashboard, 
   ClipboardList, 
-  Database, 
   Package, 
   Activity,
   ShieldCheck,
   ChevronRight,
-  Info
 } from "lucide-react";
 import FioriShell from "@/components/FioriShell";
 import MissionSheet from "@/components/MissionSheet";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
-import { getM1Mission } from "../../../../server/missionData";
+import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
+import { getMissionForScenario } from "../../../../server/missionData";
 
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -33,8 +30,33 @@ export default function MissionControl() {
   const [showMission, setShowMission] = useState(false);
   
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const runIdNum = parseInt(runId);
   
-  const { data, isLoading } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
+  const { data, isLoading } = trpc.runs.state.useQuery({ runId: runIdNum });
+  const { data: txList } = trpc.transactions.list.useQuery({ runId: runIdNum }, { enabled: !!data && !isLoading });
+
+  const unpostedFromState = (data as { unpostedTransactions?: { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null }[] } | undefined)?.unpostedTransactions;
+  const demoBackendState = (data as { demoBackendState?: { transactions?: { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null }[]; cycleCounts?: { variance: number; resolved?: boolean }[] } | null } | undefined)?.demoBackendState;
+
+  const allTransactions = useMemo(() => {
+    const fromList = (txList ?? []).map((tx) => ({
+      docType: tx.docType,
+      sku: tx.sku,
+      bin: tx.bin,
+      qty: Number(tx.qty),
+      posted: tx.posted,
+      docRef: tx.docRef ?? null,
+    }));
+    if (fromList.length > 0) return fromList;
+    if (demoBackendState?.transactions?.length) return demoBackendState.transactions;
+    return unpostedFromState ?? [];
+  }, [txList, demoBackendState, unpostedFromState]);
+
+  const unpostedTxs = useMemo(() => {
+    const fromState = unpostedFromState ?? [];
+    if (fromState.length > 0) return fromState;
+    return allTransactions.filter((tx) => !tx.posted);
+  }, [unpostedFromState, allTransactions]);
 
   if (isLoading) {
     return (
@@ -48,31 +70,25 @@ export default function MissionControl() {
 
   if (!data) return null;
 
-  const { run, scenario, completedSteps, compliance, totalScore: score, nextStep, progressPct, isDemo, moduleId, steps: backendSteps, inventory, transactions } = data;
+  const {
+    run, scenario, completedSteps, compliance, totalScore: score, nextStep,
+    progressPct, isDemo, moduleId, steps: backendSteps, inventory,
+  } = data;
 
-  const mission = getM1Mission(scenario);
-  const unpostedTxs = (transactions || []).filter((tx: { posted?: boolean }) => !tx.posted);
+  const mission = getMissionForScenario(scenario);
 
-  const STEPS = (backendSteps ?? []).map((s: any) => ({
+  const STEPS = (backendSteps ?? []).map((s: { code: string; labelEn?: string; labelFr?: string; sapCode?: string }) => ({
     key: s.code,
     label: s.labelEn ?? s.code,
     labelFr: s.labelFr ?? s.code,
     code: s.sapCode ?? s.code,
   }));
-  // For M1: ADJ is conditional — only count it in the denominator when variance exists
-  // The server already excludes ADJ from progressPct when no variance; mirror that here
-  const hasVariance = (data as any)?.demoBackendState?.cycleCounts?.some((c: any) => c.variance !== 0 && !c.resolved) ?? false;
+
+  const hasVariance = demoBackendState?.cycleCounts?.some((c: { variance: number; resolved?: boolean }) => c.variance !== 0 && !c.resolved) ?? false;
   const effectiveSteps = (moduleId === 1 && !hasVariance) ? STEPS.filter(s => s.key !== "ADJ") : STEPS;
 
-  const nextStepCode = (nextStep as any)?.code as string | undefined;
+  const nextStepCode = (nextStep as { code?: string } | null)?.code;
   const nextStepDef = STEPS.find(s => s.key === nextStepCode);
-
-  const getStepStatus = (stepKey: string) => {
-    if (completedSteps.includes(stepKey as any)) return "completed";
-    if (stepKey === nextStepCode) return "active";
-    if (isDemo) return "demo-available";
-    return "locked";
-  };
 
   return (
     <FioriShell
@@ -110,6 +126,27 @@ export default function MissionControl() {
             )}
           </div>
         </div>
+
+        {/* ── Operational Intelligence Layer (Phase B) ── */}
+        <OperationalIntelligenceLayer
+          runId={runIdNum}
+          run={run}
+          scenario={scenario ?? { id: 0, moduleId: moduleId }}
+          mission={mission}
+          completedSteps={completedSteps as string[]}
+          nextStep={nextStep as { code?: string; labelFr?: string; labelEn?: string } | null}
+          progressPct={progressPct}
+          score={score}
+          inventory={(inventory ?? {}) as Record<string, number>}
+          compliance={compliance}
+          unpostedTransactions={unpostedTxs}
+          allTransactions={allTransactions}
+          isDemo={!!isDemo}
+          moduleId={moduleId}
+          stepLabels={STEPS.map((s) => ({ key: s.key, labelFr: s.labelFr, labelEn: s.label }))}
+          effectiveStepCount={effectiveSteps.length}
+          onExecuteStep={(code) => navigate(`/student/run/${runId}/step/${code.toLowerCase()}`)}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -196,7 +233,7 @@ export default function MissionControl() {
 
             {unpostedTxs.length > 0 && (
               <UnpostedTransactionsPanel
-                runId={parseInt(runId)}
+                runId={runIdNum}
                 transactions={unpostedTxs}
               />
             )}
@@ -211,27 +248,35 @@ export default function MissionControl() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900 border-b border-border">
-                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Doc</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Type</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Ref</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">SKU</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase text-right">Qty</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Status</th>
                     </tr>
                   </thead>
                   <tbody className="text-[10px] font-mono">
-                    {(transactions || []).slice().reverse().map((tx: any, idx: number) => (
-                      <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="px-4 py-2 text-slate-400">#{tx.id}</td>
-                        <td className="px-4 py-2 font-bold">{tx.docType}</td>
-                        <td className="px-4 py-2 text-slate-500">{tx.docRef || '---'}</td>
-                        <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
-                        <td className="px-4 py-2">
-                          <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 animate-pulse'}`}>
-                            {tx.posted ? 'POSTED' : 'PENDING'}
-                          </span>
+                    {allTransactions.length > 0 ? (
+                      [...allTransactions].reverse().map((tx, idx) => (
+                        <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="px-4 py-2 font-bold">{tx.docType}</td>
+                          <td className="px-4 py-2 text-slate-500">{tx.docRef || '---'}</td>
+                          <td className="px-4 py-2">{tx.sku}</td>
+                          <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
+                          <td className="px-4 py-2">
+                            <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 animate-pulse'}`}>
+                              {tx.posted ? 'POSTED' : 'PENDING'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-6 text-center text-slate-400 italic">
+                          {t("Aucune transaction enregistrée.", "No transactions recorded.")}
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -259,7 +304,7 @@ export default function MissionControl() {
 
                 {unpostedTxs.length > 0 && moduleId === 1 && (
                   <UnpostedTransactionsPanel
-                    runId={parseInt(runId)}
+                    runId={runIdNum}
                     transactions={unpostedTxs}
                     compact
                   />
@@ -324,6 +369,7 @@ export default function MissionControl() {
                 <a 
                   href="https://edu-concorde-logistics-lab.odoo.com" 
                   target="_blank" 
+                  rel="noreferrer"
                   className="block w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-2 transition-colors"
                 >
                   {t("OUVRIR ODOO LAB →", "OPEN ODOO LAB →")}

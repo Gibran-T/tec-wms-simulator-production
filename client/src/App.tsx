@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -36,10 +37,24 @@ import { CertificationsPage } from "./pages/student/CertificationsPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
+const IntelligencePreviewPage = import.meta.env.DEV
+  ? React.lazy(() => import("./pages/dev/IntelligencePreviewPage"))
+  : null;
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      {import.meta.env.DEV && IntelligencePreviewPage && (
+        <Route
+          path="/dev/intelligence-preview/:scn?"
+          component={() => (
+            <React.Suspense fallback={<div className="p-8 text-sm">Loading preview…</div>}>
+              <IntelligencePreviewPage />
+            </React.Suspense>
+          )}
+        />
+      )}
       {/* Student routes */}
       <Route path="/student" component={() => { window.location.replace("/student/scenarios"); return null; }} />
       <Route path="/student/scenarios" component={ScenarioList} />

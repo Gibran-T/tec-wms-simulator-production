@@ -1,5 +1,8 @@
+import { EXTENDED_MISSIONS } from "./missionDataExtended";
+
 export interface MissionData {
   scenarioId: number;
+  scnCode: string;
   objective: string;
   context: string;
   role: string;
@@ -11,14 +14,27 @@ export interface MissionData {
   supervisorNotes: string;
   technicalSpecs: {
     sku: string;
-    quantity: number;
+    quantity: number | string;
     suggestedBin?: string;
   };
+  /** Operational Intelligence Layer — display only */
+  successCriteria?: string[];
+  failureConditions?: string[];
+  wmsFunction?: string;
+  sapEquivalent?: string;
+  odooEquivalent?: string;
+  industryRelevance?: string;
+  demoGuidance?: string;
+  evalGuidance?: string;
+  recoveryPaths?: string[];
+  alternativeActions?: string[];
+  wrongActionConsequences?: string[];
 }
 
 export const M1_MISSIONS: Record<number, MissionData> = {
   1: {
     scenarioId: 1,
+    scnCode: "SCN-001",
     objective: "Exécution d'un flux logistique nominal complet (End-to-End).",
     context: "Concorde Logistics a reçu une commande standard. Vous devez assurer la réception, le rangement et l'expédition sans aucune anomalie système.",
     role: "Gestionnaire de Stocks",
@@ -42,9 +58,20 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       quantity: 100,
       suggestedBin: "REC-01",
     },
+    successCriteria: ["Conformité système au vert", "Score ≥ 60 en évaluation", "Toutes étapes complétées"],
+    failureConditions: ["Transactions non postées", "Stock négatif", "Séquence hors ordre"],
+    wmsFunction: "End-to-end logistics execution",
+    sapEquivalent: "ME21N → MIGO → LT0A → VA01 → VL01N → VL02N → MI01",
+    odooEquivalent: "Purchase → Receipt → Internal Transfer → Delivery",
+    industryRelevance: "Flux standard distribution B2B/B2C.",
+    demoGuidance: "Explorez chaque étape librement — erreurs pédagogiques sans impact certification.",
+    evalGuidance: "Séquence stricte — chaque erreur est pénalisée et compte pour le score officiel.",
+    recoveryPaths: ["Flux nominal sans branche de récupération"],
+    wrongActionConsequences: ["GI sans stock → pénalité", "Étape sautée → OUT_OF_SEQUENCE"],
   },
   2: {
     scenarioId: 2,
+    scnCode: "SCN-002",
     objective: "Détection et résolution d'une anomalie de réception (Ghost GR).",
     context: "Le système affiche un Bon de Commande validé, mais le stock n'est pas apparu dans le bin de réception. Une GR (GR-2025-001) existe mais n'a pas été postée.",
     role: "Contrôleur Qualité Logistique",
@@ -67,9 +94,21 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       quantity: 100,
       suggestedBin: "REC-01",
     },
+    successCriteria: ["GR-2025-001 postée", "Stock visible REC-01", "Conformité rétablie"],
+    failureConditions: ["Nouvelle GR créée sans poster fantôme", "REC-01 vide après réception"],
+    wmsFunction: "Goods receipt posting / validation",
+    sapEquivalent: "MIGO — Post goods receipt",
+    odooEquivalent: "Validate receipt (stock move)",
+    industryRelevance: "Réconciliation dock WMS vs ERP.",
+    demoGuidance: "Utilisez Poster (MIGO) sur la transaction PENDING.",
+    evalGuidance: "Poster la GR existante est obligatoire avant toute autre étape.",
+    recoveryPaths: ["Poster GR-2025-001 → flux standard"],
+    alternativeActions: ["Créer nouvelle GR (incorrect — laisse fantôme)"],
+    wrongActionConsequences: ["Double GR → conformité bloquée", "UNPOSTED_TX penalty"],
   },
   3: {
     scenarioId: 3,
+    scnCode: "SCN-003",
     objective: "Gestion d'une rupture de stock et réapprovisionnement d'urgence.",
     context: "50 unités de SKU-003 sont en REC-01 (PO/GR déjà postées). Une commande client nécessitera plus de stock que disponible après rangement.",
     role: "Responsable d'Opération",
@@ -92,9 +131,20 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       quantity: 50,
       suggestedBin: "REC-01",
     },
+    successCriteria: ["SO satisfaite après réappro", "Pas de stock négatif", "GI validée"],
+    failureConditions: ["GI avec stock insuffisant", "Pas de réapprovisionnement"],
+    wmsFunction: "ATP / backorder management",
+    sapEquivalent: "ME21N corrective + MIGO",
+    odooEquivalent: "Reorder rule / emergency PO",
+    industryRelevance: "Gestion ruptures e-commerce.",
+    demoGuidance: "Testez SO > stock pour voir le blocage.",
+    evalGuidance: "Réappro obligatoire avant GI.",
+    recoveryPaths: ["PO corrective + GR + putaway → GI"],
+    wrongActionConsequences: ["NEGATIVE_STOCK_ATTEMPT", "Commande non honorée"],
   },
   4: {
     scenarioId: 4,
+    scnCode: "SCN-004",
     objective: "Réconciliation d'inventaire suite à un écart physique/système.",
     context: "200 unités SKU-006 reçues. Après expédition partielle, le comptage physique révélera un écart de −15 unités.",
     role: "Auditeur d'Inventaire",
@@ -117,9 +167,20 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       quantity: 200,
       suggestedBin: "B-02-R1-L1",
     },
+    successCriteria: ["Écart −15 résolu via ADJ", "Conformité verte"],
+    failureConditions: ["CC sans ADJ", "Variance non résolue à compliance"],
+    wmsFunction: "Cycle count & adjustment",
+    sapEquivalent: "MI01 + MI07",
+    odooEquivalent: "Inventory adjustment",
+    industryRelevance: "Audit inventaire et cut-off comptable.",
+    demoGuidance: "Saisissez la quantité physique réelle au CC.",
+    evalGuidance: "ADJ obligatoire si variance ≠ 0.",
+    recoveryPaths: ["CC → ADJ (−15) → COMPLIANCE"],
+    wrongActionConsequences: ["UNRESOLVED_VARIANCE bloque compliance"],
   },
   5: {
     scenarioId: 5,
+    scnCode: "SCN-005",
     objective: "Résolution de non-conformités multiples en environnement complexe.",
     context: "Deux anomalies : (1) GR-2025-004 non postée pour SKU-004 (30 u.). (2) Écart inventaire SKU-005 (−8 u.) après le cycle. Ordre : Documents → Physique → Expédition.",
     role: "Superviseur Logistique",
@@ -143,8 +204,63 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       quantity: 90,
       suggestedBin: "REC-01 / REC-02",
     },
+    successCriteria: ["GR-2025-004 postée", "SKU-005 écart −8 résolu", "Conformité 100%"],
+    failureConditions: ["Putaway avant post GR-004", "ADJ manquant SKU-005"],
+    wmsFunction: "Multi-exception resolution",
+    sapEquivalent: "MIGO + LT0A + MI01 + MI07",
+    odooEquivalent: "Full exception workflow",
+    industryRelevance: "Gestion crise entrepôt multi-anomalies.",
+    demoGuidance: "Ordre : Documents → Physique → Expédition.",
+    evalGuidance: "Ordre strict — ghost GR avant putaway SKU-004.",
+    recoveryPaths: ["Post GR-004 → putaway both → ship → CC SKU-005 → ADJ"],
+    alternativeActions: ["Nouvelle GR SKU-004 (incorrect)"],
+    wrongActionConsequences: ["Non-conformité persistante", "Score bloqué ~60% sans COMPLIANCE_OK"],
   },
 };
+
+const MODULE_SCENARIO_OFFSET: Record<number, number> = { 1: 0, 2: 5, 3: 8, 4: 11, 5: 14 };
+const MODULE_SCENARIO_MAX: Record<number, number> = { 1: 5, 2: 3, 3: 3, 4: 3, 5: 3 };
+
+/** Pedagogical SCN code from scenario metadata (SCN-001 … SCN-017). */
+export function resolveScnCode(
+  scenario: { moduleId: number; name?: string | null; id?: number } | null | undefined
+): string | null {
+  if (!scenario?.moduleId) return null;
+  const match = scenario.name?.match(/Scénario\s*(\d+)/i);
+  const idx = match ? parseInt(match[1], 10) : null;
+  const max = MODULE_SCENARIO_MAX[scenario.moduleId];
+  if (idx && idx >= 1 && idx <= max) {
+    const n = (MODULE_SCENARIO_OFFSET[scenario.moduleId] ?? 0) + idx;
+    return `SCN-${String(n).padStart(3, "0")}`;
+  }
+  if (scenario.moduleId === 1 && scenario.id && scenario.id >= 1 && scenario.id <= 5) {
+    return `SCN-${String(scenario.id).padStart(3, "0")}`;
+  }
+  return null;
+}
+
+/** Mission briefing for any scenario SCN-001–017 (display only). */
+export function getMissionForScenario(
+  scenario: { id: number; name?: string | null; moduleId?: number; descriptionFr?: string | null; descriptionEn?: string | null; difficulty?: string | null } | null | undefined
+): MissionData | null {
+  if (!scenario?.moduleId) return null;
+
+  if (scenario.moduleId === 1) {
+    return getM1Mission(scenario);
+  }
+
+  const scn = resolveScnCode(scenario);
+  if (!scn) return null;
+
+  const extended = EXTENDED_MISSIONS[scn];
+  if (extended) {
+    return {
+      ...extended,
+      context: extended.context || scenario.descriptionFr || "",
+    };
+  }
+  return null;
+}
 
 /** Resolve M1 mission sheet by DB scenario id or name (Scénario N). */
 export function getM1Mission(

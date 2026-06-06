@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Layers,
   Clock,
+  Radio,
 } from "lucide-react";
 
 interface PutawayFormProps {
@@ -111,6 +112,23 @@ export default function PutawayForm({ runId }: PutawayFormProps) {
           </AlertDescription>
         </Alert>
       )}
+
+      <Alert className="border-primary/30 bg-primary/5">
+        <Radio className="h-4 w-4 text-primary" />
+        <AlertDescription className="text-sm">
+          <span className="font-semibold text-foreground">Couche d&apos;Intelligence Opérationnelle</span>
+          {" — "}
+          briefing, tour de contrôle, aide à la décision et évaluation compétences dans{" "}
+          <button
+            type="button"
+            onClick={() => navigate(`/student/run/${runId}`)}
+            className="font-semibold text-primary underline hover:text-primary/80"
+          >
+            Mission Control
+          </button>
+          .
+        </AlertDescription>
+      </Alert>
 
       {/* Header */}
       <div className="flex items-center gap-3">
