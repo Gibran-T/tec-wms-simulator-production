@@ -12,6 +12,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
+import SlideVisualRenderer from "@/components/slides/SlideVisualRenderer";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   BookOpen, GraduationCap, Clock, Tag, Lightbulb,
@@ -339,13 +340,26 @@ export default function SlideViewer() {
                 )}
               </div>
 
-              {/* Slide body */}
+              {/* Slide body — visual-first layout */}
               <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
+                {slide.visualType && (
+                  <div className="mb-5 rounded-lg overflow-hidden border border-border/60">
+                    <SlideVisualRenderer slide={slide} lang={lang} accentColor={mod.color} />
+                  </div>
+                )}
                 <div className="space-y-0.5">
                   {body.map((line, i) => (
                     <SlideLine key={i} line={line} />
                   ))}
                 </div>
+                {slide.scenarioRef && (
+                  <div
+                    className="mt-4 px-3 py-2 rounded-md border text-xs font-semibold"
+                    style={{ borderColor: mod.color + "50", backgroundColor: mod.color + "08", color: mod.color }}
+                  >
+                    {t("Application scénario", "Scenario application")}: {slide.scenarioRef}
+                  </div>
+                )}
               </div>
 
               {/* Highlight badge */}

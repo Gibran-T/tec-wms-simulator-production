@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ModeSelectionScreen from "./ModeSelectionScreen";
 import { useLanguage } from "@/contexts/LanguageContext";
+import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
 const MODULE_CONFIG = [
@@ -199,6 +200,14 @@ export default function ScenarioList() {
   );
   const quizPassed = quizBestAttempt?.passed === true;
 
+  const selectModule = (moduleId: number) => {
+    setSelectedModule(moduleId);
+    const params = new URLSearchParams(window.location.search);
+    params.set("module", String(moduleId));
+    const search = params.toString();
+    navigate(`/student/scenarios${search ? `?${search}` : ""}`, { replace: true });
+  };
+
   const mod = MODULE_CONFIG.find((m) => m.id === selectedModule)!;
   const ModIcon = mod.icon;
 
@@ -250,6 +259,31 @@ export default function ScenarioList() {
       breadcrumbs={[{ label: t("Accueil", "Home"), href: "/" }, { label: t("Scénarios", "Scenarios") }]}
     >
       <div className="max-w-4xl mx-auto space-y-5">
+
+        <TecLogJourneyStrip activeStep="scenario" highlightScenarioHub className="mb-1" />
+
+        {/* ── Module Tabs M1–M5 ─────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2 border-b border-border pb-3">
+          {MODULE_CONFIG.map((m) => {
+            const TabIcon = m.icon;
+            const isActive = selectedModule === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => selectModule(m.id)}
+                className={`flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-md border transition-colors ${
+                  isActive
+                    ? `${m.bg} ${m.text} ${m.border}`
+                    : "bg-card text-muted-foreground border-border hover:bg-muted/50"
+                }`}
+              >
+                <TabIcon size={14} />
+                <span>M{m.id}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {/* ── Module Overview Card ────────────────────────────────────────── */}
         <div className={`bg-card border ${mod.border} rounded-md p-4 mb-5`}>
