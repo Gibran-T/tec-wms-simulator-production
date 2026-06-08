@@ -117,24 +117,44 @@ export default function MissionSheet({ mission, scenario, open, onOpenChange }: 
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">
                   {t("Spécifications Techniques", "Technical Specifications")}
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                   <div>
                     <p className="text-[10px] text-slate-400 uppercase">SKU / Product</p>
                     <p className="text-sm font-mono font-bold">{mission.technicalSpecs.sku}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase">Quantity</p>
-                    <p className="text-sm font-mono font-bold">{mission.technicalSpecs.quantity} units</p>
+                    <p className="text-[10px] text-slate-400 uppercase">{t("Quantité", "Quantity")}</p>
+                    <p className="text-sm font-mono font-bold">
+                      {typeof mission.technicalSpecs.quantity === "number"
+                        ? `${mission.technicalSpecs.quantity} ${t("unités", "units")}`
+                        : mission.technicalSpecs.quantity}
+                    </p>
                   </div>
-                  {mission.technicalSpecs.suggestedBin && (
+                  {mission.technicalSpecs.sourceBin && (
                     <div>
-                      <p className="text-[10px] text-slate-400 uppercase">Target Bin</p>
-                      <p className="text-sm font-mono font-bold text-primary-foreground">{mission.technicalSpecs.suggestedBin}</p>
+                      <p className="text-[10px] text-slate-400 uppercase">{t("Bin source", "Source Bin")}</p>
+                      <p className="text-sm font-mono font-bold">{mission.technicalSpecs.sourceBin}</p>
+                    </div>
+                  )}
+                  {(mission.technicalSpecs.targetBin ?? mission.technicalSpecs.suggestedBin) && (
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase">{t("Bin cible", "Target Bin")}</p>
+                      <p className="text-sm font-mono font-bold text-primary-foreground">
+                        {mission.technicalSpecs.targetBin ?? mission.technicalSpecs.suggestedBin}
+                      </p>
+                    </div>
+                  )}
+                  {mission.technicalSpecs.expectedTransaction && (
+                    <div className="md:col-span-2">
+                      <p className="text-[10px] text-slate-400 uppercase">{t("Transaction attendue", "Expected Transaction")}</p>
+                      <p className="text-sm font-mono font-bold">{mission.technicalSpecs.expectedTransaction}</p>
                     </div>
                   )}
                   <div>
-                    <p className="text-[10px] text-slate-400 uppercase">Status</p>
-                    <p className="text-xs font-bold bg-green-600 px-2 py-0.5 inline-block">ACTIVE</p>
+                    <p className="text-[10px] text-slate-400 uppercase">{t("Statut", "Status")}</p>
+                    <p className="text-xs font-bold bg-green-600 px-2 py-0.5 inline-block">
+                      {mission.technicalSpecs.status ?? "ACTIVE"}
+                    </p>
                   </div>
                 </div>
               </div>

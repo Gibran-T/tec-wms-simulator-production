@@ -15,7 +15,11 @@ export interface MissionData {
   technicalSpecs: {
     sku: string;
     quantity: number | string;
+    sourceBin?: string;
+    targetBin?: string;
     suggestedBin?: string;
+    expectedTransaction?: string;
+    status?: string;
   };
   /** Operational Intelligence Layer — display only */
   successCriteria?: string[];
@@ -236,6 +240,9 @@ export function resolveScnCode(
   if (scenario.moduleId === 1 && scenario.id && scenario.id >= 1 && scenario.id <= 5) {
     return `SCN-${String(scenario.id).padStart(3, "0")}`;
   }
+  if (scenario.id && scenario.id >= 6 && scenario.id <= 17) {
+    return `SCN-${String(scenario.id).padStart(3, "0")}`;
+  }
   return null;
 }
 
@@ -243,13 +250,25 @@ export function resolveScnCode(
 export function getMissionForScenario(
   scenario: { id: number; name?: string | null; moduleId?: number; descriptionFr?: string | null; descriptionEn?: string | null; difficulty?: string | null } | null | undefined
 ): MissionData | null {
-  if (!scenario?.moduleId) return null;
+  const moduleId =
+    scenario.moduleId ??
+    (scenario.id && scenario.id >= 6 && scenario.id <= 17
+      ? scenario.id <= 8
+        ? 2
+        : scenario.id <= 11
+          ? 3
+          : scenario.id <= 14
+            ? 4
+            : 5
+      : undefined);
 
-  if (scenario.moduleId === 1) {
+  if (!moduleId) return null;
+
+  if (moduleId === 1) {
     return getM1Mission(scenario);
   }
 
-  const scn = resolveScnCode(scenario);
+  const scn = resolveScnCode({ ...scenario, moduleId });
   if (!scn) return null;
 
   const extended = EXTENDED_MISSIONS[scn];
