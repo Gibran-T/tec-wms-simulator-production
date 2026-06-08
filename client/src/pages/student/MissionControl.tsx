@@ -13,8 +13,10 @@ import {
   Activity,
   ShieldCheck,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import FioriShell from "@/components/FioriShell";
+import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import MissionSheet from "@/components/MissionSheet";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
@@ -35,21 +37,40 @@ export default function MissionControl() {
   const { data, isLoading } = trpc.runs.state.useQuery({ runId: runIdNum });
   const { data: txList } = trpc.transactions.list.useQuery({ runId: runIdNum }, { enabled: !!data && !isLoading });
 
-  const unpostedFromState = (data as { unpostedTransactions?: { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null }[] } | undefined)?.unpostedTransactions;
-  const demoBackendState = (data as { demoBackendState?: { transactions?: { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null }[]; cycleCounts?: { variance: number; resolved?: boolean }[] } | null } | undefined)?.demoBackendState;
+  type TxRow = { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null };
+
+  const unpostedFromState = (data as { unpostedTransactions?: TxRow[] } | undefined)?.unpostedTransactions;
+  const demoBackendState = (data as { demoBackendState?: { transactions?: TxRow[]; cycleCounts?: { variance: number; resolved?: boolean }[] } | null } | undefined)?.demoBackendState;
+
+  const normalizeTx = (tx: TxRow): TxRow => ({
+    docType: tx.docType,
+    sku: tx.sku,
+    bin: tx.bin ?? "—",
+    qty: Number(tx.qty),
+    posted: !!tx.posted,
+    docRef: tx.docRef ?? null,
+  });
 
   const allTransactions = useMemo(() => {
-    const fromList = (txList ?? []).map((tx) => ({
-      docType: tx.docType,
-      sku: tx.sku,
-      bin: tx.bin,
-      qty: Number(tx.qty),
-      posted: tx.posted,
-      docRef: tx.docRef ?? null,
-    }));
-    if (fromList.length > 0) return fromList;
-    if (demoBackendState?.transactions?.length) return demoBackendState.transactions;
-    return unpostedFromState ?? [];
+    const merged = new Map<string, TxRow>();
+    const add = (tx: TxRow) => {
+      const row = normalizeTx(tx);
+      const key = `${row.docType}|${row.docRef ?? ""}|${row.sku}|${row.bin}|${row.qty}|${row.posted}`;
+      if (!merged.has(key)) merged.set(key, row);
+    };
+    for (const tx of txList ?? []) {
+      add({
+        docType: tx.docType,
+        sku: tx.sku,
+        bin: tx.bin,
+        qty: Number(tx.qty),
+        posted: tx.posted,
+        docRef: tx.docRef ?? null,
+      });
+    }
+    for (const tx of demoBackendState?.transactions ?? []) add(tx);
+    for (const tx of unpostedFromState ?? []) add({ ...tx, posted: false });
+    return Array.from(merged.values());
   }, [txList, demoBackendState, unpostedFromState]);
 
   const unpostedTxs = useMemo(() => {
@@ -75,7 +96,9 @@ export default function MissionControl() {
     progressPct, isDemo, moduleId, steps: backendSteps, inventory,
   } = data;
 
-  const mission = getMissionForScenario(scenario);
+  const mission = getMissionForScenario(
+    scenario ? { ...scenario, moduleId: scenario.moduleId ?? moduleId } : null
+  );
 
   const STEPS = (backendSteps ?? []).map((s: { code: string; labelEn?: string; labelFr?: string; sapCode?: string }) => ({
     key: s.code,
@@ -96,7 +119,8 @@ export default function MissionControl() {
       breadcrumbs={[{ label: t("Scénarios", "Scenarios"), href: "/student/scenarios" }, { label: "Mission Control" }]}
     >
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
-        
+        <TecLogJourneyStrip activeStep="scenario" className="mb-1" />
+
         {/* ── Top Command Bar ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-4 rounded-none border-b-4 border-primary">
           <div className="flex items-center gap-4">
@@ -169,17 +193,29 @@ export default function MissionControl() {
                       : nextStepCode ? `${nextStepDef?.label || nextStepCode} (${nextStepDef?.code || ''})` : t("BLOQUAGE SYSTÈME", "SYSTEM BLOCK")}
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-                    {nextStepCode ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.") : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
+                    {run.status === "completed"
+                      ? t("Consultez votre rapport de mission pour valider la progression du module et la certification.", "Review your mission report to confirm module progress and certification.")
+                      : nextStepCode
+                        ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.")
+                        : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
                   </p>
                 </div>
-                {nextStepCode && (
+                {run.status === "completed" ? (
+                  <button
+                    onClick={() => navigate(`/student/run/${runId}/report`)}
+                    className="bg-green-700 hover:bg-green-600 text-white font-black px-8 py-4 rounded-none transition-transform active:scale-95 flex items-center gap-2 shadow-lg"
+                  >
+                    <FileText size={18} />
+                    {t("VOIR LE RAPPORT", "VIEW REPORT")}
+                  </button>
+                ) : nextStepCode ? (
                   <button
                     onClick={() => navigate(`/student/run/${runId}/step/${nextStepCode.toLowerCase()}`)}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 py-4 rounded-none transition-transform active:scale-95 flex items-center gap-2 shadow-lg"
                   >
                     {t("EXÉCUTER", "EXECUTE")} <ChevronRight size={20} />
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -240,9 +276,14 @@ export default function MissionControl() {
 
             {/* Transaction Monitor */}
             <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden">
-              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center gap-2">
-                <Activity size={16} className="text-slate-500" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t("Moniteur de Transactions", "Transaction Monitor")}</span>
+              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Activity size={16} className="text-slate-500" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t("Moniteur de Transactions", "Transaction Monitor")}</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {t("Postées", "Posted")}: {allTransactions.filter((tx) => tx.posted).length} · {t("En attente", "Pending")}: {unpostedTxs.length}
+                </span>
               </div>
               <div className="max-h-60 overflow-y-auto">
                 <table className="w-full text-left border-collapse">
@@ -251,6 +292,7 @@ export default function MissionControl() {
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Type</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Ref</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">SKU</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Bin</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase text-right">Qty</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Status</th>
                     </tr>
@@ -260,19 +302,20 @@ export default function MissionControl() {
                       [...allTransactions].reverse().map((tx, idx) => (
                         <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
                           <td className="px-4 py-2 font-bold">{tx.docType}</td>
-                          <td className="px-4 py-2 text-slate-500">{tx.docRef || '---'}</td>
+                          <td className="px-4 py-2 text-slate-500">{tx.docRef || "—"}</td>
                           <td className="px-4 py-2">{tx.sku}</td>
+                          <td className="px-4 py-2 text-primary font-semibold">{tx.bin}</td>
                           <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
                           <td className="px-4 py-2">
-                            <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 animate-pulse'}`}>
-                              {tx.posted ? 'POSTED' : 'PENDING'}
+                            <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700 animate-pulse"}`}>
+                              {tx.posted ? "POSTED" : "PENDING"}
                             </span>
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="px-4 py-6 text-center text-slate-400 italic">
+                        <td colSpan={6} className="px-4 py-6 text-center text-slate-400 italic">
                           {t("Aucune transaction enregistrée.", "No transactions recorded.")}
                         </td>
                       </tr>
@@ -380,10 +423,11 @@ export default function MissionControl() {
         </div>
       </div>
 
-      <MissionSheet 
-        mission={mission} 
-        open={showMission} 
-        onOpenChange={setShowMission} 
+      <MissionSheet
+        mission={mission}
+        scenario={scenario ?? null}
+        open={showMission}
+        onOpenChange={setShowMission}
       />
     </FioriShell>
   );

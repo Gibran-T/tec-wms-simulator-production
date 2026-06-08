@@ -215,6 +215,8 @@ function PanelB({
                   <tr className="bg-slate-50 border-b">
                     <th className="px-2 py-1 text-left">Type</th>
                     <th className="px-2 py-1 text-left">Ref</th>
+                    <th className="px-2 py-1 text-left">SKU</th>
+                    <th className="px-2 py-1 text-left">Bin</th>
                     <th className="px-2 py-1 text-right">Qty</th>
                     <th className="px-2 py-1">St</th>
                   </tr>
@@ -224,6 +226,8 @@ function PanelB({
                     <tr key={i} className="border-b border-border/50">
                       <td className="px-2 py-1">{tx.docType}</td>
                       <td className="px-2 py-1">{tx.docRef ?? "—"}</td>
+                      <td className="px-2 py-1">{tx.sku}</td>
+                      <td className="px-2 py-1 text-primary">{tx.bin || "—"}</td>
                       <td className="px-2 py-1 text-right">{tx.qty}</td>
                       <td className="px-2 py-1">
                         <span className={tx.posted ? "text-green-600" : "text-amber-600"}>{tx.posted ? "POST" : "PEND"}</span>
@@ -278,11 +282,11 @@ function PanelC({ mission, nextStepCode, t, language }: { mission: MissionData |
           {mission.wmsFunction && (
             <p><span className="font-bold text-slate-500">{t("Fonction WMS", "WMS function")}:</span> {mission.wmsFunction}</p>
           )}
-          {mission.sapEquivalent && (
-            <p><span className="font-bold text-slate-500">SAP:</span> {mission.sapEquivalent}</p>
-          )}
-          {mission.odooEquivalent && (
-            <p><span className="font-bold text-slate-500">Odoo:</span> {mission.odooEquivalent}</p>
+          {(mission.sapEquivalent || mission.odooEquivalent) && (
+            <p>
+              <span className="font-bold text-slate-500">{t("Référence ERP/WMS", "ERP/WMS reference")}:</span>{" "}
+              {[mission.sapEquivalent, mission.odooEquivalent].filter(Boolean).join(" · ")}
+            </p>
           )}
           {mission.industryRelevance && (
             <p className="text-slate-600 dark:text-slate-400 italic border-l-2 border-primary/30 pl-2">{mission.industryRelevance}</p>
