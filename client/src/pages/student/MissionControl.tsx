@@ -1,39 +1,84 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useParams, useLocation } from "wouter";
 import { 
   CheckCircle, 
-  Lock, 
-  ArrowRight, 
   AlertTriangle, 
   Trophy, 
   FlaskConical, 
   LayoutDashboard, 
   ClipboardList, 
-  Database, 
   Package, 
   Activity,
   ShieldCheck,
   ChevronRight,
-  Info
+  FileText,
 } from "lucide-react";
 import FioriShell from "@/components/FioriShell";
+import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import MissionSheet from "@/components/MissionSheet";
-import { M1_MISSIONS } from "../../../../server/missionData";
+import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
+import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
+import { getMissionForScenario, resolveScnCode } from "../../../../server/missionData";
+import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 
 import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function MissionControl() {
   const { runId } = useParams<{ runId: string }>();
   const [, navigate] = useLocation();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const [showMission, setShowMission] = useState(false);
   
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
+  const runIdNum = parseInt(runId);
   
-  const { data, isLoading } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
+  const { data, isLoading } = trpc.runs.state.useQuery({ runId: runIdNum });
+  const { data: txList } = trpc.transactions.list.useQuery({ runId: runIdNum }, { enabled: !!data && !isLoading });
+
+  type TxRow = { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null };
+
+  const unpostedFromState = (data as { unpostedTransactions?: TxRow[] } | undefined)?.unpostedTransactions;
+  const demoBackendState = (data as { demoBackendState?: { transactions?: TxRow[]; cycleCounts?: { variance: number; resolved?: boolean }[] } | null } | undefined)?.demoBackendState;
+
+  const normalizeTx = (tx: TxRow): TxRow => ({
+    docType: tx.docType,
+    sku: tx.sku,
+    bin: tx.bin ?? "—",
+    qty: Number(tx.qty),
+    posted: !!tx.posted,
+    docRef: tx.docRef ?? null,
+  });
+
+  const allTransactions = useMemo(() => {
+    const merged = new Map<string, TxRow>();
+    const add = (tx: TxRow) => {
+      const row = normalizeTx(tx);
+      const key = `${row.docType}|${row.docRef ?? ""}|${row.sku}|${row.bin}|${row.qty}|${row.posted}`;
+      if (!merged.has(key)) merged.set(key, row);
+    };
+    for (const tx of txList ?? []) {
+      add({
+        docType: tx.docType,
+        sku: tx.sku,
+        bin: tx.bin,
+        qty: Number(tx.qty),
+        posted: tx.posted,
+        docRef: tx.docRef ?? null,
+      });
+    }
+    for (const tx of demoBackendState?.transactions ?? []) add(tx);
+    for (const tx of unpostedFromState ?? []) add({ ...tx, posted: false });
+    return Array.from(merged.values());
+  }, [txList, demoBackendState, unpostedFromState]);
+
+  const unpostedTxs = useMemo(() => {
+    const fromState = unpostedFromState ?? [];
+    if (fromState.length > 0) return fromState;
+    return allTransactions.filter((tx) => !tx.posted);
+  }, [unpostedFromState, allTransactions]);
 
   if (isLoading) {
     return (
@@ -47,26 +92,31 @@ export default function MissionControl() {
 
   if (!data) return null;
 
-  const { run, scenario, completedSteps, compliance, totalScore: score, nextStep, progressPct, isDemo, moduleId, steps: backendSteps, inventory, transactions } = data;
+  const {
+    run, scenario, completedSteps, compliance, totalScore: score, nextStep,
+    progressPct, isDemo, moduleId, steps: backendSteps, inventory,
+  } = data;
 
-  const mission = M1_MISSIONS[scenario?.id || 0] || null;
+  const mission = getMissionForScenario(
+    scenario ? { ...scenario, moduleId: scenario.moduleId ?? moduleId } : null
+  );
+  const scnCode = mission?.scnCode ?? resolveScnCode(
+    scenario ? { ...scenario, moduleId: scenario.moduleId ?? moduleId } : null
+  );
+  const pedagogy = getCockpitPedagogy(scnCode);
 
-  const STEPS = (backendSteps ?? []).map((s: any) => ({
+  const STEPS = (backendSteps ?? []).map((s: { code: string; labelEn?: string; labelFr?: string; sapCode?: string }) => ({
     key: s.code,
     label: s.labelEn ?? s.code,
     labelFr: s.labelFr ?? s.code,
     code: s.sapCode ?? s.code,
   }));
 
-  const nextStepCode = (nextStep as any)?.code as string | undefined;
-  const nextStepDef = STEPS.find(s => s.key === nextStepCode);
+  const hasVariance = demoBackendState?.cycleCounts?.some((c: { variance: number; resolved?: boolean }) => c.variance !== 0 && !c.resolved) ?? false;
+  const effectiveSteps = (moduleId === 1 && !hasVariance) ? STEPS.filter(s => s.key !== "ADJ") : STEPS;
 
-  const getStepStatus = (stepKey: string) => {
-    if (completedSteps.includes(stepKey as any)) return "completed";
-    if (stepKey === nextStepCode) return "active";
-    if (isDemo) return "demo-available";
-    return "locked";
-  };
+  const nextStepCode = (nextStep as { code?: string } | null)?.code;
+  const nextStepDef = STEPS.find(s => s.key === nextStepCode);
 
   return (
     <FioriShell
@@ -74,7 +124,8 @@ export default function MissionControl() {
       breadcrumbs={[{ label: t("Scénarios", "Scenarios"), href: "/student/scenarios" }, { label: "Mission Control" }]}
     >
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
-        
+        <TecLogJourneyStrip activeStep="scenario" className="mb-1" />
+
         {/* ── Top Command Bar ── */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-4 rounded-none border-b-4 border-primary">
           <div className="flex items-center gap-4">
@@ -99,11 +150,32 @@ export default function MissionControl() {
             {isDemo && (
               <div className="flex items-center gap-2 bg-indigo-950 border border-indigo-700 px-4 py-2 text-xs font-bold text-indigo-300">
                 <FlaskConical size={16} />
-                DEMO MODE
+                {t("MODE DÉMONSTRATION / PRATIQUE GUIDÉE", "DEMONSTRATION / GUIDED PRACTICE")}
               </div>
             )}
           </div>
         </div>
+
+        {/* ── Operational Intelligence Layer (Phase B) ── */}
+        <OperationalIntelligenceLayer
+          runId={runIdNum}
+          run={run}
+          scenario={scenario ?? { id: 0, moduleId: moduleId }}
+          mission={mission}
+          completedSteps={completedSteps as string[]}
+          nextStep={nextStep as { code?: string; labelFr?: string; labelEn?: string } | null}
+          progressPct={progressPct}
+          score={score}
+          inventory={(inventory ?? {}) as Record<string, number>}
+          compliance={compliance}
+          unpostedTransactions={unpostedTxs}
+          allTransactions={allTransactions}
+          isDemo={!!isDemo}
+          moduleId={moduleId}
+          stepLabels={STEPS.map((s) => ({ key: s.key, labelFr: s.labelFr, labelEn: s.label }))}
+          effectiveStepCount={effectiveSteps.length}
+          onExecuteStep={(code) => navigate(`/student/run/${runId}/step/${code.toLowerCase()}`)}
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
@@ -126,17 +198,33 @@ export default function MissionControl() {
                       : nextStepCode ? `${nextStepDef?.label || nextStepCode} (${nextStepDef?.code || ''})` : t("BLOQUAGE SYSTÈME", "SYSTEM BLOCK")}
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-                    {nextStepCode ? t("Consultez la fiche de missão e valide as transações no WMS.", "Check the mission sheet and validate transactions in WMS.") : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
+                    {run.status === "completed"
+                      ? t("Consultez votre rapport de mission pour valider la progression du module et la certification.", "Review your mission report to confirm module progress and certification.")
+                      : nextStepCode && pedagogy
+                        ? pickLang(pedagogy.expectedActionHint, language)
+                        : nextStepCode
+                          ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.")
+                          : pedagogy
+                            ? pickLang(pedagogy.complianceHint, language)
+                            : t("Résolvez les non-conformités pour débloquer le flux.", "Resolve non-conformities to unblock the flow.")}
                   </p>
                 </div>
-                {nextStepCode && (
+                {run.status === "completed" ? (
+                  <button
+                    onClick={() => navigate(`/student/run/${runId}/report`)}
+                    className="bg-green-700 hover:bg-green-600 text-white font-black px-8 py-4 rounded-none transition-transform active:scale-95 flex items-center gap-2 shadow-lg"
+                  >
+                    <FileText size={18} />
+                    {t("VOIR LE RAPPORT", "VIEW REPORT")}
+                  </button>
+                ) : nextStepCode ? (
                   <button
                     onClick={() => navigate(`/student/run/${runId}/step/${nextStepCode.toLowerCase()}`)}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground font-black px-8 py-4 rounded-none transition-transform active:scale-95 flex items-center gap-2 shadow-lg"
                   >
                     {t("EXÉCUTER", "EXECUTE")} <ChevronRight size={20} />
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -179,7 +267,9 @@ export default function MissionControl() {
                     ) : (
                       <tr>
                         <td colSpan={4} className="px-4 py-8 text-center text-slate-400 italic">
-                          {t("Aucun stock détecté dans l'entrepôt.", "No stock detected in the warehouse.")}
+                          {pedagogy?.emptyStockNote
+                            ? pickLang(pedagogy.emptyStockNote, language)
+                            : t("Aucun stock détecté dans l'entrepôt.", "No stock detected in the warehouse.")}
                         </td>
                       </tr>
                     )}
@@ -188,37 +278,64 @@ export default function MissionControl() {
               </div>
             </div>
 
+            {unpostedTxs.length > 0 && (
+              <UnpostedTransactionsPanel
+                runId={runIdNum}
+                transactions={unpostedTxs}
+              />
+            )}
+
             {/* Transaction Monitor */}
             <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden">
-              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center gap-2">
-                <Activity size={16} className="text-slate-500" />
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t("Moniteur de Transactions", "Transaction Monitor")}</span>
+              <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Activity size={16} className="text-slate-500" />
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t("Moniteur de Transactions", "Transaction Monitor")}</span>
+                </div>
+                <span className="text-[10px] font-mono text-slate-500">
+                  {t("Postées", "Posted")}: {allTransactions.filter((tx) => tx.posted).length} · {t("En attente", "Pending")}: {unpostedTxs.length}
+                </span>
               </div>
+              {pedagogy && (
+                <p className="px-4 py-2 text-[10px] text-slate-600 dark:text-slate-400 border-b border-border bg-slate-50/80 dark:bg-slate-900/40 italic">
+                  {pickLang(pedagogy.transactionMonitorHint, language)}
+                </p>
+              )}
               <div className="max-h-60 overflow-y-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900 border-b border-border">
-                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Doc</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Type</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Ref</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">SKU</th>
+                      <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Bin</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase text-right">Qty</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Status</th>
                     </tr>
                   </thead>
                   <tbody className="text-[10px] font-mono">
-                    {(transactions || []).slice().reverse().map((tx: any, idx: number) => (
-                      <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                        <td className="px-4 py-2 text-slate-400">#{tx.id}</td>
-                        <td className="px-4 py-2 font-bold">{tx.docType}</td>
-                        <td className="px-4 py-2 text-slate-500">{tx.docRef || '---'}</td>
-                        <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
-                        <td className="px-4 py-2">
-                          <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700 animate-pulse'}`}>
-                            {tx.posted ? 'POSTED' : 'PENDING'}
-                          </span>
+                    {allTransactions.length > 0 ? (
+                      [...allTransactions].reverse().map((tx, idx) => (
+                        <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                          <td className="px-4 py-2 font-bold">{tx.docType}</td>
+                          <td className="px-4 py-2 text-slate-500">{tx.docRef || "—"}</td>
+                          <td className="px-4 py-2">{tx.sku}</td>
+                          <td className="px-4 py-2 text-primary font-semibold">{tx.bin}</td>
+                          <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
+                          <td className="px-4 py-2">
+                            <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700 animate-pulse"}`}>
+                              {tx.posted ? "POSTED" : "PENDING"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-6 text-center text-slate-400 italic">
+                          {t("Aucune transaction enregistrée.", "No transactions recorded.")}
                         </td>
                       </tr>
-                    ))}
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -244,16 +361,28 @@ export default function MissionControl() {
                   </div>
                 </div>
 
+                {unpostedTxs.length > 0 && moduleId === 1 && (
+                  <UnpostedTransactionsPanel
+                    runId={runIdNum}
+                    transactions={unpostedTxs}
+                    compact
+                  />
+                )}
+
                 <div className="space-y-2">
-                  {compliance.issues.length > 0 ? (
-                    compliance.issues.map((issue: string, i: number) => (
+                  {(compliance.issuesFr?.length ? compliance.issuesFr : compliance.issues).length > 0 ? (
+                    (compliance.issuesFr?.length ? compliance.issuesFr : compliance.issues).map((issue: string, i: number) => (
                       <div key={i} className="flex items-start gap-2 p-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                         <AlertTriangle size={12} className="text-red-500 mt-0.5 flex-shrink-0" />
                         <p className="text-[10px] text-slate-700 dark:text-slate-300 font-semibold">{issue}</p>
                       </div>
                     ))
                   ) : (
-                    <p className="text-[10px] text-slate-500 italic text-center py-2">{t("Aucun bloqueur détecté.", "No blockers detected.")}</p>
+                    <p className="text-[10px] text-slate-500 italic text-center py-2">
+                      {pedagogy
+                        ? pickLang(pedagogy.complianceHint, language)
+                        : t("Aucun bloqueur détecté.", "No blockers detected.")}
+                    </p>
                   )}
                 </div>
               </div>
@@ -284,7 +413,7 @@ export default function MissionControl() {
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-slate-500 font-bold uppercase">{t("Étapes Validées", "Steps Validated")}</span>
-                    <span className="font-mono font-bold">{completedSteps.length} / {STEPS.length}</span>
+                    <span className="font-mono font-bold">{completedSteps.length} / {effectiveSteps.length}</span>
                   </div>
                 </div>
               </div>
@@ -303,6 +432,7 @@ export default function MissionControl() {
                 <a 
                   href="https://edu-concorde-logistics-lab.odoo.com" 
                   target="_blank" 
+                  rel="noreferrer"
                   className="block w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-2 transition-colors"
                 >
                   {t("OUVRIR ODOO LAB →", "OPEN ODOO LAB →")}
@@ -313,10 +443,11 @@ export default function MissionControl() {
         </div>
       </div>
 
-      <MissionSheet 
-        mission={mission} 
-        open={showMission} 
-        onOpenChange={setShowMission} 
+      <MissionSheet
+        mission={mission}
+        scenario={scenario ?? null}
+        open={showMission}
+        onOpenChange={setShowMission}
       />
     </FioriShell>
   );
