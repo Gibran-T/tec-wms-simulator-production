@@ -12,7 +12,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
-import SlideVisualRenderer from "@/components/slides/SlideVisualRenderer";
+import VisualComponentMapper from "@/components/slides/VisualComponentMapper";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   BookOpen, GraduationCap, Clock, Tag, Lightbulb,
@@ -173,6 +173,7 @@ export default function SlideViewer() {
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
   const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
   const progress = ((slideIndex + 1) / totalSlides) * 100;
+  const visualKey = slide.visualComponent ?? slide.visualType;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
@@ -342,9 +343,9 @@ export default function SlideViewer() {
 
               {/* Slide body — visual-first layout */}
               <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
-                {slide.visualType && (
-                  <div className="mb-5 rounded-lg overflow-hidden border border-border/60">
-                    <SlideVisualRenderer slide={slide} lang={lang} accentColor={mod.color} />
+                {visualKey && (
+                  <div className="mb-5 rounded-lg overflow-hidden border border-border/60 min-h-[6rem]">
+                    <VisualComponentMapper type={visualKey} lang={lang} accentColor={mod.color} />
                   </div>
                 )}
                 <div className="space-y-0.5">

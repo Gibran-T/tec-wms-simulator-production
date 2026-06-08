@@ -5,6 +5,8 @@ import WarehouseZonesDiagram from "./WarehouseZonesDiagram";
 import CycleCountAdjDiagram from "./CycleCountAdjDiagram";
 import KpiDashboardVisual from "./KpiDashboardVisual";
 import IntegratedE2eFlow from "./IntegratedE2eFlow";
+import PutawayFlowDiagram from "./PutawayFlowDiagram";
+import FifoLotsDiagram from "./FifoLotsDiagram";
 
 type Lang = "FR" | "EN";
 
@@ -30,6 +32,10 @@ export default function SlideVisualRenderer({ slide, lang, accentColor }: Props)
       return <KpiDashboardVisual lang={lang} />;
     case "integrated-e2e-flow":
       return <IntegratedE2eFlow lang={lang} />;
+    case "putaway-flow":
+      return <PutawayFlowDiagram lang={lang} />;
+    case "fifo-lots":
+      return <FifoLotsDiagram lang={lang} />;
     default:
       return null;
   }

@@ -5,6 +5,34 @@ import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
 import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import { SilverMedal, GoldMedal } from "@/components/CertificationMedal";
+import { MODULE_PATHWAY } from "@/data/modulePathway";
+
+const COMPETENCY_GROUPS = [
+  {
+    id: "operations",
+    labelFr: "Exécution opérationnelle",
+    labelEn: "Operational execution",
+    modules: [1, 2],
+  },
+  {
+    id: "inventory",
+    labelFr: "Contrôle des stocks",
+    labelEn: "Inventory control",
+    modules: [3],
+  },
+  {
+    id: "performance",
+    labelFr: "Pilotage & KPI",
+    labelEn: "Performance & KPI",
+    modules: [4],
+  },
+  {
+    id: "integration",
+    labelFr: "Opérations intégrées",
+    labelEn: "Integrated operations",
+    modules: [5],
+  },
+];
 
 export function CertificationsPage() {
   const { t } = useLanguage();
@@ -31,6 +59,8 @@ export function CertificationsPage() {
       titleEn: "TEC.LOG Silver Certification — Fundamentals",
       scopeFr: "M1 · SCN-001 → SCN-005",
       scopeEn: "M1 · SCN-001 → SCN-005",
+      pathFr: "Parcours Silver — fondations ERP/WMS (Module 1 uniquement)",
+      pathEn: "Silver pathway — ERP/WMS foundations (Module 1 only)",
       descriptionFr: "Maîtrise des processus fondamentaux ERP/WMS (Module 1)",
       descriptionEn: "Mastery of fundamental ERP/WMS processes (Module 1)",
       unlocked: profile?.silverCertified ?? false,
@@ -41,10 +71,12 @@ export function CertificationsPage() {
       tier: "Gold",
       titleFr: "TEC.LOG Gold Certification — Integrated Operations",
       titleEn: "TEC.LOG Gold Certification — Integrated Operations",
-      scopeFr: "M1 → M5 · SCN-001 → SCN-017",
-      scopeEn: "M1 → M5 · SCN-001 → SCN-017",
-      descriptionFr: "Expertise complète en opérations intégrées (Modules 1 à 5)",
-      descriptionEn: "Complete integrated operations expertise (Modules 1–5)",
+      scopeFr: "M2 → M5 · SCN-006 → SCN-017",
+      scopeEn: "M2 → M5 · SCN-006 → SCN-017",
+      pathFr: "Parcours Gold — opérations intégrées (Modules 2 à 5)",
+      pathEn: "Gold pathway — integrated operations (Modules 2–5)",
+      descriptionFr: "Expertise complète en opérations intégrées (Modules 2 à 5)",
+      descriptionEn: "Complete integrated operations expertise (Modules 2–5)",
       unlocked: profile?.goldCertified ?? false,
       Medal: GoldMedal,
     },
@@ -87,7 +119,7 @@ export function CertificationsPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {certifications.map((cert) => {
             const Medal = cert.Medal;
             return (
@@ -120,6 +152,9 @@ export function CertificationsPage() {
                       <p className="text-[10px] font-mono text-muted-foreground mt-2">
                         {t(cert.scopeFr, cert.scopeEn)}
                       </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {t(cert.pathFr, cert.pathEn)}
+                      </p>
                     </div>
                     {cert.unlocked ? (
                       <CheckCircle size={22} className="text-emerald-500 shrink-0" />
@@ -146,7 +181,7 @@ export function CertificationsPage() {
                         <span className="text-sm text-muted-foreground">
                           {cert.id === "silver"
                             ? t("Complétez M1 (SCN-001→005) pour débloquer", "Complete M1 (SCN-001→005) to unlock")
-                            : t("Complétez M1→M5 (SCN-001→017) pour débloquer", "Complete M1→M5 (SCN-001→017) to unlock")}
+                            : t("Complétez M2→M5 (SCN-006→017) pour débloquer", "Complete M2→M5 (SCN-006→017) to unlock")}
                         </span>
                       </div>
                     )}
@@ -157,7 +192,70 @@ export function CertificationsPage() {
           })}
         </div>
 
-        <div className="mt-8 bg-[#0f2a44]/5 border border-[#1a3f6f]/20 rounded-lg p-4">
+        {/* Module contribution map */}
+        <div className="mb-8 border border-[#1a3f6f]/20 rounded-lg overflow-hidden">
+          <div className="bg-[#0f2a44] px-4 py-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/80">
+              {t("Carte de contribution par module", "Module contribution map")}
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {MODULE_PATHWAY.map((row) => (
+              <div key={row.moduleId} className="px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 bg-card">
+                <div className="flex items-center gap-2 min-w-[7rem]">
+                  <span className="font-mono text-xs font-bold text-white bg-[#0070f2] px-2 py-0.5 rounded">
+                    M{row.moduleId}
+                  </span>
+                  <span
+                    className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${
+                      row.certTier === "silver"
+                        ? "bg-slate-200 text-slate-700"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {row.certTier === "silver" ? "Silver" : "Gold"}
+                  </span>
+                </div>
+                <p className="text-[10px] font-mono text-muted-foreground min-w-[10rem]">{row.scnRange}</p>
+                <p className="text-xs text-foreground flex-1">{t(row.competencyFr, row.competencyEn)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Competency groups */}
+        <div className="mb-8 border border-border rounded-lg overflow-hidden">
+          <div className="bg-slate-100 dark:bg-slate-800 px-4 py-3 border-b border-border">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              {t("Groupes de compétences", "Competency groups")}
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border">
+            {COMPETENCY_GROUPS.map((group) => (
+              <div key={group.id} className="bg-card p-4">
+                <p className="text-sm font-semibold text-foreground mb-2">
+                  {t(group.labelFr, group.labelEn)}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {group.modules.map((mid) => {
+                    const pathway = MODULE_PATHWAY.find((p) => p.moduleId === mid);
+                    return (
+                      <span
+                        key={mid}
+                        className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0f2a44]/5 border border-[#1a3f6f]/20 text-[#0f2a44]"
+                      >
+                        M{mid}
+                        {pathway ? ` · ${pathway.scnRange}` : ""}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-[#0f2a44]/5 border border-[#1a3f6f]/20 rounded-lg p-4">
           <div className="flex gap-3">
             <Award size={20} className="text-[#0070f2] flex-shrink-0 mt-0.5" />
             <div>
@@ -166,8 +264,8 @@ export function CertificationsPage() {
               </p>
               <p className="text-sm text-gray-600">
                 {t(
-                  "Silver : fondations M1 · Gold : opérations intégrées M1–M5. Les certifications sont délivrées par le Collège de la Concorde après validation complète en mode évaluation.",
-                  "Silver: M1 foundations · Gold: M1–M5 integrated operations. Certifications are issued by Collège de la Concorde after full evaluation-mode validation."
+                  "Silver : M1 (SCN-001→005) · Gold : M2–M5 (SCN-006→017). Les certifications sont délivrées par le Collège de la Concorde après validation complète en mode évaluation. Aucune génération automatique de certificat — credential institutionnel uniquement.",
+                  "Silver: M1 (SCN-001→005) · Gold: M2–M5 (SCN-006→017). Certifications are issued by Collège de la Concorde after full evaluation-mode validation. No automatic certificate generation — institutional credential only."
                 )}
               </p>
             </div>
