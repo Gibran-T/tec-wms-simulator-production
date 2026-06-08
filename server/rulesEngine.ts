@@ -421,8 +421,22 @@ export function checkCompliance(state) {
   }
   return { compliant: issues.length === 0, issues, issuesFr };
 }
-export function getNextRequiredStep(completedSteps, moduleId = 1) {
-  const steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
+export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
+  let steps;
+  if (moduleId === 1) {
+    steps = getEffectiveM1Steps(state);
+  } else {
+    steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
+  }
+
+  // SCN-002/005: any unposted GR blocks later steps (SCN-005 may auto-complete GR when another GR is posted)
+  if (moduleId === 1 && state?.transactions) {
+    const ghostGrPending = state.transactions.some((t) => t.docType === "GR" && !t.posted);
+    if (ghostGrPending) {
+      return steps.find((s) => s.code === "GR") ?? null;
+    }
+  }
+
   for (const step of steps) {
     if (!completedSteps.includes(step.code)) {
       return step;
@@ -566,18 +580,16 @@ export function getEffectiveM1Steps(state) {
 }
 
 export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
-  let steps;
   if (moduleId === 1) {
-    steps = getEffectiveM1Steps(state);
-  } else {
-    const stepsMap = {
-      2: MODULE2_STEPS,
-      3: MODULE3_STEPS,
-      4: MODULE4_STEPS,
-      5: MODULE5_STEPS
-    };
-    steps = stepsMap[moduleId] ?? MODULE1_STEPS;
+    return getNextRequiredStep(completedSteps, 1, state);
   }
+  const stepsMap = {
+    2: MODULE2_STEPS,
+    3: MODULE3_STEPS,
+    4: MODULE4_STEPS,
+    5: MODULE5_STEPS
+  };
+  const steps = stepsMap[moduleId] ?? MODULE1_STEPS;
   for (const step of steps) {
     if (!completedSteps.includes(step.code)) {
       return step;
