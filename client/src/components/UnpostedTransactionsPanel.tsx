@@ -1,6 +1,6 @@
-import { trpc } from "@/lib/trpc";
+import { useLocation } from "wouter";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
 
 type UnpostedTx = {
   docType: string;
@@ -18,29 +18,28 @@ interface UnpostedTransactionsPanelProps {
 }
 
 export default function UnpostedTransactionsPanel({ runId, transactions, compact }: UnpostedTransactionsPanelProps) {
+  const [, navigate] = useLocation();
   const { t } = useLanguage();
-  const utils = trpc.useUtils();
 
   const pending = transactions.filter((tx) => tx.posted === false || !tx.posted);
   if (pending.length === 0) return null;
 
-  const postExistingTx = trpc.transactions.postExistingTransaction.useMutation({
-    onSuccess: (data) => {
-      toast.success(data.message);
-      utils.runs.state.invalidate({ runId });
-    },
-    onError: (err) => toast.error(err.message),
-  });
+  const openRegularization = (tx: UnpostedTx) => {
+    if (tx.docType !== "GR" || !tx.docRef) return;
+    const params = new URLSearchParams({ regularize: tx.docRef });
+    navigate(`/student/run/${runId}/step/GR?${params.toString()}`);
+  };
 
   return (
     <div className={`bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md ${compact ? "p-3" : "p-4"} space-y-2`}>
-      <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-        {t("GR fantôme / transactions non postées", "Ghost GR / unposted transactions")}
+      <p className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+        <AlertTriangle size={12} />
+        {t("GR fantôme / transaction non postée", "Ghost GR / unposted transaction")}
       </p>
       <p className="text-[11px] text-amber-800 dark:text-amber-300 leading-relaxed">
         {t(
-          "Une réception existe dans le moniteur mais n'est pas active dans le stock. Cliquez Poster (MIGO) — ne créez pas une nouvelle GR.",
-          "A receipt exists in the monitor but is not active in stock. Click Post (MIGO) — do not create a new GR."
+          "Une réception existe dans le moniteur mais n'est pas active dans le stock. Identifiez le document, puis régularisez — ne créez pas une nouvelle GR.",
+          "A receipt exists in the monitor but is not active in stock. Identify the document, then regularize — do not create a new GR."
         )}
       </p>
       <div className="space-y-2">
@@ -51,6 +50,7 @@ export default function UnpostedTransactionsPanel({ runId, transactions, compact
           >
             <div className="text-[11px] font-mono text-amber-900 dark:text-amber-100">
               <span className="font-bold">{tx.docRef ?? "—"}</span>
+              <span className="ml-2 px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 font-bold uppercase text-[9px]">PENDING</span>
               <span className="ml-2 text-amber-700 dark:text-amber-300">
                 {tx.docType} · {tx.sku} · {tx.bin} · {tx.qty} u.
               </span>
@@ -58,11 +58,10 @@ export default function UnpostedTransactionsPanel({ runId, transactions, compact
             {tx.docType === "GR" && tx.docRef && (
               <button
                 type="button"
-                disabled={postExistingTx.isPending}
-                onClick={() => postExistingTx.mutate({ runId, txDocRef: tx.docRef! })}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded disabled:opacity-50 shrink-0"
+                onClick={() => openRegularization(tx)}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded shrink-0"
               >
-                {postExistingTx.isPending ? t("Posting...", "Posting...") : t("Poster (MIGO)", "Post (MIGO)")}
+                {t("Régulariser le document (MIGO)", "Regularize document (MIGO)")}
               </button>
             )}
           </div>

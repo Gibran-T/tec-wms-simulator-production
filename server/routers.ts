@@ -725,24 +725,33 @@ export const appRouter = router({
         // Only teachers/admins can start demo sessions
         const isDemo = input.isDemo && (ctx.user.role === "teacher" || ctx.user.role === "admin");
         const runId = await startRun(ctx.user.id, input.scenarioId, isDemo);
-        // Load initial state from scenario (M3 preloaded transactions)
         const scenario = await getScenarioById(input.scenarioId);
         if (scenario?.initialStateJson) {
           const state = scenario.initialStateJson as any;
           if (state.preloadedTransactions) {
             try {
-              for (const tx of state.preloadedTransactions) {
+              const { normalizePreloadedTransaction, getM1StepsToAutoComplete, getM2StepsToAutoComplete } = await import("./m1Preload");
+              const normalized = (state.preloadedTransactions as import("./m1Preload").PreloadedTx[]).map(normalizePreloadedTransaction);
+              for (const tx of normalized) {
                 await addTransaction({
                   runId,
                   docType: tx.docType,
                   moveType: null,
-                  sku: tx.sku,
-                  bin: tx.bin,
+                  sku: tx.sku!,
+                  bin: tx.bin!,
                   qty: String(tx.qty),
                   posted: tx.posted ?? false,
                   docRef: tx.docRef ?? null,
                   comment: "Initial state",
                 });
+              }
+              const moduleId = scenario.moduleId ?? 1;
+              const autoSteps =
+                moduleId === 1 ? getM1StepsToAutoComplete(normalized)
+                : moduleId === 2 ? getM2StepsToAutoComplete(normalized)
+                : [];
+              for (const stepCode of autoSteps) {
+                await markStepComplete(runId, stepCode);
               }
             } catch (err) {
               throw new TRPCError({
@@ -1174,6 +1183,14 @@ export const appRouter = router({
           }
         }
         // Zone validation: GR must go to RECEPTION bin
+        const pendingGhostGr = state.transactions.find((t) => t.docType === "GR" && !t.posted);
+        if (pendingGhostGr) {
+          const msgFr = `Une GR en attente existe déjà (${pendingGhostGr.docRef ?? "sans réf."}). Utilisez « Régulariser le document » depuis le moniteur — ne créez pas une nouvelle GR.`;
+          const msgEn = `A pending GR already exists (${pendingGhostGr.docRef ?? "no ref"}). Use « Regularize document » from the monitor — do not create a new GR.`;
+          if (!run.isDemo) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason({ reasonFr: msgFr, reasonEn: msgEn }, ctx.req) });
+          }
+        }
         const zoneCheck = validateGRZone(input.bin);
         if (!zoneCheck.allowed) {
           if (!run.isDemo) {
@@ -1417,7 +1434,20 @@ export const appRouter = router({
             message: "Transaction non postée introuvable ou déjà postée. Vérifiez la référence du document.",
           });
         }
-        await postTransaction((target as any).id);
+        const { ghostGrReceptionBin } = await import("./m1Preload");
+        const receptionBin = ghostGrReceptionBin((target as any).docRef);
+        if (receptionBin && (target as any).docType === "GR") {
+          const db = await import("./db").then((m) => m.getDb());
+          if (db) {
+            const { transactions: txTable } = await import("../drizzle/schema");
+            const { eq } = await import("drizzle-orm");
+            await db.update(txTable).set({ posted: true, bin: receptionBin }).where(eq(txTable.id, (target as any).id));
+          } else {
+            await postTransaction((target as any).id);
+          }
+        } else {
+          await postTransaction((target as any).id);
+        }
         // Mark GR step complete if not already done and this is a GR transaction
         if ((target as any).docType === "GR") {
           const prog = await getProgressByRun(input.runId);

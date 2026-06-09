@@ -3,7 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
@@ -760,6 +760,7 @@ export default function StepForm() {
   // ── M1 mutations ──────────────────────────────────────────────────────────
   const submitPO = trpc.transactions.submitPO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitGR = trpc.transactions.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
+  const postExistingGR = trpc.transactions.postExistingTransaction.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitPUTAWAY_M1 = trpc.transactions.submitPUTAWAY_M1.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitSO = trpc.transactions.submitSO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitPICKING_M1 = trpc.transactions.submitPICKING_M1.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -799,6 +800,28 @@ export default function StepForm() {
   const submitComplianceM5 = trpc.m5.submitComplianceM5.useMutation({ onSuccess: handleSuccess, onError: handleError });
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors: formErrors } } = useForm<FormValues>();
+
+  const regularizeDocRef = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("regularize");
+  }, [step, runId]);
+
+  const pendingRegularizationTx = useMemo(() => {
+    const unposted = (runData as { unpostedTransactions?: Array<{ docRef?: string | null; sku: string; bin: string; qty: number; docType: string }> } | undefined)?.unpostedTransactions ?? [];
+    if (!regularizeDocRef) return null;
+    return unposted.find((t) => t.docRef === regularizeDocRef && t.docType === "GR") ?? null;
+  }, [runData, regularizeDocRef]);
+
+  const isGrRegularization = step?.toLowerCase() === "gr" && !!pendingRegularizationTx;
+
+  useEffect(() => {
+    if (!isGrRegularization || !pendingRegularizationTx) return;
+    setValue("docRef", pendingRegularizationTx.docRef ?? "");
+    setValue("sku", pendingRegularizationTx.sku);
+    setValue("bin", pendingRegularizationTx.bin);
+    setValue("qty", String(pendingRegularizationTx.qty));
+    setValue("comment", t("Régularisation GR fantôme — validation document existant", "Ghost GR regularization — validate existing document"));
+  }, [isGrRegularization, pendingRegularizationTx, setValue, t]);
   // Expose setValue for testing/automation
   if (typeof window !== 'undefined') (window as any).__rhfSetValue = setValue;
   const [feedbackPanel, setFeedbackPanel] = useState<{ data: any } | null>(null);
@@ -871,6 +894,10 @@ export default function StepForm() {
     const stepLower = step?.toLowerCase() ?? "";
 
     // Standard field validations
+    if (isGrRegularization && regularizeDocRef) {
+      return postExistingGR.mutate({ runId: parseInt(runId), txDocRef: regularizeDocRef });
+    }
+
     if (cfg.fields.includes("bin") && (!values.bin || values.bin === "")) {
       toast.error(t("Veuillez sélectionner un emplacement (Bin) avant de valider.", "Please select a bin location before validating."));
       return;
@@ -976,7 +1003,7 @@ export default function StepForm() {
   }
 
   const isAnyPending = [
-    submitPO, submitGR, submitPUTAWAY_M1, submitSO, submitPICKING_M1, submitGI, submitCC, submitADJ, submitCompliance,
+    submitPO, submitGR, postExistingGR, submitPUTAWAY_M1, submitSO, submitPICKING_M1, submitGI, submitCC, submitADJ, submitCompliance,
     submitFifoPick, submitStockAccuracy, submitComplianceAdv,
     submitCcList, submitCcCount, submitCcRecon, submitReplenishM3, submitComplianceM3,
     submitKpiData, submitKpiRotation, submitKpiService, submitKpiDiagnostic, submitComplianceM4,
@@ -1236,12 +1263,33 @@ export default function StepForm() {
               </div>
             )}
 
+            {isGrRegularization && pendingRegularizationTx && (
+              <div className="mx-4 mt-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-md p-3">
+                <p className="text-[10px] font-bold text-amber-900 dark:text-amber-200 uppercase tracking-wider mb-1">
+                  {t("Régularisation document existant", "Existing document regularization")}
+                </p>
+                <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                  {t(
+                    `Document ${pendingRegularizationTx.docRef} détecté en PENDING dans le moniteur. Validez la posting MIGO de ce document — ne créez pas une nouvelle GR.`,
+                    `Document ${pendingRegularizationTx.docRef} detected as PENDING in the monitor. Validate MIGO posting for this document — do not create a new GR.`
+                  )}
+                </p>
+              </div>
+            )}
+
             {/* Objective Panel */}
             <div className="mx-4 mt-4 bg-primary/5 border border-primary/20 rounded-md p-3">
               <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">
                 <Info size={10} className="inline mr-1" />{t("Objectif pédagogique", "Pedagogical objective")}
               </p>
-              <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.objectiveFr, cfg.objectiveEn)}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {isGrRegularization
+                  ? t(
+                      "Poster la réception fantôme existante pour activer le stock en zone RÉCEPTION.",
+                      "Post the existing ghost receipt to activate stock in the RECEPTION zone."
+                    )
+                  : t(cfg.objectiveFr, cfg.objectiveEn)}
+              </p>
             </div>
 
             {/* Context Panel: Stock for evaluation mode */}
@@ -1351,7 +1399,7 @@ export default function StepForm() {
                       {runData?.compliance.issuesFr?.some((i: string) => i.includes('non postée')) && (
                         <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md p-3 text-xs">
                           <p className="font-semibold text-amber-800 dark:text-amber-300 mb-1">💡 {t("Comment résoudre : transactions non postées", "How to resolve: unposted transactions")}</p>
-                          <p className="text-amber-700 dark:text-amber-400">{t("Ce scénario simule une GR fantôme (réception non comptabilisée). Dans un vrai WMS, vous devez localiser et poster la transaction manquante via MB01/MIGO. Ici, retournez au tableau de bord, démarrez un nouveau scénario et veillez à poster chaque GR immédiatement après réception.", "This scenario simulates a ghost GR (unposted receipt). In a real WMS, you must locate and post the missing transaction via MB01/MIGO. Here, return to the dashboard, start a new scenario and make sure to post each GR immediately after receipt.")}</p>
+                          <p className="text-amber-700 dark:text-amber-400">{t("Retournez au Mission Control, identifiez la GR PENDING dans le moniteur, puis cliquez « Régulariser le document (MIGO) » pour poster la réception existante.", "Return to Mission Control, identify the PENDING GR in the monitor, then click « Regularize document (MIGO) » to post the existing receipt.")}</p>
                           <button
                             type="button"
                             onClick={() => navigate(`/student/run/${runId}`)}
@@ -1421,7 +1469,7 @@ export default function StepForm() {
                     {t("N° Document", "Document No.")} <span className="text-destructive">*</span>{" "}
                     <span className="text-[10px] text-muted-foreground ml-1">{t("Requis", "Required")}</span>
                   </label>
-                  <input {...register("docRef")} placeholder={`Ex: ${cfg.code}-2025-001`} className="fiori-field-input fiori-field-active" />
+                  <input {...register("docRef")} readOnly={isGrRegularization} placeholder={`Ex: ${cfg.code}-2025-001`} className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`} />
                 </div>
               )}
 
@@ -1431,7 +1479,7 @@ export default function StepForm() {
                     SKU <span className="text-destructive">*</span>{" "}
                     <span className="text-[10px] text-muted-foreground ml-1">{t("Requis", "Required")}</span>
                   </label>
-                  <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} className="fiori-field-input fiori-field-active">
+                  <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} disabled={isGrRegularization} className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`}>
                     <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
                     {masterData?.map((s: any) => (
                       <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
@@ -1446,13 +1494,13 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Bin / Emplacement", "Bin / Location")} <span className="text-destructive">*</span>
                   </label>
-                  <select {...register("bin")} value={selectedBin} onChange={e => setValue("bin", e.target.value)} className="fiori-field-input fiori-field-active">
+                  <select {...register("bin")} value={selectedBin} onChange={e => setValue("bin", e.target.value)} disabled={isGrRegularization} className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`}>
                     <option value="">— {t("Sélectionner un emplacement", "Select a location")} —</option>
                     {bins?.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
-                  {cfg.binZoneHint?.bin && (
+                  {cfg.binZoneHint?.bin && !isGrRegularization && (
                     <p className="text-xs mt-1.5 text-blue-600 dark:text-blue-400 flex items-start gap-1 bg-blue-50 dark:bg-blue-950/30 rounded px-2 py-1">
                       <span className="shrink-0 font-bold">&#x1F4CD;</span>
                       <span>{t(cfg.binZoneHint.bin.fr, cfg.binZoneHint.bin.en)}</span>
@@ -1530,7 +1578,7 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Quantité", "Quantity")} <span className="text-destructive">*</span>
                   </label>
-                  <input {...register("qty")} type="number" min={1} placeholder="Ex: 50" className="fiori-field-input fiori-field-active" />
+                  <input {...register("qty")} type="number" min={1} readOnly={isGrRegularization} placeholder="Ex: 50" className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`} />
                   {(["gi","so"].includes(step?.toLowerCase() ?? "")) && availableStock !== null && (
                     <p className="text-xs mt-1 text-amber-600 dark:text-amber-400">
                       {t(`Ne peut pas dépasser le stock disponible (${availableStock})`, `Cannot exceed available stock (${availableStock})`)}
@@ -1797,7 +1845,9 @@ export default function StepForm() {
                   ) : (
                     <>
                       <CheckCircle size={14} />
-                      {t("Valider la transaction", "Validate transaction")}
+                      {isGrRegularization
+                        ? t("Poster (MIGO)", "Post (MIGO)")
+                        : t("Valider la transaction", "Validate transaction")}
                     </>
                   )}
                 </button>
