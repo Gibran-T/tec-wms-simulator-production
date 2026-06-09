@@ -468,23 +468,23 @@ describe("M1 Integration — Full Cycle PO→GR→PUTAWAY→STOCK→SO→PICKING
 
   // ── Step 9: COMPLIANCE ──────────────────────────────────────────────────────
   describe("Step 9 — COMPLIANCE (System Compliance)", () => {
-    it("COMPLIANCE is blocked when unposted transactions exist", () => {
+    it("COMPLIANCE step stays open when only unposted transactions remain (resolve via Poster MIGO)", () => {
       const state = makeState(
         ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC"],
         [makeTx("PO", "SKU-001", "REC-01", 100, false)] // unposted
       );
-      const result = canExecuteStep("COMPLIANCE", state);
-      expect(result.allowed).toBe(false);
+      expect(canExecuteStep("COMPLIANCE", state).allowed).toBe(true);
+      expect(checkCompliance(state).compliant).toBe(false);
     });
 
-    it("COMPLIANCE is blocked when negative stock exists", () => {
+    it("COMPLIANCE step stays open with negative stock (finalize blocked via checkCompliance)", () => {
       const state = makeState(
         ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC"],
         [],
         { "SKU-001::B-01-R1-L1": -5 }
       );
-      const result = canExecuteStep("COMPLIANCE", state);
-      expect(result.allowed).toBe(false);
+      expect(canExecuteStep("COMPLIANCE", state).allowed).toBe(true);
+      expect(checkCompliance(state).compliant).toBe(false);
     });
 
     it("COMPLIANCE is allowed when all transactions posted and no negative stock", () => {

@@ -201,12 +201,15 @@ export function canExecuteStep(step, state) {
     }
   }
   if (step === "COMPLIANCE") {
-    const result = checkCompliance(state);
-    if (!result.compliant) {
+    // SCN-004/005: ADJ required before opening compliance when variance is unresolved.
+    // Other blockers (unposted GR, negative stock) are resolved ON this step — do not block access.
+    const hasUnresolvedVariance = state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
+    if (hasUnresolvedVariance && !state.completedSteps.includes("ADJ")) {
       return {
         allowed: false,
-        reason: result.issues.join("; "),
-        reasonFr: result.issuesFr.join("; ")
+        reason: "Unresolved inventory variance — complete ADJ (MI07) before compliance check",
+        reasonFr: "Écart d'inventaire non résolu — complétez l'ajustement ADJ (MI07) avant la conformité",
+        reasonEn: "Unresolved inventory variance — complete ADJ (MI07) before the compliance check.",
       };
     }
   }
