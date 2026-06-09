@@ -2069,6 +2069,43 @@ export const appRouter = router({
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: `PUTAWAY M2: ${zoneCheck.reasonFr}` });
           if (!run.isDemo) throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
         }
+        const allBinCaps = await getAllBinCapacities();
+        const allBins = await getAllBins();
+        const binCapacities: Record<string, number> = {};
+        for (const bc of allBinCaps) binCapacities[bc.binCode] = bc.maxCapacity;
+        for (const b of allBins) {
+          if (!(b.binCode in binCapacities)) binCapacities[b.binCode] = b.maxCapacity ?? 500;
+        }
+        const binCurrentLoad = calculateBinLoad(
+          state.transactions.map((t) => ({ docType: t.docType, bin: t.bin, qty: t.qty, posted: t.posted }))
+        );
+        const existingPutaway = await getPutawayByRun(input.runId);
+        const existingLots = existingPutaway
+          .filter((p) => p.sku === input.sku)
+          .map((p) => ({ lotNumber: p.lotNumber ?? "", receivedAt: new Date(p.receivedAt), qty: p.qty }))
+          .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
+        const capacityCheck = validatePutaway({
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+          binCapacities,
+          binCurrentLoad,
+          existingLots,
+          lotNumber: input.lotNumber ?? `LOT-${Date.now()}`,
+          receivedAt: new Date(),
+        });
+        if (!capacityCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: capacityCheck.penaltyEvent ?? "OUT_OF_SEQUENCE",
+              pointsDelta: capacityCheck.penaltyPoints ?? -5,
+              message: capacityCheck.reasonFr ?? "",
+            });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(capacityCheck, ctx.req) });
+          }
+        }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         const lotNum = input.lotNumber || `LOT-${Date.now()}`;
@@ -2076,8 +2113,8 @@ export const appRouter = router({
         await markStepComplete(input.runId, "PUTAWAY");
         const rule = getScoringRule("PUTAWAY_COMPLETED");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
-        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed)
-          ? [!check.allowed ? pickReason(check, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
+        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed || !capacityCheck.allowed)
+          ? [!check.allowed ? pickReason(check, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !capacityCheck.allowed ? pickReason(capacityCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
         return { success: true, demoWarning: demoWarn };
       }),

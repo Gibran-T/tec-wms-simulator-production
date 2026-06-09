@@ -24,7 +24,7 @@ export default function Module2ModeSelectionPage() {
 
   const startRun = trpc.runs.start.useMutation({
     onSuccess: (data) => {
-      navigate(`/student/module2/run/${data.runId}/putaway`);
+      navigate(`/student/run/${data.runId}`);
     },
     onError: (err) => {
       toast.error(err.message ?? t("Erreur lors du démarrage", "Error starting simulation"));

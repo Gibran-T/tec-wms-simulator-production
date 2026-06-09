@@ -207,6 +207,27 @@ const STEP_CONFIG: Record<string, {
   },
 
   // ── Module 2 ──────────────────────────────────────────────────────────────
+  putaway: {
+    titleFr: "Rangement structuré (LT01)", titleEn: "Structured Putaway (LT01)", code: "PUTAWAY", txCode: "LT01", tCode: "LT01",
+    etapeFr: "Étape 2 sur 5", etapeEn: "Step 2 of 5",
+    objectiveFr: "Affecter la marchandise reçue depuis le quai REC-01/REC-02 vers un emplacement STOCKAGE conforme aux règles de capacité et de zone.",
+    objectiveEn: "Assign received goods from dock REC-01/REC-02 to a STOCKAGE location meeting capacity and zone rules.",
+    fields: ["docRef", "sku", "fromBin", "toBin", "qty", "lotNumber", "comment"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : RÉCEPTION (REC-01 ou REC-02)", en: "Source zone: RECEPTION (REC-01 or REC-02)" },
+      toBin: { fr: "Zone destination : STOCKAGE — respecter la capacité max du bin", en: "Destination zone: STOCKAGE — respect bin max capacity" },
+    },
+    pedagogicalDeep: {
+      whyFr: "Le rangement structuré (LT01) positionne le stock dans l'entrepôt selon les règles de slotting, capacité et traçabilité lot.",
+      whyEn: "Structured putaway (LT01) positions stock in the warehouse per slotting, capacity and lot traceability rules.",
+      realSAPFr: "Dans SAP WM, LT01 crée un ordre de transfert avec contrôle de capacité d'emplacement.",
+      realSAPEn: "In SAP WM, LT01 creates a transfer order with bin capacity control.",
+      dependencyFr: "Le PUTAWAY M2 requiert une GR postée. Le bin source doit être en RÉCEPTION, le bin destination en STOCKAGE.",
+      dependencyEn: "M2 PUTAWAY requires a posted GR. Source bin must be RECEPTION, destination STOCKAGE.",
+      realErrorFr: "Un dépassement de capacité ou un bin hors zone bloque les mouvements FIFO suivants.",
+      realErrorEn: "Capacity overflow or wrong-zone bin blocks subsequent FIFO movements.",
+    }
+  },
   fifo_pick: {
     titleFr: "Prélèvement FIFO (LT0A)", titleEn: "FIFO Picking (LT0A)", code: "FIFO_PICK", txCode: "LT0A", tCode: "LT0A",
     etapeFr: "Étape 3 sur 5", etapeEn: "Step 3 of 5",
@@ -934,9 +955,13 @@ export default function StepForm() {
         // M2 GR does not require a prior PO; M1 GR does
         if (runData?.moduleId === 2) return submitGR_M2.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
         return submitGR.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "putaway":
       case "putaway_m1":
-        // M2 PUTAWAY uses m2.submitPUTAWAY (no PO prerequisite); M1 uses transactions.submitPUTAWAY_M1
-        if (runData?.moduleId === 2) return submitPUTAWAY_M2.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
+        // M2 PUTAWAY uses m2.submitPUTAWAY; M1 uses transactions.submitPUTAWAY_M1
+        if (runData?.moduleId === 2) {
+          if (!values.lotNumber?.trim()) { toast.error(t("Veuillez saisir un numéro de lot.", "Please enter a lot number.")); return; }
+          return submitPUTAWAY_M2.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, lotNumber: values.lotNumber!, comment: values.comment });
+        }
         return submitPUTAWAY_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
       case "so": return submitSO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
       case "picking_m1": return submitPICKING_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
@@ -1293,7 +1318,7 @@ export default function StepForm() {
             </div>
 
             {/* Context Panel: Stock for evaluation mode */}
-            {(["gi","cc","so","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
+            {(["gi","cc","so","putaway","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
               const inv = runData?.inventory ?? {};
               const RECEPTION_BINS_UI  = ["REC-01", "REC-02"];
               const STOCKAGE_BINS_UI   = Object.keys(inv).map(k => k.split("::")[1]).filter(b => b && !RECEPTION_BINS_UI.includes(b) && !b.startsWith("EXP") && !b.startsWith("PICK") && !b.startsWith("RES"));

@@ -12,7 +12,7 @@ import StepForm from "./pages/student/StepForm";
 import RunReport from "./pages/student/RunReport";
 import Module2ScenarioList from "./pages/student/Module2ScenarioList";
 import Module2ModeSelectionPage from "./pages/student/Module2ModeSelectionPage";
-import PutawayFormPage from "./pages/student/PutawayFormPage";
+import M2PutawayRedirect from "./pages/student/M2PutawayRedirect";
 import Module3ScenarioList from "./pages/student/Module3ScenarioList";
 import Module3ModeSelectionPage from "./pages/student/Module3ModeSelectionPage";
 import Module4Dashboard from "./pages/student/Module4Dashboard";
@@ -51,7 +51,7 @@ function Router() {
       {/* Module 2 routes */}
       <Route path="/student/module2" component={Module2ScenarioList} />
       <Route path="/student/module2/scenario/:scenarioId/mode" component={Module2ModeSelectionPage} />
-      <Route path="/student/module2/run/:runId/putaway" component={PutawayFormPage} />
+      <Route path="/student/module2/run/:runId/putaway" component={M2PutawayRedirect} />
       {/* Module 3 routes */}
       <Route path="/student/module3" component={Module3ScenarioList} />
       <Route path="/student/module3/scenario/:scenarioId/mode" component={Module3ModeSelectionPage} />
