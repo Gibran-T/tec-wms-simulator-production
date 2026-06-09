@@ -724,29 +724,35 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Only teachers/admins can start demo sessions
         const isDemo = input.isDemo && (ctx.user.role === "teacher" || ctx.user.role === "admin");
-        const result = await startRun(ctx.user.id, input.scenarioId, isDemo);
-        // Load initial state from scenario
+        const runId = await startRun(ctx.user.id, input.scenarioId, isDemo);
+        // Load initial state from scenario (M3 preloaded transactions)
         const scenario = await getScenarioById(input.scenarioId);
-        const insertId = (result as any)[0]?.insertId as number;
         if (scenario?.initialStateJson) {
           const state = scenario.initialStateJson as any;
           if (state.preloadedTransactions) {
-            for (const tx of state.preloadedTransactions) {
-              await addTransaction({
-                runId: insertId,
-                docType: tx.docType,
-                moveType: null,
-                sku: tx.sku,
-                bin: tx.bin,
-                qty: String(tx.qty),
-                posted: tx.posted ?? false,
-                docRef: tx.docRef ?? null,
-                comment: "Initial state",
+            try {
+              for (const tx of state.preloadedTransactions) {
+                await addTransaction({
+                  runId,
+                  docType: tx.docType,
+                  moveType: null,
+                  sku: tx.sku,
+                  bin: tx.bin,
+                  qty: String(tx.qty),
+                  posted: tx.posted ?? false,
+                  docRef: tx.docRef ?? null,
+                  comment: "Initial state",
+                });
+              }
+            } catch (err) {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: err instanceof Error ? err.message : "Failed to preload scenario transactions",
               });
             }
           }
         }
-        return { runId: insertId, isDemo };
+        return { runId, isDemo };
       }),
 
     myRuns: protectedProcedure.query(({ ctx }) => getRunsByUser(ctx.user.id)),

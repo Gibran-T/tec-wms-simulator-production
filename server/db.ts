@@ -334,11 +334,15 @@ export async function getAllAssignments() {
 }
 
 // ─── Scenario Runs ────────────────────────────────────────────────────────────
-export async function startRun(userId: number, scenarioId: number, isDemo = false) {
+export async function startRun(userId: number, scenarioId: number, isDemo = false): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
-  const result = await db.insert(scenarioRuns).values({ userId, scenarioId, status: "in_progress", isDemo });
-  return result;
+  const [row] = await db
+    .insert(scenarioRuns)
+    .values({ userId, scenarioId, status: "in_progress", isDemo })
+    .$returningId();
+  if (!row?.id) throw new Error("Failed to create scenario run");
+  return row.id;
 }
 
 export async function getRunById(runId: number) {
