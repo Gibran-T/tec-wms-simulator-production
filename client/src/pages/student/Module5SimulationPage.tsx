@@ -5,6 +5,8 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { CheckCircle, Clock, Lock, ArrowRight, Package, BarChart2, TrendingUp, AlertTriangle, FileText, Presentation } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModulePathwayNav from "@/components/ModulePathwayNav";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // ─── Step definitions for Module 5 ───────────────────────────────────────────
 const M5_STEPS = [
@@ -327,23 +329,6 @@ export default function Module5SimulationPage() {
     setCompleted(false);
   };
 
-  if (isLocked) {
-    return (
-      <FioriShell title="Module 5 — Simulation opérationnelle intégrée" breadcrumbs={[{ label: "Scénarios", href: "/student/scenarios" }, { label: "Module 5" }]}>
-        <div className="max-w-lg mx-auto mt-16 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "#f5f5f5" }}>
-            <Lock size={28} className="text-gray-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-[#0f2a44] mb-2">Module verrouillé</h2>
-          <p className="text-sm text-gray-500 mb-6">Le Module 5 est verrouillé. La validation du Module 4 est requise.</p>
-          <button onClick={() => navigate("/student/scenarios")} className="px-4 py-2 text-sm font-semibold rounded text-white" style={{ background: "#0070f2" }}>
-            Retour aux scénarios
-          </button>
-        </div>
-      </FioriShell>
-    );
-  }
-
   const currentStep = M5_STEPS[currentStepIndex];
 
   return (
@@ -352,6 +337,19 @@ export default function Module5SimulationPage() {
       breadcrumbs={[{ label: "Scénarios", href: "/student/scenarios" }, { label: "Module 5 — Simulation intégrée" }]}
     >
       <div className="max-w-4xl mx-auto space-y-6">
+        <ModulePathwayNav activeModuleId={5} />
+
+        {isLocked && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 text-sm">
+              {t(
+                "Prérequis recommandé : validation du Module 4. Accès ouvert pour la session de classe — SCN-015 à SCN-017.",
+                "Recommended prerequisite: Module 4 validation. Access open for class session — SCN-015 to SCN-017."
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Module header */}
         <div className="rounded border p-5 bg-white">

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ModeSelectionScreen from "./ModeSelectionScreen";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModulePathwayNav from "@/components/ModulePathwayNav";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
 const MODULE_CONFIG = [
@@ -249,6 +250,8 @@ export default function ScenarioList() {
       breadcrumbs={[{ label: t("Accueil", "Home"), href: "/" }, { label: t("Scénarios", "Scenarios") }]}
     >
       <div className="max-w-4xl mx-auto space-y-5">
+
+        <ModulePathwayNav activeModuleId={1} />
 
         {/* ── Module Overview Card ────────────────────────────────────────── */}
         <div className={`bg-card border ${mod.border} rounded-md p-4 mb-5`}>

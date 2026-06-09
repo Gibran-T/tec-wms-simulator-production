@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModulePathwayNav from "@/components/ModulePathwayNav";
+import FioriShell from "@/components/FioriShell";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -57,38 +59,32 @@ export default function Module3ScenarioList() {
     );
   }
 
-  if (!module2Passed && !isAdminOrTeacher) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4">
-        <div className="text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-            <Lock className="w-10 h-10 text-slate-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Module 3 verrouillé</h1>
-            <p className="text-muted-foreground">
-              Ce module est accessible uniquement après avoir réussi le Module 2 avec un score d'au moins 60 points.
-            </p>
-          </div>
-          <Alert className="border-amber-200 bg-amber-50 text-left">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              <strong>Prérequis :</strong> Complétez et réussissez au moins un scénario du Module 2 pour débloquer le Contrôle des stocks et réapprovisionnement.
-            </AlertDescription>
-          </Alert>
-          <Link href="/student/module2">
-            <Button variant="outline" className="gap-2">
-              <ArrowRight className="w-4 h-4 rotate-180" />
-              Retour au Module 2
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const showPrerequisiteNote = !module2Passed && !isAdminOrTeacher;
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+    <FioriShell
+      title={t("Mes Scénarios — Module 3", "My Scenarios — Module 3")}
+      breadcrumbs={[
+        { label: t("Accueil", "Home"), href: "/" },
+        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+        { label: "M3" },
+      ]}
+    >
+    <div className="max-w-4xl mx-auto py-4 px-4 space-y-8">
+      <ModulePathwayNav activeModuleId={3} />
+
+      {showPrerequisiteNote && (
+        <Alert className="border-amber-200 bg-amber-50 text-left">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>{t("Prérequis recommandé", "Recommended prerequisite")} :</strong>{" "}
+            {t(
+              "Le Module 2 devrait être complété avant M3. Accès ouvert pour la session de classe.",
+              "Module 2 should be completed before M3. Access open for class session."
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
@@ -262,5 +258,6 @@ export default function Module3ScenarioList() {
         </Link>
       </div>
     </div>
+    </FioriShell>
   );
 }

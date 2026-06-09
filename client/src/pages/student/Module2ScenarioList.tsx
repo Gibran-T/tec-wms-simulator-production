@@ -5,9 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Lock, Package, CheckCircle2, AlertTriangle, ArrowRight, Layers, Eye, Presentation } from "lucide-react";
+import { Package, CheckCircle2, AlertTriangle, ArrowRight, Layers, Eye, Presentation } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModulePathwayNav from "@/components/ModulePathwayNav";
+import FioriShell from "@/components/FioriShell";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -47,38 +49,32 @@ export default function Module2ScenarioList() {
     );
   }
 
-  if (!access?.unlocked && !isAdminOrTeacher) {
-    return (
-      <div className="max-w-2xl mx-auto py-16 px-4">
-        <div className="text-center space-y-6">
-          <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto">
-            <Lock className="w-10 h-10 text-slate-400" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground mb-2">Module 2 verrouillé</h1>
-            <p className="text-muted-foreground">
-              Ce module est accessible uniquement après avoir réussi le Module 1 avec un score d'au moins 60 points.
-            </p>
-          </div>
-          <Alert className="border-amber-200 bg-amber-50 text-left">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              <strong>Prérequis :</strong> Complétez et réussissez au moins un scénario du Module 1 pour débloquer l'Exécution d'entrepôt et gestion des emplacements.
-            </AlertDescription>
-          </Alert>
-          <Link href="/student/scenarios">
-            <Button variant="outline" className="gap-2">
-              <ArrowRight className="w-4 h-4 rotate-180" />
-              Retour au Module 1
-            </Button>
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  const showPrerequisiteNote = !access?.unlocked && !isAdminOrTeacher;
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 space-y-8">
+    <FioriShell
+      title={t("Mes Scénarios — Module 2", "My Scenarios — Module 2")}
+      breadcrumbs={[
+        { label: t("Accueil", "Home"), href: "/" },
+        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+        { label: "M2" },
+      ]}
+    >
+    <div className="max-w-4xl mx-auto py-4 px-4 space-y-8">
+      <ModulePathwayNav activeModuleId={2} />
+
+      {showPrerequisiteNote && (
+        <Alert className="border-amber-200 bg-amber-50 text-left">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertDescription className="text-amber-800">
+            <strong>{t("Prérequis recommandé", "Recommended prerequisite")} :</strong>{" "}
+            {t(
+              "Le Module 1 devrait être complété avant M2. Accès ouvert pour la session de classe — la progression certification reste informative.",
+              "Module 1 should be completed before M2. Access open for class session — certification progression remains informational."
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
       {/* Header */}
       <div className="space-y-2">
         <div className="flex items-center gap-3">
@@ -102,12 +98,14 @@ export default function Module2ScenarioList() {
             </div>
           </div>
         </div>
-        <Alert className="border-blue-200 bg-blue-50">
-          <CheckCircle2 className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800">
-            <strong>Module 1 réussi</strong> — Accès au Module 2 débloqué. Vous pouvez maintenant pratiquer l'exécution opérationnelle avancée.
-          </AlertDescription>
-        </Alert>
+        {!showPrerequisiteNote && (
+          <Alert className="border-blue-200 bg-blue-50">
+            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+            <AlertDescription className="text-blue-800">
+              <strong>{t("Module 1 réussi", "Module 1 completed")}</strong> — {t("Vous pouvez pratiquer l'exécution opérationnelle avancée (SCN-006 à SCN-008).", "You can practice advanced warehouse execution (SCN-006 to SCN-008).")}
+            </AlertDescription>
+          </Alert>
+        )}
       </div>
 
       {/* Learning Objectives */}
@@ -193,5 +191,6 @@ export default function Module2ScenarioList() {
         )}
       </div>
     </div>
+    </FioriShell>
   );
 }

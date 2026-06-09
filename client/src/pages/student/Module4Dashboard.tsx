@@ -5,6 +5,8 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { TrendingDown, AlertTriangle, CheckCircle, BarChart2, ArrowRight, Lock, Presentation } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ModulePathwayNav from "@/components/ModulePathwayNav";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // ─── KPI Thresholds & Helpers ─────────────────────────────────────────────────
 function kpiColor(status: string) {
@@ -131,29 +133,25 @@ export default function Module4Dashboard() {
     setInterpretations((prev) => ({ ...prev, [kpiKey]: { submitted: true } }));
   };
 
-  if (isLocked) {
-    return (
-      <FioriShell title="Module 4 — Indicateurs de performance logistique" breadcrumbs={[{ label: "Scénarios", href: "/student/scenarios" }, { label: "Module 4" }]}>
-        <div className="max-w-lg mx-auto mt-16 text-center">
-          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "#f5f5f5" }}>
-            <Lock size={28} className="text-gray-400" />
-          </div>
-          <h2 className="text-lg font-semibold text-[#0f2a44] mb-2">Module verrouillé</h2>
-          <p className="text-sm text-gray-500 mb-6">Le Module 4 est verrouillé. La validation du Module 3 est requise.</p>
-          <button onClick={() => navigate("/student/scenarios")} className="px-4 py-2 text-sm font-semibold rounded text-white" style={{ background: "#0070f2" }}>
-            Retour aux scénarios
-          </button>
-        </div>
-      </FioriShell>
-    );
-  }
-
   return (
     <FioriShell
       title="Module 4 — Indicateurs de performance logistique"
       breadcrumbs={[{ label: "Scénarios", href: "/student/scenarios" }, { label: "Module 4 — KPI" }]}
     >
       <div className="max-w-5xl mx-auto space-y-6">
+        <ModulePathwayNav activeModuleId={4} />
+
+        {isLocked && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800 text-sm">
+              {t(
+                "Prérequis recommandé : validation du Module 3. Accès ouvert pour la session de classe — SCN-012 à SCN-014.",
+                "Recommended prerequisite: Module 3 validation. Access open for class session — SCN-012 to SCN-014."
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Module header */}
         <div className="rounded border p-5 bg-white">
