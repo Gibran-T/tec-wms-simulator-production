@@ -16,7 +16,9 @@ import PutawayFormPage from "./pages/student/PutawayFormPage";
 import Module3ScenarioList from "./pages/student/Module3ScenarioList";
 import Module3ModeSelectionPage from "./pages/student/Module3ModeSelectionPage";
 import Module4Dashboard from "./pages/student/Module4Dashboard";
+import Module4ModeSelectionPage from "./pages/student/Module4ModeSelectionPage";
 import Module5SimulationPage from "./pages/student/Module5SimulationPage";
+import Module5ModeSelectionPage from "./pages/student/Module5ModeSelectionPage";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import CohortManager from "./pages/teacher/CohortManager";
 import ScenarioManager from "./pages/teacher/ScenarioManager";
@@ -55,8 +57,10 @@ function Router() {
       <Route path="/student/module3/scenario/:scenarioId/mode" component={Module3ModeSelectionPage} />
       {/* Module 4 routes */}
       <Route path="/student/module4" component={Module4Dashboard} />
+      <Route path="/student/module4/scenario/:scenarioId/mode" component={Module4ModeSelectionPage} />
       {/* Module 5 routes */}
       <Route path="/student/module5" component={Module5SimulationPage} />
+      <Route path="/student/module5/scenario/:scenarioId/mode" component={Module5ModeSelectionPage} />
       {/* Quiz routes */}
       <Route path="/student/quiz/:moduleId" component={QuizPage} />
       {/* Glossary route */}
