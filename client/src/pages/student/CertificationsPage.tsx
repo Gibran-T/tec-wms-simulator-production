@@ -3,28 +3,47 @@ import { useLocation } from "wouter";
 import { Award, ArrowLeft, CheckCircle, Lock, Circle, AlertCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
+import { Button } from "@/components/ui/button";
+
+type M1ScnKey = "SCN001" | "SCN002" | "SCN003" | "SCN004" | "SCN005";
+
+const SCN_LABELS: Record<M1ScnKey, { fr: string; en: string }> = {
+  SCN001: { fr: "SCN-001 — Cycle opérationnel", en: "SCN-001 — Operational cycle" },
+  SCN002: { fr: "SCN-002 — GR fantôme", en: "SCN-002 — Ghost GR" },
+  SCN003: { fr: "SCN-003 — Stock insuffisant", en: "SCN-003 — Stock shortage" },
+  SCN004: { fr: "SCN-004 — Écart inventaire", en: "SCN-004 — Inventory variance" },
+  SCN005: { fr: "SCN-005 — Multi-conformités", en: "SCN-005 — Multi-compliance" },
+};
+
+const SCN_KEYS: M1ScnKey[] = ["SCN001", "SCN002", "SCN003", "SCN004", "SCN005"];
 
 export function CertificationsPage() {
   const { t } = useLanguage();
   const [, navigate] = useLocation();
 
-  const { data: profile, isLoading: profileLoading } = trpc.profiles.mine.useQuery();
-  const { data: quizM1 } = trpc.quiz.getBestAttempt.useQuery({ moduleId: 1 });
-  const { data: scenarios } = trpc.scenarios.list.useQuery();
-  const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
-
-  const m1Scenarios = (scenarios ?? []).filter((s) => s.moduleId === 1);
-  const m1CompletedCount = m1Scenarios.filter((s) =>
-    (myRuns ?? []).some(
-      (r) => r.run.scenarioId === s.id && r.run.status === "completed" && !r.run.isDemo
-    )
-  ).length;
-  const quizPassed = quizM1?.passed === true;
-  const allM1ScenariosDone =
-    m1Scenarios.length > 0 && m1CompletedCount >= m1Scenarios.length;
-
-  const silverEarned = profile?.silverCertified ?? false;
+  const { data: silverStatus, isLoading } = trpc.profiles.silverStatus.useQuery();
+  const { data: profile } = trpc.profiles.mine.useQuery();
   const goldEarned = profile?.goldCertified ?? false;
+
+  const quizPassed = silverStatus?.quizPassed ?? false;
+  const scenariosCompleted = silverStatus?.scenariosCompleted;
+  const complianceValidated = silverStatus?.complianceValidated ?? false;
+  const noBlockers = silverStatus?.noBlockers ?? true;
+  const silverEarned = silverStatus?.silverCertified ?? false;
+  const silverEligible = silverStatus?.silverEligible ?? false;
+
+  const scnCompletedCount = SCN_KEYS.filter((k) => scenariosCompleted?.[k]).length;
+  const allScenariosDone = scnCompletedCount === SCN_KEYS.length;
+  const hasAnyProgress = quizPassed || scnCompletedCount > 0 || complianceValidated;
+
+  const silverStatusLabel = silverEarned
+    ? t("Silver TEC.LOG — Débloqué ✓", "Silver TEC.LOG — Unlocked ✓")
+    : hasAnyProgress || silverEligible
+      ? t("Silver TEC.LOG — En cours", "Silver TEC.LOG — In progress")
+      : t(
+          "Silver Locked — complétez le Quiz M1 et les scénarios SCN-001 à SCN-005.",
+          "Silver Locked — complete the M1 Quiz and scenarios SCN-001 to SCN-005."
+        );
 
   const silverRequirements = [
     {
@@ -36,27 +55,35 @@ export function CertificationsPage() {
       actionLabelFr: "Passer le quiz M1",
       actionLabelEn: "Take M1 quiz",
     },
-    {
-      id: "scenarios",
-      labelFr: `Scénarios M1 complétés (${m1CompletedCount}/${m1Scenarios.length})`,
-      labelEn: `M1 scenarios completed (${m1CompletedCount}/${m1Scenarios.length})`,
-      met: allM1ScenariosDone,
+    ...SCN_KEYS.map((key) => ({
+      id: key,
+      labelFr: `${SCN_LABELS[key].fr} (évaluation ≥ 60/100)`,
+      labelEn: `${SCN_LABELS[key].en} (evaluation ≥ 60/100)`,
+      met: scenariosCompleted?.[key] ?? false,
       action: () => navigate("/student/scenarios"),
       actionLabelFr: "Voir les scénarios M1",
       actionLabelEn: "View M1 scenarios",
-    },
+    })),
     {
       id: "compliance",
       labelFr: "Conformité M1 validée sur tous les scénarios",
       labelEn: "M1 compliance validated on all scenarios",
-      met: silverEarned || (allM1ScenariosDone && quizPassed),
+      met: complianceValidated,
       action: () => navigate("/student/scenarios"),
       actionLabelFr: "Finaliser la conformité",
       actionLabelEn: "Complete compliance",
     },
+    {
+      id: "blockers",
+      labelFr: "Aucun blocage non résolu (transactions / écarts)",
+      labelEn: "No unresolved blockers (transactions / variances)",
+      met: noBlockers,
+      action: () => navigate("/student/scenarios"),
+      actionLabelFr: "Résoudre les blocages",
+      actionLabelEn: "Resolve blockers",
+    },
   ];
 
-  const silverReady = silverRequirements.every((r) => r.met);
   const silverBlockers = silverRequirements.filter((r) => !r.met);
 
   const certifications = [
@@ -96,7 +123,7 @@ export function CertificationsPage() {
     },
   ];
 
-  if (profileLoading) {
+  if (isLoading) {
     return (
       <FioriShell>
         <div className="flex justify-center items-center h-64">
@@ -133,6 +160,28 @@ export function CertificationsPage() {
           </div>
         </div>
 
+        {/* Silver status banner */}
+        <div
+          className={`rounded-lg border p-4 ${
+            silverEarned
+              ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30"
+              : hasAnyProgress
+                ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20"
+                : "border-border bg-muted/30"
+          }`}
+        >
+          <p className="text-sm font-semibold text-foreground">{silverStatusLabel}</p>
+          {silverEarned && (
+            <Button
+              className="mt-3"
+              size="sm"
+              onClick={() => navigate("/student/certifications/silver")}
+            >
+              {t("Voir mon certificat Silver", "View my Silver certificate")}
+            </Button>
+          )}
+        </div>
+
         {/* M1 Silver progress checklist */}
         <div className="bg-card border border-border rounded-lg p-5 space-y-4">
           <div className="flex items-center justify-between gap-3">
@@ -143,14 +192,16 @@ export function CertificationsPage() {
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                 <CheckCircle size={14} /> {t("Certifié", "Certified")}
               </span>
-            ) : silverReady ? (
+            ) : silverEligible ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
-                <AlertCircle size={14} /> {t("En attente de validation", "Pending validation")}
+                <AlertCircle size={14} /> {t("Éligible — validation en cours", "Eligible — validation pending")}
+              </span>
+            ) : allScenariosDone && quizPassed ? (
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
+                <AlertCircle size={14} /> {t("En attente de conformité", "Pending compliance")}
               </span>
             ) : (
-              <span className="text-xs text-muted-foreground">
-                {t("En cours", "In progress")}
-              </span>
+              <span className="text-xs text-muted-foreground">{t("En cours", "In progress")}</span>
             )}
           </div>
           <ul className="space-y-2">
@@ -181,8 +232,8 @@ export function CertificationsPage() {
           {!silverEarned && silverBlockers.length > 0 && (
             <p className="text-xs text-muted-foreground border-t border-border pt-3">
               {t(
-                "Blocage Silver : complétez les éléments ci-dessus. Le statut est enregistré automatiquement après validation conformité.",
-                "Silver blocker: complete the items above. Status is saved automatically after compliance validation."
+                `${silverBlockers.length} exigence(s) restante(s). Les scénarios doivent être complétés en mode Évaluation (≥ 60/100).`,
+                `${silverBlockers.length} requirement(s) remaining. Scenarios must be completed in Evaluation mode (≥ 60/100).`
               )}
             </p>
           )}
@@ -228,11 +279,22 @@ export function CertificationsPage() {
 
                 <div className="pt-4 border-t border-border">
                   {cert.unlocked ? (
-                    <div className="flex items-center gap-2">
-                      <CheckCircle size={16} className="text-emerald-500" />
-                      <span className="text-sm font-medium text-emerald-600">
-                        {t("Certification obtenue", "Certification earned")}
-                      </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle size={16} className="text-emerald-500" />
+                        <span className="text-sm font-medium text-emerald-600">
+                          {t("Certification obtenue", "Certification earned")}
+                        </span>
+                      </div>
+                      {cert.id === "silver" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => navigate("/student/certifications/silver")}
+                        >
+                          {t("Voir mon certificat Silver", "View my Silver certificate")}
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-1">
@@ -265,8 +327,8 @@ export function CertificationsPage() {
               </p>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 {t(
-                  "Silver = validation du Module 1 (quiz + scénarios SCN-001 à SCN-005). Gold = parcours intégré M1–M5, verrouillé jusqu'à complétion du programme.",
-                  "Silver = Module 1 validation (quiz + SCN-001 to SCN-005 scenarios). Gold = integrated M1–M5 pathway, locked until program completion."
+                  "Silver = validation du Module 1 (quiz + scénarios SCN-001 à SCN-005 en mode Évaluation, score ≥ 60/100). Gold = parcours intégré M1–M5, verrouillé jusqu'à complétion du programme.",
+                  "Silver = Module 1 validation (quiz + SCN-001 to SCN-005 scenarios in Evaluation mode, score ≥ 60/100). Gold = integrated M1–M5 pathway, locked until program completion."
                 )}
               </p>
             </div>

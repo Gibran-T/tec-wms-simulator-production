@@ -35,6 +35,7 @@ import StudentSlidesHub from "./pages/student/StudentSlidesHub";
 import QuizPage from "./pages/student/QuizPage";
 import GlossaryPage from "./pages/student/GlossaryPage";
 import { CertificationsPage } from "./pages/student/CertificationsPage";
+import SilverCertificatePreview from "./pages/student/SilverCertificatePreview";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
@@ -66,6 +67,7 @@ function Router() {
       {/* Glossary route */}
       <Route path="/student/glossary" component={() => <GlossaryPage />} />
       <Route path="/student/certifications" component={() => <CertificationsPage />} />
+      <Route path="/student/certifications/silver" component={SilverCertificatePreview} />
       {/* Slides routes — requires authentication (handled by SlideViewer via FioriShell guard) */}
       <Route path="/student/slides" component={StudentSlidesHub} />
       <Route path="/student/slides/:moduleId" component={SlideViewer} />

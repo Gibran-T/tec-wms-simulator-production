@@ -60,6 +60,7 @@ import {
   checkAllM1ScenariosCompleted,
   checkM1ComplianceValidated,
   checkNoUnresolvedBlockers,
+  getSilverCertificationStatus,
   unlockSilverCertification,
   unlockGoldCertification,
 } from "./db";
@@ -533,6 +534,14 @@ export const appRouter = router({
   // ─── Profiles ──────────────────────────────────────────────────────────────
   profiles: router({
     mine: protectedProcedure.query(({ ctx }) => getProfileByUserId(ctx.user.id)),
+    silverStatus: protectedProcedure.query(async ({ ctx }) => {
+      const status = await getSilverCertificationStatus(ctx.user.id);
+      if (status.silverEligible && !status.silverCertified) {
+        await unlockSilverCertification(ctx.user.id);
+        return { ...status, silverCertified: true };
+      }
+      return status;
+    }),
     upsert: protectedProcedure
       .input(z.object({
         cohortId: z.number().nullable().optional(),
@@ -839,11 +848,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
 
-        // Check if M1 Silver Certification is unlocked
-        const silverCertified = await checkM1QuizPassed(ctx.user.id) &&
-                                await checkAllM1ScenariosCompleted(ctx.user.id) &&
-                                await checkM1ComplianceValidated(ctx.user.id) &&
-                                await checkNoUnresolvedBlockers(ctx.user.id);
+        const { silverEligible: silverCertified } = await getSilverCertificationStatus(ctx.user.id);
 
         // ── Determine module from scenario ──────────────────────────────────
         const scenario = await getScenarioById(run.scenarioId);

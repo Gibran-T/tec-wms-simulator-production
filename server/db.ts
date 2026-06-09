@@ -1,4 +1,5 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
+import { calculateTotalScore } from "./scoringEngine";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   assignments,
@@ -926,8 +927,72 @@ export async function markPasswordResetTokenUsed(tokenId: number) {
 
 // ─── Certification Logic ──────────────────────────────────────────────────────
 
+export const M1_SCN_KEYS = ["SCN001", "SCN002", "SCN003", "SCN004", "SCN005"] as const;
+export type M1ScnKey = (typeof M1_SCN_KEYS)[number];
 
+export type M1ScenarioCompletionMap = Record<M1ScnKey, boolean>;
 
+export type SilverCertificationStatus = {
+  quizPassed: boolean;
+  scenariosCompleted: M1ScenarioCompletionMap;
+  complianceValidated: boolean;
+  noBlockers: boolean;
+  silverEligible: boolean;
+  silverCertified: boolean;
+};
+
+const M1_PASSING_SCORE = 60;
+
+export async function getM1ScenariosOrdered() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(scenarios).where(eq(scenarios.moduleId, 1)).orderBy(asc(scenarios.id));
+}
+
+async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const runs = await db
+    .select()
+    .from(scenarioRuns)
+    .where(
+      and(
+        eq(scenarioRuns.userId, userId),
+        eq(scenarioRuns.scenarioId, scenarioId),
+        eq(scenarioRuns.status, "completed"),
+        eq(scenarioRuns.isDemo, false)
+      )
+    )
+    .orderBy(scenarioRuns.completedAt.desc())
+    .limit(1);
+  return runs[0] ?? null;
+}
+
+/** Per-SCN completion: latest non-demo run completed with score >= 60 (from scoring events). */
+export async function getM1ScenarioCompletionStatus(userId: number): Promise<M1ScenarioCompletionMap> {
+  const result: M1ScenarioCompletionMap = {
+    SCN001: false,
+    SCN002: false,
+    SCN003: false,
+    SCN004: false,
+    SCN005: false,
+  };
+  const m1Scenarios = await getM1ScenariosOrdered();
+  for (let i = 0; i < m1Scenarios.length && i < M1_SCN_KEYS.length; i++) {
+    const key = M1_SCN_KEYS[i];
+    const run = await getLatestNonDemoCompletedRun(userId, m1Scenarios[i].id);
+    if (!run) continue;
+    const events = await getScoringEventsByRun(run.id);
+    const score = calculateTotalScore(events);
+    result[key] = score >= M1_PASSING_SCORE;
+  }
+  return result;
+}
+
+export async function checkM1ScenarioScoresPassed(userId: number): Promise<boolean> {
+  const status = await getM1ScenarioCompletionStatus(userId);
+  return M1_SCN_KEYS.every((k) => status[k]);
+}
 
 export async function checkM1QuizPassed(userId: number): Promise<boolean> {
   const db = await getDb();
@@ -944,44 +1009,30 @@ export async function checkM1QuizPassed(userId: number): Promise<boolean> {
   return bestAttempt.length > 0 && bestAttempt[0].score >= 60; // Assuming 60 is passing score
 }
 
+/** All M1 scenarios completed in evaluation mode with score >= 60. */
 export async function checkAllM1ScenariosCompleted(userId: number): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
-
-  const m1Scenarios = await db.select({ id: scenarios.id }).from(scenarios).where(eq(scenarios.moduleId, 1));
-  if (m1Scenarios.length === 0) return false; // No M1 scenarios defined
-
-  const completedRuns = await db.select({ scenarioId: scenarioRuns.scenarioId })
-    .from(scenarioRuns)
-    .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.status, "completed")));
-
-  const completedScenarioIds = new Set(completedRuns.map(run => run.scenarioId));
-
-  return m1Scenarios.every(scenario => completedScenarioIds.has(scenario.id));
+  const m1Scenarios = await getM1ScenariosOrdered();
+  if (m1Scenarios.length < M1_SCN_KEYS.length) return false;
+  return checkM1ScenarioScoresPassed(userId);
 }
 
 export async function checkM1ComplianceValidated(userId: number): Promise<boolean> {
   const db = await getDb();
   if (!db) return false;
 
-  const m1Scenarios = await db.select({ id: scenarios.id }).from(scenarios).where(eq(scenarios.moduleId, 1));
+  const m1Scenarios = await getM1ScenariosOrdered();
   if (m1Scenarios.length === 0) return false;
 
   for (const scenario of m1Scenarios) {
-    const latestRun = await db.select()
-      .from(scenarioRuns)
-      .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.scenarioId, scenario.id), eq(scenarioRuns.status, "completed")))
-      .orderBy(scenarioRuns.completedAt.desc())
-      .limit(1);
-
-    if (latestRun.length === 0) return false; // Scenario not completed
+    const latestRun = await getLatestNonDemoCompletedRun(userId, scenario.id);
+    if (!latestRun) return false;
 
     const complianceStep = await db.select()
       .from(progress)
-      .where(and(eq(progress.runId, latestRun[0].id), eq(progress.stepCode, "COMPLIANCE"), eq(progress.completed, true)))
+      .where(and(eq(progress.runId, latestRun.id), eq(progress.stepCode, "COMPLIANCE"), eq(progress.completed, true)))
       .limit(1);
 
-    if (complianceStep.length === 0) return false; // Compliance not validated for this scenario
+    if (complianceStep.length === 0) return false;
   }
 
   return true;
@@ -991,34 +1042,46 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
   const db = await getDb();
   if (!db) return false;
 
-  // Check for unposted transactions in any completed M1 scenario runs
-  const m1Scenarios = await db.select({ id: scenarios.id }).from(scenarios).where(eq(scenarios.moduleId, 1));
+  const m1Scenarios = await getM1ScenariosOrdered();
   if (m1Scenarios.length === 0) return false;
 
   for (const scenario of m1Scenarios) {
-    const latestRun = await db.select()
-      .from(scenarioRuns)
-      .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.scenarioId, scenario.id), eq(scenarioRuns.status, "completed")))
-      .orderBy(scenarioRuns.completedAt.desc())
-      .limit(1);
-
-    if (latestRun.length === 0) continue; // Scenario not completed, so no blockers to check for this scenario
+    const latestRun = await getLatestNonDemoCompletedRun(userId, scenario.id);
+    if (!latestRun) continue;
 
     const unpostedTransactions = await db.select()
       .from(transactions)
-      .where(and(eq(transactions.runId, latestRun[0].id), eq(transactions.posted, false)));
+      .where(and(eq(transactions.runId, latestRun.id), eq(transactions.posted, false)));
 
-    if (unpostedTransactions.length > 0) return false; // Unposted transactions found
+    if (unpostedTransactions.length > 0) return false;
 
-    // Check for unresolved cycle counts
     const unresolvedCycleCounts = await db.select()
       .from(cycleCounts)
-      .where(and(eq(cycleCounts.runId, latestRun[0].id), eq(cycleCounts.resolved, false)));
+      .where(and(eq(cycleCounts.runId, latestRun.id), eq(cycleCounts.resolved, false)));
 
-    if (unresolvedCycleCounts.length > 0) return false; // Unresolved cycle counts found
+    if (unresolvedCycleCounts.length > 0) return false;
   }
 
   return true;
+}
+
+export async function getSilverCertificationStatus(userId: number): Promise<SilverCertificationStatus> {
+  const profile = await getProfileByUserId(userId);
+  const quizPassed = await checkM1QuizPassed(userId);
+  const scenariosCompleted = await getM1ScenarioCompletionStatus(userId);
+  const complianceValidated = await checkM1ComplianceValidated(userId);
+  const noBlockers = await checkNoUnresolvedBlockers(userId);
+  const allScenariosDone = M1_SCN_KEYS.every((k) => scenariosCompleted[k]);
+  const silverEligible = quizPassed && allScenariosDone && complianceValidated && noBlockers;
+
+  return {
+    quizPassed,
+    scenariosCompleted,
+    complianceValidated,
+    noBlockers,
+    silverEligible,
+    silverCertified: profile?.silverCertified ?? false,
+  };
 }
 
 export async function unlockSilverCertification(userId: number): Promise<void> {
