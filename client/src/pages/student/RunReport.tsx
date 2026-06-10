@@ -212,7 +212,7 @@ export default function RunReport() {
     </FioriShell>
   );
 
-  if (stateError || detailError || !data) {
+  if (stateError || !data) {
     return (
       <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
         { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
@@ -248,6 +248,18 @@ export default function RunReport() {
       ]}
     >
       <div className="max-w-3xl mx-auto space-y-5">
+
+        {detailError && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-5 py-3 flex items-start gap-3">
+            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              {t(
+                "Le détail par étape n'a pas pu être chargé. Le résumé principal reste disponible ci-dessous.",
+                "Step-by-step detail could not be loaded. The main summary is still available below.",
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Demo Notice */}
         {isDemo && (

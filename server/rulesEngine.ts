@@ -582,6 +582,33 @@ export function getEffectiveM1Steps(state) {
   return withAdj;
 }
 
+/** Runtime: stock already in STOCKAGE with empty reception — PUTAWAY not required (SCN-008). */
+export function isM2PutawaySatisfiedByInventory(state) {
+  if (!state?.inventory || !state?.transactions) return false;
+  const hasPostedGR = state.transactions.some((t) => t.docType === "GR" && t.posted);
+  if (!hasPostedGR) return false;
+  let receptionQty = 0;
+  let storageQty = 0;
+  const storageBins = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+  for (const [key, qty] of Object.entries(state.inventory)) {
+    const amount = Number(qty);
+    if (amount <= 0) continue;
+    const [, bin] = key.split("::");
+    if (!bin) continue;
+    if (RECEPTION_BINS.includes(bin)) receptionQty += amount;
+    else if (storageBins.includes(bin)) storageQty += amount;
+  }
+  return receptionQty === 0 && storageQty > 0;
+}
+
+function effectiveM2CompletedSteps(completedSteps, state) {
+  const effective = [...completedSteps];
+  if (!effective.includes("PUTAWAY") && isM2PutawaySatisfiedByInventory(state)) {
+    effective.push("PUTAWAY");
+  }
+  return effective;
+}
+
 export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
   if (moduleId === 1) {
     return getNextRequiredStep(completedSteps, 1, state);
@@ -593,8 +620,9 @@ export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
     5: MODULE5_STEPS
   };
   const steps = stepsMap[moduleId] ?? MODULE1_STEPS;
+  const effectiveCompleted = moduleId === 2 ? effectiveM2CompletedSteps(completedSteps, state) : completedSteps;
   for (const step of steps) {
-    if (!completedSteps.includes(step.code)) {
+    if (!effectiveCompleted.includes(step.code)) {
       return step;
     }
   }

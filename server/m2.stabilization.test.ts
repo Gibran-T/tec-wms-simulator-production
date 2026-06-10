@@ -39,6 +39,26 @@ describe("M2 stabilization — step sequence", () => {
     expect(result.penaltyEvent).toBe("CAPACITY_OVERFLOW");
   });
 
+  it("SCN-008: stock already in STOCKAGE → next step FIFO_PICK (PUTAWAY bypassed)", () => {
+    const state = {
+      completedSteps: ["GR"] as string[],
+      transactions: [
+        { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 300, posted: true, docRef: "PO-M2-003" },
+        { docType: "GR", sku: "SKU-003", bin: "B-01-R1-L1", qty: 100, posted: true, docRef: "GR-M2-003A" },
+        { docType: "GR", sku: "SKU-003", bin: "B-01-R1-L2", qty: 100, posted: true, docRef: "GR-M2-003B" },
+        { docType: "GR", sku: "SKU-003", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-003C" },
+      ],
+      inventory: {
+        "SKU-003::B-01-R1-L1": 100,
+        "SKU-003::B-01-R1-L2": 100,
+        "SKU-003::B-02-R1-L1": 100,
+      },
+      cycleCounts: [],
+    };
+    const next = getNextRequiredStepAllModules(state.completedSteps, 2, state as any);
+    expect(next?.code).toBe("FIFO_PICK");
+  });
+
   it("after PUTAWAY completes, next step is FIFO_PICK", () => {
     const state = {
       completedSteps: ["GR", "PUTAWAY"] as string[],

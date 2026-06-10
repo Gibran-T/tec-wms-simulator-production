@@ -137,6 +137,28 @@ describe("M1 preload step sync", () => {
       ])
     ).toEqual(["GR"]);
   });
+
+  it("SCN-006 preloaded PO+GR at REC-01 auto-completes GR only", async () => {
+    const { getM2StepsToAutoComplete } = await import("./m1Preload");
+    expect(
+      getM2StepsToAutoComplete([
+        { docType: "PO", sku: "SKU-001", bin: "REC-01", qty: 150, posted: true, docRef: "PO-M2-001" },
+        { docType: "GR", sku: "SKU-001", bin: "REC-01", qty: 150, posted: true, docRef: "GR-M2-001" },
+      ])
+    ).toEqual(["GR"]);
+  });
+
+  it("SCN-008 preloaded GR in STOCKAGE auto-completes GR and PUTAWAY", async () => {
+    const { getM2StepsToAutoComplete } = await import("./m1Preload");
+    expect(
+      getM2StepsToAutoComplete([
+        { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 300, posted: true, docRef: "PO-M2-003" },
+        { docType: "GR", sku: "SKU-003", bin: "B-01-R1-L1", qty: 100, posted: true, docRef: "GR-M2-003A" },
+        { docType: "GR", sku: "SKU-003", bin: "B-01-R1-L2", qty: 100, posted: true, docRef: "GR-M2-003B" },
+        { docType: "GR", sku: "SKU-003", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-003C" },
+      ])
+    ).toEqual(["GR", "PUTAWAY"]);
+  });
 });
 
 describe("M1 SCN-003 initial stock at REC-01", () => {

@@ -1062,7 +1062,12 @@ export const appRouter = router({
           totalTransactions: state.transactions.filter(t => t.posted).length,
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
-          totalSteps: getEffectiveM1Steps(moduleId === 1 ? state : null).length,
+          totalSteps: (moduleId === 1
+            ? getEffectiveM1Steps(state)
+            : moduleId === 2 ? MODULE2_STEPS
+            : moduleId === 3 ? MODULE3_STEPS
+            : moduleId === 4 ? MODULE4_STEPS
+            : MODULE5_STEPS).length,
           certificationUnlocked: silverCertified,
         };
       }),
@@ -1114,6 +1119,8 @@ export const appRouter = router({
             : moduleId === 4 ? MODULE4_STEPS
             : MODULE5_STEPS,
           isDemo: run.isDemo,
+          // Full transaction ledger for monitor (M2 preloaded PO/GR must be visible)
+          transactions: state.transactions,
           // Backend transparency data (visible only in demo mode on frontend)
           demoBackendState: run.isDemo ? {
             transactions: state.transactions,

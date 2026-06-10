@@ -2,6 +2,8 @@
  * M1/M2 preloaded scenario bootstrap — normalizes seed state and marks satisfied steps.
  */
 
+import { RECEPTION_BINS, RESERVE_BINS, PICKING_BINS, STOCKAGE_BINS } from "./rulesEngine";
+
 export type PreloadedTx = {
   docType: string;
   sku?: string;
@@ -32,9 +34,21 @@ export function getM1StepsToAutoComplete(preloaded: PreloadedTx[]): string[] {
   return steps;
 }
 
+const STORAGE_BINS = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+
+/** SCN-008: GR already posted to STOCKAGE bins — putaway is pedagogically complete. */
+export function isM2PutawayPreSatisfied(preloaded: PreloadedTx[]): boolean {
+  const postedGRs = preloaded.filter((t) => t.docType === "GR" && t.posted);
+  if (postedGRs.length === 0) return false;
+  const hasReceptionStock = postedGRs.some((t) => t.bin && RECEPTION_BINS.includes(t.bin));
+  if (hasReceptionStock) return false;
+  return postedGRs.some((t) => t.bin && STORAGE_BINS.includes(t.bin));
+}
+
 export function getM2StepsToAutoComplete(preloaded: PreloadedTx[]): string[] {
   const steps: string[] = [];
   if (preloaded.some((t) => t.docType === "GR" && t.posted)) steps.push("GR");
+  if (isM2PutawayPreSatisfied(preloaded)) steps.push("PUTAWAY");
   return steps;
 }
 

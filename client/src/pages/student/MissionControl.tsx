@@ -40,6 +40,7 @@ export default function MissionControl() {
 
   type TxRow = { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null };
 
+  const transactionsFromState = (data as { transactions?: TxRow[] } | undefined)?.transactions;
   const unpostedFromState = (data as { unpostedTransactions?: TxRow[] } | undefined)?.unpostedTransactions;
   const demoBackendState = (data as { demoBackendState?: { transactions?: TxRow[]; cycleCounts?: { variance: number; resolved?: boolean }[] } | null } | undefined)?.demoBackendState;
 
@@ -59,7 +60,7 @@ export default function MissionControl() {
       const key = `${row.docType}|${row.docRef ?? ""}|${row.sku}|${row.bin}|${row.qty}|${row.posted}`;
       if (!merged.has(key)) merged.set(key, row);
     };
-    for (const tx of txList ?? []) {
+    for (const tx of transactionsFromState ?? txList ?? []) {
       add({
         docType: tx.docType,
         sku: tx.sku,
@@ -72,7 +73,7 @@ export default function MissionControl() {
     for (const tx of demoBackendState?.transactions ?? []) add(tx);
     for (const tx of unpostedFromState ?? []) add({ ...tx, posted: false });
     return Array.from(merged.values());
-  }, [txList, demoBackendState, unpostedFromState]);
+  }, [transactionsFromState, txList, demoBackendState, unpostedFromState]);
 
   const unpostedTxs = useMemo(() => {
     const fromState = unpostedFromState ?? [];
