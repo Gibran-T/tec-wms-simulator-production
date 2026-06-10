@@ -148,9 +148,9 @@ async function seed() {
       initialStateJson: {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "PO-2025-002" },
-          { docType: "GR", sku: "SKU-003", bin: "A-01-R1-L1", qty: 50, posted: true, docRef: "GR-2025-002" },
+          { docType: "GR", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "GR-2025-002" },
         ],
-        context: "Stock de 50 unités — SO demande 80 unités.",
+        context: "50 unités SKU-003 au quai REC-01 (PO/GR postées) — SO demandera 80 unités après rangement.",
       },
       createdBy: 1,
     },
@@ -163,9 +163,9 @@ async function seed() {
       initialStateJson: {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true, docRef: "PO-2025-003" },
-          { docType: "GR", sku: "SKU-006", bin: "B-02-R1-L1", qty: 200, posted: true, docRef: "GR-2025-003" },
+          { docType: "GR", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true, docRef: "GR-2025-003" },
         ],
-        context: "Stock système : 200 | Stock physique : 185 — écart de -15.",
+        context: "200 unités SKU-006 au quai REC-01 (PO/GR postées) — écart physique −15 au comptage cyclique.",
       },
       createdBy: 1,
     },
@@ -189,7 +189,9 @@ async function seed() {
   ];
 
   for (const s of module1Scenarios) {
-    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { name: s.name } });
+    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({
+      set: { name: s.name, initialStateJson: s.initialStateJson },
+    });
   }
 
   // ─── Module 2 Scenarios ──────────────────────────────────────────────────────

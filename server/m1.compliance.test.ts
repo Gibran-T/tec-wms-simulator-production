@@ -138,3 +138,70 @@ describe("M1 preload step sync", () => {
     ).toEqual(["GR"]);
   });
 });
+
+describe("M1 SCN-003 initial stock at REC-01", () => {
+  const scn003Txs = [
+    { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true },
+    { docType: "GR", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true },
+  ];
+
+  it("stock starts at REC-01, not in picking/storage bins", () => {
+    const inv = calculateInventory(scn003Txs);
+    expect(inv["SKU-003::REC-01"]).toBe(50);
+    expect(inv["SKU-003::A-01-R1-L1"] ?? 0).toBe(0);
+    expect(inv["SKU-003::B-01-R1-L2"] ?? 0).toBe(0);
+  });
+
+  it("next step after auto-completed PO/GR is PUTAWAY_M1", () => {
+    const state = makeState(
+      ["PO", "GR"],
+      scn003Txs.map((t, i) => ({
+        id: i + 1,
+        runId: 1,
+        docType: t.docType,
+        sku: t.sku,
+        bin: t.bin,
+        qty: String(t.qty),
+        posted: t.posted,
+        docRef: t.docType === "PO" ? "PO-2025-002" : "GR-2025-002",
+        moveType: null,
+        comment: null,
+        createdAt: new Date(),
+      })) as RunState["transactions"]
+    );
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PUTAWAY_M1");
+  });
+});
+
+describe("M1 SCN-004 initial stock at REC-01", () => {
+  const scn004Txs = [
+    { docType: "PO", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true },
+    { docType: "GR", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true },
+  ];
+
+  it("200 units start at REC-01, not pre-seeded in B-02-R1-L1", () => {
+    const inv = calculateInventory(scn004Txs);
+    expect(inv["SKU-006::REC-01"]).toBe(200);
+    expect(inv["SKU-006::B-02-R1-L1"] ?? 0).toBe(0);
+  });
+
+  it("next step after auto-completed PO/GR is PUTAWAY_M1", () => {
+    const state = makeState(
+      ["PO", "GR"],
+      scn004Txs.map((t, i) => ({
+        id: i + 1,
+        runId: 1,
+        docType: t.docType,
+        sku: t.sku,
+        bin: t.bin,
+        qty: String(t.qty),
+        posted: t.posted,
+        docRef: t.docType === "PO" ? "PO-2025-003" : "GR-2025-003",
+        moveType: null,
+        comment: null,
+        createdAt: new Date(),
+      })) as RunState["transactions"]
+    );
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PUTAWAY_M1");
+  });
+});
