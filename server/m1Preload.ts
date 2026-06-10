@@ -28,9 +28,15 @@ export function normalizePreloadedTransaction(tx: PreloadedTx): PreloadedTx {
 
 export function getM1StepsToAutoComplete(preloaded: PreloadedTx[]): string[] {
   const steps: string[] = [];
+  const txsOfType = (type: string) => preloaded.filter((t) => t.docType === type);
   const hasPosted = (type: string) => preloaded.some((t) => t.docType === type && t.posted);
+  /** SCN-005: GR step only when every GR is posted — pending ghost GR must stay actionable. */
+  const allGrPosted = () => {
+    const grs = txsOfType("GR");
+    return grs.length > 0 && grs.every((t) => t.posted);
+  };
   if (hasPosted("PO")) steps.push("PO");
-  if (hasPosted("GR")) steps.push("GR");
+  if (allGrPosted()) steps.push("GR");
   return steps;
 }
 

@@ -66,41 +66,60 @@ describe("M1 SCN-002 ghost GR resolution", () => {
   });
 });
 
-describe("M1 SCN-005 ghost GR with auto-completed GR step", () => {
-  it("next required step is GR when unposted GR remains despite GR in completedSteps", () => {
-    const state = makeState(
-      ["PO", "GR"],
-      [
-        { id: 1, runId: 1, docType: "GR", sku: "SKU-004", bin: "REC-01", qty: "30", posted: false, docRef: "GR-2025-004", moveType: null, comment: null, createdAt: new Date() },
-        { id: 2, runId: 1, docType: "GR", sku: "SKU-005", bin: "REC-02", qty: "60", posted: true, docRef: "GR-2025-005", moveType: null, comment: null, createdAt: new Date() },
-      ]
-    );
-    const next = getNextRequiredStep(state.completedSteps, 1, state);
-    expect(next?.code).toBe("GR");
+describe("M1 SCN-005 multi-error mission flow", () => {
+  const scn005Preload = [
+    { docType: "PO", sku: "SKU-004", bin: "REC-01", qty: 30, posted: true, docRef: "PO-2025-004" },
+    { docType: "GR", sku: "SKU-004", bin: "REC-01", qty: 30, posted: false, docRef: "GR-2025-004" },
+    { docType: "PO", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "PO-2025-005" },
+    { docType: "GR", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "GR-2025-005" },
+  ];
+
+  it("initial inventory: SKU-004 absent at REC-01, SKU-005 at REC-02, not in B-01-R1-L2", () => {
+    const inv = calculateInventory(scn005Preload);
+    expect(inv["SKU-004::REC-01"] ?? 0).toBe(0);
+    expect(inv["SKU-005::REC-02"]).toBe(60);
+    expect(inv["SKU-005::B-01-R1-L2"] ?? 0).toBe(0);
   });
 
-  it("getNextRequiredStepAllModules delegates M1 ghost GR guard to runs.state path", () => {
+  it("next required step is GR when GR-2025-004 is still pending", () => {
     const state = makeState(
-      ["PO", "GR"],
-      [
-        { id: 1, runId: 1, docType: "GR", sku: "SKU-004", bin: "REC-01", qty: "30", posted: false, docRef: "GR-2025-004", moveType: null, comment: null, createdAt: new Date() },
-        { id: 2, runId: 1, docType: "GR", sku: "SKU-005", bin: "REC-02", qty: "60", posted: true, docRef: "GR-2025-005", moveType: null, comment: null, createdAt: new Date() },
-      ]
+      ["PO"],
+      scn005Preload.map((t, i) => ({
+        id: i + 1,
+        runId: 1,
+        docType: t.docType,
+        sku: t.sku,
+        bin: t.bin,
+        qty: String(t.qty),
+        posted: t.posted,
+        docRef: t.docRef,
+        moveType: null,
+        comment: null,
+        createdAt: new Date(),
+      })) as RunState["transactions"]
     );
-    const next = getNextRequiredStepAllModules(state.completedSteps, 1, state);
-    expect(next?.code).toBe("GR");
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("GR");
+    expect(getNextRequiredStepAllModules(state.completedSteps, 1, state)?.code).toBe("GR");
   });
 
   it("advances to PUTAWAY_M1 once all GRs are posted", () => {
     const state = makeState(
       ["PO", "GR"],
-      [
-        { id: 1, runId: 1, docType: "GR", sku: "SKU-004", bin: "REC-01", qty: "30", posted: true, docRef: "GR-2025-004", moveType: null, comment: null, createdAt: new Date() },
-        { id: 2, runId: 1, docType: "GR", sku: "SKU-005", bin: "REC-02", qty: "60", posted: true, docRef: "GR-2025-005", moveType: null, comment: null, createdAt: new Date() },
-      ]
+      scn005Preload.map((t, i) => ({
+        id: i + 1,
+        runId: 1,
+        docType: t.docType,
+        sku: t.sku,
+        bin: t.bin,
+        qty: String(t.qty),
+        posted: true,
+        docRef: t.docRef,
+        moveType: null,
+        comment: null,
+        createdAt: new Date(),
+      })) as RunState["transactions"]
     );
-    const next = getNextRequiredStep(state.completedSteps, 1, state);
-    expect(next?.code).toBe("PUTAWAY_M1");
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PUTAWAY_M1");
   });
 });
 
@@ -113,6 +132,30 @@ describe("M1 preload step sync", () => {
         { docType: "GR", posted: false },
       ])
     ).toEqual(["PO"]);
+  });
+
+  it("SCN-005 does not auto-complete GR while GR-2025-004 is pending", async () => {
+    const { getM1StepsToAutoComplete } = await import("./m1Preload");
+    expect(
+      getM1StepsToAutoComplete([
+        { docType: "PO", sku: "SKU-004", posted: true, docRef: "PO-2025-004" },
+        { docType: "GR", sku: "SKU-004", posted: false, docRef: "GR-2025-004" },
+        { docType: "PO", sku: "SKU-005", posted: true, docRef: "PO-2025-005" },
+        { docType: "GR", sku: "SKU-005", bin: "REC-02", posted: true, docRef: "GR-2025-005" },
+      ])
+    ).toEqual(["PO"]);
+  });
+
+  it("SCN-005 auto-completes GR when every GR is posted", async () => {
+    const { getM1StepsToAutoComplete } = await import("./m1Preload");
+    expect(
+      getM1StepsToAutoComplete([
+        { docType: "PO", sku: "SKU-004", posted: true },
+        { docType: "GR", sku: "SKU-004", posted: true, docRef: "GR-2025-004" },
+        { docType: "PO", sku: "SKU-005", posted: true },
+        { docType: "GR", sku: "SKU-005", bin: "REC-02", posted: true, docRef: "GR-2025-005" },
+      ])
+    ).toEqual(["PO", "GR"]);
   });
 
   it("normalizes unposted ghost GR bin to REC-01", async () => {

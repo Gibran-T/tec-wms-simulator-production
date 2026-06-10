@@ -432,7 +432,7 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
     steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
   }
 
-  // SCN-002/005: any unposted GR blocks later steps (SCN-005 may auto-complete GR when another GR is posted)
+  // SCN-002/005: any unposted GR blocks later steps until posted
   if (moduleId === 1 && state?.transactions) {
     const ghostGrPending = state.transactions.some((t) => t.docType === "GR" && !t.posted);
     if (ghostGrPending) {
