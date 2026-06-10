@@ -1,7 +1,8 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation, useParams } from "wouter";
+import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
@@ -39,6 +40,17 @@ import SilverCertificatePreview from "./pages/student/SilverCertificatePreview";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
+/** Legacy path used by ScenarioList before Mission Control migration. */
+function RunReportRedirect() {
+  const { runId } = useParams<{ runId: string }>();
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    if (runId) navigate(`/student/run/${runId}/report`, { replace: true });
+    else navigate("/student/scenarios", { replace: true });
+  }, [runId, navigate]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -49,6 +61,7 @@ function Router() {
       <Route path="/student/run/:runId" component={MissionControl} />
       <Route path="/student/run/:runId/step/:step" component={StepForm} />
       <Route path="/student/run/:runId/report" component={RunReport} />
+      <Route path="/student/report/:runId" component={RunReportRedirect} />
       {/* Module 2 routes */}
       <Route path="/student/module2" component={Module2ScenarioList} />
       <Route path="/student/module2/scenario/:scenarioId/mode" component={Module2ModeSelectionPage} />

@@ -435,7 +435,7 @@ export default function ScenarioList() {
                           )}
                           {completedRun && (
                             <button
-                              onClick={() => navigate(`/student/report/${completedRun.run.id}`)}
+                              onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
                               className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
                             >
                               <FileText size={16} className="inline mr-2" /> {t("Rapport", "Report")}

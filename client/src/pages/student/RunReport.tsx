@@ -9,15 +9,6 @@ import {
   ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
 
-const STEP_LABELS_FR: Record<string, string> = {
-  PO: "Bon de commande (ME21N)", GR: "Réception marchandises (MIGO)", STOCK: "Stock Disponible",
-  SO: "Commande client (VA01)", GI: "Sortie de stock (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "Conformité Système"
-};
-const STEP_LABELS_EN: Record<string, string> = {
-  PO: "Purchase Order (ME21N)", GR: "Goods Receipt (MIGO)", STOCK: "Available Stock",
-  SO: "Sales Order (VA01)", GI: "Goods Issue (VL02N)", CC: "Cycle Count (MI01)", COMPLIANCE: "System Compliance"
-};
-
 // ─── Score Evolution Chart component ─────────────────────────────────────────
 function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number; currentRunId: number }) {
   const { t } = useLanguage();
@@ -171,19 +162,44 @@ export default function RunReport() {
   const { runId } = useParams<{ runId: string }>();
   const [, navigate] = useLocation();
   const { t } = useLanguage();
-  const { data, isLoading } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
-  const { data: detail, isLoading: detailLoading } = trpc.runs.detailedReport.useQuery({ runId: parseInt(runId) });
+  const parsedRunId = parseInt(runId ?? "", 10);
+  const queryEnabled = Number.isFinite(parsedRunId) && parsedRunId > 0;
+  const { data, isLoading, isError: stateError } = trpc.runs.state.useQuery(
+    { runId: parsedRunId },
+    { enabled: queryEnabled },
+  );
+  const { data: detail, isLoading: detailLoading, isError: detailError } = trpc.runs.detailedReport.useQuery(
+    { runId: parsedRunId },
+    { enabled: queryEnabled },
+  );
   const recordModulePass = trpc.warehouse.recordModulePass.useMutation();
 
   useEffect(() => {
-    if (data && scenario && !run.isDemo && run.status === "completed" && totalScore !== undefined) {
+    if (!data) return;
+    const { run, scenario, totalScore } = data;
+    if (!run.isDemo && run.status === "completed" && totalScore !== undefined && scenario) {
       recordModulePass.mutate({ moduleId: scenario.moduleId, score: totalScore });
     }
-  }, [data, scenario, run.isDemo, run.status, totalScore, recordModulePass]);
+  }, [data, recordModulePass]);
 
-
-
-
+  if (!queryEnabled) {
+    return (
+      <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
+        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+        { label: t("Rapport", "Report") },
+      ]}>
+        <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
+          <AlertTriangle size={32} className="mx-auto text-amber-500" />
+          <p className="text-sm text-muted-foreground">
+            {t("Identifiant de simulation invalide.", "Invalid simulation id.")}
+          </p>
+          <button onClick={() => navigate("/student/scenarios")} className="text-xs text-primary hover:underline">
+            {t("Retour aux scénarios", "Back to scenarios")}
+          </button>
+        </div>
+      </FioriShell>
+    );
+  }
 
   if (isLoading || detailLoading) return (
     <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
@@ -196,11 +212,31 @@ export default function RunReport() {
     </FioriShell>
   );
 
-  if (!data) return null;
+  if (stateError || detailError || !data) {
+    return (
+      <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
+        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+        { label: t("Rapport", "Report") },
+      ]}>
+        <div className="max-w-3xl mx-auto py-12 text-center space-y-4">
+          <AlertTriangle size={32} className="mx-auto text-amber-500" />
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "Impossible de charger le rapport. La simulation est introuvable ou inaccessible.",
+              "Unable to load the report. The simulation was not found or is not accessible.",
+            )}
+          </p>
+          <button onClick={() => navigate("/student/scenarios")} className="text-xs text-primary hover:underline">
+            {t("Retour aux scénarios", "Back to scenarios")}
+          </button>
+        </div>
+      </FioriShell>
+    );
+  }
+
   const { run, scenario, completedSteps, compliance, totalScore, progressPct } = data;
   const isDemo = run.isDemo;
-  const isPerfect = totalScore >= 100;
-  const STEP_LABELS = t("fr", "en") === "fr" ? STEP_LABELS_FR : STEP_LABELS_EN;
+  const isPerfect = (totalScore ?? 0) >= 100;
 
   return (
     <FioriShell
@@ -520,7 +556,7 @@ export default function RunReport() {
         </div>
 
         {/* Score Evolution Chart — only shown when student has > 1 attempt */}
-        {!isDemo && scenario && <ScoreEvolutionChart scenarioId={scenario.id} currentRunId={parseInt(runId)} />}
+        {!isDemo && scenario && <ScoreEvolutionChart scenarioId={scenario.id} currentRunId={parsedRunId} />}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pb-4">
