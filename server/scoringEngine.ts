@@ -13,15 +13,15 @@ export const MODULE1_SCORING: ScoringRule[] = [
   // Completion points (60 total)
   { eventType: "PO_COMPLETED", points: 10, descriptionFr: "Bon de commande (PO) complété" },
   { eventType: "GR_COMPLETED", points: 10, descriptionFr: "Réception marchandises (GR) complétée" },
-  { eventType: "PUTAWAY_COMPLETED", points: 10, descriptionFr: "Rangement en emplacement (PUTAWAY) complété" },
+  { eventType: "PUTAWAY_COMPLETED", points: 25, descriptionFr: "Rangement structuré (PUTAWAY) complété" },
   { eventType: "SO_COMPLETED", points: 10, descriptionFr: "Commande client (SO) complétée" },
   { eventType: "GI_COMPLETED", points: 10, descriptionFr: "Sortie marchandises (GI) sans stock négatif" },
   { eventType: "CC_COMPLETED", points: 10, descriptionFr: "Comptage cyclique (Cycle Count) complété" },
   { eventType: "COMPLIANCE_OK", points: 40, descriptionFr: "Conformité système validée" },
-  // M2 specific
-  { eventType: "FIFO_PICK_COMPLETED", points: 15, descriptionFr: "Prélèvement FIFO complété avec lot correct" },
-  { eventType: "STOCK_ACCURACY_COMPLETED", points: 10, descriptionFr: "Précision stock validée" },
-  { eventType: "COMPLIANCE_ADV_COMPLETED", points: 5, descriptionFr: "Conformité avancée validée" },
+  // M2 specific (25 + 25 + 25 + 25 = 100; GR is pre-seeded, not scored)
+  { eventType: "FIFO_PICK_COMPLETED", points: 25, descriptionFr: "Prélèvement FIFO complété avec lot correct" },
+  { eventType: "STOCK_ACCURACY_COMPLETED", points: 25, descriptionFr: "Précision inventaire validée (écart nul)" },
+  { eventType: "COMPLIANCE_ADV_COMPLETED", points: 25, descriptionFr: "Conformité avancée M2 validée" },
   // M3 specific
   { eventType: "ROP_CHECK_COMPLETED", points: 10, descriptionFr: "Vérification point de réapprovisionnement (ROP)" },
   { eventType: "EOQ_CALC_COMPLETED", points: 10, descriptionFr: "Calcul EOQ complété" },
@@ -53,6 +53,29 @@ export const MODULE1_SCORING: ScoringRule[] = [
 
 export function getScoringRule(eventType: string): ScoringRule | undefined {
   return MODULE1_SCORING.find((r) => r.eventType === eventType);
+}
+
+/** M2 scored steps (GR is auto-completed from seed; not part of the 100-point budget). */
+export const M2_SCORED_STEPS = ["PUTAWAY", "FIFO_PICK", "STOCK_ACCURACY", "COMPLIANCE_ADV"] as const;
+
+export function getM2StepMaxPoints(step: (typeof M2_SCORED_STEPS)[number]): number {
+  const map: Record<(typeof M2_SCORED_STEPS)[number], string> = {
+    PUTAWAY: "PUTAWAY_COMPLETED",
+    FIFO_PICK: "FIFO_PICK_COMPLETED",
+    STOCK_ACCURACY: "STOCK_ACCURACY_COMPLETED",
+    COMPLIANCE_ADV: "COMPLIANCE_ADV_COMPLETED",
+  };
+  return getScoringRule(map[step])?.points ?? 0;
+}
+
+export function getM2PerfectRunMaxScore(): number {
+  return M2_SCORED_STEPS.reduce((sum, step) => sum + getM2StepMaxPoints(step), 0);
+}
+
+/** Reduced score when stock count variance is non-zero (5-point deduction, same ratio as legacy 15→10). */
+export function getM2StockAccuracyPoints(variance: number): number {
+  const perfect = getScoringRule("STOCK_ACCURACY_COMPLETED")?.points ?? 25;
+  return variance === 0 ? perfect : Math.max(0, perfect - 5);
 }
 
 export function calculateTotalScore(events: Array<{ pointsDelta: number }>): number {

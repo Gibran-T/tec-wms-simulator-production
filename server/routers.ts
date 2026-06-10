@@ -106,7 +106,7 @@ import {
   addKpiSnapshot,
   addKpiInterpretation,
 } from "./db";
-import { calculateTotalScore, getScoringRule, getScoreLabel } from "./scoringEngine";
+import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -857,8 +857,8 @@ export const appRouter = router({
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
           PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, ADJ: 10, COMPLIANCE: 40,
-          // M2
-          FIFO_PICK: 15, STOCK_ACCURACY: 15, COMPLIANCE_ADV: 20,
+          // M2 (GR pre-seeded; 25+25+25+25 = 100)
+          PUTAWAY: 25, FIFO_PICK: 25, STOCK_ACCURACY: 25, COMPLIANCE_ADV: 25,
           // M3
           CC_LIST: 10, CC_COUNT: 20, CC_RECON: 15, REPLENISH: 20, COMPLIANCE_M3: 15,
           // M4
@@ -872,7 +872,8 @@ export const appRouter = router({
           SO: "SO_COMPLETED", PICKING_M1: "PICKING_M1_COMPLETED",
           GI: "GI_COMPLETED", CC: "CC_COMPLETED", ADJ: "ADJ_COMPLETED", COMPLIANCE: "COMPLIANCE_OK",
           // M2
-          FIFO_PICK: "FIFO_PICK_COMPLETED", STOCK_ACCURACY: "STOCK_ACCURACY_COMPLETED", COMPLIANCE_ADV: "COMPLIANCE_ADV_COMPLETED",
+          PUTAWAY: "PUTAWAY_COMPLETED", FIFO_PICK: "FIFO_PICK_COMPLETED",
+          STOCK_ACCURACY: "STOCK_ACCURACY_COMPLETED", COMPLIANCE_ADV: "COMPLIANCE_ADV_COMPLETED",
           // M3
           CC_LIST: "CC_LIST_COMPLETED", CC_COUNT: "CC_COUNT_COMPLETED", CC_RECON: "CC_RECON_COMPLETED",
           REPLENISH: "REPLENISH_COMPLETED", COMPLIANCE_M3: "COMPLIANCE_M3_COMPLETED",
@@ -1689,7 +1690,8 @@ export const appRouter = router({
         await markStepComplete(input.runId, "PUTAWAY");
 
         if (!run.isDemo) {
-          await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: 15, message: "Rangement structuré validé (bin + capacité + FIFO)" });
+          const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
+          await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayRule!.points, message: "Rangement structuré validé (bin + capacité + FIFO)" });
         }
         return { success: true, demoWarning: null };
       }),
@@ -2158,7 +2160,8 @@ export const appRouter = router({
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: `FIFO-${input.lotNumber}`, comment: `Prélèvement FIFO de ${input.fromBin} vers ${input.toBin}` });
         await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: `FIFO-${input.lotNumber}`, comment: `Arrivée FIFO en ${input.toBin}` });
         await markStepComplete(input.runId, "FIFO_PICK");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "FIFO_PICK_COMPLETED", pointsDelta: 15, message: "Prélèvement FIFO validé" });
+        const fifoRule = getScoringRule("FIFO_PICK_COMPLETED");
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "FIFO_PICK_COMPLETED", pointsDelta: fifoRule!.points, message: "Prélèvement FIFO validé" });
         return { success: true };
       }),
 
@@ -2183,7 +2186,8 @@ export const appRouter = router({
         const variance = input.countedQty - input.systemQty;
         await addInventoryCount({ runId: input.runId, sku: input.sku, systemQty: input.systemQty, countedQty: input.countedQty, varianceQty: variance });
         await markStepComplete(input.runId, "STOCK_ACCURACY");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "STOCK_ACCURACY_COMPLETED", pointsDelta: variance === 0 ? 15 : 10, message: `Précision inventaire: variance ${variance >= 0 ? "+" : ""}${variance}` });
+        const stockPoints = getM2StockAccuracyPoints(variance);
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "STOCK_ACCURACY_COMPLETED", pointsDelta: stockPoints, message: `Précision inventaire: variance ${variance >= 0 ? "+" : ""}${variance}` });
         return { success: true, variance };
       }),
 
@@ -2201,7 +2205,8 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_ADV");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_ADV_COMPLETED", pointsDelta: 20, message: "Conformité avancée M2 validée" });
+        const complianceRule = getScoringRule("COMPLIANCE_ADV_COMPLETED");
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_ADV_COMPLETED", pointsDelta: complianceRule!.points, message: "Conformité avancée M2 validée" });
         await completeRun(input.runId);
         return { success: true };
       }),
