@@ -615,5 +615,7 @@ export function calculateProgressPctAllModules(completedSteps, moduleId, state) 
     steps = stepsMap[moduleId] ?? MODULE1_STEPS;
   }
   if (steps.length === 0) return 0;
-  return Math.round(completedSteps.length / steps.length * 100);
+  const stepCodes = new Set(steps.map((s) => s.code));
+  const completedInList = completedSteps.filter((code) => stepCodes.has(code)).length;
+  return Math.min(100, Math.round((completedInList / steps.length) * 100));
 }

@@ -505,4 +505,25 @@ describe("calculateProgressPctAllModules", () => {
     const completed = ["M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH"] as any[];
     expect(calculateProgressPctAllModules(completed, 5)).toBe(57);
   });
+
+  it("M1 SCN-002: ADJ in completedSteps but not in effective list → 100%, not 111%", () => {
+    const completed = [
+      "PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC", "ADJ", "COMPLIANCE",
+    ] as any[];
+    const state = { completedSteps: completed, transactions: [], inventory: {}, cycleCounts: [] };
+    expect(calculateProgressPctAllModules(completed, 1, state)).toBe(100);
+  });
+
+  it("M1 normal flow reaches 100% when all effective steps are completed", () => {
+    const completed = [
+      "PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC", "COMPLIANCE",
+    ] as any[];
+    expect(calculateProgressPctAllModules(completed, 1, null)).toBe(100);
+  });
+
+  it("never returns above 100% even with orphan completed step codes", () => {
+    const allM2 = ["GR", "PUTAWAY", "FIFO_PICK", "STOCK_ACCURACY", "COMPLIANCE_ADV", "EXTRA"] as any[];
+    expect(calculateProgressPctAllModules(allM2, 2)).toBeLessThanOrEqual(100);
+    expect(calculateProgressPctAllModules(allM2, 2)).toBe(100);
+  });
 });
