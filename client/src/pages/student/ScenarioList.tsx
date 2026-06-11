@@ -221,26 +221,33 @@ export default function ScenarioList() {
 
   const currentModuleConfig = useMemo(() => MODULE_CONFIG.find((m) => m.id === selectedModule)!, [selectedModule]);
 
-  const moduleRuns = useMemo(() => myRuns?.filter(r => r.run.moduleId === selectedModule) || [], [myRuns, selectedModule]);
-
-  const totalScenarios = moduleScenarios.length;
-  const completedScenarios = moduleRuns.filter(r => r.run.status === "completed").length;
-  const inProgressScenarios = moduleRuns.filter(r => r.run.status === "in_progress").length;
-  const avgScoreModule = useMemo(() => {
-    const scoredRuns = moduleRuns.filter(r => r.run.score !== null && r.run.score !== undefined);
-    if (scoredRuns.length === 0) return 0;
-    return Math.round(scoredRuns.reduce((sum, r) => sum + (r.run.score ?? 0), 0) / scoredRuns.length);
-  }, [moduleRuns]);
-
-  const isModuleCompleted = completedScenarios === totalScenarios && totalScenarios > 0;
-
-
-
   const getActiveRun = (scenario: (typeof moduleScenarios)[number]) =>
     findActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
 
   const getCompletedRun = (scenario: (typeof moduleScenarios)[number]) =>
     findCompletedRunForScenario(scenario, rawModuleScenarios, myRuns);
+
+  const totalScenarios = moduleScenarios.length;
+
+  const completedScenarios = useMemo(
+    () => moduleScenarios.filter((s) => getCompletedRun(s)).length,
+    [moduleScenarios, myRuns, rawModuleScenarios]
+  );
+
+  const inProgressScenarios = useMemo(
+    () => moduleScenarios.filter((s) => getActiveRun(s) && !getCompletedRun(s)).length,
+    [moduleScenarios, myRuns, rawModuleScenarios]
+  );
+
+  const avgScoreModule = useMemo(() => {
+    const scores = moduleScenarios
+      .map((s) => getCompletedRun(s)?.score)
+      .filter((score): score is number => score != null);
+    if (scores.length === 0) return 0;
+    return Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length);
+  }, [moduleScenarios, myRuns, rawModuleScenarios]);
+
+  const isModuleCompleted = completedScenarios === totalScenarios && totalScenarios > 0;
 
   const handleSaveStudentNum = () => {
     upsertProfile.mutate({ studentNumber: studentNumInput.trim() || null });
@@ -372,8 +379,8 @@ export default function ScenarioList() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {moduleScenarios.map((scenario) => {
                 const scnCode = resolveScenarioScnCode(scenario);
-                const activeRun = getActiveRun(scenario);
                 const completedRun = getCompletedRun(scenario);
+                const activeRun = completedRun ? undefined : getActiveRun(scenario);
                 const isLocked = !quizPassed && user?.role === "student";
 
                 return (
@@ -416,9 +423,9 @@ export default function ScenarioList() {
                             <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
                           </span>
                         )}
-                        {completedRun && completedRun.run.score !== null && (
+                        {completedRun && completedRun.score != null && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            <BarChart2 size={12} className="mr-1" /> {t("Score:", "Score:")} {completedRun.run.score}/100
+                            <BarChart2 size={12} className="mr-1" /> {t("Score:", "Score:")} {completedRun.score}/100
                           </span>
                         )}
                         {isLocked && (
