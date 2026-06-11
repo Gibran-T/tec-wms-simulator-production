@@ -1,9 +1,16 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useLocation } from "wouter";
-import { Award, ArrowLeft, CheckCircle, Lock, Circle, AlertCircle } from "lucide-react";
+import { Award, CheckCircle, Circle, ChevronRight, Info, Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
 import { Button } from "@/components/ui/button";
+import SilverBadgeSvg, { GoldBadgeLockedSvg } from "@/components/certification/SilverBadgeSvg";
+import {
+  CertificationProgressRing,
+  SilverStatusChip,
+  resolveSilverState,
+  type SilverCertState,
+} from "@/components/certification/CertificationStatus";
 
 type M1ScnKey = "SCN001" | "SCN002" | "SCN003" | "SCN004" | "SCN005";
 
@@ -17,13 +24,36 @@ const SCN_LABELS: Record<M1ScnKey, { fr: string; en: string }> = {
 
 const SCN_KEYS: M1ScnKey[] = ["SCN001", "SCN002", "SCN003", "SCN004", "SCN005"];
 
+function statusBannerCopy(state: SilverCertState, t: (fr: string, en: string) => string) {
+  switch (state) {
+    case "obtenue":
+      return t(
+        "Félicitations — Certification Silver TEC.LOG obtenue. Votre parcours M1 est validé institutionnellement.",
+        "Congratulations — TEC.LOG Silver certification obtained. Your M1 pathway is institutionally validated.",
+      );
+    case "eligible":
+      return t(
+        "Toutes les exigences Silver sont remplies — vous êtes éligible à la certification TEC.LOG.",
+        "All Silver requirements are met — you are eligible for TEC.LOG certification.",
+      );
+    case "en_cours":
+      return t(
+        "Parcours Silver en cours — complétez les exigences ci-dessous pour devenir éligible.",
+        "Silver pathway in progress — complete the requirements below to become eligible.",
+      );
+    default:
+      return t(
+        "Commencez le parcours Silver : quiz M1 puis scénarios SCN-001 à SCN-005 en mode Évaluation (≥ 60/100).",
+        "Start the Silver pathway: M1 quiz then SCN-001 to SCN-005 scenarios in Evaluation mode (≥ 60/100).",
+      );
+  }
+}
+
 export function CertificationsPage() {
   const { t } = useLanguage();
   const [, navigate] = useLocation();
 
   const { data: silverStatus, isLoading } = trpc.profiles.silverStatus.useQuery();
-  const { data: profile } = trpc.profiles.mine.useQuery();
-  const goldEarned = profile?.goldCertified ?? false;
 
   const quizPassed = silverStatus?.quizPassed ?? false;
   const scenariosCompleted = silverStatus?.scenariosCompleted;
@@ -33,101 +63,36 @@ export function CertificationsPage() {
   const silverEligible = silverStatus?.silverEligible ?? false;
 
   const scnCompletedCount = SCN_KEYS.filter((k) => scenariosCompleted?.[k]).length;
-  const allScenariosDone = scnCompletedCount === SCN_KEYS.length;
   const hasAnyProgress = quizPassed || scnCompletedCount > 0 || complianceValidated;
 
-  const silverStatusLabel = silverEarned
-    ? t("Silver TEC.LOG — Débloqué ✓", "Silver TEC.LOG — Unlocked ✓")
-    : hasAnyProgress || silverEligible
-      ? t("Silver TEC.LOG — En cours", "Silver TEC.LOG — In progress")
-      : t(
-          "Silver Locked — complétez le Quiz M1 et les scénarios SCN-001 à SCN-005.",
-          "Silver Locked — complete the M1 Quiz and scenarios SCN-001 to SCN-005."
-        );
-
   const silverRequirements = [
-    {
-      id: "quiz",
-      labelFr: "Quiz M1 réussi (≥ 60 %)",
-      labelEn: "M1 quiz passed (≥ 60%)",
-      met: quizPassed,
-      action: () => navigate("/student/quiz/1"),
-      actionLabelFr: "Passer le quiz M1",
-      actionLabelEn: "Take M1 quiz",
-    },
+    { id: "quiz", labelFr: "Quiz M1 réussi (≥ 60 %)", labelEn: "M1 quiz passed (≥ 60%)", met: quizPassed, action: () => navigate("/student/quiz/1"), actionFr: "Quiz M1", actionEn: "M1 quiz" },
     ...SCN_KEYS.map((key) => ({
       id: key,
-      labelFr: `${SCN_LABELS[key].fr} (évaluation ≥ 60/100)`,
-      labelEn: `${SCN_LABELS[key].en} (evaluation ≥ 60/100)`,
+      labelFr: SCN_LABELS[key].fr,
+      labelEn: SCN_LABELS[key].en,
+      subFr: "Évaluation ≥ 60/100",
+      subEn: "Evaluation ≥ 60/100",
       met: scenariosCompleted?.[key] ?? false,
       action: () => navigate("/student/scenarios"),
-      actionLabelFr: "Voir les scénarios M1",
-      actionLabelEn: "View M1 scenarios",
+      actionFr: "Scénarios",
+      actionEn: "Scenarios",
     })),
-    {
-      id: "compliance",
-      labelFr: "Conformité M1 validée sur tous les scénarios",
-      labelEn: "M1 compliance validated on all scenarios",
-      met: complianceValidated,
-      action: () => navigate("/student/scenarios"),
-      actionLabelFr: "Finaliser la conformité",
-      actionLabelEn: "Complete compliance",
-    },
-    {
-      id: "blockers",
-      labelFr: "Aucun blocage non résolu (transactions / écarts)",
-      labelEn: "No unresolved blockers (transactions / variances)",
-      met: noBlockers,
-      action: () => navigate("/student/scenarios"),
-      actionLabelFr: "Résoudre les blocages",
-      actionLabelEn: "Resolve blockers",
-    },
+    { id: "compliance", labelFr: "Conformité M1 validée", labelEn: "M1 compliance validated", met: complianceValidated, action: () => navigate("/student/scenarios"), actionFr: "Conformité", actionEn: "Compliance" },
+    { id: "blockers", labelFr: "Aucun blocage non résolu", labelEn: "No unresolved blockers", met: noBlockers, action: () => navigate("/student/scenarios"), actionFr: "Résoudre", actionEn: "Resolve" },
   ];
 
-  const silverBlockers = silverRequirements.filter((r) => !r.met);
-
-  const certifications = [
-    {
-      id: "silver",
-      tier: "Silver",
-      titleFr: "TEC.LOG Fundamentals",
-      titleEn: "TEC.LOG Fundamentals",
-      subtitleFr: "Module 1 — Fondements ERP/WMS",
-      subtitleEn: "Module 1 — ERP/WMS Foundations",
-      descriptionFr:
-        "Certification Silver : maîtrise du cycle opérationnel nominal et résolution des anomalies M1 (SCN-001 à SCN-005).",
-      descriptionEn:
-        "Silver certification: mastery of the nominal operational cycle and M1 anomaly resolution (SCN-001 to SCN-005).",
-      unlocked: silverEarned,
-      icon: "🥈",
-      color: "from-slate-400 to-slate-600",
-      lockMessageFr: "Complétez le quiz M1 et tous les scénarios M1 avec conformité.",
-      lockMessageEn: "Complete the M1 quiz and all M1 scenarios with compliance.",
-    },
-    {
-      id: "gold",
-      tier: "Gold",
-      titleFr: "TEC.LOG Integrated Operations",
-      titleEn: "TEC.LOG Integrated Operations",
-      subtitleFr: "Modules 1 à 5 — Parcours intégré",
-      subtitleEn: "Modules 1 to 5 — Integrated pathway",
-      descriptionFr:
-        "Certification Gold : expertise complète M1–M5 incluant exécution entrepôt, contrôle stocks, KPI et capstone M5.",
-      descriptionEn:
-        "Gold certification: full M1–M5 expertise including warehouse execution, inventory control, KPIs and M5 capstone.",
-      unlocked: goldEarned,
-      icon: "🥇",
-      color: "from-yellow-400 to-yellow-600",
-      lockMessageFr: "Disponible après certification Silver et complétion du parcours M2–M5.",
-      lockMessageEn: "Available after Silver certification and completion of the M2–M5 pathway.",
-    },
-  ];
+  const metCount = silverRequirements.filter((r) => r.met).length;
+  const progressPct = (metCount / silverRequirements.length) * 100;
+  const allRequirementsMet = metCount === silverRequirements.length;
+  const silverState = resolveSilverState({ silverEarned, silverEligible, hasAnyProgress, allRequirementsMet });
+  const canPreviewCert = silverEarned || silverState === "eligible";
 
   if (isLoading) {
     return (
       <FioriShell>
         <div className="flex justify-center items-center h-64">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#0070f2] border-t-transparent rounded-full animate-spin" />
         </div>
       </FioriShell>
     );
@@ -141,198 +106,139 @@ export function CertificationsPage() {
         { label: t("Certifications", "Certifications") },
       ]}
     >
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/student/scenarios")}
-            className="p-2 hover:bg-muted rounded-md transition-colors"
-            type="button"
-          >
-            <ArrowLeft size={20} className="text-muted-foreground" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {t("Mes Certifications TEC.LOG", "My TEC.LOG Certifications")}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {t("Collège de la Concorde — TEC.WMS", "Collège de la Concorde — TEC.WMS")}
-            </p>
-          </div>
-        </div>
-
-        {/* Silver status banner */}
-        <div
-          className={`rounded-lg border p-4 ${
-            silverEarned
-              ? "border-emerald-300 bg-emerald-50 dark:bg-emerald-950/30"
-              : hasAnyProgress
-                ? "border-amber-200 bg-amber-50 dark:bg-amber-950/20"
-                : "border-border bg-muted/30"
-          }`}
-        >
-          <p className="text-sm font-semibold text-foreground">{silverStatusLabel}</p>
-          {silverEarned && (
-            <Button
-              className="mt-3"
-              size="sm"
-              onClick={() => navigate("/student/certifications/silver")}
-            >
-              {t("Voir mon certificat Silver", "View my Silver certificate")}
-            </Button>
-          )}
-        </div>
-
-        {/* M1 Silver progress checklist */}
-        <div className="bg-card border border-border rounded-lg p-5 space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">
-              {t("Parcours Silver — Module 1", "Silver Pathway — Module 1")}
-            </h2>
-            {silverEarned ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                <CheckCircle size={14} /> {t("Certifié", "Certified")}
-              </span>
-            ) : silverEligible ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
-                <AlertCircle size={14} /> {t("Éligible — validation en cours", "Eligible — validation pending")}
-              </span>
-            ) : allScenariosDone && quizPassed ? (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600">
-                <AlertCircle size={14} /> {t("En attente de conformité", "Pending compliance")}
-              </span>
-            ) : (
-              <span className="text-xs text-muted-foreground">{t("En cours", "In progress")}</span>
-            )}
-          </div>
-          <ul className="space-y-2">
-            {silverRequirements.map((req) => (
-              <li key={req.id} className="flex items-center justify-between gap-3 text-sm">
-                <span className="flex items-center gap-2">
-                  {req.met ? (
-                    <CheckCircle size={16} className="text-emerald-500 shrink-0" />
-                  ) : (
-                    <Circle size={16} className="text-muted-foreground shrink-0" />
-                  )}
-                  <span className={req.met ? "text-foreground" : "text-muted-foreground"}>
-                    {t(req.labelFr, req.labelEn)}
-                  </span>
-                </span>
-                {!req.met && (
-                  <button
-                    type="button"
-                    onClick={req.action}
-                    className="text-xs text-primary hover:underline shrink-0"
-                  >
-                    {t(req.actionLabelFr, req.actionLabelEn)}
-                  </button>
-                )}
-              </li>
-            ))}
-          </ul>
-          {!silverEarned && silverBlockers.length > 0 && (
-            <p className="text-xs text-muted-foreground border-t border-border pt-3">
-              {t(
-                `${silverBlockers.length} exigence(s) restante(s). Les scénarios doivent être complétés en mode Évaluation (≥ 60/100).`,
-                `${silverBlockers.length} requirement(s) remaining. Scenarios must be completed in Evaluation mode (≥ 60/100).`
-              )}
-            </p>
-          )}
-        </div>
-
-        {/* Certification cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {certifications.map((cert) => (
-            <div
-              key={cert.id}
-              className={`relative border rounded-lg overflow-hidden transition-all ${
-                cert.unlocked
-                  ? `border-primary/50 bg-gradient-to-br ${cert.color} bg-opacity-5`
-                  : "border-border bg-card"
-              }`}
-            >
-              {cert.unlocked && (
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold rounded-bl-lg">
-                  {t("OBTENU", "EARNED")}
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Institutional header */}
+        <div className="rounded-lg overflow-hidden border border-border shadow-sm">
+          <div className="bg-[#0f2a44] text-white px-6 py-6">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-5">
+              <div className="flex items-start gap-4 flex-1">
+                <div className="w-12 h-12 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
+                  <Award size={24} />
                 </div>
-              )}
-
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="text-5xl">{cert.icon}</div>
-                  {cert.unlocked ? (
-                    <CheckCircle size={24} className="text-emerald-500" />
-                  ) : (
-                    <Lock size={24} className="text-muted-foreground" />
-                  )}
-                </div>
-
-                <h3 className="text-lg font-semibold text-foreground mb-0.5">{cert.tier}</h3>
-                <p className="text-sm font-medium text-primary mb-1">
-                  {t(cert.titleFr, cert.titleEn)}
-                </p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  {t(cert.subtitleFr, cert.subtitleEn)}
-                </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {t(cert.descriptionFr, cert.descriptionEn)}
-                </p>
-
-                <div className="pt-4 border-t border-border">
-                  {cert.unlocked ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle size={16} className="text-emerald-500" />
-                        <span className="text-sm font-medium text-emerald-600">
-                          {t("Certification obtenue", "Certification earned")}
-                        </span>
-                      </div>
-                      {cert.id === "silver" && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => navigate("/student/certifications/silver")}
-                        >
-                          {t("Voir mon certificat Silver", "View my Silver certificate")}
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Lock size={16} className="text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {t(cert.lockMessageFr, cert.lockMessageEn)}
-                        </span>
-                      </div>
-                      {cert.id === "silver" && silverBlockers.length > 0 && (
-                        <p className="text-xs text-amber-700 dark:text-amber-400 pl-6">
-                          {silverBlockers.length}{" "}
-                          {t("exigence(s) restante(s) — voir checklist ci-dessus", "requirement(s) remaining — see checklist above")}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                <div>
+                  <h1 className="text-xl font-bold">{t("Certifications TEC.LOG", "TEC.LOG Certifications")}</h1>
+                  <p className="text-sm text-white/70 mt-0.5">
+                    {t("Collège de la Concorde · Montréal · Session 2025–2026", "Collège de la Concorde · Montreal · Session 2025–2026")}
+                  </p>
+                  <p className="text-xs text-white/55 mt-1">TEC.WMS · Operational Competency Credential</p>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-          <div className="flex gap-3">
-            <Award size={20} className="text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-1">
-                {t("À propos des certifications", "About certifications")}
-              </p>
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                {t(
-                  "Silver = validation du Module 1 (quiz + scénarios SCN-001 à SCN-005 en mode Évaluation, score ≥ 60/100). Gold = parcours intégré M1–M5, verrouillé jusqu'à complétion du programme.",
-                  "Silver = Module 1 validation (quiz + SCN-001 to SCN-005 scenarios in Evaluation mode, score ≥ 60/100). Gold = integrated M1–M5 pathway, locked until program completion."
-                )}
-              </p>
+              <SilverStatusChip state={silverState} />
             </div>
           </div>
+        </div>
+
+        {/* Silver pathway — primary */}
+        <section className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
+          <div className="grid md:grid-cols-[auto_1fr] gap-0">
+            {/* Badge column */}
+            <div className="flex flex-col items-center justify-center p-6 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-950 border-b md:border-b-0 md:border-r border-border">
+              <SilverBadgeSvg size={140} variant="full" />
+              <p className="text-xs font-semibold text-muted-foreground mt-3 uppercase tracking-wider">Silver · M1</p>
+              <p className="text-sm font-medium text-foreground text-center mt-1">TEC.LOG Fundamentals</p>
+            </div>
+
+            {/* Progress + checklist */}
+            <div className="p-6 md:p-8 space-y-5">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-bold text-foreground">
+                    {t("Parcours Silver — Module 1", "Silver Pathway — Module 1")}
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                    {statusBannerCopy(silverState, t)}
+                  </p>
+                </div>
+                <CertificationProgressRing pct={progressPct} accent="#64748b" />
+              </div>
+
+              <ul className="space-y-2">
+                {silverRequirements.map((req) => (
+                  <li
+                    key={req.id}
+                    className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors ${
+                      req.met ? "border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/20" : "border-border bg-background"
+                    }`}
+                  >
+                    {req.met ? (
+                      <CheckCircle size={18} className="text-emerald-600 shrink-0" />
+                    ) : (
+                      <Circle size={18} className="text-muted-foreground shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${req.met ? "text-foreground" : "text-muted-foreground"}`}>
+                        {t(req.labelFr, req.labelEn)}
+                      </p>
+                      {"subFr" in req && req.subFr && (
+                        <p className="text-[10px] text-muted-foreground">{t(req.subFr, req.subEn!)}</p>
+                      )}
+                    </div>
+                    {!req.met && (
+                      <button type="button" onClick={req.action} className="text-xs font-semibold text-[#0070f2] hover:underline shrink-0 flex items-center gap-0.5">
+                        {t(req.actionFr, req.actionEn)}
+                        <ChevronRight size={12} />
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
+                {canPreviewCert && (
+                  <Button onClick={() => navigate("/student/certifications/silver")} className="bg-[#0f2a44] hover:bg-[#0f2a44]/90">
+                    {silverEarned
+                      ? t("Voir mon certificat Silver", "View my Silver certificate")
+                      : t("Aperçu du certificat (éligible)", "Certificate preview (eligible)")}
+                  </Button>
+                )}
+                {!silverEarned && (
+                  <Button variant="outline" onClick={() => navigate("/student/quiz/1")}>
+                    {t("Continuer le parcours", "Continue pathway")}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Gold — locked Bientôt */}
+        <section className="rounded-xl border border-dashed border-amber-300/60 bg-card/50 shadow-sm overflow-hidden relative">
+          <div className="absolute top-4 right-4 z-10">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wide bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-700">
+              <Lock size={12} />
+              {t("Bientôt", "Coming soon")}
+            </span>
+          </div>
+          <div className="grid md:grid-cols-[auto_1fr] gap-0 opacity-90">
+            <div className="flex flex-col items-center justify-center p-6 md:p-8 border-b md:border-b-0 md:border-r border-border/50">
+              <GoldBadgeLockedSvg size={130} />
+            </div>
+            <div className="p-6 md:p-8 space-y-3">
+              <h2 className="text-base font-bold text-foreground/80">Gold · TEC.LOG Integrated Operations</h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {t(
+                  "Certification Gold — parcours intégré M1 à M5 (capstone opérationnel). En développement : non déblocable automatiquement dans cette version.",
+                  "Gold certification — integrated M1–M5 pathway (operational capstone). In development: not auto-unlockable in this release.",
+                )}
+              </p>
+              <ul className="text-xs text-muted-foreground space-y-1.5">
+                <li>· {t("Modules M2–M5 + scénarios capstone SCN-015–017", "Modules M2–M5 + capstone scenarios SCN-015–017")}</li>
+                <li>· {t("Badge numérique · QR · LinkedIn — à venir", "Digital badge · QR · LinkedIn — coming later")}</li>
+                <li>· {t("Prérequis : Silver obtenue", "Prerequisite: Silver obtained")}</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        {/* Info strip */}
+        <div className="rounded-lg border border-[#0070f2]/20 bg-[#0070f2]/5 px-4 py-3 flex items-start gap-3">
+          <Info size={18} className="text-[#0070f2] shrink-0 mt-0.5" />
+          <p className="text-sm text-foreground/85 leading-relaxed">
+            {t(
+              "Silver = validation institutionnelle du Module 1 (quiz ≥ 60 % + SCN-001 à SCN-005 en Évaluation ≥ 60/100 + conformité). Le certificat officiel signé sera transmis par le Collège de la Concorde.",
+              "Silver = institutional Module 1 validation (quiz ≥ 60% + SCN-001 to SCN-005 in Evaluation ≥ 60/100 + compliance). The official signed certificate will be issued by Collège de la Concorde.",
+            )}
+          </p>
         </div>
       </div>
     </FioriShell>

@@ -12,6 +12,9 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { getLoginUrl } from "@/const";
 import { getModuleById } from "@/data/modules";
 import type { SlideContent } from "@/data/modules";
+import { MODULE_SLIDE_THEME } from "@/data/moduleTheme";
+import { resolveSlideVisual, type SlideVisualVariant } from "@/data/slideVisualMap";
+import SlideVisualPanel from "@/components/slides/SlideVisualPanel";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   BookOpen, GraduationCap, Clock, Tag, Lightbulb,
@@ -75,8 +78,7 @@ function SlideLine({ line }: { line: string }) {
   }
 
   return (
-    <div className={`text-xs leading-relaxed ${isSubItem ? "pl-4 text-muted-foreground" : "text-foreground/90"}`}
-      style={{ fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}>
+    <div className={`text-sm leading-relaxed ${isSubItem ? "pl-3 text-muted-foreground" : "text-foreground/90"}`}>
       {line}
     </div>
   );
@@ -128,7 +130,7 @@ export default function SlideViewer() {
         e.preventDefault();
         goPrev();
       } else if (e.key === "Escape") {
-        navigate("/student/scenarios");
+        navigate("/student/slides");
       } else if (e.key === "p" || e.key === "P") {
         setProfessorMode(m => !m);
       }
@@ -172,6 +174,11 @@ export default function SlideViewer() {
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
   const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
   const progress = ((slideIndex + 1) / totalSlides) * 100;
+  const moduleTheme = MODULE_SLIDE_THEME[mod.id] ?? MODULE_SLIDE_THEME[1];
+  const accent = moduleTheme.accent;
+  const resolvedVisual = resolveSlideVisual(mod.id, slide.id, slide.type, slide.tags);
+  const visualType = slide.visualType ?? resolvedVisual.type;
+  const visualVariant = (slide.visualVariant ?? resolvedVisual.variant) as SlideVisualVariant;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
@@ -179,10 +186,10 @@ export default function SlideViewer() {
       <header className="flex-shrink-0 border-b border-border bg-background/95 backdrop-blur-sm z-30">
         <div className="flex items-center gap-2 px-3 h-12">
           {/* Back */}
-          <button onClick={() => navigate("/student/scenarios")}
+          <button onClick={() => navigate("/student/slides")}
             className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-2 py-1.5 rounded hover:bg-secondary">
             <Home className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("Accueil", "Home")}</span>
+            <span className="hidden sm:inline">{t("Slides", "Slides")}</span>
           </button>
 
           <div className="w-px h-5 bg-border mx-1" />
@@ -190,7 +197,7 @@ export default function SlideViewer() {
           {/* Module badge */}
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded text-white flex-shrink-0"
-              style={{ backgroundColor: mod.color }}>
+              style={{ backgroundColor: accent }}>
               M{mod.id}
             </span>
             <span className="text-xs text-muted-foreground truncate hidden sm:block max-w-48">{modTitle}</span>
@@ -251,7 +258,7 @@ export default function SlideViewer() {
         {/* Progress bar */}
         <div className="h-0.5 bg-border">
           <div className="h-full transition-all duration-300"
-            style={{ width: `${progress}%`, backgroundColor: mod.color }} />
+            style={{ width: `${progress}%`, backgroundColor: accent }} />
         </div>
       </header>
 
@@ -282,7 +289,7 @@ export default function SlideViewer() {
                       className={`w-full text-left px-4 py-2.5 flex items-start gap-3 hover:bg-secondary transition-colors ${
                         i === slideIndex ? "bg-secondary border-l-2" : ""
                       }`}
-                      style={i === slideIndex ? { borderLeftColor: mod.color } : {}}
+                      style={i === slideIndex ? { borderLeftColor: accent } : {}}
                     >
                       <span className="font-mono text-xs text-muted-foreground flex-shrink-0 mt-0.5 w-6 text-right">
                         {i + 1}
@@ -308,7 +315,7 @@ export default function SlideViewer() {
         {/* ── SLIDE CANVAS ─────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto">
-            <div key={animKey} className="slide-enter min-h-full p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto w-full">
+            <div key={animKey} className="slide-enter min-h-full p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto w-full">
 
               {/* Slide header */}
               <div className="mb-5">
@@ -328,7 +335,7 @@ export default function SlideViewer() {
                 </div>
 
                 {/* Accent bar */}
-                <div className="h-0.5 w-12 rounded mb-3" style={{ backgroundColor: mod.color }} />
+                <div className="h-0.5 w-12 rounded mb-3" style={{ backgroundColor: accent }} />
 
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground leading-tight"
                   style={{ fontFamily: "'Space Grotesk', system-ui, sans-serif" }}>
@@ -339,25 +346,59 @@ export default function SlideViewer() {
                 )}
               </div>
 
-              {/* Slide body */}
-              <div className="rounded-xl border border-border bg-card p-5 sm:p-6 mb-4">
-                <div className="space-y-0.5">
-                  {body.map((line, i) => (
-                    <SlideLine key={i} line={line} />
-                  ))}
+              {/* Visual + text — premium 3/2 layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
+                <div className="lg:col-span-3">
+                  <SlideVisualPanel
+                    visualType={visualType}
+                    variant={visualVariant}
+                    accent={accent}
+                    moduleId={mod.id}
+                    slideId={slide.id}
+                    title={title}
+                    scenarioMap={slide.scenarioMap}
+                  />
+                </div>
+                <div className="lg:col-span-2 rounded-xl border border-border/70 bg-card shadow-sm p-5 flex flex-col">
+                  {slide.scenarioMap && slide.scenarioMap.length > 0 && (
+                    <div className="mb-3 pb-3 border-b border-border/50">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                        {t("Application SCN", "SCN Application")}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {slide.scenarioMap.map((scn) => (
+                          <span
+                            key={scn}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white"
+                            style={{ backgroundColor: accent }}
+                          >
+                            {scn}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                    {t("Points clés", "Key points")}
+                  </p>
+                  <div className="space-y-2 flex-1">
+                    {body.map((line, i) => (
+                      <SlideLine key={i} line={line} />
+                    ))}
+                  </div>
                 </div>
               </div>
 
               {/* Highlight badge */}
               {slide.highlight && (
                 <div className="flex items-start gap-2 px-4 py-3 rounded-lg border mb-4"
-                  style={{ borderColor: mod.color + "40", backgroundColor: mod.color + "10" }}>
-                  <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: mod.color }} />
+                  style={{ borderColor: accent + "40", backgroundColor: accent + "10" }}>
+                  <Lightbulb className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: accent }} />
                   <span className="highlight-badge text-foreground text-xs">{slide.highlight}</span>
                 </div>
               )}
 
-              {/* Tags */}
+              {/* Tags — moved below visual block; removed duplicate body card */}
               {slide.tags && slide.tags.length > 0 && (
                 <div className="flex items-center gap-2 flex-wrap mb-4">
                   <Tag className="w-3 h-3 text-muted-foreground" />
@@ -392,7 +433,7 @@ export default function SlideViewer() {
 
           {/* ── NAVIGATION BAR ─────────────────────────────────────────── */}
           <div className="flex-shrink-0 border-t border-border bg-background/95 backdrop-blur-sm px-4 py-3">
-            <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
               {/* Prev */}
               <button
                 onClick={goPrev}
@@ -413,7 +454,7 @@ export default function SlideViewer() {
                       i === slideIndex ? "w-5 h-2" : "w-2 h-2 hover:opacity-70"
                     }`}
                     style={{
-                      backgroundColor: i === slideIndex ? mod.color : (i < slideIndex ? mod.color + "60" : "var(--border)"),
+                      backgroundColor: i === slideIndex ? accent : (i < slideIndex ? accent + "60" : "var(--border)"),
                     }}
                   />
                 ))}
@@ -424,7 +465,7 @@ export default function SlideViewer() {
                 onClick={goNext}
                 disabled={slideIndex === totalSlides - 1}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-30 disabled:cursor-not-allowed text-white"
-                style={{ backgroundColor: slideIndex === totalSlides - 1 ? "var(--muted)" : mod.color }}
+                style={{ backgroundColor: slideIndex === totalSlides - 1 ? "var(--muted)" : accent }}
               >
                 <span className="hidden sm:inline">{t("Suivant", "Next")}</span>
                 <ChevronRight className="w-4 h-4" />

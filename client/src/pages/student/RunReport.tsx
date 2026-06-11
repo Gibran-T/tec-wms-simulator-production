@@ -306,17 +306,17 @@ export default function RunReport() {
               : `⚠ ${t("Module complété — Non conforme", "Module completed — Non-compliant")}`}
           </p>
 
-          {/* Certification Unlock Message */}
+          {/* Certification eligibility message */}
           {detail?.certificationUnlocked && (
             <div className="mt-4">
-              <p className="text-white/80 text-sm font-semibold mb-2">
-                {t("Certification M1 débloquée !", "M1 Certification Unlocked!")}
+              <p className="text-white/90 text-sm font-semibold mb-2">
+                {t("Vous êtes éligible à la certification Silver M1 !", "You are eligible for M1 Silver certification!")}
               </p>
               <button
                 onClick={() => navigate("/student/certifications")}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
               >
-                {t("Voir ma certification M1", "View my M1 Certification")}
+                {t("Voir ma certification Silver", "View my Silver certification")}
               </button>
             </div>
           )}

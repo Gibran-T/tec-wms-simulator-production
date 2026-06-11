@@ -471,7 +471,7 @@ function PanelE({
         {moduleId === 1 && (
           <ul className="text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
             <li>{t("Quiz M1", "M1 Quiz")}: {quizBest?.passed ? t("Réussi ✓", "Passed ✓") : t("En attente", "Pending")}</li>
-            <li>{t("Silver TEC.LOG", "TEC.LOG Silver")}: {profile?.silverCertified ? t("Débloqué ✓", "Unlocked ✓") : t("En cours", "In progress")}</li>
+            <li>{t("Silver TEC.LOG", "TEC.LOG Silver")}: {profile?.silverCertified ? t("Obtenue ✓", "Obtained ✓") : t("En cours", "In progress")}</li>
           </ul>
         )}
         {modProgress?.passed && (

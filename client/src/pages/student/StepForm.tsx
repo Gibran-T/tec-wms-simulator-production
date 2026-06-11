@@ -402,8 +402,8 @@ const STEP_CONFIG: Record<string, {
       realSAPEn: "In SAP, the rotation rate is calculated via MB52 (average stock) and MB51 (consumption). DSI (Days of Supply) = 365 / rotation rate.",
       dependencyFr: "Le taux de rotation dépend de la précision du stock moyen (MB52) et de la consommation réelle (MB51). Des erreurs d'inventaire faussent ce KPI.",
       dependencyEn: "The rotation rate depends on the accuracy of average stock (MB52) and actual consumption (MB51). Inventory errors distort this KPI.",
-      realErrorFr: "Un taux de rotation de 6 avec un objectif de 8-12 indique un surstock. En pratique, cela représente 60 jours de stock (DSI=60) au lieu de 30-45 jours optimal.",
-      realErrorEn: "A rotation rate of 6 with a target of 8-12 indicates overstock. In practice, this represents 60 days of stock (DSI=60) instead of the optimal 30-45 days.",
+      realErrorFr: "Un taux de rotation de 6 dans la bande 4–12 indique une performance normale. En pratique, DSI ≈ 60 jours — surveiller les SKU sous 4×.",
+      realErrorEn: "A rotation rate of 6 in the 4–12 band indicates normal performance. In practice, DSI ≈ 60 days — watch SKUs below 4×.",
     }
   },
   kpi_service: {
@@ -426,8 +426,8 @@ const STEP_CONFIG: Record<string, {
   kpi_diagnostic: {
     titleFr: "Diagnostic opérationnel", titleEn: "Operational Diagnostic", code: "KPI_DIAGNOSTIC", txCode: "LT23", tCode: "LT23",
     etapeFr: "Étape 4 sur 5", etapeEn: "Step 4 of 5",
-    objectiveFr: "Formuler un diagnostic global basé sur tous les KPIs. Taux de rotation 6 (surstock), service 95% (acceptable), erreurs 4% (à améliorer). Proposez un plan d'action prioritaire.",
-    objectiveEn: "Formulate a global diagnostic based on all KPIs. Rotation rate 6 (overstock), service 95% (acceptable), errors 4% (to improve). Propose a priority action plan.",
+    objectiveFr: "Formuler un diagnostic global basé sur tous les KPIs. Taux de rotation 6 (normal), service 95% (excellent), erreurs 4% (acceptable). Proposez un plan d'action prioritaire.",
+    objectiveEn: "Formulate a global diagnostic based on all KPIs. Rotation rate 6 (normal), service 95% (excellent), errors 4% (acceptable). Propose a priority action plan.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
       whyFr: "Le diagnostic opérationnel synthétise tous les KPIs pour identifier les priorités d'amélioration. Il doit être structuré (problème → cause → solution → impact).",
@@ -1878,7 +1878,7 @@ export default function StepForm() {
                       <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
                         {t("Taux de rotation", "Rotation rate")} = 2400 / 400 = <strong>6 fois/an</strong> | DSI = 365/6 = <strong>60 jours</strong>
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Objectif industrie : 8-12 rotations/an (30-45 jours de stock)", "Industry target: 8-12 rotations/year (30-45 days of stock)")}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{t("Bande normale 4–12×/an — réponse attendue : normal / équilibré", "Normal band 4–12×/yr — expected answer: normal / balanced")}</p>
                     </div>
                   )}
                   {step?.toLowerCase() === "kpi_service" && (
@@ -1894,7 +1894,7 @@ export default function StepForm() {
                     <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
                       <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Synthèse KPIs", "KPI Summary")}</p>
                       <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                        {t("Rotation", "Rotation")}: 6 ({t("surstock", "overstock")}) | {t("Service", "Service")}: 95% ({t("acceptable", "acceptable")}) | {t("Erreurs", "Errors")}: 4% ({t("à améliorer", "to improve")})
+                        {t("Rotation", "Rotation")}: 6 ({t("normal", "normal")}) | {t("Service", "Service")}: 95% ({t("excellent", "excellent")}) | {t("Erreurs", "Errors")}: 4% ({t("acceptable", "acceptable")})
                       </p>
                     </div>
                   )}
