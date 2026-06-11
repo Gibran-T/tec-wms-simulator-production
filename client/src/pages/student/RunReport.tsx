@@ -9,6 +9,48 @@ import {
   ResponsiveContainer, ReferenceLine, Legend,
 } from "recharts";
 
+/** Defensive defaults when detailedReport is loading, failed, or partially populated. */
+function normalizeReportDetail(
+  detail: {
+    totalErrors?: number;
+    totalWarnings?: number;
+    stepsCompleted?: number;
+    totalSteps?: number;
+    stepBreakdown?: Array<{
+      step: string;
+      label: string;
+      completed: boolean;
+      pointsEarned: number;
+      maxPoints: number;
+      pct: number;
+    }>;
+    errors?: Array<{
+      pointsDelta: number;
+      explanation: { title: string; detail: string; recommendation: string };
+    }>;
+    bonuses?: Array<{ pointsDelta: number }>;
+    recommendations?: string[];
+    scoreLabel?: string;
+    certificationUnlocked?: boolean;
+  } | null | undefined,
+) {
+  if (!detail) return null;
+  const errors = Array.isArray(detail.errors) ? detail.errors : [];
+  return {
+    ...detail,
+    totalErrors: typeof detail.totalErrors === "number" ? detail.totalErrors : errors.length,
+    totalWarnings: typeof detail.totalWarnings === "number" ? detail.totalWarnings : 0,
+    stepsCompleted: typeof detail.stepsCompleted === "number" ? detail.stepsCompleted : 0,
+    totalSteps: typeof detail.totalSteps === "number" ? detail.totalSteps : 0,
+    stepBreakdown: Array.isArray(detail.stepBreakdown) ? detail.stepBreakdown : [],
+    errors,
+    bonuses: Array.isArray(detail.bonuses) ? detail.bonuses : [],
+    recommendations: Array.isArray(detail.recommendations) ? detail.recommendations : [],
+    scoreLabel: detail.scoreLabel ?? "",
+    certificationUnlocked: detail.certificationUnlocked ?? false,
+  };
+}
+
 // ─── Score Evolution Chart component ─────────────────────────────────────────
 function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number; currentRunId: number }) {
   const { t } = useLanguage();
@@ -235,9 +277,15 @@ export default function RunReport() {
   }
 
   const { run, scenario, completedSteps, compliance, totalScore, progressPct } = data;
+  const safeCompliance = {
+    compliant: compliance?.compliant ?? false,
+    issuesFr: compliance?.issuesFr ?? [],
+  };
+  const safeScore = totalScore ?? (run as { score?: number }).score ?? 0;
+  const safeDetail = normalizeReportDetail(detail);
+  const detailUnavailable = detailError || detailLoading || !safeDetail;
   const isDemo = run.isDemo;
-  const isPerfect = (totalScore ?? 0) >= 100;
-  const detailUnavailable = detailError || (!detailLoading && !detail);
+  const isPerfect = safeScore >= 100;
 
   return (
     <FioriShell
@@ -257,6 +305,18 @@ export default function RunReport() {
               {t(
                 "Le détail par étape n'a pas pu être chargé. Le résumé principal reste disponible ci-dessous.",
                 "Step-by-step detail could not be loaded. The main summary is still available below.",
+              )}
+            </p>
+          </div>
+        )}
+
+        {detailUnavailable && !detailError && (
+          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-5 py-3 flex items-start gap-3">
+            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-amber-800 dark:text-amber-300">
+              {t(
+                "Rapport partiel — données de performance non encore disponibles.",
+                "Partial report — performance data not yet available.",
               )}
             </p>
           </div>
@@ -282,7 +342,7 @@ export default function RunReport() {
 
         {/* Header Score */}
         <div className={`rounded-md p-6 text-center ${
-          isDemo ? "bg-indigo-900" : isPerfect ? "bg-green-700" : compliance.compliant ? "bg-primary" : "bg-slate-800"
+          isDemo ? "bg-indigo-900" : isPerfect ? "bg-green-700" : safeCompliance.compliant ? "bg-primary" : "bg-slate-800"
         }`}>
           <div className="flex justify-center mb-3">
             {isPerfect && !isDemo
@@ -297,17 +357,17 @@ export default function RunReport() {
           {!isDemo && (
             <p className="text-white/70 text-xs uppercase tracking-wider mb-1">{t("Score final", "Final Score")}</p>
           )}
-          <p className="text-white font-bold text-5xl mb-1">{totalScore}<span className="text-2xl">/100</span></p>
+          <p className="text-white font-bold text-5xl mb-1">{safeScore}<span className="text-2xl">/100</span></p>
           <p className="text-white/80 text-sm">
             {isDemo
-              ? `${t("Score pédagogique", "Pedagogical score")} — ${detail?.scoreLabel ?? ""} — ${compliance.compliant ? t("Conforme", "Compliant") : t("Non conforme", "Non-compliant")}`
+              ? `${t("Score pédagogique", "Pedagogical score")} — ${safeDetail?.scoreLabel ?? ""} — ${safeCompliance.compliant ? t("Conforme", "Compliant") : t("Non conforme", "Non-compliant")}`
               : isPerfect ? `🏆 ${t("Simulation parfaite — Félicitations !", "Perfect simulation — Congratulations!")}`
-              : compliance.compliant ? `✅ ${t("Module complété avec succès", "Module completed successfully")}`
+              : safeCompliance.compliant ? `✅ ${t("Module complété avec succès", "Module completed successfully")}`
               : `⚠ ${t("Module complété — Non conforme", "Module completed — Non-compliant")}`}
           </p>
 
           {/* Certification eligibility message */}
-          {detail?.certificationUnlocked && (
+          {safeDetail?.certificationUnlocked && (
             <div className="mt-4">
               <p className="text-white/90 text-sm font-semibold mb-2">
                 {t("Vous êtes éligible à la certification Silver M1 !", "You are eligible for M1 Silver certification!")}
@@ -324,7 +384,7 @@ export default function RunReport() {
         </div>
 
         {/* Scores détaillés par étape */}
-        {detail && (
+        {safeDetail && (
           <div className="bg-card border border-border rounded-md p-5">
             <div className="flex items-center gap-2 mb-4">
               <TrendingUp size={14} className="text-primary" />
@@ -333,7 +393,7 @@ export default function RunReport() {
               </p>
             </div>
             <div className="space-y-3">
-              {detail.stepBreakdown.filter(s => s.maxPoints > 0).map(step => (
+              {safeDetail.stepBreakdown.filter(s => s.maxPoints > 0).map(step => (
                 <div key={step.step}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
@@ -357,31 +417,31 @@ export default function RunReport() {
                   </div>
                 </div>
               ))}
-              {detail.bonuses.length > 0 && (
+              {safeDetail.bonuses.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Trophy size={12} className="text-yellow-500 flex-shrink-0" />
                     <span className="text-xs font-medium text-foreground">{t("Bonus simulation parfaite", "Perfect simulation bonus")}</span>
                   </div>
-                  <span className="text-xs font-bold text-yellow-600">+{detail.bonuses.reduce((s, e) => s + e.pointsDelta, 0)} pts</span>
+                  <span className="text-xs font-bold text-yellow-600">+{safeDetail.bonuses.reduce((s, e) => s + e.pointsDelta, 0)} pts</span>
                 </div>
               )}
               <div className="mt-3 pt-3 border-t border-border">
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-foreground">{t("Total", "Total")}</span>
-                  <span className={`text-sm font-bold ${isDemo ? "text-purple-500" : "text-primary"}`}>{totalScore} / 100</span>
+                  <span className={`text-sm font-bold ${isDemo ? "text-purple-500" : "text-primary"}`}>{safeScore} / 100</span>
                 </div>
                 <div className="h-3 bg-secondary rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{
-                      width: `${totalScore}%`,
-                      backgroundColor: isDemo ? "#7c3aed" : totalScore >= 60 ? "#16a34a" : "#dc2626"
+                      width: `${safeScore}%`,
+                      backgroundColor: isDemo ? "#7c3aed" : safeScore >= 60 ? "#16a34a" : "#dc2626"
                     }}
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1 text-right">
-                  {t("Seuil de réussite : 60 pts", "Pass threshold: 60 pts")} — {totalScore >= 60 ? `✅ ${t("Atteint", "Reached")}` : `❌ ${t("Non atteint", "Not reached")}`}
+                  {t("Seuil de réussite : 60 pts", "Pass threshold: 60 pts")} — {safeScore >= 60 ? `✅ ${t("Atteint", "Reached")}` : `❌ ${t("Non atteint", "Not reached")}`}
                   {isDemo && ` (${t("non officiel", "unofficial")})`}
                 </p>
               </div>
@@ -398,7 +458,7 @@ export default function RunReport() {
             <div>
               <p className="text-[10px] text-muted-foreground uppercase">{t("Étapes validées", "Steps validated")}</p>
               <p className="text-lg font-bold text-foreground">
-                {detail ? `${detail.stepsCompleted}/${detail.totalSteps}` : `${completedSteps.length}`}
+                {safeDetail ? `${safeDetail.stepsCompleted}/${safeDetail.totalSteps}` : `${completedSteps.length}`}
               </p>
             </div>
             <div>
@@ -407,8 +467,8 @@ export default function RunReport() {
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase">{t("Conformité système", "System compliance")}</p>
-              <p className={`text-sm font-bold ${compliance.compliant ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                {compliance.compliant ? `✅ ${t("Conforme", "Compliant")}` : `🔴 ${t("Non conforme", "Non-compliant")}`}
+              <p className={`text-sm font-bold ${safeCompliance.compliant ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                {safeCompliance.compliant ? `✅ ${t("Conforme", "Compliant")}` : `🔴 ${t("Non conforme", "Non-compliant")}`}
               </p>
             </div>
             <div>
@@ -418,16 +478,16 @@ export default function RunReport() {
                   {t("Détails indisponibles / erreurs non chargées", "Details unavailable / errors not loaded")}
                 </p>
               ) : (
-                <p className={`text-sm font-bold ${detail!.totalErrors === 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                  {detail!.totalErrors}
+                <p className={`text-sm font-bold ${safeDetail!.totalErrors === 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                  {safeDetail!.totalErrors}
                 </p>
               )}
             </div>
           </div>
           {/* Dynamic step list from detailedReport — works for M1-M5 */}
-          {detail && (
+          {safeDetail && (
             <div className="space-y-1.5">
-              {detail.stepBreakdown.map(stepDetail => {
+              {safeDetail.stepBreakdown.map(stepDetail => {
                 const done = stepDetail.completed;
                 return (
                   <div key={stepDetail.step} className={`flex items-center gap-3 p-2.5 rounded ${done ? "bg-green-50 dark:bg-green-950/30" : "bg-secondary/50"}`}>
@@ -453,16 +513,16 @@ export default function RunReport() {
         </div>
 
         {/* Erreurs commises */}
-        {detail && detail.errors.length > 0 && (
+        {safeDetail && safeDetail.errors.length > 0 && (
           <div className="bg-card border border-destructive/30 rounded-md p-5">
             <div className="flex items-center gap-2 mb-4">
               <AlertTriangle size={14} className="text-destructive" />
               <p className="text-xs font-semibold text-destructive uppercase tracking-wider">
-                {t(`Erreurs commises (${detail.errors.length}) — Analyse pédagogique`, `Errors made (${detail.errors.length}) — Pedagogical analysis`)}
+                {t(`Erreurs commises (${safeDetail.errors.length}) — Analyse pédagogique`, `Errors made (${safeDetail.errors.length}) — Pedagogical analysis`)}
               </p>
             </div>
             <div className="space-y-4">
-              {detail.errors.map((err, i) => (
+              {safeDetail.errors.map((err, i) => (
                 <div key={i} className="border border-destructive/20 rounded-md p-4 bg-destructive/5">
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <p className="text-xs font-bold text-destructive">{err.explanation.title}</p>
@@ -482,13 +542,13 @@ export default function RunReport() {
         )}
 
         {/* Conformité */}
-        {compliance.issuesFr.length > 0 && (
+        {safeCompliance.issuesFr.length > 0 && (
           <div className="bg-card border border-destructive/30 rounded-md p-5">
             <p className="text-xs font-semibold text-destructive mb-3 flex items-center gap-2">
               <AlertTriangle size={13} /> {t("Anomalies de conformité", "Compliance anomalies")}
             </p>
             <div className="space-y-1.5">
-              {compliance.issuesFr.map((issue, i) => (
+              {safeCompliance.issuesFr.map((issue, i) => (
                 <p key={i} className="text-xs text-destructive flex items-start gap-2">
                   <span className="flex-shrink-0">•</span>{issue}
                 </p>
@@ -498,7 +558,7 @@ export default function RunReport() {
         )}
 
         {/* Recommandations */}
-        {detail && detail.recommendations.length > 0 && (
+        {safeDetail && safeDetail.recommendations.length > 0 && (
           <div className="bg-card border border-border rounded-md p-5">
             <div className="flex items-center gap-2 mb-4">
               <Lightbulb size={14} className="text-amber-500" />
@@ -507,7 +567,7 @@ export default function RunReport() {
               </p>
             </div>
             <div className="space-y-2">
-              {detail.recommendations.map((rec, i) => (
+              {safeDetail.recommendations.map((rec, i) => (
                 <div key={i} className="flex items-start gap-2">
                   <span className="text-amber-500 flex-shrink-0 mt-0.5">→</span>
                   <p className="text-xs text-foreground leading-relaxed">{rec}</p>
