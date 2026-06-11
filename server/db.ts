@@ -25,6 +25,12 @@ import {
   type InsertPreAuthorizedEmail,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
+import {
+  M1_CANONICAL_SCENARIO_IDS,
+  OFFICIAL_SCN_BY_MODULE,
+  scenarioIdsForScn,
+  type OfficialScnCode,
+} from "./canonicalScenarios";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -1011,6 +1017,40 @@ export async function getM1ScenariosOrdered() {
   return db.select().from(scenarios).where(eq(scenarios.moduleId, 1)).orderBy(asc(scenarios.id));
 }
 
+/** All M1 rows (including legacy duplicates) for SCN-aware run lookup. */
+async function getAllM1ScenarioRows() {
+  const db = await getDb();
+  if (!db) return [];
+  return db
+    .select()
+    .from(scenarios)
+    .where(and(eq(scenarios.moduleId, 1), eq(scenarios.isActive, true)))
+    .orderBy(asc(scenarios.id));
+}
+
+/** Latest completed eval run for an official M1 SCN across any duplicate row. */
+async function getLatestNonDemoCompletedRunForM1Scn(
+  userId: number,
+  scnCode: OfficialScnCode,
+  m1Rows: Awaited<ReturnType<typeof getAllM1ScenarioRows>>
+) {
+  const ids = scenarioIdsForScn(scnCode, m1Rows);
+  if (ids.length === 0) {
+    const canonicalId = M1_CANONICAL_SCENARIO_IDS[OFFICIAL_SCN_BY_MODULE[1].indexOf(scnCode)];
+    if (canonicalId != null) return getLatestNonDemoCompletedRun(userId, canonicalId);
+    return null;
+  }
+  let best: Awaited<ReturnType<typeof getLatestNonDemoCompletedRun>> = null;
+  for (const scenarioId of ids) {
+    const run = await getLatestNonDemoCompletedRun(userId, scenarioId);
+    if (!run) continue;
+    if (!best || (run.completedAt && best.completedAt && run.completedAt > best.completedAt)) {
+      best = run;
+    }
+  }
+  return best;
+}
+
 async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) {
   const db = await getDb();
   if (!db) return null;
@@ -1030,7 +1070,7 @@ async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) 
   return runs[0] ?? null;
 }
 
-/** Per-SCN completion: latest non-demo run completed with score >= 60 (from scoring events). */
+/** Per-SCN completion: latest non-demo run completed with score >= 60 (canonical SCN-001–005 only). */
 export async function getM1ScenarioCompletionStatus(userId: number): Promise<M1ScenarioCompletionMap> {
   const result: M1ScenarioCompletionMap = {
     SCN001: false,
@@ -1039,10 +1079,10 @@ export async function getM1ScenarioCompletionStatus(userId: number): Promise<M1S
     SCN004: false,
     SCN005: false,
   };
-  const m1Scenarios = await getM1ScenariosOrdered();
-  for (let i = 0; i < m1Scenarios.length && i < M1_SCN_KEYS.length; i++) {
-    const key = M1_SCN_KEYS[i];
-    const run = await getLatestNonDemoCompletedRun(userId, m1Scenarios[i].id);
+  const m1Rows = await getAllM1ScenarioRows();
+  for (const key of M1_SCN_KEYS) {
+    const scnCode = `SCN-${key.slice(3)}` as OfficialScnCode;
+    const run = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
     if (!run) continue;
     const events = await getScoringEventsByRun(run.id);
     const score = calculateTotalScore(events);
@@ -1071,10 +1111,8 @@ export async function checkM1QuizPassed(userId: number): Promise<boolean> {
   return bestAttempt.length > 0 && bestAttempt[0].score >= 60; // Assuming 60 is passing score
 }
 
-/** All M1 scenarios completed in evaluation mode with score >= 60. */
+/** All canonical M1 scenarios (SCN-001–005) completed in evaluation mode with score >= 60. */
 export async function checkAllM1ScenariosCompleted(userId: number): Promise<boolean> {
-  const m1Scenarios = await getM1ScenariosOrdered();
-  if (m1Scenarios.length < M1_SCN_KEYS.length) return false;
   return checkM1ScenarioScoresPassed(userId);
 }
 
@@ -1082,11 +1120,10 @@ export async function checkM1ComplianceValidated(userId: number): Promise<boolea
   const db = await getDb();
   if (!db) return false;
 
-  const m1Scenarios = await getM1ScenariosOrdered();
-  if (m1Scenarios.length === 0) return false;
+  const m1Rows = await getAllM1ScenarioRows();
 
-  for (const scenario of m1Scenarios) {
-    const latestRun = await getLatestNonDemoCompletedRun(userId, scenario.id);
+  for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
+    const latestRun = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
     if (!latestRun) return false;
 
     const complianceStep = await db.select()
@@ -1104,11 +1141,10 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
   const db = await getDb();
   if (!db) return false;
 
-  const m1Scenarios = await getM1ScenariosOrdered();
-  if (m1Scenarios.length === 0) return false;
+  const m1Rows = await getAllM1ScenarioRows();
 
-  for (const scenario of m1Scenarios) {
-    const latestRun = await getLatestNonDemoCompletedRun(userId, scenario.id);
+  for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
+    const latestRun = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
     if (!latestRun) continue;
 
     const unpostedTransactions = await db.select()

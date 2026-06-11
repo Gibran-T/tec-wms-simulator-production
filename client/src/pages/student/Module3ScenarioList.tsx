@@ -13,6 +13,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ModulePathwayNav from "@/components/ModulePathwayNav";
 import FioriShell from "@/components/FioriShell";
+import { filterCanonicalScenariosForModule, resolveScenarioScnCode } from "@/lib/scenarioCatalog";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -40,7 +41,7 @@ export default function Module3ScenarioList() {
     (mp: any) => mp.moduleId === 2 && mp.passed
   );
 
-  const module3Scenarios = (scenarios ?? []).filter((s: any) => s.moduleId === 3);
+  const module3Scenarios = filterCanonicalScenariosForModule(3, scenarios ?? []);
 
   type RunRow = NonNullable<typeof myRuns>[number];
   const getRunForScenario = (scenarioId: number): RunRow | undefined =>
@@ -188,16 +189,22 @@ export default function Module3ScenarioList() {
           </Card>
         ) : (
           module3Scenarios.map((scenario: any) => {
+            const scnCode = resolveScenarioScnCode(scenario);
             const lastRun = getRunForScenario(scenario.id);
             const hasCompleted = lastRun?.run.status === "completed";
             return (
               <Card
-                key={scenario.id}
+                key={scnCode ?? scenario.id}
                 className="border-slate-200 hover:border-teal-300 transition-colors"
               >
                 <CardHeader className="pb-2">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
+                      {scnCode && (
+                        <Badge className="bg-teal-100 text-teal-800 border-teal-200 text-[10px] font-bold" variant="outline">
+                          {scnCode}
+                        </Badge>
+                      )}
                       <CardTitle className="text-base font-semibold">{scenario.name}</CardTitle>
                       <CardDescription className="text-sm">{scenario.descriptionFr}</CardDescription>
                     </div>

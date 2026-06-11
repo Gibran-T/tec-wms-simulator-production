@@ -1,3 +1,4 @@
+import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { EXTENDED_MISSIONS } from "./missionDataExtended";
 
 export interface MissionData {
@@ -222,28 +223,12 @@ export const M1_MISSIONS: Record<number, MissionData> = {
   },
 };
 
-const MODULE_SCENARIO_OFFSET: Record<number, number> = { 1: 0, 2: 5, 3: 8, 4: 11, 5: 14 };
-const MODULE_SCENARIO_MAX: Record<number, number> = { 1: 5, 2: 3, 3: 3, 4: 3, 5: 3 };
-
 /** Pedagogical SCN code from scenario metadata (SCN-001 … SCN-017). */
 export function resolveScnCode(
   scenario: { moduleId: number; name?: string | null; id?: number } | null | undefined
 ): string | null {
-  if (!scenario?.moduleId) return null;
-  const match = scenario.name?.match(/Scénario\s*(\d+)/i);
-  const idx = match ? parseInt(match[1], 10) : null;
-  const max = MODULE_SCENARIO_MAX[scenario.moduleId];
-  if (idx && idx >= 1 && idx <= max) {
-    const n = (MODULE_SCENARIO_OFFSET[scenario.moduleId] ?? 0) + idx;
-    return `SCN-${String(n).padStart(3, "0")}`;
-  }
-  if (scenario.moduleId === 1 && scenario.id && scenario.id >= 1 && scenario.id <= 5) {
-    return `SCN-${String(scenario.id).padStart(3, "0")}`;
-  }
-  if (scenario.id && scenario.id >= 6 && scenario.id <= 17) {
-    return `SCN-${String(scenario.id).padStart(3, "0")}`;
-  }
-  return null;
+  if (!scenario?.moduleId || scenario.id == null) return null;
+  return resolveScenarioScnCode({ id: scenario.id, moduleId: scenario.moduleId, name: scenario.name });
 }
 
 /** Mission briefing for any scenario SCN-001–017 (display only). */

@@ -92,7 +92,9 @@ import {
   RESERVE_BINS,
   calculateKpis,
   scoreKpiInterpretation,
+  buildM2FifoLotCatalog,
   canExecuteStepM2,
+  validateM2FifoPick,
   canExecuteStepM3,
   computeReplenishmentSuggestion,
   formatReplenishReasonWithStudentQty,
@@ -2190,16 +2192,37 @@ export const appRouter = router({
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        // FIFO validation: lotNumber must be the oldest lot in fromBin
         const putawayList = await getPutawayByRun(input.runId);
-        const lotsInBin = putawayList
-          .filter((p) => p.sku === input.sku && p.toBin === input.fromBin)
-          .sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime());
-        const oldestLot = lotsInBin[0]?.lotNumber;
-        if (oldestLot && oldestLot !== input.lotNumber) {
+        const scenario = await getScenarioById(run.scenarioId);
+        const seed = scenario?.initialStateJson as {
+          lots?: Array<{ lotNumber: string; receivedAt: string; qty?: number }>;
+          preloadedTransactions?: Array<{ docType: string; sku?: string; bin?: string; qty?: number; posted?: boolean; docRef?: string }>;
+        } | null;
+        const fifoCatalog = buildM2FifoLotCatalog(
+          putawayList.map((p) => ({
+            sku: p.sku,
+            toBin: p.toBin,
+            lotNumber: p.lotNumber,
+            receivedAt: new Date(p.receivedAt),
+            qty: p.qty,
+          })),
+          seed ?? undefined
+        );
+        const fifoCheck = validateM2FifoPick({
+          sku: input.sku,
+          lotNumber: input.lotNumber,
+          catalog: fifoCatalog,
+          inventory: state.inventory,
+        });
+        if (!fifoCheck.allowed) {
           if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "FIFO_VIOLATION", pointsDelta: -10, message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${oldestLot}` });
-            throw new TRPCError({ code: "BAD_REQUEST", message: `Violation FIFO : le lot ${oldestLot} doit être prélevé en premier (plus ancien)` });
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "FIFO_VIOLATION",
+              pointsDelta: fifoCheck.penaltyPoints ?? -10,
+              message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${fifoCheck.requiredLot}`,
+            });
+            throw new TRPCError({ code: "BAD_REQUEST", message: fifoCheck.reasonFr ?? "Violation FIFO" });
           }
         }
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: `FIFO-${input.lotNumber}`, comment: `Prélèvement FIFO de ${input.fromBin} vers ${input.toBin}` });

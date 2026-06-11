@@ -12,6 +12,12 @@ import {
 import ModeSelectionScreen from "./ModeSelectionScreen";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ModulePathwayNav from "@/components/ModulePathwayNav";
+import {
+  filterCanonicalScenariosForModule,
+  findActiveRunForScenario,
+  findCompletedRunForScenario,
+  resolveScenarioScnCode,
+} from "@/lib/scenarioCatalog";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
 const MODULE_CONFIG = [
@@ -203,7 +209,15 @@ export default function ScenarioList() {
   const mod = MODULE_CONFIG.find((m) => m.id === selectedModule)!;
   const ModIcon = mod.icon;
 
-    const moduleScenarios = useMemo(() => (scenarios ?? []).filter((s) => s.moduleId === selectedModule), [scenarios, selectedModule]);
+  const rawModuleScenarios = useMemo(
+    () => (scenarios ?? []).filter((s) => s.moduleId === selectedModule),
+    [scenarios, selectedModule]
+  );
+
+  const moduleScenarios = useMemo(
+    () => filterCanonicalScenariosForModule(selectedModule, scenarios ?? []),
+    [scenarios, selectedModule]
+  );
 
   const currentModuleConfig = useMemo(() => MODULE_CONFIG.find((m) => m.id === selectedModule)!, [selectedModule]);
 
@@ -222,11 +236,11 @@ export default function ScenarioList() {
 
 
 
-  const getActiveRun = (scenarioId: number) =>
-    myRuns?.find((r) => r.run.scenarioId === scenarioId && r.run.status === "in_progress" && !r.run.isDemo);
+  const getActiveRun = (scenario: (typeof moduleScenarios)[number]) =>
+    findActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
 
-  const getCompletedRun = (scenarioId: number) =>
-    myRuns?.find((r) => r.run.scenarioId === scenarioId && r.run.status === "completed" && !r.run.isDemo);
+  const getCompletedRun = (scenario: (typeof moduleScenarios)[number]) =>
+    findCompletedRunForScenario(scenario, rawModuleScenarios, myRuns);
 
   const handleSaveStudentNum = () => {
     upsertProfile.mutate({ studentNumber: studentNumInput.trim() || null });
@@ -251,7 +265,7 @@ export default function ScenarioList() {
     >
       <div className="max-w-4xl mx-auto space-y-5">
 
-        <ModulePathwayNav activeModuleId={1} />
+        <ModulePathwayNav activeModuleId={selectedModule} />
 
         {/* ── Module Overview Card ────────────────────────────────────────── */}
         <div className={`bg-card border ${mod.border} rounded-md p-4 mb-5`}>
@@ -357,18 +371,26 @@ export default function ScenarioList() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {moduleScenarios.map((scenario) => {
-                const activeRun = getActiveRun(scenario.id);
-                const completedRun = getCompletedRun(scenario.id);
+                const scnCode = resolveScenarioScnCode(scenario);
+                const activeRun = getActiveRun(scenario);
+                const completedRun = getCompletedRun(scenario);
                 const isLocked = !quizPassed && user?.role === "student";
 
                 return (
                   <div
-                    key={scenario.id}
+                    key={scnCode ?? scenario.id}
                     className={`bg-card border rounded-lg p-4 flex flex-col justify-between ${isLocked ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg transition-shadow"}`}
                   >
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <h4 className="font-semibold text-foreground">{scenario.name}</h4>
+                      <div className="flex items-center justify-between mb-2 gap-2">
+                        <div className="min-w-0">
+                          {scnCode && (
+                            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-1">
+                              {scnCode}
+                            </span>
+                          )}
+                          <h4 className="font-semibold text-foreground truncate">{scenario.name}</h4>
+                        </div>
                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${DIFF_CONFIG[scenario.difficulty]?.bg} ${DIFF_CONFIG[scenario.difficulty]?.text}`}>
                           {language === "FR" ? DIFF_CONFIG[scenario.difficulty]?.labelFr : DIFF_CONFIG[scenario.difficulty]?.labelEn}
                         </span>
@@ -377,7 +399,7 @@ export default function ScenarioList() {
 
                       <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
                         <Clock size={14} />
-                        <span>{SCENARIO_DURATION[scenario.id]} {t("min", "min")}</span>
+                        <span>{SCENARIO_DURATION[scnCode ? parseInt(scnCode.replace("SCN-", ""), 10) : scenario.id]} {t("min", "min")}</span>
                         <Target size={14} className="ml-4" />
                         <span>{scenario.targetScore}% {t("cible", "target")}</span>
                       </div>

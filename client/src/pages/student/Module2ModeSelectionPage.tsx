@@ -3,6 +3,7 @@ import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useState } from "react";
+import { useModuleScenarioRoute } from "@/hooks/useModuleScenarioRoute";
 import { toast } from "sonner";
 import { BookOpen, FlaskConical, ShieldCheck, Zap, AlertTriangle, Play, Lock, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,15 +13,20 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Module2ModeSelectionPage() {
   const params = useParams<{ scenarioId: string }>();
-  const scenarioId = parseInt(params.scenarioId ?? "0", 10);
+  const routeParam = parseInt(params.scenarioId ?? "0", 10);
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = (fr: string, en: string) => language === "FR" ? fr : en;
   const [selectedMode, setSelectedMode] = useState<"evaluation" | "demonstration">("evaluation");
 
-  const { data: scenarios } = trpc.scenarios.list.useQuery();
-  const scenario = scenarios?.find((s) => s.id === scenarioId);
+  const { data: scenarios, isLoading } = trpc.scenarios.list.useQuery();
+  const { scenario, effectiveScenarioId } = useModuleScenarioRoute({
+    moduleId: 2,
+    routeParam,
+    scenarios,
+    modulePath: "/student/module2",
+  });
 
   const startRun = trpc.runs.start.useMutation({
     onSuccess: (data) => {
@@ -33,7 +39,17 @@ export default function Module2ModeSelectionPage() {
 
   const isTeacherOrAdmin = user?.role === "teacher" || user?.role === "admin";
 
-  if (!scenarioId || !scenario) {
+  if (isLoading) {
+    return (
+      <FioriShell>
+        <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
+          {t("Chargement...", "Loading...")}
+        </div>
+      </FioriShell>
+    );
+  }
+
+  if (!routeParam || !scenario || !effectiveScenarioId) {
     return (
       <FioriShell>
         <div className="flex items-center justify-center min-h-[60vh] text-muted-foreground">
@@ -168,7 +184,7 @@ export default function Module2ModeSelectionPage() {
             disabled={startRun.isPending}
             onClick={() => {
               startRun.mutate({
-                scenarioId,
+                scenarioId: effectiveScenarioId,
                 isDemo: selectedMode === "demonstration",
               });
             }}

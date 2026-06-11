@@ -11,6 +11,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
 import ModulePathwayNav from "@/components/ModulePathwayNav";
 import FioriShell from "@/components/FioriShell";
+import { filterCanonicalScenariosForModule, resolveScenarioScnCode } from "@/lib/scenarioCatalog";
 
 const DIFFICULTY_LABEL: Record<string, string> = {
   facile: "Facile",
@@ -31,7 +32,8 @@ export default function Module4Dashboard() {
   const isAdminOrTeacher = user?.role === "admin" || user?.role === "teacher";
 
   const { data: moduleProgress } = trpc.modules.progress.useQuery();
-  const { data: scenarios, isLoading } = trpc.scenarios.listByModule.useQuery({ moduleCode: "M4" });
+  const { data: rawScenarios, isLoading } = trpc.scenarios.listByModule.useQuery({ moduleCode: "M4" });
+  const scenarios = filterCanonicalScenariosForModule(4, rawScenarios ?? []);
   const { data: myRuns } = trpc.runs.myRuns.useQuery();
 
   const m3Progress = moduleProgress?.find((p) => p.moduleCode === "M3");
@@ -108,21 +110,27 @@ export default function Module4Dashboard() {
 
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">{t("Scénarios disponibles", "Available scenarios")}</h2>
-          {(scenarios ?? []).length === 0 ? (
+          {scenarios.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-12 text-center text-muted-foreground">
                 {t("Aucun scénario Module 4 disponible.", "No Module 4 scenarios available.")}
               </CardContent>
             </Card>
           ) : (
-            (scenarios ?? []).map((scenario) => {
+            scenarios.map((scenario) => {
+              const scnCode = resolveScenarioScnCode(scenario);
               const lastRun = getRunForScenario(scenario.id);
               const hasCompleted = lastRun?.run.status === "completed";
               return (
-                <Card key={scenario.id} className="border-slate-200 hover:border-blue-300 transition-colors">
+                <Card key={scnCode ?? scenario.id} className="border-slate-200 hover:border-blue-300 transition-colors">
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between gap-4">
                       <div className="space-y-1">
+                        {scnCode && (
+                          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[10px] font-bold" variant="outline">
+                            {scnCode}
+                          </Badge>
+                        )}
                         <CardTitle className="text-base font-semibold">{scenario.name}</CardTitle>
                         <CardDescription className="text-sm">{scenario.descriptionFr}</CardDescription>
                       </div>

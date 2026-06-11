@@ -910,6 +910,81 @@ export function getEffectiveM1Steps(state) {
   return withAdj;
 }
 
+export type M2FifoLotEntry = {
+  lotNumber: string;
+  receivedAt: Date;
+  toBin: string;
+  sku: string;
+};
+
+/** Build FIFO lot catalog from putaway records, or from scenario seed when preloaded (SCN-008). */
+export function buildM2FifoLotCatalog(
+  putawayRecords: Array<{ sku: string; toBin: string; lotNumber: string | null; receivedAt: Date; qty: number }>,
+  scenarioSeed?: {
+    lots?: Array<{ lotNumber: string; receivedAt: string; qty?: number }>;
+    preloadedTransactions?: Array<{ docType: string; sku?: string; bin?: string; qty?: number; posted?: boolean }>;
+  }
+): M2FifoLotEntry[] {
+  if (putawayRecords.length > 0) {
+    return putawayRecords
+      .filter((p) => p.lotNumber)
+      .map((p) => ({
+        lotNumber: p.lotNumber!,
+        receivedAt: new Date(p.receivedAt),
+        toBin: p.toBin,
+        sku: p.sku,
+      }));
+  }
+  const lots = scenarioSeed?.lots ?? [];
+  const storageBinsList = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
+  const storageGrs = (scenarioSeed?.preloadedTransactions ?? [])
+    .filter((t) => t.docType === "GR" && t.posted && t.bin && t.sku && storageBinsList.includes(t.bin))
+    .sort((a, b) => String(a.docRef ?? a.bin).localeCompare(String(b.docRef ?? b.bin)));
+  const sortedLots = [...lots].sort(
+    (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
+  );
+  return sortedLots
+    .map((lot, i) => ({
+      lotNumber: lot.lotNumber,
+      receivedAt: new Date(lot.receivedAt),
+      toBin: storageGrs[i]?.bin ?? "",
+      sku: storageGrs[i]?.sku ?? "",
+    }))
+    .filter((e) => e.toBin && e.sku);
+}
+
+/** Global FIFO: oldest lot with remaining stock must be picked first (SCN-008 Gold Standard). */
+export function validateM2FifoPick(input: {
+  sku: string;
+  lotNumber: string;
+  catalog: M2FifoLotEntry[];
+  inventory: Record<string, number>;
+}) {
+  const skuLots = input.catalog
+    .filter((e) => e.sku === input.sku)
+    .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
+  let oldestWithStock: M2FifoLotEntry | undefined;
+  for (const lot of skuLots) {
+    const key = `${input.sku}::${lot.toBin}`;
+    if ((input.inventory[key] ?? 0) > 0) {
+      oldestWithStock = lot;
+      break;
+    }
+  }
+  if (!oldestWithStock) return { allowed: true as const };
+  if (oldestWithStock.lotNumber !== input.lotNumber) {
+    return {
+      allowed: false as const,
+      requiredLot: oldestWithStock.lotNumber,
+      reasonFr: `Violation FIFO : le lot ${oldestWithStock.lotNumber} doit être prélevé en premier (plus ancien)`,
+      reasonEn: `FIFO violation: lot ${oldestWithStock.lotNumber} must be picked first (oldest)`,
+      penaltyEvent: "FIFO_VIOLATION" as const,
+      penaltyPoints: -10,
+    };
+  }
+  return { allowed: true as const };
+}
+
 /** Runtime: stock already in STOCKAGE with empty reception — PUTAWAY not required (SCN-008). */
 export function isM2PutawaySatisfiedByInventory(state) {
   if (!state?.inventory || !state?.transactions) return false;
