@@ -298,22 +298,32 @@ export function canExecuteStepM2(step, state) {
   }
   return { allowed: true };
 }
-export const M3_VARIANCE_THRESHOLD = 5;
-export function computeVariance(systemQty, countedQty) {
+export const M3_VARIANCE_THRESHOLD_DEFAULT = 5;
+/** Default M3 variance threshold when scenario seed has no `adjustmentThreshold`. */
+export const M3_VARIANCE_THRESHOLD = M3_VARIANCE_THRESHOLD_DEFAULT;
+
+export type M3InitialStateJson = { adjustmentThreshold?: number } | null | undefined;
+
+export function getM3VarianceThreshold(initialStateJson?: M3InitialStateJson): number {
+  const t = initialStateJson?.adjustmentThreshold;
+  return typeof t === "number" && t > 0 ? t : M3_VARIANCE_THRESHOLD_DEFAULT;
+}
+
+export function computeVariance(systemQty, countedQty, threshold = M3_VARIANCE_THRESHOLD_DEFAULT) {
   const varianceQty = countedQty - systemQty;
   return {
     varianceQty,
-    requiresJustification: Math.abs(varianceQty) >= M3_VARIANCE_THRESHOLD
+    requiresJustification: Math.abs(varianceQty) >= threshold,
   };
 }
-export function validateVarianceEntry(systemQty, countedQty, reason) {
-  const { varianceQty, requiresJustification } = computeVariance(systemQty, countedQty);
+export function validateVarianceEntry(systemQty, countedQty, reason, threshold = M3_VARIANCE_THRESHOLD_DEFAULT) {
+  const { varianceQty, requiresJustification } = computeVariance(systemQty, countedQty, threshold);
   if (requiresJustification && (!reason || reason.trim().length < 5)) {
     return {
       allowed: false,
-      reason: `Variance of ${varianceQty} exceeds threshold (${M3_VARIANCE_THRESHOLD}); justification required`,
-      reasonFr: `L'écart de ${varianceQty} dépasse le seuil (${M3_VARIANCE_THRESHOLD}) — une justification est obligatoire`,
-      reasonEn: `Variance of ${varianceQty} exceeds the threshold (${M3_VARIANCE_THRESHOLD}) — a justification is required.`
+      reason: `Variance of ${varianceQty} exceeds threshold (${threshold}); justification required`,
+      reasonFr: `L'écart de ${varianceQty} dépasse le seuil (${threshold}) — une justification est obligatoire`,
+      reasonEn: `Variance of ${varianceQty} exceeds the threshold (${threshold}) — a justification is required.`
     };
   }
   return { allowed: true };

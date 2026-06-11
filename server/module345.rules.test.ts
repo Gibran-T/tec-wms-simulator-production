@@ -13,6 +13,8 @@ import {
   isModuleUnlocked,
   isModule3Unlocked,
   M3_VARIANCE_THRESHOLD,
+  M3_VARIANCE_THRESHOLD_DEFAULT,
+  getM3VarianceThreshold,
   // M4
   calculateKpis,
   scoreKpiInterpretation,
@@ -57,6 +59,17 @@ describe("Module 3 — computeVariance", () => {
 
   it("threshold constant is 5", () => {
     expect(M3_VARIANCE_THRESHOLD).toBe(5);
+    expect(M3_VARIANCE_THRESHOLD_DEFAULT).toBe(5);
+  });
+});
+
+describe("Module 3 — getM3VarianceThreshold", () => {
+  it("reads adjustmentThreshold from scenario initialStateJson", () => {
+    expect(getM3VarianceThreshold({ adjustmentThreshold: 20 })).toBe(20);
+  });
+
+  it("falls back to default when adjustmentThreshold absent", () => {
+    expect(getM3VarianceThreshold({})).toBe(5);
   });
 });
 
@@ -84,6 +97,17 @@ describe("Module 3 — validateVarianceEntry", () => {
 
   it("allows entry with exactly 5-char justification", () => {
     const result = validateVarianceEntry(100, 90, "12345");
+    expect(result.allowed).toBe(true);
+  });
+
+  it("SCN-010 threshold 20: −28 rejects empty justification", () => {
+    const result = validateVarianceEntry(380, 352, "", 20);
+    expect(result.allowed).toBe(false);
+    expect(result.reasonEn).toMatch(/20/);
+  });
+
+  it("SCN-010 threshold 20: −15 allows empty justification", () => {
+    const result = validateVarianceEntry(100, 85, null, 20);
     expect(result.allowed).toBe(true);
   });
 });

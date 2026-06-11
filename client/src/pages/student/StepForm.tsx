@@ -778,6 +778,12 @@ export default function StepForm() {
   const { data: masterData } = trpc.master.skus.useQuery();
   const { data: bins } = trpc.master.bins.useQuery();
 
+  const m3VarianceThreshold = useMemo(() => {
+    const json = runData?.scenario?.initialStateJson as { adjustmentThreshold?: number } | null | undefined;
+    const t = json?.adjustmentThreshold;
+    return typeof t === "number" && t > 0 ? t : 5;
+  }, [runData?.scenario?.initialStateJson]);
+
   // ── M1 mutations ──────────────────────────────────────────────────────────
   const submitPO = trpc.transactions.submitPO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitGR = trpc.transactions.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -989,8 +995,28 @@ export default function StepForm() {
         return submitCcList.mutate({ ...base, skus: [values.sku!] });
       case "cc_count":
         return submitCcCount.mutate({ ...base, counts: [{ sku: values.sku!, bin: values.bin!, systemQty: Number(values.systemQty ?? 0), countedQty: Number(values.countedQty ?? 0) }] });
-      case "cc_recon":
-        return submitCcRecon.mutate({ ...base, adjustments: [{ sku: values.sku!, bin: values.bin!, varianceQty: Number(values.varianceQty ?? 0), justification: values.justification ?? "Ajustement manuel" }] });
+      case "cc_recon": {
+        const varianceQty = Number(values.varianceQty ?? 0);
+        const justification = (values.justification ?? "").trim();
+        if (varianceQty !== 0 && Math.abs(varianceQty) >= m3VarianceThreshold && justification.length < 5) {
+          toast.error(
+            t(
+              `Variance ≥ ${m3VarianceThreshold} unités — saisissez une justification d'au moins 5 caractères.`,
+              `Variance ≥ ${m3VarianceThreshold} units — enter a justification of at least 5 characters.`,
+            ),
+          );
+          return;
+        }
+        return submitCcRecon.mutate({
+          ...base,
+          adjustments: [{
+            sku: values.sku!,
+            bin: values.bin!,
+            varianceQty,
+            justification,
+          }],
+        });
+      }
       case "replenish":
         return submitReplenishM3.mutate({ ...base, sku: values.sku!, systemQty: Number(values.systemQty ?? 0), minQty: Number(values.minQty ?? 0), maxQty: Number(values.maxQty ?? 0), safetyStock: Number(values.safetyStock ?? 0), studentQty: Number(values.studentQty ?? 0) });
       case "compliance_m3":
@@ -1705,6 +1731,24 @@ export default function StepForm() {
                     <input {...register("studentQty")} type="number" min={0} placeholder="Ex: 150" className="fiori-field-input fiori-field-active" />
                     <p className="text-[10px] text-muted-foreground mt-1">{t("Appliquez la formule ci-dessus avec vos valeurs saisies. Le système comparera votre réponse avec la suggestion optimale.", "Apply the formula above with your entered values. The system will compare your answer with the optimal suggestion.")}</p>
                   </div>
+                </div>
+              )}
+
+              {/* M3 CC_RECON — variance threshold guidance */}
+              {step?.toLowerCase() === "cc_recon" && (
+                <div className="mb-4 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                    {t(
+                      `Seuil d'ajustement interne : ${m3VarianceThreshold} unités`,
+                      `Internal adjustment threshold: ${m3VarianceThreshold} units`,
+                    )}
+                  </p>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                    {t(
+                      `Toute variance dont la valeur absolue est ≥ ${m3VarianceThreshold} exige une justification écrite (minimum 5 caractères) avant validation MI07.`,
+                      `Any variance with absolute value ≥ ${m3VarianceThreshold} requires a written justification (minimum 5 characters) before MI07 validation.`,
+                    )}
+                  </p>
                 </div>
               )}
 

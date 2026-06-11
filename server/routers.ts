@@ -95,6 +95,9 @@ import {
   canExecuteStepM2,
   canExecuteStepM3,
   computeReplenishmentSuggestion,
+  getM3VarianceThreshold,
+  validateVarianceEntry,
+  validateAdjustment,
   scoreM5Decision,
   getEffectiveM1Steps,
   type KpiData,
@@ -102,6 +105,7 @@ import {
 import {
   addInventoryCount,
   addInventoryAdjustment,
+  getInventoryCountsByRun,
   addReplenishmentSuggestion,
   addKpiSnapshot,
   addKpiInterpretation,
@@ -2291,11 +2295,41 @@ export const appRouter = router({
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
+        const scenario = await getScenarioById(run.scenarioId);
+        const varianceThreshold = getM3VarianceThreshold(scenario?.initialStateJson as { adjustmentThreshold?: number } | null);
+        const inventoryCounts = await getInventoryCountsByRun(input.runId);
         for (const adj of input.adjustments) {
-          if (adj.varianceQty !== 0) {
-            await addInventoryAdjustment({ runId: input.runId, sku: adj.sku, varianceQty: adj.varianceQty, adjustmentQty: adj.varianceQty, reason: adj.justification });
-            await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "MI07", sku: adj.sku, bin: adj.bin, qty: String(adj.varianceQty), posted: true, docRef: `ADJ-${adj.sku}`, comment: adj.justification });
+          if (adj.varianceQty === 0) continue;
+          const qtyCheck = validateAdjustment(adj.varianceQty, adj.varianceQty);
+          if (!qtyCheck.allowed) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(qtyCheck, ctx.req) });
           }
+          const countRow = inventoryCounts.find((c) => c.sku === adj.sku);
+          const systemQty = countRow
+            ? Number(countRow.systemQty)
+            : (state.inventory[`${adj.sku}::${adj.bin}`] ?? 0);
+          const countedQty = countRow
+            ? Number(countRow.countedQty)
+            : systemQty + adj.varianceQty;
+          const justificationCheck = validateVarianceEntry(
+            systemQty,
+            countedQty,
+            adj.justification,
+            varianceThreshold,
+          );
+          if (!justificationCheck.allowed) {
+            if (!run.isDemo) {
+              await addScoringEvent({
+                runId: input.runId,
+                eventType: "VARIANCE_JUSTIFICATION_MISSING",
+                pointsDelta: -10,
+                message: justificationCheck.reasonFr ?? "",
+              });
+            }
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(justificationCheck, ctx.req) });
+          }
+          await addInventoryAdjustment({ runId: input.runId, sku: adj.sku, varianceQty: adj.varianceQty, adjustmentQty: adj.varianceQty, reason: adj.justification.trim() || undefined });
+          await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "MI07", sku: adj.sku, bin: adj.bin, qty: String(adj.varianceQty), posted: true, docRef: `ADJ-${adj.sku}`, comment: adj.justification.trim() || null });
         }
         await markStepComplete(input.runId, "CC_RECON");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: 15, message: "Réconciliation et ajustements validés" });
