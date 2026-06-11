@@ -699,6 +699,37 @@ export async function addInventoryCount(data: {
     systemQty: String(data.systemQty), countedQty: String(data.countedQty), varianceQty: String(data.varianceQty),
   });
 }
+
+export async function upsertInventoryCount(data: {
+  runId: number; sku: string; systemQty: number; countedQty: number; varianceQty: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const { inventoryCounts } = await import("../drizzle/schema");
+  const existing = await db
+    .select()
+    .from(inventoryCounts)
+    .where(and(eq(inventoryCounts.runId, data.runId), eq(inventoryCounts.sku, data.sku)))
+    .limit(1);
+  if (existing.length > 0) {
+    await db
+      .update(inventoryCounts)
+      .set({
+        systemQty: String(data.systemQty),
+        countedQty: String(data.countedQty),
+        varianceQty: String(data.varianceQty),
+      })
+      .where(eq(inventoryCounts.id, existing[0].id));
+    return;
+  }
+  await db.insert(inventoryCounts).values({
+    runId: data.runId,
+    sku: data.sku,
+    systemQty: String(data.systemQty),
+    countedQty: String(data.countedQty),
+    varianceQty: String(data.varianceQty),
+  });
+}
 export async function getInventoryCountsByRun(runId: number) {
   const db = await getDb();
   if (!db) return [];
@@ -742,6 +773,37 @@ export async function addReplenishmentSuggestion(data: {
   await db.insert(replenishmentSuggestions).values({
     runId: data.runId, sku: data.sku,
     systemQty: String(data.systemQty), suggestedQty: String(data.suggestedQty), reason: data.reason,
+  });
+}
+
+export async function upsertReplenishmentSuggestion(data: {
+  runId: number; sku: string; systemQty: number; suggestedQty: number; reason: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("DB not available");
+  const { replenishmentSuggestions } = await import("../drizzle/schema");
+  const existing = await db
+    .select()
+    .from(replenishmentSuggestions)
+    .where(and(eq(replenishmentSuggestions.runId, data.runId), eq(replenishmentSuggestions.sku, data.sku)))
+    .limit(1);
+  if (existing.length > 0) {
+    await db
+      .update(replenishmentSuggestions)
+      .set({
+        systemQty: String(data.systemQty),
+        suggestedQty: String(data.suggestedQty),
+        reason: data.reason,
+      })
+      .where(eq(replenishmentSuggestions.id, existing[0].id));
+    return;
+  }
+  await db.insert(replenishmentSuggestions).values({
+    runId: data.runId,
+    sku: data.sku,
+    systemQty: String(data.systemQty),
+    suggestedQty: String(data.suggestedQty),
+    reason: data.reason,
   });
 }
 export async function getReplenishmentSuggestionsByRun(runId: number) {

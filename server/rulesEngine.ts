@@ -302,7 +302,63 @@ export const M3_VARIANCE_THRESHOLD_DEFAULT = 5;
 /** Default M3 variance threshold when scenario seed has no `adjustmentThreshold`. */
 export const M3_VARIANCE_THRESHOLD = M3_VARIANCE_THRESHOLD_DEFAULT;
 
-export type M3InitialStateJson = { adjustmentThreshold?: number } | null | undefined;
+export type ValidationResult = {
+  allowed: boolean;
+  complete?: boolean;
+  reason?: string;
+  reasonFr?: string;
+  reasonEn?: string;
+};
+
+export type M3CycleCountTarget = {
+  sku: string;
+  bin?: string;
+  systemQty: number;
+  physicalQty: number;
+};
+
+export type M3ReplenishmentParam = {
+  sku: string;
+  minQty: number;
+  maxQty: number;
+  safetyStock: number;
+  leadTimeDays?: number;
+};
+
+export type M3InitialStateJson = {
+  adjustmentThreshold?: number;
+  cycleCountTargets?: M3CycleCountTarget[];
+  replenishmentParams?: M3ReplenishmentParam[];
+} | null | undefined;
+
+export type M3InventoryCountRow = {
+  sku: string;
+  systemQty: number | string;
+  countedQty: number | string;
+  varianceQty?: number | string;
+};
+
+export type M3InventoryAdjustmentRow = {
+  sku: string;
+  varianceQty: number | string;
+  adjustmentQty: number | string;
+  reason?: string | null;
+};
+
+export type M3ReplenishmentSuggestionRow = {
+  sku: string;
+  systemQty: number | string;
+  suggestedQty: number | string;
+  reason: string;
+};
+
+export type M3TransactionRow = {
+  docType: string;
+  sku: string;
+  bin: string;
+  qty: number | string;
+  posted: boolean;
+};
 
 export function getM3VarianceThreshold(initialStateJson?: M3InitialStateJson): number {
   const t = initialStateJson?.adjustmentThreshold;
@@ -351,6 +407,268 @@ export function computeReplenishmentSuggestion(input) {
   if (isCritical) reasons.push("Safety Stock");
   return { sku, systemQty, suggestedQty, reason: reasons.join(" + "), isCritical, needsReplenishment };
 }
+
+export function getCycleCountTargets(initialStateJson?: M3InitialStateJson): M3CycleCountTarget[] {
+  const raw = initialStateJson?.cycleCountTargets;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (t): t is M3CycleCountTarget =>
+        t != null &&
+        typeof t.sku === "string" &&
+        typeof t.systemQty === "number" &&
+        typeof t.physicalQty === "number",
+    )
+    .map((t) => ({ ...t }));
+}
+
+export function getReplenishmentParamsFromSeed(initialStateJson?: M3InitialStateJson): M3ReplenishmentParam[] {
+  const raw = initialStateJson?.replenishmentParams;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (p): p is M3ReplenishmentParam =>
+        p != null &&
+        typeof p.sku === "string" &&
+        typeof p.minQty === "number" &&
+        typeof p.maxQty === "number" &&
+        typeof p.safetyStock === "number",
+    )
+    .map((p) => ({ ...p }));
+}
+
+export function parseStudentQtyFromReplenishReason(reason: string): number | null {
+  const match = reason.match(/studentQty=(-?\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : null;
+}
+
+export function formatReplenishReasonWithStudentQty(baseReason: string, studentQty: number): string {
+  const stripped = baseReason.replace(/;studentQty=-?\d+(?:\.\d+)?/g, "").trim();
+  return `${stripped};studentQty=${studentQty}`;
+}
+
+function findCountRow(counts: M3InventoryCountRow[], sku: string): M3InventoryCountRow | undefined {
+  return counts.find((c) => c.sku === sku);
+}
+
+export function validateCycleCountListComplete(
+  targets: M3CycleCountTarget[],
+  listedSkus: string[],
+): ValidationResult & { complete: boolean } {
+  if (targets.length === 0) return { allowed: true, complete: true };
+  const missing = targets.filter((t) => !listedSkus.includes(t.sku)).map((t) => t.sku);
+  if (missing.length > 0) {
+    return {
+      allowed: false,
+      complete: false,
+      reason: `Count list must include all target SKUs: missing ${missing.join(", ")}`,
+      reasonFr: `La liste de comptage doit inclure tous les SKU requis : manquant ${missing.join(", ")}`,
+      reasonEn: `Count list must include all required SKUs: missing ${missing.join(", ")}`,
+    };
+  }
+  return { allowed: true, complete: true };
+}
+
+export function validateCycleCountEntriesComplete(
+  targets: M3CycleCountTarget[],
+  counts: M3InventoryCountRow[],
+): ValidationResult & { complete: boolean } {
+  if (targets.length === 0) return { allowed: true, complete: true };
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  for (const target of targets) {
+    const row = findCountRow(counts, target.sku);
+    if (!row) {
+      issues.push(`Missing count for ${target.sku}`);
+      issuesFr.push(`Comptage manquant pour ${target.sku}`);
+      continue;
+    }
+    const countedQty = Number(row.countedQty);
+    if (countedQty !== target.physicalQty) {
+      issues.push(`${target.sku}: expected physical qty ${target.physicalQty}, got ${countedQty}`);
+      issuesFr.push(`${target.sku} : quantité physique attendue ${target.physicalQty}, saisie ${countedQty}`);
+    }
+  }
+  if (issues.length > 0) {
+    return {
+      allowed: false,
+      complete: false,
+      reason: issues.join("; "),
+      reasonFr: issuesFr.join(" ; "),
+      reasonEn: issues.join("; "),
+    };
+  }
+  return { allowed: true, complete: true };
+}
+
+export function validateCycleCountReconComplete(
+  targets: M3CycleCountTarget[],
+  counts: M3InventoryCountRow[],
+  adjustments: M3InventoryAdjustmentRow[],
+  transactions: M3TransactionRow[],
+): ValidationResult & { complete: boolean } {
+  const entriesCheck = validateCycleCountEntriesComplete(targets, counts);
+  if (!entriesCheck.complete) return entriesCheck;
+
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  for (const target of targets) {
+    const row = findCountRow(counts, target.sku)!;
+    const varianceQty = Number(row.countedQty) - Number(row.systemQty);
+    if (varianceQty === 0) continue;
+
+    const adj = adjustments.find((a) => a.sku === target.sku);
+    if (!adj || Number(adj.adjustmentQty) !== varianceQty) {
+      issues.push(`${target.sku}: variance ${varianceQty} not reconciled with matching ADJ`);
+      issuesFr.push(`${target.sku} : écart ${varianceQty} non réconcilié par un ADJ correspondant`);
+      continue;
+    }
+
+    const postedAdj = transactions.some(
+      (t) => t.docType === "ADJ" && t.sku === target.sku && t.posted && Number(t.qty) === varianceQty,
+    );
+    if (!postedAdj) {
+      issues.push(`${target.sku}: missing posted ADJ transaction for variance ${varianceQty}`);
+      issuesFr.push(`${target.sku} : transaction ADJ postée manquante pour l'écart ${varianceQty}`);
+    }
+  }
+
+  if (issues.length > 0) {
+    return {
+      allowed: false,
+      complete: false,
+      reason: issues.join("; "),
+      reasonFr: issuesFr.join(" ; "),
+      reasonEn: issues.join("; "),
+    };
+  }
+  return { allowed: true, complete: true };
+}
+
+export function validateReplenishmentComplete(
+  params: M3ReplenishmentParam[],
+  suggestions: M3ReplenishmentSuggestionRow[],
+): ValidationResult & { complete: boolean } {
+  if (params.length === 0) return { allowed: true, complete: true };
+
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  for (const param of params) {
+    const row = suggestions.find((s) => s.sku === param.sku);
+    if (!row) {
+      issues.push(`Missing replenishment for ${param.sku}`);
+      issuesFr.push(`Réapprovisionnement manquant pour ${param.sku}`);
+      continue;
+    }
+
+    const expected = computeReplenishmentSuggestion({
+      sku: param.sku,
+      systemQty: Number(row.systemQty),
+      minQty: param.minQty,
+      maxQty: param.maxQty,
+      safetyStock: param.safetyStock,
+    });
+    const suggestedQty = Number(row.suggestedQty);
+    const studentQty = parseStudentQtyFromReplenishReason(row.reason);
+
+    if (suggestedQty !== expected.suggestedQty) {
+      issues.push(`${param.sku}: invalid system suggestion ${suggestedQty}`);
+      issuesFr.push(`${param.sku} : suggestion système invalide ${suggestedQty}`);
+    }
+    if (studentQty === null || studentQty !== expected.suggestedQty) {
+      issues.push(`${param.sku}: student qty must equal ${expected.suggestedQty}`);
+      issuesFr.push(`${param.sku} : quantité étudiant doit être ${expected.suggestedQty}`);
+    }
+  }
+
+  if (issues.length > 0) {
+    return {
+      allowed: false,
+      complete: false,
+      reason: issues.join("; "),
+      reasonFr: issuesFr.join(" ; "),
+      reasonEn: issues.join("; "),
+    };
+  }
+  return { allowed: true, complete: true };
+}
+
+export function validateM3Compliance(input: {
+  initialStateJson?: M3InitialStateJson;
+  inventoryCounts: M3InventoryCountRow[];
+  inventoryAdjustments: M3InventoryAdjustmentRow[];
+  replenishmentSuggestions: M3ReplenishmentSuggestionRow[];
+  transactions: M3TransactionRow[];
+}): ValidationResult {
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+
+  const targets = getCycleCountTargets(input.initialStateJson);
+  const replenishParams = getReplenishmentParamsFromSeed(input.initialStateJson);
+  const varianceThreshold = getM3VarianceThreshold(input.initialStateJson);
+
+  const countCheck = validateCycleCountEntriesComplete(targets, input.inventoryCounts);
+  if (!countCheck.complete) {
+    issues.push(...(countCheck.reason?.split("; ") ?? []));
+    issuesFr.push(...(countCheck.reasonFr?.split(" ; ") ?? []));
+  }
+
+  const reconCheck = validateCycleCountReconComplete(
+    targets,
+    input.inventoryCounts,
+    input.inventoryAdjustments,
+    input.transactions,
+  );
+  if (!reconCheck.complete && reconCheck.reason) {
+    for (const part of reconCheck.reason.split("; ")) {
+      if (part && !issues.includes(part)) issues.push(part);
+    }
+    for (const part of (reconCheck.reasonFr ?? "").split(" ; ")) {
+      if (part && !issuesFr.includes(part)) issuesFr.push(part);
+    }
+  }
+
+  for (const adj of input.inventoryAdjustments) {
+    if (Number(adj.adjustmentQty) === 0) continue;
+    const countRow = findCountRow(input.inventoryCounts, adj.sku);
+    const systemQty = countRow ? Number(countRow.systemQty) : 0;
+    const countedQty = countRow ? Number(countRow.countedQty) : systemQty + Number(adj.varianceQty);
+    const justificationCheck = validateVarianceEntry(
+      systemQty,
+      countedQty,
+      adj.reason ?? "",
+      varianceThreshold,
+    );
+    if (!justificationCheck.allowed) {
+      issues.push(justificationCheck.reason ?? `Missing justification for ${adj.sku}`);
+      issuesFr.push(justificationCheck.reasonFr ?? `Justification manquante pour ${adj.sku}`);
+    }
+  }
+
+  const replenishCheck = validateReplenishmentComplete(replenishParams, input.replenishmentSuggestions);
+  if (!replenishCheck.complete && replenishCheck.reason) {
+    for (const part of replenishCheck.reason.split("; ")) {
+      if (part && !issues.includes(part)) issues.push(part);
+    }
+    for (const part of (replenishCheck.reasonFr ?? "").split(" ; ")) {
+      if (part && !issuesFr.includes(part)) issuesFr.push(part);
+    }
+  }
+
+  const unposted = input.transactions.filter((t) => !t.posted);
+  if (unposted.length > 0) {
+    issues.push(`${unposted.length} unposted transaction(s) detected`);
+    issuesFr.push(`${unposted.length} transaction(s) non postée(s) détectée(s)`);
+  }
+
+  return {
+    allowed: issues.length === 0,
+    reason: issues.join("; "),
+    reasonFr: issuesFr.join(" ; "),
+    reasonEn: issues.join("; "),
+  };
+}
+
 export function canExecuteStepM3(step, completedSteps) {
   const stepDef = MODULE3_STEPS.find((s) => s.code === step);
   if (!stepDef) return { allowed: false, reason: "Unknown M3 step", reasonFr: "Étape M3 inconnue", reasonEn: "Unknown M3 step" };

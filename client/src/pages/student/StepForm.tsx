@@ -784,6 +784,14 @@ export default function StepForm() {
     return typeof t === "number" && t > 0 ? t : 5;
   }, [runData?.scenario?.initialStateJson]);
 
+  const m3InitialState = runData?.scenario?.initialStateJson as {
+    cycleCountTargets?: Array<{ sku: string; bin?: string; systemQty: number; physicalQty: number }>;
+    replenishmentParams?: Array<{ sku: string; minQty: number; maxQty: number; safetyStock: number }>;
+  } | null | undefined;
+
+  const m3CycleCountTargets = m3InitialState?.cycleCountTargets ?? [];
+  const m3ReplenishmentParams = m3InitialState?.replenishmentParams ?? [];
+
   // ── M1 mutations ──────────────────────────────────────────────────────────
   const submitPO = trpc.transactions.submitPO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitGR = trpc.transactions.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -863,6 +871,14 @@ export default function StepForm() {
     // Also show a brief toast
     if (data?.demoWarning) {
       toast.warning(`⚠ ${t("Avertissement (mode démo)", "Warning (demo mode)")} : ${data.demoWarning}`, { duration: 4000 });
+    } else if (data?.complete === false) {
+      const remaining = (data?.remainingSkus as string[] | undefined)?.join(", ");
+      toast.info(
+        remaining
+          ? t(`Enregistré — SKU restants : ${remaining}`, `Saved — remaining SKU(s): ${remaining}`)
+          : t("Enregistré — complétez les cibles restantes pour valider l'étape.", "Saved — complete remaining targets to finish this step."),
+        { duration: 5000 },
+      );
     } else {
       toast.success(t("Étape validée — consultez le feedback ci-dessous", "Step validated — see feedback below"), { duration: 3000 });
     }
@@ -990,9 +1006,19 @@ export default function StepForm() {
         return submitComplianceAdv.mutate({ ...base });
 
       // ── M3 ──────────────────────────────────────────────────────────────
-      case "cc_list":
-        if (!values.sku) { toast.error(t("Veuillez sélectionner au moins un SKU.", "Please select at least one SKU.")); return; }
-        return submitCcList.mutate({ ...base, skus: [values.sku!] });
+      case "cc_list": {
+        const requiredSkus =
+          m3CycleCountTargets.length > 0
+            ? m3CycleCountTargets.map((target) => target.sku)
+            : values.sku
+              ? [values.sku]
+              : [];
+        if (requiredSkus.length === 0) {
+          toast.error(t("Veuillez sélectionner au moins un SKU.", "Please select at least one SKU."));
+          return;
+        }
+        return submitCcList.mutate({ ...base, skus: requiredSkus });
+      }
       case "cc_count":
         return submitCcCount.mutate({ ...base, counts: [{ sku: values.sku!, bin: values.bin!, systemQty: Number(values.systemQty ?? 0), countedQty: Number(values.countedQty ?? 0) }] });
       case "cc_recon": {
@@ -1699,6 +1725,25 @@ export default function StepForm() {
               )}
 
               {/* Student Qty (replenishment suggestion) */}
+              {cfg.fields.includes("studentQty") && step?.toLowerCase() === "replenish" && m3ReplenishmentParams.length > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-[10px]">
+                  <p className="font-bold text-amber-800 dark:text-amber-200 mb-1">
+                    {t("Réapprovisionnement multi-SKU requis", "Multi-SKU replenishment required")}
+                  </p>
+                  <p className="text-amber-700 dark:text-amber-300">
+                    {t(
+                      "Soumettez REPLENISH pour chaque SKU listé ci-dessous. L'étape se valide lorsque toutes les cibles sont satisfaites.",
+                      "Submit REPLENISH for each SKU below. The step completes when all targets are satisfied.",
+                    )}
+                  </p>
+                  <ul className="mt-2 font-mono space-y-0.5">
+                    {m3ReplenishmentParams.map((p) => (
+                      <li key={p.sku}>{p.sku} — Min {p.minQty} / Max {p.maxQty} / SS {p.safetyStock}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {cfg.fields.includes("studentQty") && (
                 <div className="space-y-3">
                   {/* ROP/EOQ Pedagogical Reference Panel */}
@@ -1775,16 +1820,39 @@ export default function StepForm() {
               {/* SKU List field (for CC_LIST) */}
               {cfg.fields.includes("skuList") && (
                 <div>
-                  <label className="fiori-field-label">
-                    {t("SKU à inclure dans le comptage", "SKU to include in count")} <span className="text-destructive">*</span>
-                  </label>
-                  <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} className="fiori-field-input fiori-field-active">
-                    <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
-                    {masterData?.map((s: any) => (
-                      <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
-                    ))}
-                  </select>
-                  <p className="text-[10px] text-muted-foreground mt-1">{t("Sélectionnez le SKU principal à compter.", "Select the main SKU to count.")}</p>
+                  {m3CycleCountTargets.length > 1 ? (
+                    <>
+                      <label className="fiori-field-label">
+                        {t("SKUs requis pour le comptage", "SKUs required for counting")} <span className="text-destructive">*</span>
+                      </label>
+                      <ul className="text-sm border rounded-md p-3 space-y-1 bg-muted/30">
+                        {m3CycleCountTargets.map((target) => (
+                          <li key={target.sku} className="font-mono text-xs">
+                            {target.sku}
+                            {target.bin ? ` @ ${target.bin}` : ""} — {t("système", "system")} {target.systemQty}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        {t(
+                          "La liste MI01 inclura automatiquement tous les SKU requis du scénario.",
+                          "The MI01 count list will automatically include all required scenario SKUs.",
+                        )}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <label className="fiori-field-label">
+                        {t("SKU à inclure dans le comptage", "SKU to include in count")} <span className="text-destructive">*</span>
+                      </label>
+                      <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} className="fiori-field-input fiori-field-active">
+                        <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
+                        {masterData?.map((s: any) => (
+                          <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
+                        ))}
+                      </select>
+                    </>
+                  )}
                 </div>
               )}
 

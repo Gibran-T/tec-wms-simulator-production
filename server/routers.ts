@@ -95,9 +95,17 @@ import {
   canExecuteStepM2,
   canExecuteStepM3,
   computeReplenishmentSuggestion,
+  formatReplenishReasonWithStudentQty,
+  getCycleCountTargets,
   getM3VarianceThreshold,
-  validateVarianceEntry,
+  getReplenishmentParamsFromSeed,
   validateAdjustment,
+  validateCycleCountEntriesComplete,
+  validateCycleCountListComplete,
+  validateCycleCountReconComplete,
+  validateM3Compliance,
+  validateReplenishmentComplete,
+  validateVarianceEntry,
   scoreM5Decision,
   getEffectiveM1Steps,
   type KpiData,
@@ -105,8 +113,12 @@ import {
 import {
   addInventoryCount,
   addInventoryAdjustment,
+  getInventoryAdjustmentsByRun,
   getInventoryCountsByRun,
   addReplenishmentSuggestion,
+  getReplenishmentSuggestionsByRun,
+  upsertInventoryCount,
+  upsertReplenishmentSuggestion,
   addKpiSnapshot,
   addKpiInterpretation,
 } from "./db";
@@ -158,6 +170,28 @@ async function addScoringEventOnce(
     await addScoringEvent(params);
   }
 }
+
+async function loadM3ComplianceArtifacts(runId: number) {
+  const [inventoryCounts, inventoryAdjustments, replenishmentSuggestions, transactions] = await Promise.all([
+    getInventoryCountsByRun(runId),
+    getInventoryAdjustmentsByRun(runId),
+    getReplenishmentSuggestionsByRun(runId),
+    getTransactionsByRun(runId),
+  ]);
+  return {
+    inventoryCounts,
+    inventoryAdjustments,
+    replenishmentSuggestions,
+    transactions: transactions.map((t) => ({
+      docType: t.docType,
+      sku: t.sku,
+      bin: t.bin,
+      qty: Number(t.qty),
+      posted: t.posted,
+    })),
+  };
+}
+
 async function buildRunState(runId: number) {
   const txs = await getTransactionsByRun(runId);
   const ccs = await getCycleCountsByRun(runId);
@@ -2232,15 +2266,25 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true, skus: input.skus, complete: true };
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("CC_LIST" as any, state.completedSteps as any);
         if (!check.allowed) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        await markStepComplete(input.runId, "CC_LIST");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_LIST_COMPLETED", pointsDelta: 10, message: `Liste de comptage générée pour ${input.skus.length} SKU(s)` });
-        return { success: true, skus: input.skus };
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const targets = getCycleCountTargets(initialStateJson);
+        const listCheck = validateCycleCountListComplete(targets, input.skus);
+        if (!listCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(listCheck, ctx.req) });
+        }
+        if (!state.completedSteps.includes("CC_LIST")) {
+          await markStepComplete(input.runId, "CC_LIST");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_LIST_COMPLETED", pointsDelta: 10, message: `Liste de comptage générée pour ${input.skus.length} SKU(s)` });
+        }
+        return { success: true, skus: input.skus, complete: true };
       }),
 
     /** M3 Step 2: CC_COUNT — enter physical counts */
@@ -2258,20 +2302,36 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true, totalVariance: 0, complete: true };
         const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const targets = getCycleCountTargets(initialStateJson);
+        const existingCounts = await getInventoryCountsByRun(input.runId);
+        const entriesBefore = validateCycleCountEntriesComplete(targets, existingCounts);
+        const needsCatchUp = targets.length > 0 && !entriesBefore.complete;
         const check = canExecuteStepM3("CC_COUNT" as any, state.completedSteps as any);
-        if (!check.allowed) {
+        if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         for (const c of input.counts) {
           const variance = c.countedQty - c.systemQty;
-          await addInventoryCount({ runId: input.runId, sku: c.sku, systemQty: c.systemQty, countedQty: c.countedQty, varianceQty: variance });
+          await upsertInventoryCount({ runId: input.runId, sku: c.sku, systemQty: c.systemQty, countedQty: c.countedQty, varianceQty: variance });
         }
-        await markStepComplete(input.runId, "CC_COUNT");
-        const totalVariance = input.counts.reduce((s, c) => s + Math.abs(c.countedQty - c.systemQty), 0);
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_COUNT_COMPLETED", pointsDelta: totalVariance === 0 ? 20 : 15, message: `Comptage physique: variance totale ${totalVariance}` });
-        return { success: true, totalVariance };
+        const allCounts = await getInventoryCountsByRun(input.runId);
+        const entriesCheck = validateCycleCountEntriesComplete(targets, allCounts);
+        if (!entriesCheck.complete) {
+          const totalVariance = input.counts.reduce((s, c) => s + Math.abs(c.countedQty - c.systemQty), 0);
+          return { success: true, totalVariance, complete: false, remainingSkus: targets.filter((t) => !allCounts.some((c) => c.sku === t.sku)).map((t) => t.sku) };
+        }
+        if (!state.completedSteps.includes("CC_COUNT")) {
+          await markStepComplete(input.runId, "CC_COUNT");
+          const totalVariance = allCounts.reduce((s, c) => s + Math.abs(Number(c.varianceQty)), 0);
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_COUNT_COMPLETED", pointsDelta: totalVariance === 0 ? 20 : 15, message: `Comptage physique: variance totale ${totalVariance}` });
+        }
+        const totalVariance = allCounts.reduce((s, c) => s + Math.abs(Number(c.varianceQty)), 0);
+        return { success: true, totalVariance, complete: true };
       }),
 
     /** M3 Step 3: CC_RECON — reconcile & adjust */
@@ -2289,15 +2349,26 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true, adjustmentsApplied: 0, complete: true };
         const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const targets = getCycleCountTargets(initialStateJson);
+        const inventoryCounts = await getInventoryCountsByRun(input.runId);
+        const inventoryAdjustmentsBefore = await getInventoryAdjustmentsByRun(input.runId);
+        const reconBefore = validateCycleCountReconComplete(
+          targets,
+          inventoryCounts,
+          inventoryAdjustmentsBefore,
+          state.transactions,
+        );
+        const needsCatchUp = targets.length > 0 && !reconBefore.complete;
         const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any);
-        if (!check.allowed) {
+        if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        const scenario = await getScenarioById(run.scenarioId);
-        const varianceThreshold = getM3VarianceThreshold(scenario?.initialStateJson as { adjustmentThreshold?: number } | null);
-        const inventoryCounts = await getInventoryCountsByRun(input.runId);
+        const varianceThreshold = getM3VarianceThreshold(initialStateJson);
         for (const adj of input.adjustments) {
           if (adj.varianceQty === 0) continue;
           const qtyCheck = validateAdjustment(adj.varianceQty, adj.varianceQty);
@@ -2331,9 +2402,28 @@ export const appRouter = router({
           await addInventoryAdjustment({ runId: input.runId, sku: adj.sku, varianceQty: adj.varianceQty, adjustmentQty: adj.varianceQty, reason: adj.justification.trim() || undefined });
           await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "MI07", sku: adj.sku, bin: adj.bin, qty: String(adj.varianceQty), posted: true, docRef: `ADJ-${adj.sku}`, comment: adj.justification.trim() || null });
         }
-        await markStepComplete(input.runId, "CC_RECON");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: 15, message: "Réconciliation et ajustements validés" });
-        const adjustmentsApplied = input.adjustments.filter((a: any) => a.varianceQty !== 0).length; return { success: true, adjustmentsApplied };
+        const updatedState = await buildRunState(input.runId);
+        const allAdjustments = await getInventoryAdjustmentsByRun(input.runId);
+        const allCounts = await getInventoryCountsByRun(input.runId);
+        const reconCheck = validateCycleCountReconComplete(
+          targets,
+          allCounts,
+          allAdjustments,
+          updatedState.transactions,
+        );
+        if (!reconCheck.complete) {
+          return {
+            success: true,
+            adjustmentsApplied: input.adjustments.filter((a) => a.varianceQty !== 0).length,
+            complete: false,
+          };
+        }
+        if (!state.completedSteps.includes("CC_RECON")) {
+          await markStepComplete(input.runId, "CC_RECON");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: 15, message: "Réconciliation et ajustements validés" });
+        }
+        const adjustmentsApplied = input.adjustments.filter((a) => a.varianceQty !== 0).length;
+        return { success: true, adjustmentsApplied, complete: true };
       }),
 
     /** M3 Step 4: REPLENISH \u2014 replenishment suggestion */
@@ -2351,19 +2441,47 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true, complete: true, suggestion: null, diff: 0, studentQty: input.studentQty };
         const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const replenishParams = getReplenishmentParamsFromSeed(initialStateJson);
+        const existingSuggestions = await getReplenishmentSuggestionsByRun(input.runId);
+        const replenishBefore = validateReplenishmentComplete(replenishParams, existingSuggestions);
+        const needsCatchUp = replenishParams.length > 0 && !replenishBefore.complete;
         const check = canExecuteStepM3("REPLENISH" as any, state.completedSteps as any);
-        if (!check.allowed) {
+        if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
         const diff = Math.abs(input.studentQty - suggestion.suggestedQty);
         const points = diff === 0 ? 20 : diff <= 10 ? 15 : diff <= 25 ? 10 : 5;
-        await addReplenishmentSuggestion({ runId: input.runId, sku: input.sku, systemQty: input.systemQty, suggestedQty: suggestion.suggestedQty, reason: suggestion.reason });
-        await markStepComplete(input.runId, "REPLENISH");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: points, message: `R\u00e9approvisionnement: sugg\u00e9r\u00e9 ${suggestion.suggestedQty}, \u00e9tudiant ${input.studentQty}` });
-        return { success: true, suggestion, diff, studentQty: input.studentQty };
+        const reasonWithStudentQty = formatReplenishReasonWithStudentQty(suggestion.reason, input.studentQty);
+        await upsertReplenishmentSuggestion({
+          runId: input.runId,
+          sku: input.sku,
+          systemQty: input.systemQty,
+          suggestedQty: suggestion.suggestedQty,
+          reason: reasonWithStudentQty,
+        });
+        const allSuggestions = await getReplenishmentSuggestionsByRun(input.runId);
+        const replenishCheck = validateReplenishmentComplete(replenishParams, allSuggestions);
+        if (replenishParams.length > 0 && !replenishCheck.complete) {
+          return {
+            success: true,
+            suggestion,
+            diff,
+            studentQty: input.studentQty,
+            complete: false,
+            remainingSkus: replenishParams.filter((p) => !allSuggestions.some((s) => s.sku === p.sku)).map((p) => p.sku),
+          };
+        }
+        if (!state.completedSteps.includes("REPLENISH")) {
+          await markStepComplete(input.runId, "REPLENISH");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: points, message: `Réapprovisionnement: suggéré ${suggestion.suggestedQty}, étudiant ${input.studentQty}` });
+        }
+        return { success: true, suggestion, diff, studentQty: input.studentQty, complete: true };
       }),
 
     /** M3 Step 5: COMPLIANCE_M3 */
@@ -2373,11 +2491,32 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true };
         const state = await buildRunState(input.runId);
         const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any);
         if (!check.allowed) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
+        }
+        const scenario = await getScenarioById(run.scenarioId);
+        const artifacts = await loadM3ComplianceArtifacts(input.runId);
+        const compliance = validateM3Compliance({
+          initialStateJson: scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson,
+          inventoryCounts: artifacts.inventoryCounts,
+          inventoryAdjustments: artifacts.inventoryAdjustments,
+          replenishmentSuggestions: artifacts.replenishmentSuggestions,
+          transactions: artifacts.transactions,
+        });
+        if (!compliance.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "COMPLIANCE_M3_FAILED",
+              pointsDelta: -10,
+              message: compliance.reasonFr ?? compliance.reason ?? "",
+            });
+          }
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(compliance, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_M3");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M3_COMPLETED", pointsDelta: 15, message: "Conformité Module 3 validée" });

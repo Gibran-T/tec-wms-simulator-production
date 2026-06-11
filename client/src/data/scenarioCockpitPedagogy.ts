@@ -119,9 +119,9 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
     situation: { fr: "SKU-004 (30) et SKU-005 (40) sous seuil Min.", en: "SKU-004 (30) and SKU-005 (40) below Min threshold." },
     evidenceToObserve: { fr: "Niveaux vs Min/Max/SS dans le panneau réappro.", en: "Levels vs Min/Max/SS in replenishment panel." },
     operationalProblem: { fr: "Risque de rupture — calcul de réappro requis.", en: "Stockout risk — replenishment calculation required." },
-    expectedActionHint: { fr: "Analysez Min/Max, calculez le besoin, proposez REPLENISH.", en: "Analyze Min/Max, calculate need, propose REPLENISH." },
+    expectedActionHint: { fr: "Analysez Min/Max, calculez Q = Max − stock pour chaque SKU, proposez REPLENISH.", en: "Analyze Min/Max, calculate Q = Max − stock for each SKU, propose REPLENISH." },
     transactionMonitorHint: { fr: "GI passées ont réduit les stocks sous Min.", en: "Past GIs reduced stock below Min." },
-    complianceHint: { fr: "Recommandations doivent respecter ROP et stock de sécurité.", en: "Recommendations must respect ROP and safety stock." },
+    complianceHint: { fr: "Quantité = Max − stock actuel ; vérifier SS pour urgence.", en: "Quantity = Max − current stock; check SS for urgency." },
     learningTakeaway: { fr: "Min/Max et SS cadrent le réapprovisionnement automatique.", en: "Min/Max and SS frame automated replenishment." },
   },
   "SCN-012": {
