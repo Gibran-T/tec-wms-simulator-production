@@ -1,11 +1,12 @@
 import { Link, useLocation } from "wouter";
+import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  CheckCircle2, AlertTriangle, ArrowRight, BarChart2, Presentation,
+  CheckCircle2, AlertTriangle, ArrowRight, BarChart2, Presentation, RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -32,9 +33,27 @@ export default function Module4Dashboard() {
   const isAdminOrTeacher = user?.role === "admin" || user?.role === "teacher";
 
   const { data: moduleProgress } = trpc.modules.progress.useQuery();
-  const { data: rawScenarios, isLoading } = trpc.scenarios.listByModule.useQuery({ moduleCode: "M4" });
+  const {
+    data: rawScenarios,
+    isLoading,
+    isError,
+    isFetching,
+    refetch,
+  } = trpc.scenarios.listByModule.useQuery({ moduleCode: "M4" });
   const scenarios = filterCanonicalScenariosForModule(4, rawScenarios ?? []);
   const { data: myRuns } = trpc.runs.myRuns.useQuery();
+
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setLoadTimedOut(true), 15000);
+    return () => window.clearTimeout(timer);
+  }, [isLoading]);
+
+  const loadFailed = isError || loadTimedOut;
 
   const m3Progress = moduleProgress?.find((p) => p.moduleCode === "M3");
   const showPrerequisiteNote = !isAdminOrTeacher && (!m3Progress?.passed || !m3Progress?.teacherValidated);
@@ -45,7 +64,7 @@ export default function Module4Dashboard() {
       .filter((r) => r.run.scenarioId === scenarioId && !r.run.isDemo)
       .sort((a, b) => b.run.id - a.run.id)[0];
 
-  if (isLoading) {
+  if (isLoading && !loadFailed) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
@@ -53,6 +72,53 @@ export default function Module4Dashboard() {
           <p className="text-sm text-muted-foreground">{t("Chargement du Module 4...", "Loading Module 4...")}</p>
         </div>
       </div>
+    );
+  }
+
+  if (loadFailed) {
+    return (
+      <FioriShell
+        title={t("Mes Scénarios — Module 4", "My Scenarios — Module 4")}
+        breadcrumbs={[
+          { label: t("Accueil", "Home"), href: "/" },
+          { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+          { label: "M4" },
+        ]}
+      >
+        <div className="max-w-lg mx-auto py-16 px-4 text-center space-y-4">
+          <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+          <h2 className="text-lg font-semibold text-foreground">
+            {loadTimedOut && !isError
+              ? t("Chargement interrompu", "Loading timed out")
+              : t("Impossible de charger le Module 4", "Unable to load Module 4")}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "La liste des scénarios n'a pas pu être récupérée. Vérifiez votre connexion, puis réessayez. Si le problème persiste, rechargez la page ou contactez l'enseignant.",
+              "The scenario list could not be retrieved. Check your connection and try again. If the problem persists, reload the page or contact your instructor.",
+            )}
+          </p>
+          <Button
+            onClick={() => {
+              setLoadTimedOut(false);
+              void refetch();
+            }}
+            disabled={isFetching}
+            className="gap-2 bg-[#0070f2] hover:bg-[#005bb5]"
+          >
+            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+            {t("Réessayer", "Retry")}
+          </Button>
+          <div>
+            <Link href="/student/scenarios">
+              <Button variant="outline" size="sm" className="gap-2">
+                <ArrowRight className="w-3 h-3 rotate-180" />
+                {t("Retour aux scénarios", "Back to scenarios")}
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </FioriShell>
     );
   }
 

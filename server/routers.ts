@@ -994,6 +994,11 @@ export const appRouter = router({
             detail: "Un écart entre le stock physique et le stock système a été détecté lors du Cycle Count mais n'a pas été résolu avec une transaction ADJ (ajustement d'inventaire).",
             recommendation: "Après chaque Cycle Count, analysez les écarts et créez une transaction MI07 (ADJ) pour réconcilier le stock physique avec le stock système.",
           },
+          CAPACITY_OVERFLOW: {
+            title: "Tentative de dépassement de capacité d'emplacement",
+            detail: "Vous avez tenté de ranger une quantité supérieure à la capacité maximale du bin cible. La transaction a été rejetée, mais la tentative pédagogique est enregistrée (−10 pts). En SCN-007, observez l'alerte puis répartissez la marchandise sur plusieurs emplacements STOCKAGE.",
+            recommendation: "Vérifiez la capacité max du bin (ex. B-01-R1-L1 = 500 u.) avant le rangement. Répartissez les quantités excédentaires sur plusieurs bins conformes.",
+          },
         };
 
         const PENALTY_EXPLANATIONS_ZONE: Record<string, { title: string; detail: string; recommendation: string }> = {
@@ -1051,6 +1056,8 @@ export const appRouter = router({
           recommendations.push("Flux de réception : MIGO → emplacement REC-01/REC-02, puis LT0A pour ranger en zone STOCKAGE (B-01, A-01, etc.)");
         if (errorTypes.has("WRONG_ZONE_PICKING") || errorTypes.has("WRONG_ZONE_GI"))
           recommendations.push("Flux d'expédition : VL01N pour prélever du STOCKAGE vers EXP-01/EXP-02, puis VL02N pour poster la GI depuis le quai d'expédition");
+        if (errorTypes.has("CAPACITY_OVERFLOW"))
+          recommendations.push("En cas de dépassement de capacité, répartissez la quantité sur plusieurs bins STOCKAGE plutôt que de forcer un seul emplacement");
         if (!compliance.compliant)
           recommendations.push("Relancez la simulation en Mode Démonstration pour explorer librement les étapes sans pénalité");
         if (recommendations.length === 0 && errors.length === 0)

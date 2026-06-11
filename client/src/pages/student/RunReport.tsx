@@ -201,7 +201,7 @@ export default function RunReport() {
     );
   }
 
-  if (isLoading || detailLoading) return (
+  if (isLoading) return (
     <FioriShell title={t("Rapport Final", "Final Report")} breadcrumbs={[
       { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
       { label: t("Rapport", "Report") }
@@ -237,6 +237,7 @@ export default function RunReport() {
   const { run, scenario, completedSteps, compliance, totalScore, progressPct } = data;
   const isDemo = run.isDemo;
   const isPerfect = (totalScore ?? 0) >= 100;
+  const detailUnavailable = detailError || (!detailLoading && !detail);
 
   return (
     <FioriShell
@@ -412,9 +413,15 @@ export default function RunReport() {
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase">{t("Erreurs commises", "Errors made")}</p>
-              <p className={`text-sm font-bold ${(detail?.totalErrors ?? 0) === 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                {detail?.totalErrors ?? 0}
-              </p>
+              {detailUnavailable ? (
+                <p className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  {t("Détails indisponibles / erreurs non chargées", "Details unavailable / errors not loaded")}
+                </p>
+              ) : (
+                <p className={`text-sm font-bold ${detail!.totalErrors === 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                  {detail!.totalErrors}
+                </p>
+              )}
             </div>
           </div>
           {/* Dynamic step list from detailedReport — works for M1-M5 */}

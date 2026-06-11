@@ -2,6 +2,7 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { BookOpen, Layers, TrendingUp, BarChart2, FileText, Presentation, Clock, ChevronRight, Lock } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SLIDE_COUNT_BY_MODULE, TOTAL_SLIDE_COUNT } from "@/data/slideCounts";
 
 const modules = [
   {
@@ -14,7 +15,7 @@ const modules = [
     titleEn: "Module 1 — ERP/WMS Foundations",
     descFr: "Introduction aux systèmes WMS/ERP, flux logistiques, transactions SAP et cycle opérationnel complet.",
     descEn: "Introduction to WMS/ERP systems, logistics flows, SAP transactions and complete operational cycle.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[1],
     duration: "4h",
     topics: ["WMS · ERP · SAP", "PO · GR · SO · GI", "Cycle Count"],
     topicsEn: ["WMS · ERP · SAP", "PO · GR · SO · GI", "Cycle Count"],
@@ -31,7 +32,7 @@ const modules = [
     titleEn: "Module 2 — Warehouse Execution",
     descFr: "Gestion des emplacements, règles FIFO/LIFO, capacité des bins et traçabilité des lots.",
     descEn: "Location management, FIFO/LIFO rules, bin capacity and lot traceability.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[2],
     duration: "5h",
     topics: ["ASN · FIFO/LIFO", "Capacité bins", "Traçabilité"],
     topicsEn: ["ASN · FIFO/LIFO", "Bin capacity", "Traceability"],
@@ -48,7 +49,7 @@ const modules = [
     titleEn: "Module 3 — Inventory Control",
     descFr: "Inventaire cyclique, ajustements de stock, ROP, stock de sécurité et EOQ.",
     descEn: "Cycle counting, stock adjustments, ROP, safety stock and EOQ.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[3],
     duration: "5h",
     topics: ["ROP · Safety Stock", "EOQ · MRP", "Cycle Count"],
     topicsEn: ["ROP · Safety Stock", "EOQ · MRP", "Cycle Count"],
@@ -65,7 +66,7 @@ const modules = [
     titleEn: "Module 4 — Performance Indicators",
     descFr: "KPIs logistiques : OTIF, Fill Rate, DSI, LPH. Analyse Lean et Root Cause Analysis.",
     descEn: "Logistics KPIs: OTIF, Fill Rate, DSI, LPH. Lean analysis and Root Cause Analysis.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[4],
     duration: "5h",
     topics: ["OTIF · Fill Rate", "DSI · LPH", "Lean · RCA"],
     topicsEn: ["OTIF · Fill Rate", "DSI · LPH", "Lean · RCA"],
@@ -82,7 +83,7 @@ const modules = [
     titleEn: "Module 5 — Integrated Simulation",
     descFr: "Simulation opérationnelle complète intégrant tous les modules. Certification finale TEC.LOG.",
     descEn: "Full operational simulation integrating all modules. TEC.LOG final certification.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[5],
     duration: "6h",
     topics: ["Simulation · Crise", "Gestion intégrée", "Certification"],
     topicsEn: ["Simulation · Crisis", "Integrated mgmt", "Certification"],
@@ -119,8 +120,8 @@ export default function StudentSlidesHub() {
             </h1>
             <p className="text-sm text-white/70 mt-0.5">
               {t(
-                "5 modules · 80 slides · Disponibles en français et en anglais",
-                "5 modules · 80 slides · Available in French and English"
+                `5 modules · ${TOTAL_SLIDE_COUNT} slides · Disponibles en français et en anglais`,
+                `5 modules · ${TOTAL_SLIDE_COUNT} slides · Available in French and English`
               )}
             </p>
           </div>
@@ -132,7 +133,7 @@ export default function StudentSlidesHub() {
           </div>
           <div className="w-px h-10 bg-white/20" />
           <div>
-            <p className="text-2xl font-bold">80</p>
+            <p className="text-2xl font-bold">{TOTAL_SLIDE_COUNT}</p>
             <p className="text-xs text-white/60">{t("Slides", "Slides")}</p>
           </div>
         </div>

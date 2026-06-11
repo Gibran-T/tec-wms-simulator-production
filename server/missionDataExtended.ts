@@ -94,9 +94,9 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
   "SCN-008": {
     scenarioId: 8,
     scnCode: "SCN-008",
-    objective: "Appliquer FIFO sur trois lots du même SKU lors du rangement et du prélèvement.",
+    objective: "Appliquer FIFO sur trois lots du même SKU lors du prélèvement (rangement déjà effectué).",
     context:
-      "Trois lots SKU-003 sont déjà en stock multi-bins : LOT-A (jan, B-01-R1-L1), LOT-B (fév, B-01-R1-L2), LOT-C (mars, B-02-R1-L1). Observez les dates de réception dans le cockpit, validez l'ordre FIFO, puis prélevez le lot le plus ancien en premier.",
+      "Trois lots SKU-003 sont préchargés en zone STOCKAGE (rangement déjà posté) : LOT-A (jan, B-01-R1-L1), LOT-B (fév, B-01-R1-L2), LOT-C (mars, B-02-R1-L1). Aucun PUTAWAY requis — observez les dates de réception dans le cockpit, validez l'ordre FIFO, puis prélevez le lot le plus ancien (FIFO_PICK).",
     role: "Spécialiste FIFO",
     module: "WM — Traçabilité lots",
     controlPoints: [
@@ -106,9 +106,9 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       "Ne pas mélanger les lots dans un même mouvement.",
     ],
     studentActions: [
-      "Observer le stock : 3 lots SKU-003 répartis sur B-01-R1-L1, B-01-R1-L2, B-02-R1-L1.",
+      "Observer le stock préchargé : 3 lots SKU-003 déjà rangés sur B-01-R1-L1, B-01-R1-L2, B-02-R1-L1.",
       "Valider l'ordre FIFO : LOT-A (jan) → LOT-B (fév) → LOT-C (mars).",
-      "Exécuter PUTAWAY si requis, puis FIFO_PICK sur le lot le plus ancien.",
+      "Exécuter FIFO_PICK sur le lot le plus ancien (PUTAWAY déjà complété au démarrage).",
       "Compléter STOCK_ACCURACY et COMPLIANCE_ADV.",
     ],
     expectedOutcome: "Prélèvement conforme FIFO, traçabilité lot intacte.",
@@ -119,7 +119,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       sourceBin: "B-01-R1-L1 / B-01-R1-L2 / B-02-R1-L1",
       targetBin: "Zone EXPÉDITION (FIFO_PICK)",
       expectedTransaction: "FIFO_PICK — LOT-A-2025 en premier",
-      status: "3 lots postés — ordre jan/fév/mars",
+      status: "3 lots préchargés en STOCKAGE — putaway auto ; démarrage à FIFO_PICK",
     },
     successCriteria: ["Lot oldest picked first", "Traçabilité lot conservée"],
     failureConditions: ["Pick lot récent avant ancien", "Mélange lots non autorisé"],

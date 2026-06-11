@@ -2,6 +2,7 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { BookOpen, Layers, TrendingUp, BarChart2, FileText, Presentation, Clock, ChevronRight } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { SLIDE_COUNT_BY_MODULE, TOTAL_SLIDE_COUNT } from "@/data/slideCounts";
 
 const modules = [
   {
@@ -12,7 +13,7 @@ const modules = [
     titleEn: "Module 1 — ERP/WMS Foundations",
     descFr: "Introduction aux systèmes WMS/ERP, flux logistiques, transactions SAP (ME21N, MIGO, VA01, VL02N) et cycle opérationnel complet.",
     descEn: "Introduction to WMS/ERP systems, logistics flows, SAP transactions (ME21N, MIGO, VA01, VL02N) and complete operational cycle.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[1],
     duration: "4h",
     topics: ["WMS · ERP · SAP", "Flux logistiques", "Transactions PO/GR/SO/GI"],
     topicsEn: ["WMS · ERP · SAP", "Logistics flows", "PO/GR/SO/GI transactions"],
@@ -26,7 +27,7 @@ const modules = [
     titleEn: "Module 2 — Warehouse Execution",
     descFr: "Gestion des emplacements, règles de rangement FIFO/LIFO, capacité des bins, précision d'inventaire et traçabilité des lots.",
     descEn: "Location management, FIFO/LIFO putaway rules, bin capacity, inventory accuracy and lot traceability.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[2],
     duration: "5h",
     topics: ["ASN · FIFO/LIFO", "Capacité bins", "Traçabilité lot"],
     topicsEn: ["ASN · FIFO/LIFO", "Bin capacity", "Lot traceability"],
@@ -40,7 +41,7 @@ const modules = [
     titleEn: "Module 3 — Inventory Control",
     descFr: "Inventaire cyclique, calcul des écarts, ajustements de stock, point de réapprovisionnement (ROP), stock de sécurité et EOQ.",
     descEn: "Cycle counting, variance calculation, stock adjustments, reorder point (ROP), safety stock and EOQ.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[3],
     duration: "5h",
     topics: ["ROP · Safety Stock · EOQ", "MRP · Cycle Count", "Ajustements"],
     topicsEn: ["ROP · Safety Stock · EOQ", "MRP · Cycle Count", "Adjustments"],
@@ -54,7 +55,7 @@ const modules = [
     titleEn: "Module 4 — Performance Indicators",
     descFr: "KPIs logistiques : OTIF, Fill Rate, DSI, LPH, taux d'erreur. Analyse Lean, Root Cause Analysis et tableaux de bord.",
     descEn: "Logistics KPIs: OTIF, Fill Rate, DSI, LPH, error rate. Lean analysis, Root Cause Analysis and dashboards.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[4],
     duration: "5h",
     topics: ["OTIF · Fill Rate · DSI", "LPH · Lean · RCA", "Tableaux de bord"],
     topicsEn: ["OTIF · Fill Rate · DSI", "LPH · Lean · RCA", "Dashboards"],
@@ -68,7 +69,7 @@ const modules = [
     titleEn: "Module 5 — Integrated Simulation",
     descFr: "Simulation opérationnelle complète intégrant tous les modules. Gestion de crise logistique, scénarios réels et certification finale.",
     descEn: "Full operational simulation integrating all modules. Logistics crisis management, real scenarios and final certification.",
-    slides: 16,
+    slides: SLIDE_COUNT_BY_MODULE[5],
     duration: "6h",
     topics: ["Simulations · Crise", "Gestion intégrée", "Certification TEC.LOG"],
     topicsEn: ["Simulations · Crisis", "Integrated management", "TEC.LOG Certification"],
@@ -100,8 +101,8 @@ export default function TeacherSlidesHub() {
             </h1>
             <p className="text-sm text-primary-foreground/70 mt-0.5">
               {t(
-                "5 modules · 80 slides bilingues · Mode Professeur avec notes de cours",
-                "5 modules · 80 bilingual slides · Professor Mode with lecture notes"
+                `5 modules · ${TOTAL_SLIDE_COUNT} slides bilingues · Mode Professeur avec notes de cours`,
+                `5 modules · ${TOTAL_SLIDE_COUNT} bilingual slides · Professor Mode with lecture notes`
               )}
             </p>
           </div>
@@ -113,7 +114,7 @@ export default function TeacherSlidesHub() {
           </div>
           <div className="w-px h-10 bg-primary-foreground/20" />
           <div>
-            <p className="text-2xl font-bold">80</p>
+            <p className="text-2xl font-bold">{TOTAL_SLIDE_COUNT}</p>
             <p className="text-xs text-primary-foreground/60">{t("Slides", "Slides")}</p>
           </div>
           <div className="w-px h-10 bg-primary-foreground/20" />
