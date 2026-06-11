@@ -1887,7 +1887,7 @@ export default function StepForm() {
                       <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
                         {t("Taux de service", "Service level")} = 285 / 300 = <strong>95%</strong>
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Objectif industrie : ≥ 98% (classe mondiale), 95-97% (acceptable), < 95% (à améliorer)", "Industry target: ≥ 98% (world class), 95-97% (acceptable), < 95% (to improve)")}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{t("Objectif industrie : ≥ 95% (excellent), < 95% (à améliorer)", "Industry target: ≥ 95% (excellent), < 95% (to improve)")}</p>
                     </div>
                   )}
                   {step?.toLowerCase() === "kpi_diagnostic" && (
