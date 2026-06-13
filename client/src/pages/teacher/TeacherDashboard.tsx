@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { SLIDE_COUNT_BY_MODULE } from "@/data/slideCounts";
+import { getModuleScenarioPassThreshold } from "@/data/moduleThresholds";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,6 +56,11 @@ export default function TeacherDashboard() {
   const { data: cohorts } = trpc.cohorts.list.useQuery();
   const { data: assignments } = trpc.assignments.all.useQuery();
   const { data: monitor } = trpc.monitor.allRuns.useQuery();
+  const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery();
+  const utils = trpc.useUtils();
+  const validateM3 = trpc.warehouse.validateTeacherModule.useMutation({
+    onSuccess: () => void utils.warehouse.allModuleProgress.invalidate(),
+  });
 
   const evalRuns = (monitor ?? []).filter((r: any) => !r.run?.isDemo && r.run?.userId !== user?.id);
   const demoRuns = (monitor ?? []).filter((r: any) => r.run?.isDemo);
@@ -74,11 +80,21 @@ export default function TeacherDashboard() {
     return Math.round(scored.reduce((s: number, r: any) => s + (r.score ?? 0), 0) / scored.length);
   };
 
-  const passedCount = (runs: any[]) =>
-    runs.filter((r: any) => r.score !== null && r.score !== undefined && r.score >= 60).length;
+  const passedCount = (runs: any[], moduleId: number) => {
+    const threshold = getModuleScenarioPassThreshold(moduleId);
+    return runs.filter((r: any) => r.score !== null && r.score !== undefined && r.score >= threshold).length;
+  };
 
   const mAvg = mRuns.map(avgScore);
-  const mPassed = mRuns.map(passedCount);
+  const mPassed = mRuns.map((runs, idx) => passedCount(runs, idx + 1));
+
+  const m3AwaitingValidation = (moduleProgressRows ?? []).filter(
+    (row: { progress: { moduleId: number; passed: boolean; teacherValidated: boolean }; user: { role: string; name: string | null; id: number } }) =>
+      row.progress.moduleId === 3 &&
+      row.user.role === "student" &&
+      row.progress.passed &&
+      !row.progress.teacherValidated,
+  );
 
   const assignmentsCount = assignments?.length ?? 0;
   const activeEvalCount = allEvalForStats.filter((r: any) => r.run?.status === "in_progress").length;
@@ -236,6 +252,37 @@ export default function TeacherDashboard() {
           );
         })}
       </div>
+
+      {/* ── M3 instructor validation (P0-07) ─────────────────────────────────── */}
+      {m3AwaitingValidation.length > 0 && (
+        <div className="bg-card border border-emerald-200 rounded-md mb-6 p-4">
+          <p className="text-xs font-semibold text-emerald-800 flex items-center gap-2 mb-3">
+            <ShieldCheck size={14} />
+            {t("Validation Module 3 en attente", "Module 3 validation pending")}
+            <span className="text-[10px] font-normal text-muted-foreground">({m3AwaitingValidation.length})</span>
+          </p>
+          <div className="space-y-2">
+            {m3AwaitingValidation.map((row: { progress: { bestScore: number }; user: { id: number; name: string | null } }) => (
+              <div key={row.user.id} className="flex items-center justify-between gap-3 py-2 border-t border-border first:border-t-0">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{row.user.name ?? `User#${row.user.id}`}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {t("M3 réussi", "M3 passed")} · {t("Meilleur score", "Best score")}: {row.progress.bestScore}/100
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={validateM3.isPending}
+                  onClick={() => validateM3.mutate({ userId: row.user.id, moduleId: 3, validated: true })}
+                  className="text-[10px] font-semibold px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {t("Valider M3 → débloquer M4", "Validate M3 → unlock M4")}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ── Recent Student Activity ──────────────────────────────────────────── */}
       <div className="bg-card border border-border rounded-md mb-4">

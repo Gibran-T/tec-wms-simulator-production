@@ -56,7 +56,9 @@ export default function Module4Dashboard() {
   const loadFailed = isError || loadTimedOut;
 
   const m3Progress = moduleProgress?.find((p) => p.moduleCode === "M3");
-  const showPrerequisiteNote = !isAdminOrTeacher && (!m3Progress?.passed || !m3Progress?.teacherValidated);
+  const m4Blocked = !isAdminOrTeacher && (!m3Progress?.passed || !m3Progress?.teacherValidated);
+  const awaitingTeacherValidation = !isAdminOrTeacher && m3Progress?.passed && !m3Progress?.teacherValidated;
+  const showPrerequisiteNote = m4Blocked;
 
   type RunRow = NonNullable<typeof myRuns>[number];
   const getRunForScenario = (scenarioId: number): RunRow | undefined =>
@@ -138,10 +140,15 @@ export default function Module4Dashboard() {
           <Alert className="border-amber-200 bg-amber-50 text-left">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
             <AlertDescription className="text-amber-800 text-sm">
-              {t(
-                "Prérequis recommandé : validation du Module 3. Accès ouvert pour la session de classe — SCN-012 à SCN-014.",
-                "Recommended prerequisite: Module 3 validation. Access open for class session — SCN-012 to SCN-014."
-              )}
+              {awaitingTeacherValidation
+                ? t(
+                    "Module 4 verrouillé — votre enseignant doit valider votre réussite au Module 3 (≥ 70/100) avant d'accéder à SCN-012 à SCN-014.",
+                    "Module 4 locked — your instructor must validate your Module 3 completion (≥ 70/100) before accessing SCN-012 to SCN-014.",
+                  )
+                : t(
+                    "Module 4 verrouillé — complétez et réussissez le Module 3 (≥ 70/100) avant d'accéder à SCN-012 à SCN-014.",
+                    "Module 4 locked — complete and pass Module 3 (≥ 70/100) before accessing SCN-012 to SCN-014.",
+                  )}
             </AlertDescription>
           </Alert>
         )}
@@ -221,8 +228,12 @@ export default function Module4Dashboard() {
                       <span className="text-xs text-muted-foreground">
                         {t("Module 4 · Mission Control + tour KPI", "Module 4 · Mission Control + KPI tower")}
                       </span>
-                      <Link href={`/student/module4/scenario/${scenario.id}/mode`}>
-                        <Button size="sm" className="gap-2 bg-[#0070f2] hover:bg-[#005bb5]">
+                      <Link href={m4Blocked ? "#" : `/student/module4/scenario/${scenario.id}/mode`}>
+                        <Button
+                          size="sm"
+                          className="gap-2 bg-[#0070f2] hover:bg-[#005bb5]"
+                          disabled={m4Blocked}
+                        >
                           {lastRun ? t("Recommencer", "Restart") : t("Démarrer", "Start")}
                           <ArrowRight className="w-3 h-3" />
                         </Button>

@@ -36,6 +36,8 @@ import {
   startRun,
   updateUserRole,
   upsertModuleProgress,
+  getModuleProgressRow,
+  setTeacherValidated,
   getAllUsers,
   getProfileByUserId,
   upsertProfile,
@@ -57,6 +59,7 @@ import {
   getBestQuizAttempt,
   saveQuizAttempt,
   checkM1QuizPassed,
+  checkQuizPassed,
   checkAllM1ScenariosCompleted,
   checkM1ComplianceValidated,
   checkNoUnresolvedBlockers,
@@ -75,6 +78,7 @@ import {
   getNextRequiredStep,
   getNextRequiredStepAllModules,
   isModuleUnlocked,
+  isModule3Unlocked,
   MODULE1_STEPS,
   MODULE2_STEPS,
   MODULE3_STEPS,
@@ -126,6 +130,7 @@ import {
 } from "./db";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
+import { computeModulePassResult } from "@shared/moduleThresholds";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
@@ -773,8 +778,45 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         // Only teachers/admins can start demo sessions
         const isDemo = input.isDemo && (ctx.user.role === "teacher" || ctx.user.role === "admin");
-        const runId = await startRun(ctx.user.id, input.scenarioId, isDemo);
         const scenario = await getScenarioById(input.scenarioId);
+        if (!scenario) {
+          throw new TRPCError({ code: "NOT_FOUND", message: "Scénario introuvable" });
+        }
+
+        const moduleId = scenario.moduleId ?? 1;
+
+        // Server-side progression gates for students in evaluation mode (P0-09, P0-07)
+        if (!isDemo && ctx.user.role === "student") {
+          const quizPassed = await checkQuizPassed(ctx.user.id, moduleId);
+          if (!quizPassed) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Quiz du module requis — réussissez le quiz avant de démarrer un scénario en évaluation.",
+            });
+          }
+
+          if (moduleId >= 2) {
+            const passedIds = await getPassedModuleIds(ctx.user.id);
+            if (!isModuleUnlocked(1, passedIds)) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Module 2 verrouillé — complétez le Module 1 d'abord.",
+              });
+            }
+          }
+
+          if (moduleId === 4) {
+            const m3Progress = await getModuleProgressRow(ctx.user.id, 3);
+            if (!isModule3Unlocked(m3Progress ?? undefined)) {
+              throw new TRPCError({
+                code: "FORBIDDEN",
+                message: "Module 4 verrouillé — validation enseignant du Module 3 requise.",
+              });
+            }
+          }
+        }
+
+        const runId = await startRun(ctx.user.id, input.scenarioId, isDemo);
         if (scenario?.initialStateJson) {
           const state = scenario.initialStateJson as any;
           if (state.preloadedTransactions) {
@@ -1769,12 +1811,24 @@ export const appRouter = router({
     /** Get all module progress (teacher view) */
     allModuleProgress: teacherProcedure.query(() => getAllModuleProgressForMonitor()),
 
-    /** Record module pass/fail after scenario completion */
+    /** Record module pass/fail after scenario completion (GOV-T01 thresholds) */
     recordModulePass: protectedProcedure
       .input(z.object({ moduleId: z.number(), score: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const passed = input.score >= 60;
-        await upsertModuleProgress({ userId: ctx.user.id, moduleId: input.moduleId, passed, bestScore: input.score, completedAt: passed ? new Date() : undefined });
+        const existing = await getModuleProgressRow(ctx.user.id, input.moduleId);
+        const { passed } = computeModulePassResult(
+          input.moduleId,
+          input.score,
+          existing?.passed ?? false,
+        );
+        const bestScore = Math.max(existing?.bestScore ?? 0, input.score);
+        await upsertModuleProgress({
+          userId: ctx.user.id,
+          moduleId: input.moduleId,
+          passed,
+          bestScore,
+          completedAt: passed ? (existing?.completedAt ?? new Date()) : undefined,
+        });
 
         // Check for M1 Silver Certification unlock conditions
         if (input.moduleId === 1) {
@@ -1788,9 +1842,32 @@ export const appRouter = router({
           }
         }
 
-        // TODO: Implement Gold Certification logic for M5 completion
-
         return { passed };
+      }),
+
+    /** Instructor validates M3 mastery — unlocks M4 for the student (P0-07) */
+    validateTeacherModule: teacherProcedure
+      .input(z.object({
+        userId: z.number(),
+        moduleId: z.number(),
+        validated: z.boolean().default(true),
+      }))
+      .mutation(async ({ input }) => {
+        if (input.moduleId !== 3) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Seul le Module 3 supporte la validation enseignant.",
+          });
+        }
+        const progress = await getModuleProgressRow(input.userId, input.moduleId);
+        if (!progress?.passed) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "L'étudiant doit avoir réussi le Module 3 avant validation enseignant.",
+          });
+        }
+        await setTeacherValidated(input.userId, input.moduleId, input.validated);
+        return { success: true, teacherValidated: input.validated };
       }),
   }),
 

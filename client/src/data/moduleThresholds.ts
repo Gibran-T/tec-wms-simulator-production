@@ -1,7 +1,9 @@
-/** Display-only evaluation score thresholds per module (not certification logic). */
-export function getEvalScoreThreshold(moduleId: number): number {
-  return moduleId >= 3 ? 70 : 60;
-}
+export {
+  QUIZ_PASS_THRESHOLD,
+  getEvalScoreThreshold,
+  getModuleScenarioPassThreshold,
+  computeModulePassResult,
+} from "@shared/moduleThresholds";
 
 export function getModuleCertContext(moduleId: number): { fr: string; en: string } | null {
   switch (moduleId) {
@@ -17,8 +19,8 @@ export function getModuleCertContext(moduleId: number): { fr: string; en: string
       };
     case 3:
       return {
-        fr: "Module 3 — Seuil scénario 70/100. Validation M3 requise avant Module 4.",
-        en: "Module 3 — Scenario threshold 70/100. M3 validation required before Module 4.",
+        fr: "Module 3 — Seuil scénario 70/100. Validation enseignant requise avant Module 4.",
+        en: "Module 3 — Scenario threshold 70/100. Instructor validation required before Module 4.",
       };
     case 4:
       return {

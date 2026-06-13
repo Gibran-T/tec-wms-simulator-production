@@ -24,6 +24,7 @@ import {
   type InsertUser,
   type InsertPreAuthorizedEmail,
 } from "../drizzle/schema";
+import { QUIZ_PASS_THRESHOLD } from "@shared/moduleThresholds";
 import { ENV } from "./_core/env";
 import {
   M1_CANONICAL_SCENARIO_IDS,
@@ -581,6 +582,62 @@ export async function upsertModuleProgress(data: {
     });
 }
 
+export async function getModuleProgressRow(userId: number, moduleId: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db
+    .select()
+    .from(moduleProgress)
+    .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export async function setTeacherValidated(
+  userId: number,
+  moduleId: number,
+  validated: boolean,
+) {
+  const db = await getDb();
+  if (!db) return;
+  const existing = await getModuleProgressRow(userId, moduleId);
+  if (!existing) {
+    await db.insert(moduleProgress).values({
+      userId,
+      moduleId,
+      passed: false,
+      bestScore: 0,
+      teacherValidated: validated,
+      teacherValidatedAt: validated ? new Date() : null,
+    });
+    return;
+  }
+  await db
+    .update(moduleProgress)
+    .set({
+      teacherValidated: validated,
+      teacherValidatedAt: validated ? new Date() : null,
+    })
+    .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)));
+}
+
+/** Best quiz attempt for module meets GOV-T01 quiz threshold (60 %). */
+export async function checkQuizPassed(userId: number, moduleId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const moduleQuiz = await db.select().from(quizzes).where(eq(quizzes.moduleId, moduleId)).limit(1);
+  if (moduleQuiz.length === 0) return true;
+
+  const bestAttempt = await db
+    .select()
+    .from(quizAttempts)
+    .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.quizId, moduleQuiz[0].id)))
+    .orderBy(quizAttempts.score.desc())
+    .limit(1);
+
+  return bestAttempt.length > 0 && bestAttempt[0].score >= QUIZ_PASS_THRESHOLD;
+}
+
 export async function getAllModuleProgressForMonitor() {
   const db = await getDb();
   if (!db) return [];
@@ -1108,7 +1165,7 @@ export async function checkM1QuizPassed(userId: number): Promise<boolean> {
     .orderBy(quizAttempts.score.desc())
     .limit(1);
 
-  return bestAttempt.length > 0 && bestAttempt[0].score >= 60; // Assuming 60 is passing score
+  return bestAttempt.length > 0 && bestAttempt[0].score >= QUIZ_PASS_THRESHOLD;
 }
 
 /** All canonical M1 scenarios (SCN-001–005) completed in evaluation mode with score >= 60. */
