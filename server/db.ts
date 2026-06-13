@@ -1145,7 +1145,7 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
 
   for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
     const latestRun = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
-    if (!latestRun) continue;
+    if (!latestRun) return false;
 
     const unpostedTransactions = await db.select()
       .from(transactions)

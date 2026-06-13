@@ -58,7 +58,7 @@ export function CertificationsPage() {
   const quizPassed = silverStatus?.quizPassed ?? false;
   const scenariosCompleted = silverStatus?.scenariosCompleted;
   const complianceValidated = silverStatus?.complianceValidated ?? false;
-  const noBlockers = silverStatus?.noBlockers ?? true;
+  const noBlockers = silverStatus?.noBlockers ?? false;
   const silverEarned = silverStatus?.silverCertified ?? false;
   const silverEligible = silverStatus?.silverEligible ?? false;
 

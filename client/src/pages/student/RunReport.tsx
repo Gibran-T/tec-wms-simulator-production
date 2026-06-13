@@ -32,6 +32,7 @@ function normalizeReportDetail(
     recommendations?: string[];
     scoreLabel?: string;
     certificationUnlocked?: boolean;
+    silverEligible?: boolean;
   } | null | undefined,
 ) {
   if (!detail) return null;
@@ -48,6 +49,7 @@ function normalizeReportDetail(
     recommendations: Array.isArray(detail.recommendations) ? detail.recommendations : [],
     scoreLabel: detail.scoreLabel ?? "",
     certificationUnlocked: detail.certificationUnlocked ?? false,
+    silverEligible: detail.silverEligible ?? false,
   };
 }
 
@@ -366,17 +368,30 @@ export default function RunReport() {
               : `⚠ ${t("Module complété — Non conforme", "Module completed — Non-compliant")}`}
           </p>
 
-          {/* Certification eligibility message */}
+          {/* Certification — earned vs eligible (Silver integrity) */}
           {safeDetail?.certificationUnlocked && (
             <div className="mt-4">
               <p className="text-white/90 text-sm font-semibold mb-2">
-                {t("Vous êtes éligible à la certification Silver M1 !", "You are eligible for M1 Silver certification!")}
+                {t("Certification Silver TEC.LOG obtenue !", "TEC.LOG Silver certification earned!")}
               </p>
               <button
                 onClick={() => navigate("/student/certifications")}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
               >
                 {t("Voir ma certification Silver", "View my Silver certification")}
+              </button>
+            </div>
+          )}
+          {safeDetail?.silverEligible && !safeDetail?.certificationUnlocked && (
+            <div className="mt-4">
+              <p className="text-white/90 text-sm font-semibold mb-2">
+                {t("Vous êtes éligible à la certification Silver M1 — consultez la page Certifications.", "You are eligible for M1 Silver certification — visit the Certifications page.")}
+              </p>
+              <button
+                onClick={() => navigate("/student/certifications")}
+                className="inline-flex items-center px-4 py-2 border border-white/30 text-sm font-medium rounded-md text-white hover:bg-white/10 transition-colors"
+              >
+                {t("Ouvrir Certifications", "Open Certifications")}
               </button>
             </div>
           )}

@@ -802,6 +802,18 @@ export const appRouter = router({
               for (const stepCode of autoSteps) {
                 await markStepComplete(runId, stepCode);
               }
+              // SCN-008: pre-seeded STOCKAGE credits PUTAWAY step + scoring (MS-G9 declared bypass)
+              if (!isDemo && moduleId === 2 && autoSteps.includes("PUTAWAY")) {
+                const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
+                if (putawayRule) {
+                  await addScoringEvent({
+                    runId,
+                    eventType: "PUTAWAY_COMPLETED",
+                    pointsDelta: putawayRule.points,
+                    message: putawayRule.descriptionFr,
+                  });
+                }
+              }
             } catch (err) {
               throw new TRPCError({
                 code: "INTERNAL_SERVER_ERROR",
@@ -888,7 +900,7 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
 
-        const { silverEligible: silverCertified } = await getSilverCertificationStatus(ctx.user.id);
+        const silverStatus = await getSilverCertificationStatus(ctx.user.id);
 
         // ── Determine module from scenario ──────────────────────────────────
         const scenario = await getScenarioById(run.scenarioId);
@@ -1115,7 +1127,8 @@ export const appRouter = router({
             : moduleId === 3 ? MODULE3_STEPS
             : moduleId === 4 ? MODULE4_STEPS
             : MODULE5_STEPS).length,
-          certificationUnlocked: silverCertified,
+          certificationUnlocked: silverStatus.silverCertified,
+          silverEligible: silverStatus.silverEligible,
         };
       }),
 

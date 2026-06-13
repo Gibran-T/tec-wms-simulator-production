@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { calculateTotalScore } from "./scoringEngine";
 import { M1_SCN_KEYS } from "./db";
@@ -45,5 +48,18 @@ describe("Silver certification — eligibility rules", () => {
     const evalRun = { status: "completed" as const, isDemo: false };
     expect(demoRun.isDemo).toBe(true);
     expect(evalRun.isDemo).toBe(false);
+  });
+
+  it("checkNoUnresolvedBlockers returns false when any canonical M1 SCN lacks a completed eval run", () => {
+    const dbPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "db.ts");
+    const source = readFileSync(dbPath, "utf8");
+    const fnMatch = source.match(
+      /export async function checkNoUnresolvedBlockers[\s\S]*?\n\}/,
+    );
+    expect(fnMatch).toBeTruthy();
+    const fnBody = fnMatch![0];
+    expect(fnBody).toContain("for (const scnCode of OFFICIAL_SCN_BY_MODULE[1])");
+    expect(fnBody).toMatch(/if \(!latestRun\) return false;/);
+    expect(fnBody).not.toMatch(/if \(!latestRun\) continue;/);
   });
 });
