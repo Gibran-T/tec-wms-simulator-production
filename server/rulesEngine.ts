@@ -1048,10 +1048,355 @@ export const MODULE5_STEPS = [
   { code: "M5_DECISION", labelFr: "Décision stratégique", labelEn: "Strategic Decision", order: 6, prerequisite: "M5_KPI", moduleId: 5 },
   { code: "COMPLIANCE_M5", labelFr: "Validation finale M5", labelEn: "M5 Final Validation", order: 7, prerequisite: "M5_DECISION", moduleId: 5 }
 ];
-export function scoreM5Decision(studentDecision, kpiResult) {
+
+export type M5CycleCountTarget = {
+  sku: string;
+  bin: string;
+  systemQty: number;
+  physicalQty: number;
+};
+
+export type M5Contract = {
+  sku: string;
+  qty: number;
+  poRef: string;
+  lotNumber?: string;
+  fromBin?: string;
+  toBin?: string;
+  decisionLevel?: "TACTICAL" | "STRATEGIC";
+  varianceInjection?: number | null;
+  cycleCountTargets?: M5CycleCountTarget[];
+  kpiData?: KpiData;
+  replenishmentParams?: { minQty: number; maxQty: number; safetyStock: number };
+  profile?: "NOMINAL_INTEGRATED" | "EXCEPTION_VARIANCE" | "STRATEGIC_CAPSTONE";
+};
+
+export type M5InitialStateJson = {
+  m5Contract?: M5Contract;
+  context?: string;
+  module?: number;
+};
+
+export type M5KpiSnapshotValues = {
+  rotationRate: number;
+  serviceLevel: number;
+  errorRate: number;
+  averageLeadTime: number;
+  stockImmobilizedValue: number;
+};
+
+export type M5InventoryCountRow = {
+  sku: string;
+  systemQty?: number;
+  countedQty?: number;
+  varianceQty?: number;
+};
+
+export type M5InventoryAdjustmentRow = {
+  sku: string;
+  varianceQty: number;
+  adjustmentQty?: number;
+  reason?: string | null;
+};
+
+export type M5TransactionRow = {
+  docType: string;
+  sku: string;
+  bin?: string;
+  qty?: number;
+  posted: boolean;
+};
+
+const M5_ADJ_STEP = {
+  code: "M5_ADJ",
+  labelFr: "Ajustement inventaire (MI07)",
+  labelEn: "Inventory Adjustment (MI07)",
+  order: 4,
+  prerequisite: "M5_CYCLE_COUNT",
+  moduleId: 5,
+};
+
+export function getM5ContractFromSeed(initialStateJson?: M5InitialStateJson | null): M5Contract | undefined {
+  return initialStateJson?.m5Contract;
+}
+
+export function getM5KpiDataFromSeed(initialStateJson?: M5InitialStateJson | null): KpiData {
+  return initialStateJson?.m5Contract?.kpiData ?? CANONICAL_M4_KPI_DATA;
+}
+
+export function getM5CycleCountTargets(initialStateJson?: M5InitialStateJson | null): M5CycleCountTarget[] {
+  const raw = initialStateJson?.m5Contract?.cycleCountTargets;
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (t) => t && typeof t.sku === "string" && typeof t.bin === "string"
+      && typeof t.systemQty === "number" && typeof t.physicalQty === "number",
+  );
+}
+
+export function hasM5VarianceContract(initialStateJson?: M5InitialStateJson | null): boolean {
+  const contract = getM5ContractFromSeed(initialStateJson);
+  if (contract?.varianceInjection != null && contract.varianceInjection !== 0) return true;
+  return getM5CycleCountTargets(initialStateJson).some((t) => t.systemQty !== t.physicalQty);
+}
+
+export function getEffectiveM5Steps(
+  initialStateJson?: M5InitialStateJson | null,
+  state?: {
+    inventoryCounts?: M5InventoryCountRow[];
+    inventoryAdjustments?: M5InventoryAdjustmentRow[];
+  },
+): typeof MODULE5_STEPS {
+  const runtimeVariance = (state?.inventoryCounts ?? []).some((c) => {
+    const v = c.varianceQty ?? 0;
+    if (v === 0) return false;
+    const adj = (state?.inventoryAdjustments ?? []).some(
+      (a) => a.sku === c.sku && Number(a.varianceQty) === v,
+    );
+    return !adj;
+  });
+  if (!hasM5VarianceContract(initialStateJson) && !runtimeVariance) {
+    return MODULE5_STEPS;
+  }
+  const steps = [...MODULE5_STEPS];
+  const ccIdx = steps.findIndex((s) => s.code === "M5_CYCLE_COUNT");
+  steps.splice(ccIdx + 1, 0, { ...M5_ADJ_STEP });
+  const replenishIdx = steps.findIndex((s) => s.code === "M5_REPLENISH");
+  if (replenishIdx >= 0) {
+    steps[replenishIdx] = { ...steps[replenishIdx], prerequisite: "M5_ADJ" };
+  }
+  return steps.map((s, i) => ({ ...s, order: i + 1 }));
+}
+
+export function isM5VarianceResolved(
+  initialStateJson: M5InitialStateJson | null | undefined,
+  inventoryCounts: M5InventoryCountRow[],
+  inventoryAdjustments: M5InventoryAdjustmentRow[],
+  transactions: M5TransactionRow[],
+): boolean {
+  const targets = getM5CycleCountTargets(initialStateJson);
+  if (targets.length > 0) {
+    for (const target of targets) {
+      const expectedVariance = target.physicalQty - target.systemQty;
+      if (expectedVariance === 0) continue;
+      const hasAdj = inventoryAdjustments.some(
+        (a) => a.sku === target.sku && Number(a.varianceQty) === expectedVariance,
+      ) || transactions.some(
+        (t) => t.docType === "ADJ" && t.sku === target.sku && t.posted
+          && Number(t.qty ?? 0) === expectedVariance,
+      );
+      if (!hasAdj) return false;
+    }
+    return true;
+  }
+  for (const count of inventoryCounts) {
+    const v = count.varianceQty ?? 0;
+    if (v === 0) continue;
+    const hasAdj = inventoryAdjustments.some(
+      (a) => a.sku === count.sku && Number(a.varianceQty) === v,
+    ) || transactions.some(
+      (t) => t.docType === "ADJ" && t.sku === count.sku && t.posted,
+    );
+    if (!hasAdj) return false;
+  }
+  return true;
+}
+
+export function assertM5VarianceGate(
+  initialStateJson: M5InitialStateJson | null | undefined,
+  inventoryCounts: M5InventoryCountRow[],
+  inventoryAdjustments: M5InventoryAdjustmentRow[],
+  transactions: M5TransactionRow[],
+): ValidationResult {
+  if (!hasM5VarianceContract(initialStateJson) && inventoryCounts.every((c) => (c.varianceQty ?? 0) === 0)) {
+    return { allowed: true };
+  }
+  if (isM5VarianceResolved(initialStateJson, inventoryCounts, inventoryAdjustments, transactions)) {
+    return { allowed: true };
+  }
+  return {
+    allowed: false,
+    reason: "Unresolved inventory variance — post M5_ADJ (MI07) before continuing",
+    reasonFr: "Écart d'inventaire non résolu — postez M5_ADJ (MI07) avant de continuer",
+    reasonEn: "Unresolved inventory variance — post M5_ADJ (MI07) before continuing",
+  };
+}
+
+export function validateM5Reception(
+  input: { sku: string; qty: number; docRef: string },
+  contract?: M5Contract,
+): ValidationResult {
+  if (!contract) return { allowed: true };
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  if (input.sku !== contract.sku) {
+    issues.push(`Expected SKU ${contract.sku}, got ${input.sku}`);
+    issuesFr.push(`SKU attendu : ${contract.sku}, saisi : ${input.sku}`);
+  }
+  if (input.qty !== contract.qty) {
+    issues.push(`Expected qty ${contract.qty}, got ${input.qty}`);
+    issuesFr.push(`Quantité attendue : ${contract.qty}, saisie : ${input.qty}`);
+  }
+  if (contract.poRef && input.docRef !== contract.poRef) {
+    issues.push(`Expected PO ref ${contract.poRef}, got ${input.docRef}`);
+    issuesFr.push(`Référence PO attendue : ${contract.poRef}, saisie : ${input.docRef}`);
+  }
+  return issues.length
+    ? { allowed: false, reason: issues.join("; "), reasonFr: issuesFr.join(" ; "), reasonEn: issues.join("; ") }
+    : { allowed: true };
+}
+
+export function validateM5Putaway(
+  input: { sku: string; fromBin: string; toBin: string; qty: number; lotNumber?: string },
+  contract?: M5Contract,
+): ValidationResult {
+  if (!contract) return { allowed: true };
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  if (input.sku !== contract.sku) {
+    issues.push(`Expected SKU ${contract.sku}`);
+    issuesFr.push(`SKU attendu : ${contract.sku}`);
+  }
+  if (contract.fromBin && input.fromBin !== contract.fromBin) {
+    issues.push(`Expected fromBin ${contract.fromBin}`);
+    issuesFr.push(`Bin source attendu : ${contract.fromBin}`);
+  }
+  if (contract.toBin && input.toBin !== contract.toBin) {
+    issues.push(`Expected toBin ${contract.toBin}`);
+    issuesFr.push(`Bin destination attendu : ${contract.toBin}`);
+  }
+  if (input.qty !== contract.qty) {
+    issues.push(`Expected qty ${contract.qty}`);
+    issuesFr.push(`Quantité attendue : ${contract.qty}`);
+  }
+  return issues.length
+    ? { allowed: false, reason: issues.join("; "), reasonFr: issuesFr.join(" ; "), reasonEn: issues.join("; ") }
+    : { allowed: true };
+}
+
+function extractNumericTokens(text: string): number[] {
+  const matches = text.match(/\d+[.,]?\d*/g) ?? [];
+  return matches.map((m) => Number(m.replace(",", "."))).filter((n) => !Number.isNaN(n));
+}
+
+function kpiValueMatches(cited: number, expected: number, tolerancePct = 0.08): boolean {
+  if (Math.abs(cited - expected) <= Math.max(0.5, Math.abs(expected) * tolerancePct)) return true;
+  if (expected >= 1000 && Math.abs(cited - expected / 1000) <= 1) return true;
+  return false;
+}
+
+export function countM5KpiNumericCitations(text: string, snapshot: M5KpiSnapshotValues): number {
+  const nums = extractNumericTokens(text);
+  const kpiChecks = [
+    snapshot.rotationRate,
+    snapshot.serviceLevel <= 1 ? snapshot.serviceLevel * 100 : snapshot.serviceLevel,
+    snapshot.errorRate <= 1 ? snapshot.errorRate * 100 : snapshot.errorRate,
+    snapshot.averageLeadTime,
+    snapshot.stockImmobilizedValue,
+    snapshot.stockImmobilizedValue / 1000,
+  ];
+  let hits = 0;
+  for (const expected of kpiChecks) {
+    if (nums.some((n) => kpiValueMatches(n, expected))) hits++;
+  }
+  return hits;
+}
+
+export function scoreM5StrategicDecision(
+  studentDecision: string,
+  snapshot: M5KpiSnapshotValues,
+): { score: number; feedback: string; rejected: boolean; rejectionReason?: string } {
+  const text = studentDecision.trim();
+  const lower = text.toLowerCase();
+
+  const operationalPatterns = [
+    /poster la réception/,
+    /continuer le rangement/,
+    /m5_reception/,
+    /migo.*réception/,
+    /valider la réception/,
+    /faire le putaway/,
+  ];
+  if (operationalPatterns.some((p) => p.test(lower))) {
+    return {
+      score: 0,
+      feedback: "Décision rejetée — niveau opérationnel (R1). Orientation stratégique requise.",
+      rejected: true,
+      rejectionReason: "OPERATIONAL_LEVEL",
+    };
+  }
+
+  const kpiCitations = countM5KpiNumericCitations(text, snapshot);
+  const hasTradeOff = /arbitr|trade.?off|compromis|au d[ée]triment|entre.*et|sacrif|vs\b/i.test(text);
+  const hasHorizon = /90\s*(j|jours|days)|180\s*(j|jours|days)|3\s*mois|6\s*mois|trimestre|semestre/i.test(text);
+  const hasRecommendation = /recommand|d[ée]cid|orient|invest|politique|plan|initiative|objectif/i.test(text);
+  const genericOnly = kpiCitations < 2 && !hasTradeOff && text.length < 80;
+
+  if (genericOnly || kpiCitations < 2) {
+    return {
+      score: 0,
+      feedback: "Décision rejetée — citez au moins 2 KPI chiffrés du snapshot (rotation, service, erreurs, délai, stock).",
+      rejected: true,
+      rejectionReason: "INSUFFICIENT_KPI_CITATIONS",
+    };
+  }
+
+  if (!hasTradeOff) {
+    return {
+      score: Math.min(40, kpiCitations * 15),
+      feedback: "KPI cités — ajoutez un arbitrage explicite (trade-off stock/service/coût).",
+      rejected: true,
+      rejectionReason: "MISSING_TRADE_OFF",
+    };
+  }
+
+  if (!hasRecommendation) {
+    return {
+      score: Math.min(50, kpiCitations * 15),
+      feedback: "Arbitrage partiel — formulez une recommandation stratégique opérationnelle.",
+      rejected: true,
+      rejectionReason: "MISSING_RECOMMENDATION",
+    };
+  }
+
+  if (!hasHorizon) {
+    return {
+      score: Math.min(60, kpiCitations * 15),
+      feedback: "Recommandation partielle — précisez un horizon 90–180 jours ou une action de suivi.",
+      rejected: true,
+      rejectionReason: "MISSING_HORIZON",
+    };
+  }
+
+  let score = 30 + kpiCitations * 10;
+  if (hasTradeOff) score += 15;
+  if (hasHorizon) score += 15;
+  if (text.length >= 150) score += 10;
+
+  const feedbackParts = [
+    `✓ ${kpiCitations} KPI chiffrés cités`,
+    "✓ Arbitrage / trade-off identifié",
+    "✓ Recommandation stratégique",
+    "✓ Horizon 90–180 j",
+  ];
+
+  return {
+    score: Math.min(score, 80),
+    feedback: feedbackParts.join(" | "),
+    rejected: false,
+  };
+}
+
+export function scoreM5Decision(
+  studentDecision: string,
+  kpiResult: { rotationRate?: number; serviceLevel?: number; errorRate?: number },
+  options?: { decisionLevel?: "TACTICAL" | "STRATEGIC"; kpiSnapshot?: M5KpiSnapshotValues },
+) {
+  if (options?.decisionLevel === "STRATEGIC" && options.kpiSnapshot) {
+    return scoreM5StrategicDecision(studentDecision, options.kpiSnapshot);
+  }
   const text = studentDecision.toLowerCase();
   let score = 0;
-  const feedbackParts = [];
+  const feedbackParts: string[] = [];
   if (text.includes("rotation") || text.includes("turnover")) {
     score += 10;
     feedbackParts.push("✓ Rotation des stocks mentionnée");
@@ -1078,8 +1423,81 @@ export function scoreM5Decision(studentDecision, kpiResult) {
   }
   return {
     score: Math.min(score, 80),
-    // max 80 pts from decision, rest from sequence
-    feedback: feedbackParts.length > 0 ? feedbackParts.join(" | ") : "Décision insuffisamment justifiée — référencez les KPI observés"
+    feedback: feedbackParts.length > 0 ? feedbackParts.join(" | ") : "Décision insuffisamment justifiée — référencez les KPI observés",
+    rejected: false,
+  };
+}
+
+export function validateM5Compliance(input: {
+  scnCode?: string | null;
+  initialStateJson?: M5InitialStateJson | null;
+  completedSteps: string[];
+  inventoryCounts: M5InventoryCountRow[];
+  inventoryAdjustments: M5InventoryAdjustmentRow[];
+  transactions: M5TransactionRow[];
+  inventory: Record<string, number>;
+  kpiSnapshot?: M5KpiSnapshotValues | null;
+  decisionRejected?: boolean;
+  effectiveSteps?: Array<{ code: string }>;
+}): ValidationResult {
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+  const steps = input.effectiveSteps ?? getEffectiveM5Steps(input.initialStateJson, {
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+  });
+
+  for (const step of steps) {
+    if (!input.completedSteps.includes(step.code)) {
+      issues.push(`Step ${step.code} not completed`);
+      issuesFr.push(`Étape ${step.code} non complétée`);
+    }
+  }
+
+  if (!isM5VarianceResolved(
+    input.initialStateJson,
+    input.inventoryCounts,
+    input.inventoryAdjustments,
+    input.transactions,
+  )) {
+    issues.push("Unresolved inventory variance");
+    issuesFr.push("Écart d'inventaire non résolu — M5_ADJ requis");
+  }
+
+  if (hasM5VarianceContract(input.initialStateJson)
+    && steps.some((s) => s.code === "M5_ADJ")
+    && !input.completedSteps.includes("M5_ADJ")) {
+    issues.push("M5_ADJ required but not completed");
+    issuesFr.push("M5_ADJ requis mais non complété");
+  }
+
+  if (!input.kpiSnapshot) {
+    issues.push("KPI snapshot missing");
+    issuesFr.push("Snapshot KPI manquant — complétez M5_KPI");
+  }
+
+  if (input.scnCode === "SCN-017" && input.decisionRejected) {
+    issues.push("SCN-017 decision missing KPI-linked justification");
+    issuesFr.push("Décision SCN-017 sans justification KPI liée");
+  }
+
+  const negativeStock = Object.entries(input.inventory).some(([, qty]) => Number(qty) < 0);
+  if (negativeStock) {
+    issues.push("Negative stock detected");
+    issuesFr.push("Stock négatif détecté");
+  }
+
+  const unposted = input.transactions.filter((t) => !t.posted && ["GR", "PUTAWAY", "ADJ", "GI"].includes(t.docType));
+  if (unposted.length > 0) {
+    issues.push(`${unposted.length} unposted critical transaction(s)`);
+    issuesFr.push(`${unposted.length} transaction(s) critique(s) non postée(s)`);
+  }
+
+  return {
+    allowed: issues.length === 0,
+    reason: issues.join("; "),
+    reasonFr: issuesFr.join(" ; "),
+    reasonEn: issues.join("; "),
   };
 }
 // ─── ADJ step definition (inserted dynamically when variance exists) ──────────
@@ -1215,13 +1633,18 @@ export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
   if (moduleId === 1) {
     return getNextRequiredStep(completedSteps, 1, state);
   }
-  const stepsMap = {
-    2: MODULE2_STEPS,
-    3: MODULE3_STEPS,
-    4: MODULE4_STEPS,
-    5: MODULE5_STEPS
-  };
-  const steps = stepsMap[moduleId] ?? MODULE1_STEPS;
+  let steps;
+  if (moduleId === 5) {
+    steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
+  } else {
+    const stepsMap = {
+      2: MODULE2_STEPS,
+      3: MODULE3_STEPS,
+      4: MODULE4_STEPS,
+      5: MODULE5_STEPS
+    };
+    steps = stepsMap[moduleId] ?? MODULE1_STEPS;
+  }
   const effectiveCompleted = moduleId === 2 ? effectiveM2CompletedSteps(completedSteps, state) : completedSteps;
   for (const step of steps) {
     if (!effectiveCompleted.includes(step.code)) {
@@ -1235,6 +1658,8 @@ export function calculateProgressPctAllModules(completedSteps, moduleId, state) 
   let steps;
   if (moduleId === 1) {
     steps = getEffectiveM1Steps(state);
+  } else if (moduleId === 5) {
+    steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
   } else {
     const stepsMap = {
       2: MODULE2_STEPS,

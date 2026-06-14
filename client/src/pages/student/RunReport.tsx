@@ -40,6 +40,18 @@ function normalizeReportDetail(
       feedback: string;
       pointsDelta?: number;
     }>;
+    m5Report?: {
+      kpiSnapshot: {
+        rotationRate: number;
+        serviceLevel: number;
+        errorRate: number;
+        averageLeadTime: number;
+        stockImmobilizedValue: number;
+      } | null;
+      varianceTrail: Array<{ sku: string; systemQty: number; countedQty: number; varianceQty: number }>;
+      adjustments: Array<{ sku: string; varianceQty: number; adjustmentQty: number; reason: string }>;
+      contract?: { sku?: string; qty?: number; poRef?: string; profile?: string };
+    };
   } | null | undefined,
 ) {
   if (!detail) return null;
@@ -555,6 +567,36 @@ export default function RunReport() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* M5 report section (variance trail, ADJ, KPI snapshot) */}
+          {safeDetail?.m5Report && (
+            <div className="mt-4 pt-4 border-t border-border space-y-3">
+              <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider">
+                {t("Rapport M5 — Cycle intégré", "M5 Report — Integrated cycle")}
+              </p>
+              {safeDetail.m5Report.kpiSnapshot && (
+                <div className="p-2.5 rounded border bg-blue-50 dark:bg-blue-950/20 border-blue-200 text-xs font-mono">
+                  {t("Snapshot KPI", "KPI snapshot")}: rotation {safeDetail.m5Report.kpiSnapshot.rotationRate}× · service {(safeDetail.m5Report.kpiSnapshot.serviceLevel <= 1 ? safeDetail.m5Report.kpiSnapshot.serviceLevel * 100 : safeDetail.m5Report.kpiSnapshot.serviceLevel).toFixed(1)}% · erreurs {(safeDetail.m5Report.kpiSnapshot.errorRate <= 1 ? safeDetail.m5Report.kpiSnapshot.errorRate * 100 : safeDetail.m5Report.kpiSnapshot.errorRate).toFixed(1)}% · délai {safeDetail.m5Report.kpiSnapshot.averageLeadTime} j
+                </div>
+              )}
+              {safeDetail.m5Report.varianceTrail.length > 0 && (
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold text-[10px] uppercase">{t("Piste variance", "Variance trail")}</p>
+                  {safeDetail.m5Report.varianceTrail.map((v, i) => (
+                    <p key={i} className="font-mono text-muted-foreground">{v.sku}: système {v.systemQty} · compté {v.countedQty} · Δ {v.varianceQty}</p>
+                  ))}
+                </div>
+              )}
+              {safeDetail.m5Report.adjustments.length > 0 && (
+                <div className="text-xs space-y-1">
+                  <p className="font-semibold text-[10px] uppercase">{t("Ajustements MI07", "MI07 adjustments")}</p>
+                  {safeDetail.m5Report.adjustments.map((a, i) => (
+                    <p key={i} className="text-muted-foreground">{a.sku}: {a.adjustmentQty} u. — {a.reason}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

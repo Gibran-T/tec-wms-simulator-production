@@ -24,7 +24,15 @@ import {
   getM4KpiDataFromSeed,
   // M5
   scoreM5Decision,
+  scoreM5StrategicDecision,
   MODULE5_STEPS,
+  getEffectiveM5Steps,
+  getM5CycleCountTargets,
+  hasM5VarianceContract,
+  isM5VarianceResolved,
+  assertM5VarianceGate,
+  validateM5Compliance,
+  validateM5Reception,
   getNextRequiredStepAllModules,
   calculateProgressPctAllModules,
 } from "./rulesEngine";
@@ -648,7 +656,7 @@ describe("calculateProgressPctAllModules", () => {
     expect(calculateProgressPctAllModules(allM4, 4)).toBe(100);
   });
 
-  it("returns ~57% for M5 with 4 of 7 steps completed", () => {
+  it("returns ~57% for M5 with 4 of 7 steps completed (nominal path)", () => {
     const completed = ["M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH"] as any[];
     expect(calculateProgressPctAllModules(completed, 5)).toBe(57);
   });
@@ -672,5 +680,198 @@ describe("calculateProgressPctAllModules", () => {
     const allM2 = ["GR", "PUTAWAY", "FIFO_PICK", "STOCK_ACCURACY", "COMPLIANCE_ADV", "EXTRA"] as any[];
     expect(calculateProgressPctAllModules(allM2, 2)).toBeLessThanOrEqual(100);
     expect(calculateProgressPctAllModules(allM2, 2)).toBe(100);
+  });
+});
+
+// ─── Wave 4: M5 Runtime Alignment ─────────────────────────────────────────────
+const SCN_015_M5_STATE = {
+  m5Contract: {
+    sku: "SKU-001",
+    qty: 50,
+    poRef: "PO-M5-001",
+    lotNumber: "LOT-M5-A",
+    fromBin: "REC-01",
+    toBin: "B-01-R1-L1",
+    varianceInjection: null,
+    decisionLevel: "TACTICAL" as const,
+    profile: "NOMINAL_INTEGRATED" as const,
+  },
+};
+
+const SCN_016_M5_STATE = {
+  m5Contract: {
+    sku: "SKU-001",
+    qty: 50,
+    poRef: "PO-M5-001",
+    varianceInjection: -5,
+    cycleCountTargets: [{ sku: "SKU-001", bin: "B-01-R1-L1", systemQty: 50, physicalQty: 45 }],
+    decisionLevel: "TACTICAL" as const,
+    profile: "EXCEPTION_VARIANCE" as const,
+  },
+};
+
+const SCN_017_M5_STATE = {
+  m5Contract: {
+    sku: "SKU-001",
+    qty: 50,
+    poRef: "PO-M5-001",
+    decisionLevel: "STRATEGIC" as const,
+    profile: "STRATEGIC_CAPSTONE" as const,
+  },
+};
+
+const M5_KPI_SNAPSHOT = {
+  rotationRate: 6,
+  serviceLevel: 0.95,
+  errorRate: 0.04,
+  averageLeadTime: 3.5,
+  stockImmobilizedValue: 48000,
+};
+
+const M5_NOMINAL_STEPS = [
+  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH", "M5_KPI", "M5_DECISION", "COMPLIANCE_M5",
+];
+
+const M5_VARIANCE_STEPS = [
+  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_ADJ", "M5_REPLENISH", "M5_KPI", "M5_DECISION", "COMPLIANCE_M5",
+];
+
+describe("Wave 4 — M5 runtime alignment", () => {
+  it("1. SCN-015 nominal completion passes validateM5Compliance", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-015",
+      initialStateJson: SCN_015_M5_STATE,
+      completedSteps: M5_NOMINAL_STEPS,
+      inventoryCounts: [{ sku: "SKU-001", varianceQty: 0 }],
+      inventoryAdjustments: [],
+      transactions: [],
+      inventory: { "SKU-001::B-01-R1-L1": 50 },
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("2. SCN-016 variance injection contract exposes −5 at CC target", () => {
+    const targets = getM5CycleCountTargets(SCN_016_M5_STATE);
+    expect(targets).toHaveLength(1);
+    expect(targets[0].systemQty).toBe(50);
+    expect(targets[0].physicalQty).toBe(45);
+    expect(targets[0].physicalQty - targets[0].systemQty).toBe(-5);
+    expect(hasM5VarianceContract(SCN_016_M5_STATE)).toBe(true);
+  });
+
+  it("3. SCN-016 cannot continue with unresolved variance", () => {
+    const gate = assertM5VarianceGate(
+      SCN_016_M5_STATE,
+      [{ sku: "SKU-001", varianceQty: -5 }],
+      [],
+      [],
+    );
+    expect(gate.allowed).toBe(false);
+  });
+
+  it("4. SCN-016 M5_ADJ resolves variance", () => {
+    const resolved = isM5VarianceResolved(
+      SCN_016_M5_STATE,
+      [{ sku: "SKU-001", varianceQty: -5 }],
+      [{ sku: "SKU-001", varianceQty: -5 }],
+      [{ docType: "ADJ", sku: "SKU-001", qty: -5, posted: true }],
+    );
+    expect(resolved).toBe(true);
+  });
+
+  it("5. SCN-016 compliance blocked before ADJ", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-016",
+      initialStateJson: SCN_016_M5_STATE,
+      completedSteps: ["M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH", "M5_KPI", "M5_DECISION"],
+      inventoryCounts: [{ sku: "SKU-001", varianceQty: -5 }],
+      inventoryAdjustments: [],
+      transactions: [],
+      inventory: { "SKU-001::B-01-R1-L1": 45 },
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/M5_ADJ|Écart/i);
+  });
+
+  it("6. SCN-017 KPI snapshot required for compliance", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-017",
+      initialStateJson: SCN_017_M5_STATE,
+      completedSteps: M5_NOMINAL_STEPS,
+      inventoryCounts: [],
+      inventoryAdjustments: [],
+      transactions: [],
+      inventory: {},
+      kpiSnapshot: null,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/Snapshot KPI/i);
+  });
+
+  it("7. SCN-017 decision rejects generic keyword-only text", () => {
+    const generic = "Améliorer la performance globale de l'entrepôt avec rotation service erreur formation.";
+    const result = scoreM5StrategicDecision(generic, M5_KPI_SNAPSHOT);
+    expect(result.rejected).toBe(true);
+  });
+
+  it("8. SCN-017 decision accepts KPI-linked strategic answer", () => {
+    const strategic = "Rotation 6× normal et service 95% excellent ; erreurs 4% acceptable. "
+      + "J'arbitre entre maintien du stock immobilisé 48000 $ et plan formation picking. "
+      + "Recommandation : initiative qualité 90 j pour réduire erreurs à 2% sans descendre sous 93% service.";
+    const result = scoreM5StrategicDecision(strategic, M5_KPI_SNAPSHOT);
+    expect(result.rejected).toBe(false);
+    expect(result.score).toBeGreaterThanOrEqual(50);
+  });
+
+  it("9. validateM5Compliance blocks missing evidence", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-015",
+      initialStateJson: SCN_015_M5_STATE,
+      completedSteps: ["M5_RECEPTION"],
+      inventoryCounts: [],
+      inventoryAdjustments: [],
+      transactions: [{ docType: "GR", sku: "SKU-001", posted: false }],
+      inventory: { "SKU-001::REC-01": -1 },
+      kpiSnapshot: null,
+      decisionRejected: true,
+    });
+    expect(result.allowed).toBe(false);
+  });
+
+  it("10. rollback flag ENABLE_M5_COMPLIANCE_VALIDATOR=false restores legacy bypass", () => {
+    const prev = process.env.ENABLE_M5_COMPLIANCE_VALIDATOR;
+    process.env.ENABLE_M5_COMPLIANCE_VALIDATOR = "false";
+    expect(process.env.ENABLE_M5_COMPLIANCE_VALIDATOR !== "false").toBe(false);
+    process.env.ENABLE_M5_COMPLIANCE_VALIDATOR = "true";
+    expect(process.env.ENABLE_M5_COMPLIANCE_VALIDATOR !== "false").toBe(true);
+    if (prev === undefined) delete process.env.ENABLE_M5_COMPLIANCE_VALIDATOR;
+    else process.env.ENABLE_M5_COMPLIANCE_VALIDATOR = prev;
+  });
+
+  it("getEffectiveM5Steps inserts M5_ADJ for SCN-016 variance profile", () => {
+    const steps = getEffectiveM5Steps(SCN_016_M5_STATE);
+    expect(steps).toHaveLength(8);
+    expect(steps.some((s) => s.code === "M5_ADJ")).toBe(true);
+    const replenish = steps.find((s) => s.code === "M5_REPLENISH");
+    expect(replenish?.prerequisite).toBe("M5_ADJ");
+  });
+
+  it("getEffectiveM5Steps keeps 7 steps for SCN-015 nominal", () => {
+    const steps = getEffectiveM5Steps(SCN_015_M5_STATE);
+    expect(steps).toHaveLength(7);
+    expect(steps.some((s) => s.code === "M5_ADJ")).toBe(false);
+  });
+
+  it("validateM5Reception rejects wrong SKU for SCN-015 contract", () => {
+    const result = validateM5Reception(
+      { sku: "SKU-999", qty: 50, docRef: "PO-M5-001" },
+      SCN_015_M5_STATE.m5Contract,
+    );
+    expect(result.allowed).toBe(false);
   });
 });

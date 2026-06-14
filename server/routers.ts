@@ -114,9 +114,19 @@ import {
   validateVarianceEntry,
   scoreM5Decision,
   getEffectiveM1Steps,
+  getEffectiveM5Steps,
+  getM5ContractFromSeed,
+  getM5KpiDataFromSeed,
+  getM5CycleCountTargets,
+  assertM5VarianceGate,
+  validateM5Reception,
+  validateM5Putaway,
+  validateM5Compliance,
+  hasM5VarianceContract,
   getM4KpiDataFromSeed,
   type KpiData,
   type M4InitialStateJson,
+  type M5InitialStateJson,
 } from "./rulesEngine";
 import {
   addInventoryCount,
@@ -130,6 +140,8 @@ import {
   addKpiSnapshot,
   addKpiInterpretation,
   getKpiInterpretationsByRun,
+  getKpiSnapshotByRun,
+  resolveAllCycleCountsByRun,
 } from "./db";
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
@@ -212,9 +224,15 @@ async function loadM3ComplianceArtifacts(runId: number) {
 }
 
 async function buildRunState(runId: number) {
-  const txs = await getTransactionsByRun(runId);
-  const ccs = await getCycleCountsByRun(runId);
-  const prog = await getProgressByRun(runId);
+  const run = await getRunById(runId);
+  const scenario = run ? await getScenarioById(run.scenarioId) : null;
+  const [txs, ccs, prog, inventoryCounts, inventoryAdjustments] = await Promise.all([
+    getTransactionsByRun(runId),
+    getCycleCountsByRun(runId),
+    getProgressByRun(runId),
+    getInventoryCountsByRun(runId),
+    getInventoryAdjustmentsByRun(runId),
+  ]);
 
   const inventory = calculateInventory(
     txs.map((t) => ({
@@ -244,6 +262,21 @@ async function buildRunState(runId: number) {
       variance: Number(c.variance),
       resolved: c.resolved,
     })),
+    inventoryCounts: inventoryCounts.map((c) => ({
+      sku: c.sku,
+      systemQty: Number(c.systemQty),
+      countedQty: Number(c.countedQty),
+      varianceQty: Number(c.varianceQty),
+    })),
+    inventoryAdjustments: inventoryAdjustments.map((a) => ({
+      sku: a.sku,
+      varianceQty: Number(a.varianceQty),
+      adjustmentQty: Number(a.adjustmentQty),
+      reason: a.reason,
+    })),
+    m5InitialStateJson: scenario?.moduleId === 5
+      ? (scenario.initialStateJson as M5InitialStateJson | undefined)
+      : undefined,
     inventory,
   };
 }
@@ -962,7 +995,7 @@ export const appRouter = router({
           // M4
           KPI_DATA: 10, KPI_ROTATION: 20, KPI_SERVICE: 20, KPI_DIAGNOSTIC: 20, COMPLIANCE_M4: 15,
           // M5
-          M5_RECEPTION: 10, M5_PUTAWAY: 10, M5_CYCLE_COUNT: 15, M5_REPLENISH: 20, M5_KPI: 10, M5_DECISION: 30, COMPLIANCE_M5: 20,
+          M5_RECEPTION: 10, M5_PUTAWAY: 10, M5_CYCLE_COUNT: 15, M5_ADJ: 10, M5_REPLENISH: 20, M5_KPI: 10, M5_DECISION: 30, COMPLIANCE_M5: 20,
         };
         const STEP_EVENT_MAP_ALL: Record<string, string> = {
           // M1
@@ -980,7 +1013,7 @@ export const appRouter = router({
           KPI_DIAGNOSTIC: "KPI_DIAGNOSTIC_COMPLETED", COMPLIANCE_M4: "COMPLIANCE_M4_COMPLETED",
           // M5
           M5_RECEPTION: "M5_RECEPTION_COMPLETED", M5_PUTAWAY: "M5_PUTAWAY_COMPLETED", M5_CYCLE_COUNT: "M5_CYCLE_COUNT_COMPLETED",
-          M5_REPLENISH: "M5_REPLENISH_COMPLETED", M5_KPI: "M5_KPI_COMPLETED", M5_DECISION: "M5_DECISION_COMPLETED", COMPLIANCE_M5: "COMPLIANCE_M5_COMPLETED",
+          M5_ADJ: "M5_ADJ_COMPLETED", M5_REPLENISH: "M5_REPLENISH_COMPLETED", M5_KPI: "M5_KPI_COMPLETED", M5_DECISION: "M5_DECISION_COMPLETED", COMPLIANCE_M5: "COMPLIANCE_M5_COMPLETED",
         };
         const STEP_ZONES_ALL: Record<string, { from?: string; to?: string; zone?: string }> = {
           PO: { zone: "ACHAT" }, GR: { to: "RÉCEPTION" }, PUTAWAY_M1: { from: "RÉCEPTION", to: "STOCKAGE" },
@@ -992,14 +1025,14 @@ export const appRouter = router({
           KPI_DATA: { zone: "ANALYTIQUE" }, KPI_ROTATION: { zone: "ANALYTIQUE" }, KPI_SERVICE: { zone: "ANALYTIQUE" },
           KPI_DIAGNOSTIC: { zone: "ANALYTIQUE" }, COMPLIANCE_M4: { zone: "SYSTÈME" },
           M5_RECEPTION: { to: "RÉCEPTION" }, M5_PUTAWAY: { from: "RÉCEPTION", to: "STOCKAGE" },
-          M5_CYCLE_COUNT: { zone: "STOCKAGE" }, M5_REPLENISH: { zone: "ACHAT" },
+          M5_CYCLE_COUNT: { zone: "STOCKAGE" }, M5_ADJ: { zone: "STOCKAGE" }, M5_REPLENISH: { zone: "ACHAT" },
           M5_KPI: { zone: "ANALYTIQUE" }, M5_DECISION: { zone: "STRATÉGIQUE" }, COMPLIANCE_M5: { zone: "SYSTÈME" },
         };
         // ── Select steps for this module ─────────────────────────────────────
         const moduleSteps = moduleId === 2 ? MODULE2_STEPS
           : moduleId === 3 ? MODULE3_STEPS
           : moduleId === 4 ? MODULE4_STEPS
-          : moduleId === 5 ? MODULE5_STEPS
+          : moduleId === 5 ? getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)
           : MODULE1_STEPS;
         const stepCodesToReport = moduleSteps.map(s => s.code as string);
         // ── Per-step score breakdown ─────────────────────────────────────────
@@ -1159,6 +1192,16 @@ export const appRouter = router({
             }))
           : undefined;
 
+        const m5KpiSnapshot = moduleId === 5
+          ? await getKpiSnapshotByRun(input.runId)
+          : null;
+        const m5Adjustments = moduleId === 5
+          ? await getInventoryAdjustmentsByRun(input.runId)
+          : [];
+        const m5Counts = moduleId === 5
+          ? await getInventoryCountsByRun(input.runId)
+          : [];
+
         return {
           runId: input.runId,
           isDemo: run.isDemo,
@@ -1175,6 +1218,28 @@ export const appRouter = router({
           zoneFlow,
           transactionTimeline,
           kpiInterpretations,
+          m5Report: moduleId === 5 ? {
+            kpiSnapshot: m5KpiSnapshot ? {
+              rotationRate: Number(m5KpiSnapshot.rotationRate),
+              serviceLevel: Number(m5KpiSnapshot.serviceLevel),
+              errorRate: Number(m5KpiSnapshot.errorRate),
+              averageLeadTime: Number(m5KpiSnapshot.averageLeadTime),
+              stockImmobilizedValue: Number(m5KpiSnapshot.stockImmobilizedValue),
+            } : null,
+            varianceTrail: m5Counts.map((c) => ({
+              sku: c.sku,
+              systemQty: Number(c.systemQty),
+              countedQty: Number(c.countedQty),
+              varianceQty: Number(c.varianceQty),
+            })),
+            adjustments: m5Adjustments.map((a) => ({
+              sku: a.sku,
+              varianceQty: Number(a.varianceQty),
+              adjustmentQty: Number(a.adjustmentQty),
+              reason: a.reason ?? "",
+            })),
+            contract: getM5ContractFromSeed(scenario?.initialStateJson as M5InitialStateJson),
+          } : undefined,
           totalTransactions: state.transactions.filter(t => t.posted).length,
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
@@ -1183,7 +1248,7 @@ export const appRouter = router({
             : moduleId === 2 ? MODULE2_STEPS
             : moduleId === 3 ? MODULE3_STEPS
             : moduleId === 4 ? MODULE4_STEPS
-            : MODULE5_STEPS).length,
+            : getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)).length,
           certificationUnlocked: silverStatus.silverCertified,
           silverEligible: silverStatus.silverEligible,
         };
@@ -1234,7 +1299,7 @@ export const appRouter = router({
             : moduleId === 2 ? MODULE2_STEPS
             : moduleId === 3 ? MODULE3_STEPS
             : moduleId === 4 ? MODULE4_STEPS
-            : MODULE5_STEPS,
+            : getEffectiveM5Steps(state.m5InitialStateJson, state),
           isDemo: run.isDemo,
           // Full transaction ledger for monitor (M2 preloaded PO/GR must be visible)
           transactions: state.transactions,
@@ -2785,6 +2850,13 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const contract = getM5ContractFromSeed(m5State);
+        const validation = validateM5Reception(input, contract);
+        if (!validation.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
+        }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "MIGO", sku: input.sku, bin: "REC-01", qty: String(input.qty), posted: true, docRef: input.docRef, comment: "M5 Réception fournisseur" });
         await markStepComplete(input.runId, "M5_RECEPTION");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_RECEPTION_COMPLETED", pointsDelta: 10, message: "Réception M5 validée" });
@@ -2798,6 +2870,13 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const contract = getM5ContractFromSeed(m5State);
+        const validation = validateM5Putaway(input, contract);
+        if (!validation.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
+        }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT01", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: `PUT-${input.lotNumber}`, comment: `M5 Rangement ${input.fromBin}→${input.toBin}` });
         await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: input.lotNumber, receivedAt: new Date() });
         await markStepComplete(input.runId, "M5_PUTAWAY");
@@ -2812,11 +2891,94 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const variance = input.countedQty - input.systemQty;
-        await addInventoryCount({ runId: input.runId, sku: input.sku, systemQty: input.systemQty, countedQty: input.countedQty, varianceQty: variance });
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const targets = getM5CycleCountTargets(m5State);
+        const seededTarget = targets.find((t) => t.sku === input.sku && t.bin === input.bin);
+        const systemQty = seededTarget ? seededTarget.systemQty : input.systemQty;
+        const countedQty = seededTarget ? seededTarget.physicalQty : input.countedQty;
+        const variance = countedQty - systemQty;
+        await addInventoryCount({ runId: input.runId, sku: input.sku, systemQty, countedQty, varianceQty: variance });
         await markStepComplete(input.runId, "M5_CYCLE_COUNT");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_CYCLE_COUNT_COMPLETED", pointsDelta: variance === 0 ? 15 : 10, message: `M5 Inventaire: variance ${variance}` });
-        return { success: true, variance };
+        return { success: true, variance, systemQty, countedQty, injected: !!seededTarget };
+      }),
+
+    /** M5 Step 3b: M5_ADJ — inventory adjustment (SCN-016 variance path) */
+    submitAdj: protectedProcedure
+      .input(z.object({
+        runId: z.number(),
+        sku: z.string(),
+        bin: z.string(),
+        varianceQty: z.number(),
+        justification: z.string().min(10),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (input.varianceQty === 0) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: "Variance qty must be non-zero for M5_ADJ" });
+        }
+        const qtyCheck = validateAdjustment(input.varianceQty, input.varianceQty);
+        if (!qtyCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(qtyCheck, ctx.req) });
+        }
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const inventoryCounts = await getInventoryCountsByRun(input.runId);
+        const countRow = inventoryCounts.find((c) => c.sku === input.sku);
+        const systemQty = countRow ? Number(countRow.systemQty) : 0;
+        const countedQty = countRow ? Number(countRow.countedQty) : systemQty + input.varianceQty;
+        const justificationCheck = validateVarianceEntry(
+          systemQty,
+          countedQty,
+          input.justification,
+          5,
+        );
+        if (!justificationCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(justificationCheck, ctx.req) });
+        }
+        const targets = getM5CycleCountTargets(m5State);
+        const expectedTarget = targets.find((t) => t.sku === input.sku);
+        if (expectedTarget) {
+          const expectedVariance = expectedTarget.physicalQty - expectedTarget.systemQty;
+          if (input.varianceQty !== expectedVariance) {
+            throw new TRPCError({
+              code: "BAD_REQUEST",
+              message: `Expected variance ${expectedVariance} for ${input.sku}, got ${input.varianceQty}`,
+            });
+          }
+        }
+        await addInventoryAdjustment({
+          runId: input.runId,
+          sku: input.sku,
+          varianceQty: input.varianceQty,
+          adjustmentQty: input.varianceQty,
+          reason: input.justification.trim(),
+        });
+        await addTransaction({
+          runId: input.runId,
+          docType: "ADJ",
+          moveType: "MI07",
+          sku: input.sku,
+          bin: input.bin,
+          qty: String(input.varianceQty),
+          posted: true,
+          docRef: `ADJ-M5-${input.sku}`,
+          comment: input.justification.trim(),
+        });
+        await resolveAllCycleCountsByRun(input.runId);
+        await markStepComplete(input.runId, "M5_ADJ");
+        if (!run.isDemo) {
+          await addScoringEvent({
+            runId: input.runId,
+            eventType: "M5_ADJ_COMPLETED",
+            pointsDelta: 10,
+            message: `M5 ADJ ${input.varianceQty} u. posté pour ${input.sku}`,
+          });
+        }
+        return { success: true };
       }),
 
     /** M5 Step 4: M5_REPLENISH */
@@ -2826,6 +2988,18 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const varianceGate = assertM5VarianceGate(
+          m5State,
+          state.inventoryCounts ?? [],
+          state.inventoryAdjustments ?? [],
+          state.transactions,
+        );
+        if (!varianceGate.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(varianceGate, ctx.req) });
+        }
         const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
         const diff = Math.abs(input.studentQty - suggestion.suggestedQty);
         const points = diff === 0 ? 15 : diff <= 10 ? 10 : 5;
@@ -2842,10 +3016,29 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const varianceGate = assertM5VarianceGate(
+          m5State,
+          state.inventoryCounts ?? [],
+          state.inventoryAdjustments ?? [],
+          state.transactions,
+        );
+        if (!varianceGate.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(varianceGate, ctx.req) });
+        }
         const kpiResult = calculateKpis(input.kpiData);
-        await addKpiSnapshot({ runId: input.runId, rotationRate: kpiResult.rotationRate, serviceLevel: kpiResult.serviceLevel, errorRate: kpiResult.errorRate, averageLeadTime: kpiResult.averageLeadTime, stockImmobilizedValue: kpiResult.stockImmobilizedValue });
+        await addKpiSnapshot({
+          runId: input.runId,
+          rotationRate: kpiResult.rotationRate,
+          serviceLevel: kpiResult.serviceLevel,
+          errorRate: kpiResult.errorRate,
+          averageLeadTime: kpiResult.averageLeadTime,
+          stockImmobilizedValue: kpiResult.stockImmobilizedValue,
+        });
         await markStepComplete(input.runId, "M5_KPI");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_KPI_COMPLETED", pointsDelta: 10, message: "KPI M5 calculés" });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_KPI_COMPLETED", pointsDelta: 10, message: "KPI M5 calculés — snapshot enregistré" });
         return { success: true, kpiResult };
       }),
 
@@ -2856,9 +3049,50 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const kpiData: KpiData = input.kpiData ?? { annualConsumption: 2400, averageStock: 400, ordersFulfilled: 285, totalOrders: 300, operationalErrors: 12, totalOperations: 300, avgLeadTimeDays: 3.5, stockValue: 48000 };
-        const kpiResult = calculateKpis(kpiData);
-        const result = scoreM5Decision(input.studentDecision, kpiResult);
+        const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const scnCode = resolveScenarioScnCode(scenario);
+        const contract = getM5ContractFromSeed(m5State);
+        const varianceGate = assertM5VarianceGate(
+          m5State,
+          state.inventoryCounts ?? [],
+          state.inventoryAdjustments ?? [],
+          state.transactions,
+        );
+        if (!varianceGate.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(varianceGate, ctx.req) });
+        }
+        const snapshotRow = await getKpiSnapshotByRun(input.runId);
+        if (!snapshotRow) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "KPI snapshot required — complete M5_KPI before submitting decision",
+          });
+        }
+        const kpiSnapshot = {
+          rotationRate: Number(snapshotRow.rotationRate),
+          serviceLevel: Number(snapshotRow.serviceLevel),
+          errorRate: Number(snapshotRow.errorRate),
+          averageLeadTime: Number(snapshotRow.averageLeadTime),
+          stockImmobilizedValue: Number(snapshotRow.stockImmobilizedValue),
+        };
+        const decisionLevel = contract?.decisionLevel ?? (scnCode === "SCN-017" ? "STRATEGIC" : "TACTICAL");
+        const result = scoreM5Decision(input.studentDecision, calculateKpis(getM5KpiDataFromSeed(m5State)), {
+          decisionLevel,
+          kpiSnapshot,
+        });
+        if (decisionLevel === "STRATEGIC" && result.rejected) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "M5_DECISION_REJECTED",
+              pointsDelta: 0,
+              message: result.feedback,
+            });
+          }
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
+        }
         await markStepComplete(input.runId, "M5_DECISION");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_DECISION_COMPLETED", pointsDelta: result.score, message: `Décision stratégique: ${result.score}/30 pts` });
         return { success: true, ...result };
@@ -2871,6 +3105,52 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+
+        const enableValidator = process.env.ENABLE_M5_COMPLIANCE_VALIDATOR !== "false";
+        if (!enableValidator) {
+          await markStepComplete(input.runId, "COMPLIANCE_M5");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M5_COMPLETED", pointsDelta: 20, message: "Validation finale M5 complétée" });
+          await completeRun(input.runId);
+          return { success: true };
+        }
+
+        const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const m5State = scenario?.initialStateJson as M5InitialStateJson | undefined;
+        const scnCode = resolveScenarioScnCode(scenario);
+        const snapshotRow = await getKpiSnapshotByRun(input.runId);
+        const kpiSnapshot = snapshotRow ? {
+          rotationRate: Number(snapshotRow.rotationRate),
+          serviceLevel: Number(snapshotRow.serviceLevel),
+          errorRate: Number(snapshotRow.errorRate),
+          averageLeadTime: Number(snapshotRow.averageLeadTime),
+          stockImmobilizedValue: Number(snapshotRow.stockImmobilizedValue),
+        } : null;
+        const effectiveSteps = getEffectiveM5Steps(m5State, state);
+        const decisionRejected = scnCode === "SCN-017" && !state.completedSteps.includes("M5_DECISION");
+        const compliance = validateM5Compliance({
+          scnCode,
+          initialStateJson: m5State,
+          completedSteps: state.completedSteps,
+          inventoryCounts: state.inventoryCounts ?? [],
+          inventoryAdjustments: state.inventoryAdjustments ?? [],
+          transactions: state.transactions,
+          inventory: state.inventory,
+          kpiSnapshot,
+          decisionRejected,
+          effectiveSteps,
+        });
+        if (!compliance.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "COMPLIANCE_M5_FAILED",
+              pointsDelta: -10,
+              message: compliance.reasonFr ?? compliance.reason ?? "",
+            });
+          }
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(compliance, ctx.req) });
+        }
         await markStepComplete(input.runId, "COMPLIANCE_M5");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M5_COMPLETED", pointsDelta: 20, message: "Validation finale M5 complétée" });
         await completeRun(input.runId);

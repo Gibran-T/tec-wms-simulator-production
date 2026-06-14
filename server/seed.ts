@@ -446,6 +446,28 @@ async function seed() {
 
   const [m5] = await db.select().from(modules).where(eq(modules.code, "M5"));
 
+  const m5KpiSeed = {
+    annualConsumption: 2400,
+    averageStock: 400,
+    ordersFulfilled: 285,
+    totalOrders: 300,
+    operationalErrors: 12,
+    totalOperations: 300,
+    avgLeadTimeDays: 3.5,
+    stockValue: 48000,
+  };
+
+  const m5BaseContract = {
+    sku: "SKU-001",
+    qty: 50,
+    poRef: "PO-M5-001",
+    lotNumber: "LOT-M5-A",
+    fromBin: "REC-01",
+    toBin: "B-01-R1-L1",
+    kpiData: m5KpiSeed,
+    replenishmentParams: { minQty: 10, maxQty: 100, safetyStock: 5 },
+  };
+
   const m5Scenarios = [
     {
       moduleId: m5.id,
@@ -454,6 +476,16 @@ async function seed() {
       descriptionEn: "Complete a full supplier to warehouse to customer cycle following all operational rules.",
       difficulty: "moyen" as const,
       isActive: true,
+      initialStateJson: {
+        m5Contract: {
+          ...m5BaseContract,
+          varianceInjection: null,
+          decisionLevel: "TACTICAL",
+          profile: "NOMINAL_INTEGRATED",
+        },
+        context: "Peak Week Jour 1 \u2014 cycle nominal SKU-001, 50 u., PO-M5-001, REC-01 \u2192 B-01-R1-L1",
+        module: 5,
+      },
       createdBy: 1,
     },
     {
@@ -463,6 +495,19 @@ async function seed() {
       descriptionEn: "Manage a situation involving inventory discrepancies and propose corrective actions.",
       difficulty: "difficile" as const,
       isActive: true,
+      initialStateJson: {
+        m5Contract: {
+          ...m5BaseContract,
+          varianceInjection: -5,
+          cycleCountTargets: [
+            { sku: "SKU-001", bin: "B-01-R1-L1", systemQty: 50, physicalQty: 45 },
+          ],
+          decisionLevel: "TACTICAL",
+          profile: "EXCEPTION_VARIANCE",
+        },
+        context: "Peak Week Jour 2 \u2014 variance inject\u00e9e \u22125 u. @ B-01-R1-L1 ; ADJ requis avant KPI",
+        module: 5,
+      },
       createdBy: 1,
     },
     {
@@ -472,12 +517,29 @@ async function seed() {
       descriptionEn: "Analyze global performance indicators and formulate a justified strategic decision.",
       difficulty: "difficile" as const,
       isActive: true,
+      initialStateJson: {
+        m5Contract: {
+          ...m5BaseContract,
+          varianceInjection: null,
+          decisionLevel: "STRATEGIC",
+          profile: "STRATEGIC_CAPSTONE",
+        },
+        context: "Peak Week Jour 3 \u2014 capstone d\u00e9cisionnel : KPI snapshot \u2192 d\u00e9cision strat\u00e9gique justifi\u00e9e",
+        module: 5,
+      },
       createdBy: 1,
     },
   ];
 
   for (const s of m5Scenarios) {
-    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { descriptionFr: s.descriptionFr, descriptionEn: s.descriptionEn, difficulty: s.difficulty } });
+    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({
+      set: {
+        descriptionFr: s.descriptionFr,
+        descriptionEn: s.descriptionEn,
+        difficulty: s.difficulty,
+        initialStateJson: s.initialStateJson,
+      },
+    });
   }
 
   console.log("\u2705 Seed complete: 5 modules, 10 SKUs, 13 bins, 5 M1 scenarios, 3 M2 scenarios, 3 M3 scenarios, 3 M4 scenarios, 3 M5 scenarios");

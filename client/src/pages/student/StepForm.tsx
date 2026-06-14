@@ -499,7 +499,7 @@ const STEP_CONFIG: Record<string, {
   },
   m5_cycle_count: {
     titleFr: "Inventaire M5 (MI04)", titleEn: "M5 Cycle Count (MI04)", code: "M5_CYCLE_COUNT", txCode: "MI04", tCode: "MI04",
-    etapeFr: "Étape 3 sur 7", etapeEn: "Step 3 of 7",
+    etapeFr: "Étape 3 sur 7–8", etapeEn: "Step 3 of 7–8",
     objectiveFr: "Simulation intégrée M5 — Étape 3 : Compter physiquement le stock et comparer avec le système. Saisissez le SKU, le bin, la quantité système et la quantité comptée.",
     objectiveEn: "M5 Integrated Simulation — Step 3: Physically count stock and compare with system. Enter SKU, bin, system quantity and counted quantity.",
     fields: ["sku", "bin", "systemQty", "countedQty"],
@@ -512,6 +512,23 @@ const STEP_CONFIG: Record<string, {
       dependencyEn: "M5 cycle count depends on previous transactions (reception + putaway). A significant variance indicates an error in previous steps.",
       realErrorFr: "Une variance de 0 après réception et rangement confirme la cohérence du système. Une variance non nulle nécessite une investigation immédiate.",
       realErrorEn: "A variance of 0 after reception and putaway confirms system consistency. A non-zero variance requires immediate investigation.",
+    }
+  },
+  m5_adj: {
+    titleFr: "Ajustement M5 (MI07)", titleEn: "M5 Adjustment (MI07)", code: "M5_ADJ", txCode: "MI07", tCode: "MI07",
+    etapeFr: "Étape 4 sur 8 — correction variance", etapeEn: "Step 4 of 8 — variance correction",
+    objectiveFr: "Simulation intégrée M5 — Corriger l'écart inventaire détecté au comptage. Postez un ajustement MI07 avec justification avant de poursuivre vers réappro et KPI.",
+    objectiveEn: "M5 Integrated Simulation — Correct the inventory variance detected at cycle count. Post an MI07 adjustment with justification before continuing to replenish and KPI.",
+    fields: ["sku", "bin", "varianceQty", "justification"],
+    pedagogicalDeep: {
+      whyFr: "L'ajustement M5 garantit que le stock système reflète la réalité physique avant toute analyse KPI. C'est la règle « corriger avant de piloter ».",
+      whyEn: "M5 adjustment ensures system stock reflects physical reality before any KPI analysis. This is the « correct before steering » rule.",
+      realSAPFr: "Dans SAP, MI07 valide l'écart inventaire et met à jour le stock comptable de façon traçable.",
+      realSAPEn: "In SAP, MI07 validates inventory variance and updates accounting stock traceably.",
+      dependencyFr: "M5_ADJ dépend d'un M5_CYCLE_COUNT avec variance non nulle. Réappro, KPI et décision sont bloqués tant que l'ajustement n'est pas posté.",
+      dependencyEn: "M5_ADJ depends on M5_CYCLE_COUNT with non-zero variance. Replenish, KPI and decision are blocked until adjustment is posted.",
+      realErrorFr: "Piloter avec un écart ouvert fausse les KPI et invalide la certification.",
+      realErrorEn: "Steering with an open variance skews KPIs and invalidates certification.",
     }
   },
   m5_replenish: {
@@ -829,6 +846,7 @@ export default function StepForm() {
   const submitM5Reception = trpc.m5.submitReception.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitM5Putaway = trpc.m5.submitPutaway.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitM5CycleCount = trpc.m5.submitCycleCount.useMutation({ onSuccess: handleSuccess, onError: handleError });
+  const submitM5Adj = trpc.m5.submitAdj.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitM5Replenish = trpc.m5.submitReplenish.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitM5Kpi = trpc.m5.submitKpi.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitM5Decision = trpc.m5.submitDecision.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -1068,6 +1086,19 @@ export default function StepForm() {
         return submitM5Putaway.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, lotNumber: values.lotNumber! });
       case "m5_cycle_count":
         return submitM5CycleCount.mutate({ ...base, sku: values.sku!, bin: values.bin!, systemQty: Number(values.systemQty ?? 0), countedQty: Number(values.countedQty ?? 0) });
+      case "m5_adj": {
+        const varianceQty = Number(values.varianceQty ?? 0);
+        const justification = (values.justification ?? "").trim();
+        if (varianceQty === 0) {
+          toast.error(t("La variance doit être non nulle.", "Variance must be non-zero."));
+          return;
+        }
+        if (justification.length < 10) {
+          toast.error(t("Justification requise (min. 10 caractères).", "Justification required (min. 10 characters)."));
+          return;
+        }
+        return submitM5Adj.mutate({ ...base, sku: values.sku!, bin: values.bin!, varianceQty, justification });
+      }
       case "m5_replenish":
         return submitM5Replenish.mutate({ ...base, sku: values.sku!, systemQty: Number(values.systemQty ?? 0), minQty: Number(values.minQty ?? 0), maxQty: Number(values.maxQty ?? 0), safetyStock: Number(values.safetyStock ?? 0), studentQty: Number(values.studentQty ?? 0) });
       case "m5_kpi":
@@ -1084,7 +1115,7 @@ export default function StepForm() {
     submitFifoPick, submitStockAccuracy, submitComplianceAdv,
     submitCcList, submitCcCount, submitCcRecon, submitReplenishM3, submitComplianceM3,
     submitKpiData, submitKpiRotation, submitKpiService, submitKpiDiagnostic, submitComplianceM4,
-    submitM5Reception, submitM5Putaway, submitM5CycleCount, submitM5Replenish, submitM5Kpi, submitM5Decision, submitComplianceM5,
+    submitM5Reception, submitM5Putaway, submitM5CycleCount, submitM5Adj, submitM5Replenish, submitM5Kpi, submitM5Decision, submitComplianceM5,
   ].some(m => m.isPending);
 
   if (isLoading) {
@@ -1902,7 +1933,7 @@ export default function StepForm() {
                   {step?.toLowerCase() === "m5_decision" && (
                     <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
                       <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Guide décision stratégique", "Strategic decision guide")}</p>
-                      <p className="text-[10px] text-muted-foreground">{t("Structure recommandée : Problème identifié → Cause racine → Action corrective → KPI cible → Délai", "Recommended structure: Identified problem → Root cause → Corrective action → Target KPI → Timeline")}</p>
+                      <p className="text-[10px] text-muted-foreground">{t("Citez ≥2 KPI chiffrés du snapshot M5_KPI · trade-off explicite · recommandation · horizon 90–180 j. Réponses génériques rejetées.", "Cite ≥2 numeric KPIs from M5_KPI snapshot · explicit trade-off · recommendation · 90–180 day horizon. Generic answers rejected.")}</p>
                     </div>
                   )}
                 </div>

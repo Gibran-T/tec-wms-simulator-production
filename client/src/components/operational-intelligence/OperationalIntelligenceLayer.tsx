@@ -10,6 +10,7 @@ import { resolveScnCode } from "../../../../server/missionData";
 import { COMPETENCY_MAP } from "@/data/competencyMap";
 import { getStepErpHint } from "@/data/stepErpMap";
 import { M4_KPI_CONTROL_TOWER } from "@/data/m4KpiControlTower";
+import { M5_KPI_CONTROL_TOWER, M5_DECISION_SCAFFOLD } from "@/data/m5KpiControlTower";
 import { getEvalScoreThreshold, getModuleCertContext } from "@/data/moduleThresholds";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
@@ -179,7 +180,8 @@ function PanelB({
   const scnCode = resolveScnCode(state.scenario);
   const pedagogy = getCockpitPedagogy(scnCode);
   const m4Kpi = scnCode && state.moduleId === 4 ? M4_KPI_CONTROL_TOWER[scnCode] : null;
-  const showTxTable = !m4Kpi || pending.length > 0 || posted.length > 0;
+  const m5Kpi = scnCode && state.moduleId === 5 ? M5_KPI_CONTROL_TOWER[scnCode] : null;
+  const showTxTable = !m4Kpi && !m5Kpi || pending.length > 0 || posted.length > 0;
 
   return (
     <div className="space-y-4 text-xs">
@@ -201,6 +203,15 @@ function PanelB({
       </div>
 
       {m4Kpi && <M4KpiTowerView entry={m4Kpi} t={t} language={language} />}
+
+      {m5Kpi && <M4KpiTowerView entry={m5Kpi} t={t} language={language} />}
+
+      {m5Kpi?.varianceSignal && (
+        <div className="p-2 bg-red-50 dark:bg-red-950/30 border border-red-300 text-[10px] text-red-800 dark:text-red-200">
+          <p className="font-bold uppercase">{t("Signal variance", "Variance signal")}</p>
+          <p>{pickLang(m5Kpi.varianceSignal, language)}</p>
+        </div>
+      )}
 
       {pending.length > 0 && (
         <UnpostedTransactionsPanel runId={state.runId} transactions={pending} compact />
@@ -411,6 +422,12 @@ function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode,
         <div className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2 text-emerald-900 dark:text-emerald-200">
           <p className="font-bold uppercase mb-1">{t("Guide décision M4", "M4 decision guide")}</p>
           <p>{isFr ? M4_DECISION_SCAFFOLD[scnCode].fr : M4_DECISION_SCAFFOLD[scnCode].en}</p>
+        </div>
+      )}
+      {scnCode && M5_DECISION_SCAFFOLD[scnCode] && (
+        <div className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2 text-emerald-900 dark:text-emerald-200">
+          <p className="font-bold uppercase mb-1">{t("Guide décision M5", "M5 decision guide")}</p>
+          <p>{isFr ? M5_DECISION_SCAFFOLD[scnCode].fr : M5_DECISION_SCAFFOLD[scnCode].en}</p>
         </div>
       )}
     </div>
