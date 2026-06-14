@@ -314,6 +314,21 @@ function PanelC({ mission, nextStepCode, t, language }: { mission: MissionData |
   );
 }
 
+const M4_DECISION_SCAFFOLD: Record<string, { fr: string; en: string }> = {
+  "SCN-012": {
+    fr: "Décision attendue : maintenir la politique stock @ 6× normal. Surveillez les SKU à faible rotation — pas de destock global. Justifiez les 48 000 $ au comité finance.",
+    en: "Expected decision: maintain stock policy @ normal 6×. Monitor low-turnover SKUs — no blanket destock. Justify $48k to the finance committee.",
+  },
+  "SCN-013": {
+    fr: "Décision attendue : reconnaître service excellent @ 95 %, corriger erreurs picking/réception (4 %→2 %), suivi hebdomadaire OTIF sur 90 jours. Destock n'est pas le levier principal.",
+    en: "Expected decision: acknowledge excellent service @ 95%, fix picking/receiving errors (4%→2%), weekly OTIF tracking for 90 days. Destock is not the primary lever.",
+  },
+  "SCN-014": {
+    fr: "Décision attendue : paragraphe board — nommer un levier financé, un trade-off explicite (report destock / maintien service), ≥3 KPIs de suivi, délai 3,5 j mentionné, horizon 90 jours.",
+    en: "Expected decision: board paragraph — name one funded lever, explicit trade-off (defer destock / hold service), ≥3 follow-up KPIs, 3.5-day lead time cited, 90-day horizon.",
+  },
+};
+
 function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode, t, language }: {
   mission: MissionData | null;
   nextStepCode?: string;
@@ -391,6 +406,12 @@ function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode,
           <span className="font-bold uppercase text-slate-500">{t("Retenue", "Takeaway")}: </span>
           {pickLang(pedagogy.learningTakeaway, language)}
         </p>
+      )}
+      {scnCode && M4_DECISION_SCAFFOLD[scnCode] && (
+        <div className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2 text-emerald-900 dark:text-emerald-200">
+          <p className="font-bold uppercase mb-1">{t("Guide décision M4", "M4 decision guide")}</p>
+          <p>{isFr ? M4_DECISION_SCAFFOLD[scnCode].fr : M4_DECISION_SCAFFOLD[scnCode].en}</p>
+        </div>
       )}
     </div>
   );

@@ -19,6 +19,9 @@ import {
   calculateKpis,
   scoreKpiInterpretation,
   MODULE4_STEPS,
+  validateM4Compliance,
+  CANONICAL_M4_KPI_DATA,
+  getM4KpiDataFromSeed,
   // M5
   scoreM5Decision,
   MODULE5_STEPS,
@@ -404,6 +407,126 @@ describe("Module 4 — MODULE4_STEPS structure", () => {
   it("steps have sequential order numbers", () => {
     const orders = MODULE4_STEPS.map((s) => s.order);
     expect(orders).toEqual([1, 2, 3, 4, 5]);
+  });
+});
+
+describe("Module 4 — getM4KpiDataFromSeed", () => {
+  it("returns canonical Annexe A bundle when seed has no kpiData", () => {
+    expect(getM4KpiDataFromSeed(null)).toEqual(CANONICAL_M4_KPI_DATA);
+    expect(getM4KpiDataFromSeed({ context: "test" })).toEqual(CANONICAL_M4_KPI_DATA);
+  });
+
+  it("returns seed kpiData when present", () => {
+    const custom = { ...CANONICAL_M4_KPI_DATA, averageStock: 500 };
+    expect(getM4KpiDataFromSeed({ kpiData: custom }).averageStock).toBe(500);
+  });
+});
+
+describe("Module 4 — validateM4Compliance", () => {
+  const kpiResult = calculateKpis(CANONICAL_M4_KPI_DATA);
+  const completedSteps = ["KPI_DATA", "KPI_ROTATION", "KPI_SERVICE", "KPI_DIAGNOSTIC"];
+
+  const diag012 =
+    "Je recommande de maintenir la politique stock actuelle avec surveillance SKU par reference. Decision: monitor les faibles rotations sans destock global. Action: revue mensuelle des 48000 dollars immobilises.";
+  const diag013 =
+    "Service excellent au seuil. Les erreurs picking et reception a 4% menacent OTIF. Je recommande un programme formation pour reduire a 2% en 90 jours avec suivi hebdomadaire des indicateurs rotation service erreur.";
+  const diag014 =
+    "Rotation normale a 6x, service excellent 95%, erreurs acceptables 4%, delai lead time 3,5 jours. Je recommande un programme qualite execution. Trade-off: on reporte le destock pour maintenir le service et le capital. Priorite arbitrage: fund error reduction. Cible 90 jours avec KPI rotation service erreur delai.";
+
+  it("SCN-012 rejects surstock classification at normal 6× band", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-012",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Situation de surstock importante", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Service excellent", isCorrect: true },
+        { kpiKey: "diagnostic", studentAnswer: diag012, isCorrect: true },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/surstock|normale/i);
+  });
+
+  it("SCN-013 rejects diagnostic without error/OTIF correlation", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-013",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Rotation normale et equilibree", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Taux de service excellent a 95%", isCorrect: true },
+        {
+          kpiKey: "diagnostic",
+          studentAnswer:
+            "Je recommande une action strategique pour ameliorer le service client sans mention des erreurs operationnelles ni plan chiffre sur 90 jours.",
+          isCorrect: true,
+        },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/SCN-013/i);
+  });
+
+  it("SCN-014 rejects mono-KPI capstone without trade-off", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-014",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Rotation normale", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Service excellent", isCorrect: true },
+        {
+          kpiKey: "diagnostic",
+          studentAnswer: "Je recommande une action sur la rotation uniquement avec decision rapide.",
+          isCorrect: true,
+        },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/SCN-014/i);
+  });
+
+  it("SCN-012 happy path passes compliance", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-012",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Rotation normale et equilibree a 6x", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Service excellent", isCorrect: true },
+        { kpiKey: "diagnostic", studentAnswer: diag012, isCorrect: true },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("SCN-013 happy path passes compliance", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-013",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Rotation normale", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Taux de service excellent optimal", isCorrect: true },
+        { kpiKey: "diagnostic", studentAnswer: diag013, isCorrect: true },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("SCN-014 happy path passes compliance", () => {
+    const result = validateM4Compliance({
+      scnCode: "SCN-014",
+      completedSteps,
+      kpiInterpretations: [
+        { kpiKey: "rotationRate", studentAnswer: "Rotation normale", isCorrect: true },
+        { kpiKey: "serviceLevel", studentAnswer: "Service excellent", isCorrect: true },
+        { kpiKey: "diagnostic", studentAnswer: diag014, isCorrect: true },
+      ],
+      kpiResult,
+    });
+    expect(result.allowed).toBe(true);
   });
 });
 

@@ -33,6 +33,13 @@ function normalizeReportDetail(
     scoreLabel?: string;
     certificationUnlocked?: boolean;
     silverEligible?: boolean;
+    kpiInterpretations?: Array<{
+      kpiKey: string;
+      studentAnswer: string;
+      isCorrect: boolean;
+      feedback: string;
+      pointsDelta?: number;
+    }>;
   } | null | undefined,
 ) {
   if (!detail) return null;
@@ -523,6 +530,31 @@ export default function RunReport() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* M4 KPI interpretations (REPORT-M4) */}
+          {safeDetail?.kpiInterpretations && safeDetail.kpiInterpretations.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">
+                {t("Interprétations KPI (Module 4)", "KPI Interpretations (Module 4)")}
+              </p>
+              <div className="space-y-2">
+                {safeDetail.kpiInterpretations.map((ki) => (
+                  <div key={ki.kpiKey} className={`p-2.5 rounded border text-xs ${ki.isCorrect ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800"}`}>
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <span className="font-mono font-bold text-[10px] uppercase">{ki.kpiKey}</span>
+                      <span className={`text-[10px] font-semibold ${ki.isCorrect ? "text-green-600" : "text-amber-600"}`}>
+                        {ki.isCorrect ? t("Correct", "Correct") : t("À revoir", "Needs review")}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground whitespace-pre-wrap">{ki.studentAnswer}</p>
+                    {ki.feedback && (
+                      <p className="text-[10px] text-muted-foreground mt-1 italic">{ki.feedback}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

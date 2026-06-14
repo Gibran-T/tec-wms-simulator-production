@@ -669,6 +669,205 @@ export function validateM3Compliance(input: {
   };
 }
 
+export type M4InitialStateJson = {
+  kpiData?: KpiData;
+  context?: string;
+  module?: number;
+};
+
+export type M4KpiInterpretationRow = {
+  kpiKey: string;
+  studentAnswer: string;
+  isCorrect: boolean;
+};
+
+export type KpiData = {
+  annualConsumption: number;
+  averageStock: number;
+  ordersFulfilled: number;
+  totalOrders: number;
+  operationalErrors: number;
+  totalOperations: number;
+  avgLeadTimeDays: number;
+  stockValue: number;
+};
+
+/** Annexe A canonical KPI bundle (6× rotation, 95% service, 4% errors, 3.5j lead time, 48k$). */
+export const CANONICAL_M4_KPI_DATA: KpiData = {
+  annualConsumption: 2400,
+  averageStock: 400,
+  ordersFulfilled: 285,
+  totalOrders: 300,
+  operationalErrors: 12,
+  totalOperations: 300,
+  avgLeadTimeDays: 3.5,
+  stockValue: 48000,
+};
+
+export function getM4KpiDataFromSeed(initialStateJson?: M4InitialStateJson | null): KpiData {
+  return initialStateJson?.kpiData ?? CANONICAL_M4_KPI_DATA;
+}
+
+function normM4Text(text: string): string {
+  return text.toLowerCase().normalize("NFD").replace(/\p{M}/gu, "");
+}
+
+function m4HasTerm(text: string, terms: string[]): boolean {
+  const n = normM4Text(text);
+  return terms.some((t) => n.includes(normM4Text(t)));
+}
+
+function countM4KpiDomains(text: string): number {
+  let count = 0;
+  if (m4HasTerm(text, ["rotation"])) count++;
+  if (m4HasTerm(text, ["service"])) count++;
+  if (m4HasTerm(text, ["erreur", "error"])) count++;
+  if (m4HasTerm(text, ["lead time", "delai", "3,5", "3.5"])) count++;
+  return count;
+}
+
+export function validateM4Compliance(input: {
+  scnCode: string | null;
+  completedSteps: string[];
+  kpiInterpretations: M4KpiInterpretationRow[];
+  kpiResult: ReturnType<typeof calculateKpis>;
+}): ValidationResult {
+  const issues: string[] = [];
+  const issuesFr: string[] = [];
+
+  for (const step of ["KPI_DATA", "KPI_ROTATION", "KPI_SERVICE", "KPI_DIAGNOSTIC"]) {
+    if (!input.completedSteps.includes(step)) {
+      issues.push(`Missing step ${step}`);
+      issuesFr.push(`Étape manquante : ${step}`);
+    }
+  }
+
+  const rotationRow = input.kpiInterpretations.find((r) => r.kpiKey === "rotationRate");
+  const serviceRow = input.kpiInterpretations.find((r) => r.kpiKey === "serviceLevel");
+  const diagnosticRow = input.kpiInterpretations.find((r) => r.kpiKey === "diagnostic");
+
+  if (!rotationRow) {
+    issues.push("Missing rotation interpretation");
+    issuesFr.push("Interprétation rotation manquante");
+  } else if (!rotationRow.isCorrect) {
+    issues.push("Incorrect rotation interpretation");
+    issuesFr.push("Interprétation rotation incorrecte");
+  } else if (input.kpiResult.rotationStatus === "normal") {
+    const ans = normM4Text(rotationRow.studentAnswer);
+    if (ans.includes("surstock") || ans.includes("sur-stock") || ans.includes("exces")) {
+      issues.push("Rotation classified as overstock when engine says normal (6×)");
+      issuesFr.push("Rotation classée surstock alors que la bande est normale (6×)");
+    }
+  }
+
+  if (!serviceRow) {
+    issues.push("Missing service interpretation");
+    issuesFr.push("Interprétation service manquante");
+  } else if (!serviceRow.isCorrect) {
+    issues.push("Incorrect service interpretation");
+    issuesFr.push("Interprétation service incorrecte");
+  }
+
+  const diagnosticTemplateTerms = ["recommand", "action", "strategie", "decision"];
+  if (!diagnosticRow) {
+    issues.push("Missing diagnostic");
+    issuesFr.push("Diagnostic manquant");
+  } else {
+    const diag = diagnosticRow.studentAnswer.trim();
+    if (diag.length < 50) {
+      issues.push("Diagnostic too short (< 50 chars)");
+      issuesFr.push("Diagnostic trop court (< 50 caractères)");
+    }
+    if (!m4HasTerm(diag, diagnosticTemplateTerms)) {
+      issues.push("Diagnostic missing recommendation/action vocabulary");
+      issuesFr.push("Diagnostic sans vocabulaire recommandation/action/stratégie/décision");
+    }
+
+    const scn = input.scnCode?.toUpperCase() ?? "";
+
+    if (scn === "SCN-012") {
+      if (input.kpiResult.rotationStatus === "normal") {
+        if (!m4HasTerm(diag, ["mainten", "surveill", "monitor", "sku", "politique"])) {
+          issues.push("SCN-012: missing maintain/monitor policy stance");
+          issuesFr.push("SCN-012 : politique de maintien/surveillance SKU attendue");
+        }
+        const blanketDestock =
+          m4HasTerm(diag, ["destock", "surstock", "reduction massive"]) &&
+          !m4HasTerm(diag, ["sku", "reference", "article"]);
+        if (blanketDestock) {
+          issues.push("SCN-012: blanket destock without SKU caveat");
+          issuesFr.push("SCN-012 : destock global sans nuance SKU");
+        }
+      }
+      if (
+        m4HasTerm(diag, ["rien a faire", "aucune action"]) ||
+        (m4HasTerm(diag, ["excellent"]) &&
+          !m4HasTerm(diag, ["surveill", "monitor", "mainten", "action", "recommand"]))
+      ) {
+        issues.push("SCN-012: complacency without actionable next step");
+        issuesFr.push("SCN-012 : complaisance sans prochaine action");
+      }
+    }
+
+    if (scn === "SCN-013") {
+      if (input.kpiResult.serviceLevelStatus === "excellent") {
+        if (!m4HasTerm(serviceRow?.studentAnswer ?? "", ["excellent", "tres bon", "optimal"])) {
+          issues.push("SCN-013: service answer must acknowledge excellent status");
+          issuesFr.push("SCN-013 : reconnaissance du service excellent requise");
+        }
+      }
+      const hasErrorLink =
+        m4HasTerm(diag, ["erreur", "error"]) &&
+        m4HasTerm(diag, ["picking", "reception", "receiving", "otif"]);
+      if (!hasErrorLink) {
+        issues.push("SCN-013: diagnostic must correlate errors with picking/receiving/OTIF");
+        issuesFr.push("SCN-013 : corrélation erreurs picking/réception/OTIF requise");
+      }
+      const hasPercent = /\d+\s*%/.test(diag);
+      const hasNumeric = hasPercent || countM4KpiDomains(diag) >= 3;
+      const hasHorizon = m4HasTerm(diag, ["90", "hebdo", "semaine"]);
+      if (!hasNumeric || !hasHorizon) {
+        issues.push("SCN-013: measurable plan with % or 90/hebdo horizon required");
+        issuesFr.push("SCN-013 : plan chiffré (% ou horizon 90 jours/hebdo) requis");
+      }
+      const destockPrimary =
+        m4HasTerm(diag, ["destock", "surstock"]) &&
+        !m4HasTerm(diag, ["picking", "reception", "execution", "qualite", "formation"]);
+      if (destockPrimary) {
+        issues.push("SCN-013: destock as primary lever without execution framing");
+        issuesFr.push("SCN-013 : destock comme levier principal sans cadrage exécution");
+      }
+    }
+
+    if (scn === "SCN-014") {
+      const domainCount = countM4KpiDomains(diag);
+      if (domainCount < 3) {
+        issues.push("SCN-014: diagnostic must cite at least 3 KPI domains");
+        issuesFr.push("SCN-014 : au moins 3 domaines KPI requis");
+      }
+      if (!m4HasTerm(diag, ["report", "differ", "maintien", "sacrifi", "priori", "trade-off", "arbitrage"])) {
+        issues.push("SCN-014: trade-off language required");
+        issuesFr.push("SCN-014 : vocabulaire arbitrage/trade-off requis");
+      }
+      if (diag.length < 150) {
+        issues.push("SCN-014: diagnostic must be >= 150 chars");
+        issuesFr.push("SCN-014 : diagnostic ≥ 150 caractères requis");
+      }
+      if (domainCount >= 3 && !m4HasTerm(diag, ["lead time", "delai", "3,5", "3.5"])) {
+        issues.push("SCN-014: lead time mention required");
+        issuesFr.push("SCN-014 : mention du délai / lead time requise");
+      }
+    }
+  }
+
+  return {
+    allowed: issues.length === 0,
+    reason: issues.join("; "),
+    reasonFr: issuesFr.join(" ; "),
+    reasonEn: issues.join("; "),
+  };
+}
+
 export function canExecuteStepM3(step, completedSteps) {
   const stepDef = MODULE3_STEPS.find((s) => s.code === step);
   if (!stepDef) return { allowed: false, reason: "Unknown M3 step", reasonFr: "Étape M3 inconnue", reasonEn: "Unknown M3 step" };
@@ -780,11 +979,11 @@ export function calculateProgressPct(completedSteps, moduleId = 1) {
   return Math.round(completedSteps.length / steps.length * 100);
 }
 export const MODULE4_STEPS = [
-  { code: "KPI_DATA", labelFr: "Collecte des données KPI", labelEn: "KPI Data Collection", order: 1, prerequisite: null, moduleId: 4 },
-  { code: "KPI_ROTATION", labelFr: "Calcul rotation des stocks", labelEn: "Inventory Turnover", order: 2, prerequisite: "KPI_DATA", moduleId: 4 },
-  { code: "KPI_SERVICE", labelFr: "Taux de service et erreurs", labelEn: "Service Level & Error Rate", order: 3, prerequisite: "KPI_ROTATION", moduleId: 4 },
-  { code: "KPI_DIAGNOSTIC", labelFr: "Diagnostic global de performance", labelEn: "Global Performance Diagnosis", order: 4, prerequisite: "KPI_SERVICE", moduleId: 4 },
-  { code: "COMPLIANCE_M4", labelFr: "Validation finale M4", labelEn: "M4 Final Validation", order: 5, prerequisite: "KPI_DIAGNOSTIC", moduleId: 4 }
+  { code: "KPI_DATA", labelFr: "Briefing tour de contrôle KPI", labelEn: "KPI Control Tower Briefing", order: 1, prerequisite: null, moduleId: 4 },
+  { code: "KPI_ROTATION", labelFr: "Interprétation rotation — décision politique stock", labelEn: "Turnover Interpretation — Stock Policy Decision", order: 2, prerequisite: "KPI_DATA", moduleId: 4 },
+  { code: "KPI_SERVICE", labelFr: "Service et erreurs — risque OTIF", labelEn: "Service & Errors — OTIF Risk", order: 3, prerequisite: "KPI_ROTATION", moduleId: 4 },
+  { code: "KPI_DIAGNOSTIC", labelFr: "Synthèse décisionnelle multi-KPI", labelEn: "Multi-KPI Decision Synthesis", order: 4, prerequisite: "KPI_SERVICE", moduleId: 4 },
+  { code: "COMPLIANCE_M4", labelFr: "Validation conformité interprétations M4", labelEn: "M4 Interpretation Compliance Validation", order: 5, prerequisite: "KPI_DIAGNOSTIC", moduleId: 4 }
 ];
 export function calculateKpis(data) {
   const rotationRate = data.averageStock > 0 ? data.annualConsumption / data.averageStock : 0;

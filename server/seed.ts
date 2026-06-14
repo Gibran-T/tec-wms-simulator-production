@@ -367,38 +367,71 @@ async function seed() {
 
   const [m4] = await db.select().from(modules).where(eq(modules.code, "M4"));
 
+  const m4KpiSeed = {
+    annualConsumption: 2400,
+    averageStock: 400,
+    ordersFulfilled: 285,
+    totalOrders: 300,
+    operationalErrors: 12,
+    totalOperations: 300,
+    avgLeadTimeDays: 3.5,
+    stockValue: 48000,
+  };
+
   const m4Scenarios = [
     {
       moduleId: m4.id,
       name: "M4 \u2014 Sc\u00e9nario 1 : Analyse de la rotation des stocks",
-      descriptionFr: "Calculer et interpr\u00e9ter le taux de rotation des stocks afin d'identifier une situation de surstock ou sous-performance.",
-      descriptionEn: "Calculate and interpret the inventory turnover rate to identify overstock or underperformance situations.",
+      descriptionFr: "Revue Q3 CFO : recommander politique stock @ rotation 6\u00d7 (bande normale) \u2014 les 48 000 $ immobilis\u00e9s sont-ils justifi\u00e9s ?",
+      descriptionEn: "Q3 CFO review: recommend stock policy @ 6\u00d7 turnover (normal band) \u2014 is $48k tied-up capital justified?",
       difficulty: "facile" as const,
       isActive: true,
+      initialStateJson: {
+        kpiData: m4KpiSeed,
+        context: "Rotation 6\u00d7 \u2014 bande normale. Revue politique stock, pas chasse au surstock.",
+        module: 4,
+      },
       createdBy: 1,
     },
     {
       moduleId: m4.id,
       name: "M4 \u2014 Sc\u00e9nario 2 : Analyse du taux de service et des erreurs op\u00e9rationnelles",
-      descriptionFr: "Identifier les causes d'un faible taux de service et analyser l'impact des erreurs logistiques sur la performance globale.",
-      descriptionEn: "Identify the root causes of a low service level and analyze the impact of logistics errors on overall performance.",
+      descriptionFr: "Renouvellement SLA J-90 : service 95 % excellent au seuil, erreurs 4 % \u2014 fragilit\u00e9 OTIF et plan d'ex\u00e9cution chiffr\u00e9.",
+      descriptionEn: "J-90 SLA renewal: 95% service excellent at threshold, 4% errors \u2014 OTIF fragility and measurable execution plan.",
       difficulty: "moyen" as const,
       isActive: true,
+      initialStateJson: {
+        kpiData: m4KpiSeed,
+        context: "Dashboard vert @ 95 % + 4 % erreurs \u2014 piège OTIF, pas faible service.",
+        module: 4,
+      },
       createdBy: 1,
     },
     {
       moduleId: m4.id,
       name: "M4 \u2014 Sc\u00e9nario 3 : Diagnostic global de performance logistique",
-      descriptionFr: "Analyser plusieurs indicateurs combin\u00e9s et proposer une d\u00e9cision strat\u00e9gique bas\u00e9e sur les donn\u00e9es observ\u00e9es.",
-      descriptionEn: "Analyze multiple combined KPIs and propose a strategic decision based on the observed data.",
+      descriptionFr: "S&OP mensuel : arbitrer une initiative unique entre capital, OTIF et ex\u00e9cution \u2014 paragraphe board avec trade-offs.",
+      descriptionEn: "Monthly S&OP: arbitrate one funded initiative across capital, OTIF and execution \u2014 board paragraph with trade-offs.",
       difficulty: "difficile" as const,
       isActive: true,
+      initialStateJson: {
+        kpiData: m4KpiSeed,
+        context: "Capstone multi-KPI : rotation, service, erreurs, d\u00e9lai 3,5 j \u2014 d\u00e9cision int\u00e9gr\u00e9e requise.",
+        module: 4,
+      },
       createdBy: 1,
     },
   ];
 
   for (const s of m4Scenarios) {
-    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { descriptionFr: s.descriptionFr, descriptionEn: s.descriptionEn, difficulty: s.difficulty } });
+    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({
+      set: {
+        descriptionFr: s.descriptionFr,
+        descriptionEn: s.descriptionEn,
+        difficulty: s.difficulty,
+        initialStateJson: s.initialStateJson,
+      },
+    });
   }
 
   // ─── Module 5 ───────────────────────────────────────────────────────────────

@@ -109,11 +109,14 @@ import {
   validateCycleCountListComplete,
   validateCycleCountReconComplete,
   validateM3Compliance,
+  validateM4Compliance,
   validateReplenishmentComplete,
   validateVarianceEntry,
   scoreM5Decision,
   getEffectiveM1Steps,
+  getM4KpiDataFromSeed,
   type KpiData,
+  type M4InitialStateJson,
 } from "./rulesEngine";
 import {
   addInventoryCount,
@@ -126,7 +129,9 @@ import {
   upsertReplenishmentSuggestion,
   addKpiSnapshot,
   addKpiInterpretation,
+  getKpiInterpretationsByRun,
 } from "./db";
+import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
 import { computeModulePassResult } from "@shared/moduleThresholds";
@@ -145,6 +150,14 @@ function pickReason(result: ValidationResult, req: IncomingMessage): string {
   const lang = (req.headers["accept-language"] ?? "fr").toLowerCase();
   const isEn = lang.startsWith("en");
   return (isEn ? result.reasonEn : result.reasonFr) ?? result.reason ?? "Erreur de validation";
+}
+
+function resolveM4KpiDataForScenario(
+  scenario: Awaited<ReturnType<typeof getScenarioById>>,
+  override?: KpiData,
+): KpiData {
+  if (override) return override;
+  return getM4KpiDataFromSeed(scenario?.initialStateJson as M4InitialStateJson | null | undefined);
 }
 
 // ─── Role Guards ──────────────────────────────────────────────────────────────
@@ -1136,6 +1149,16 @@ export const appRouter = router({
             docRef: t.docRef,
           }));
 
+        const kpiInterpretations = moduleId === 4
+          ? (await getKpiInterpretationsByRun(input.runId)).map((r) => ({
+              kpiKey: r.kpiKey,
+              studentAnswer: r.studentAnswer,
+              isCorrect: r.isCorrect,
+              feedback: r.feedback ?? "",
+              pointsDelta: r.pointsDelta,
+            }))
+          : undefined;
+
         return {
           runId: input.runId,
           isDemo: run.isDemo,
@@ -1151,6 +1174,7 @@ export const appRouter = router({
           progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId, state),
           zoneFlow,
           transactionTimeline,
+          kpiInterpretations,
           totalTransactions: state.transactions.filter(t => t.posted).length,
           totalErrors: errors.length,
           stepsCompleted: state.completedSteps.length,
@@ -2657,7 +2681,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const kpiData: KpiData = input.kpiData ?? { annualConsumption: 2400, averageStock: 400, ordersFulfilled: 285, totalOrders: 300, operationalErrors: 12, totalOperations: 300, avgLeadTimeDays: 3.5, stockValue: 48000 };
+        const scenario = await getScenarioById(run.scenarioId);
+        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
         const result = scoreKpiInterpretation("rotationRate", input.studentAnswer, kpiResult);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "rotationRate", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
@@ -2673,7 +2698,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const kpiData: KpiData = input.kpiData ?? { annualConsumption: 2400, averageStock: 400, ordersFulfilled: 285, totalOrders: 300, operationalErrors: 12, totalOperations: 300, avgLeadTimeDays: 3.5, stockValue: 48000 };
+        const scenario = await getScenarioById(run.scenarioId);
+        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
         const result = scoreKpiInterpretation("serviceLevel", input.studentAnswer, kpiResult);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "serviceLevel", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
@@ -2689,7 +2715,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const kpiData: KpiData = input.kpiData ?? { annualConsumption: 2400, averageStock: 400, ordersFulfilled: 285, totalOrders: 300, operationalErrors: 12, totalOperations: 300, avgLeadTimeDays: 3.5, stockValue: 48000 };
+        const scenario = await getScenarioById(run.scenarioId);
+        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
         const result = scoreKpiInterpretation("diagnostic", input.studentAnswer, kpiResult);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "diagnostic", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
@@ -2705,6 +2732,43 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+        if (run.status === "completed") return { success: true };
+
+        const enableValidator = process.env.ENABLE_M4_COMPLIANCE_VALIDATOR !== "false";
+        if (!enableValidator) {
+          await markStepComplete(input.runId, "COMPLIANCE_M4");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: 15, message: "Conformité Module 4 validée" });
+          await completeRun(input.runId);
+          return { success: true };
+        }
+
+        const state = await buildRunState(input.runId);
+        const scenario = await getScenarioById(run.scenarioId);
+        const scnCode = resolveScenarioScnCode(scenario);
+        const kpiData = resolveM4KpiDataForScenario(scenario);
+        const kpiResult = calculateKpis(kpiData);
+        const interpretations = await getKpiInterpretationsByRun(input.runId);
+        const compliance = validateM4Compliance({
+          scnCode,
+          completedSteps: state.completedSteps,
+          kpiInterpretations: interpretations.map((r) => ({
+            kpiKey: r.kpiKey,
+            studentAnswer: r.studentAnswer,
+            isCorrect: r.isCorrect,
+          })),
+          kpiResult,
+        });
+        if (!compliance.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "COMPLIANCE_M4_FAILED",
+              pointsDelta: -10,
+              message: compliance.reasonFr ?? compliance.reason ?? "",
+            });
+          }
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(compliance, ctx.req) });
+        }
         await markStepComplete(input.runId, "COMPLIANCE_M4");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: 15, message: "Conformité Module 4 validée" });
         await completeRun(input.runId);

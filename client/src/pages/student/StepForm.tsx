@@ -1878,7 +1878,7 @@ export default function StepForm() {
                       <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
                         {t("Taux de rotation", "Rotation rate")} = 2400 / 400 = <strong>6 fois/an</strong> | DSI = 365/6 = <strong>60 jours</strong>
                       </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Bande normale 4–12×/an — réponse attendue : normal / équilibré", "Normal band 4–12×/yr — expected answer: normal / balanced")}</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{t("Bande normale 4–12×/an — que recommandez-vous au comité finance ?", "Normal band 4–12×/yr — what do you recommend to the finance committee?")}</p>
                     </div>
                   )}
                   {step?.toLowerCase() === "kpi_service" && (
@@ -1894,8 +1894,9 @@ export default function StepForm() {
                     <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
                       <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Synthèse KPIs", "KPI Summary")}</p>
                       <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                        {t("Rotation", "Rotation")}: 6 ({t("normal", "normal")}) | {t("Service", "Service")}: 95% ({t("excellent", "excellent")}) | {t("Erreurs", "Errors")}: 4% ({t("acceptable", "acceptable")})
+                        {t("Rotation", "Rotation")}: 6 ({t("normal", "normal")}) | {t("Service", "Service")}: 95% ({t("excellent", "excellent")}) | {t("Erreurs", "Errors")}: 4% ({t("acceptable", "acceptable")}) | {t("Délai", "Lead time")}: 3,5 j
                       </p>
+                      <p className="text-[10px] text-muted-foreground mt-1">{t("Structure board : contexte → levier prioritaire → trade-off → KPIs de suivi 90 j → décision", "Board structure: context → priority lever → trade-off → 90-day follow-up KPIs → decision")}</p>
                     </div>
                   )}
                   {step?.toLowerCase() === "m5_decision" && (
