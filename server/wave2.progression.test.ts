@@ -46,31 +46,24 @@ describe("Wave 2 — V2.1 threshold governance (GOV-T01)", () => {
   });
 });
 
-describe("Wave 2 — V2.6 quiz gate logic (eval-only contract)", () => {
-  it("demo mode bypasses quiz requirement for teachers", () => {
-    const studentRole = "student";
+describe("Wave 2 hotfix — quiz must not block scenario access", () => {
+  it("eval student runs are not blocked by quiz pass (RC12 pedagogical rule)", () => {
+    const isDemo = false;
+    const role = "student";
+    const quizGateEnabled = false;
+    const shouldBlockQuiz = quizGateEnabled && !isDemo && role === "student";
+    expect(shouldBlockQuiz).toBe(false);
+  });
+
+  it("demo mode remains accessible for teachers/admins", () => {
     const teacherRole = "teacher";
     const inputIsDemo = true;
-    const studentDemo = inputIsDemo && (studentRole === "teacher" || studentRole === "admin");
     const teacherDemo = inputIsDemo && (teacherRole === "teacher" || teacherRole === "admin");
-    expect(studentDemo).toBe(false);
     expect(teacherDemo).toBe(true);
   });
 
-  it("eval student runs require quiz pass before start (gate predicate)", () => {
-    const isDemo = false;
-    const role = "student";
-    const quizPassed = false;
-    const shouldBlock = !isDemo && role === "student" && !quizPassed;
-    expect(shouldBlock).toBe(true);
-  });
-
-  it("eval student with quiz passed is not blocked by quiz gate", () => {
-    const isDemo = false;
-    const role = "student";
-    const quizPassed = true;
-    const shouldBlock = !isDemo && role === "student" && !quizPassed;
-    expect(shouldBlock).toBe(false);
+  it("Silver M1 quiz threshold unchanged at 60 %", () => {
+    expect(QUIZ_PASS_THRESHOLD).toBe(60);
   });
 });
 

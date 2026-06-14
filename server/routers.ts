@@ -59,7 +59,6 @@ import {
   getBestQuizAttempt,
   saveQuizAttempt,
   checkM1QuizPassed,
-  checkQuizPassed,
   checkAllM1ScenariosCompleted,
   checkM1ComplianceValidated,
   checkNoUnresolvedBlockers,
@@ -785,16 +784,8 @@ export const appRouter = router({
 
         const moduleId = scenario.moduleId ?? 1;
 
-        // Server-side progression gates for students in evaluation mode (P0-09, P0-07)
+        // Server-side progression gates for students in evaluation mode (P0-07)
         if (!isDemo && ctx.user.role === "student") {
-          const quizPassed = await checkQuizPassed(ctx.user.id, moduleId);
-          if (!quizPassed) {
-            throw new TRPCError({
-              code: "FORBIDDEN",
-              message: "Quiz du module requis — réussissez le quiz avant de démarrer un scénario en évaluation.",
-            });
-          }
-
           if (moduleId >= 2) {
             const passedIds = await getPassedModuleIds(ctx.user.id);
             if (!isModuleUnlocked(1, passedIds)) {

@@ -1,4 +1,4 @@
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { calculateTotalScore } from "./scoringEngine";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -632,7 +632,7 @@ export async function checkQuizPassed(userId: number, moduleId: number): Promise
     .select()
     .from(quizAttempts)
     .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.quizId, moduleQuiz[0].id)))
-    .orderBy(quizAttempts.score.desc())
+    .orderBy(desc(quizAttempts.score))
     .limit(1);
 
   return bestAttempt.length > 0 && bestAttempt[0].score >= QUIZ_PASS_THRESHOLD;
@@ -954,8 +954,9 @@ export async function getBestQuizAttempt(userId: number, moduleId: number) {
   const { quizAttempts } = await import("../drizzle/schema");
   const attempts = await db.select().from(quizAttempts)
     .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.moduleId, moduleId)))
-    .orderBy(quizAttempts.score);
-  return attempts[attempts.length - 1];
+    .orderBy(desc(quizAttempts.score))
+    .limit(1);
+  return attempts[0];
 }
 
 export async function saveQuizAttempt(data: {
@@ -1122,7 +1123,7 @@ async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) 
         eq(scenarioRuns.isDemo, false)
       )
     )
-    .orderBy(scenarioRuns.completedAt.desc())
+    .orderBy(desc(scenarioRuns.completedAt))
     .limit(1);
   return runs[0] ?? null;
 }
@@ -1162,7 +1163,7 @@ export async function checkM1QuizPassed(userId: number): Promise<boolean> {
   const bestAttempt = await db.select()
     .from(quizAttempts)
     .where(and(eq(quizAttempts.userId, userId), eq(quizAttempts.quizId, m1Quiz[0].id)))
-    .orderBy(quizAttempts.score.desc())
+    .orderBy(desc(quizAttempts.score))
     .limit(1);
 
   return bestAttempt.length > 0 && bestAttempt[0].score >= QUIZ_PASS_THRESHOLD;

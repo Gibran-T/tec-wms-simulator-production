@@ -6,7 +6,7 @@ import { useState, useMemo } from "react";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
 import {
   BookOpen, Play, ChevronRight, AlertCircle, UserCircle, CheckCircle,
-  Pencil, MonitorPlay, Presentation, Lock, Clock, Target, Info,
+  Pencil, MonitorPlay, Presentation, Clock, Target, Info,
   ChevronDown, ChevronUp, BarChart2, Layers, TrendingUp, FileText,
 } from "lucide-react";
 import ModeSelectionScreen from "./ModeSelectionScreen";
@@ -311,19 +311,19 @@ export default function ScenarioList() {
             <OperationalFlowDisplay steps={currentModuleConfig.steps} />
           </div>
 
-          {/* Quiz Gate */}
-          {!quizPassed && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-md flex items-center gap-3">
-              <AlertCircle size={20} className="text-amber-600 dark:text-amber-400 shrink-0" />
+          {/* Quiz recommendation (non-blocking — certification support only) */}
+          {!quizPassed && user?.role === "student" && (
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md flex items-center gap-3">
+              <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <div>
-                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t("Quiz Pré-requis", "Prerequisite Quiz")}</p>
-                <p className="text-xs text-amber-700 dark:text-amber-300">{t("Vous devez réussir le quiz de ce module avant de pouvoir démarrer les scénarios.", "You must pass this module's quiz before starting scenarios.")}</p>
+                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">{t("Quiz recommandé", "Recommended quiz")}</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">{t("Renforcez vos acquis avant ou après les scénarios. Le quiz reste requis pour la certification Silver M1.", "Reinforce your learning before or after scenarios. The quiz is still required for M1 Silver certification.")}</p>
               </div>
               <button
                 onClick={() => navigate(`/student/quiz/${selectedModule}`)}
-                className="ml-auto px-3 py-1 bg-amber-600 text-white text-xs rounded-md hover:bg-amber-700 transition-colors"
+                className="ml-auto px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors"
               >
-                {t("Commencer le Quiz", "Start Quiz")}
+                {t("Faire le quiz", "Take quiz")}
               </button>
             </div>
           )}
@@ -381,12 +381,11 @@ export default function ScenarioList() {
                 const scnCode = resolveScenarioScnCode(scenario);
                 const completedRun = getCompletedRun(scenario);
                 const activeRun = completedRun ? undefined : getActiveRun(scenario);
-                const isLocked = !quizPassed && user?.role === "student";
 
                 return (
                   <div
                     key={scnCode ?? scenario.id}
-                    className={`bg-card border rounded-lg p-4 flex flex-col justify-between ${isLocked ? "opacity-50 cursor-not-allowed" : "hover:shadow-lg transition-shadow"}`}
+                    className="bg-card border rounded-lg p-4 flex flex-col justify-between hover:shadow-lg transition-shadow"
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2 gap-2">
@@ -428,49 +427,33 @@ export default function ScenarioList() {
                             <BarChart2 size={12} className="mr-1" /> {t("Score:", "Score:")} {completedRun.score}/100
                           </span>
                         )}
-                        {isLocked && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                            <Lock size={12} className="mr-1" /> {t("Verrouillé", "Locked")}
-                          </span>
-                        )}
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="mt-4 flex gap-2">
-                      {isLocked ? (
+                      {activeRun ? (
                         <button
-                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-md cursor-not-allowed"
-                          disabled
+                          onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
+                          className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
                         >
-                          <Lock size={16} className="inline mr-2" /> {t("Verrouillé", "Locked")}
+                          <Play size={16} className="inline mr-2" /> {t("Continuer", "Continue")}
                         </button>
                       ) : (
-                        <>
-                          {activeRun ? (
-                            <button
-                              onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
-                              className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
-                            >
-                              <Play size={16} className="inline mr-2" /> {t("Continuer", "Continue")}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty })}
-                              className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
-                            >
-                              <Play size={16} className="inline mr-2" /> {t("Démarrer", "Start")}
-                            </button>
-                          )}
-                          {completedRun && (
-                            <button
-                              onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
-                              className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
-                            >
-                              <FileText size={16} className="inline mr-2" /> {t("Rapport", "Report")}
-                            </button>
-                          )}
-                        </>
+                        <button
+                          onClick={() => setPendingScenario({ id: scenario.id, name: scenario.name, difficulty: scenario.difficulty })}
+                          className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+                        >
+                          <Play size={16} className="inline mr-2" /> {t("Démarrer", "Start")}
+                        </button>
+                      )}
+                      {completedRun && (
+                        <button
+                          onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
+                          className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
+                        >
+                          <FileText size={16} className="inline mr-2" /> {t("Rapport", "Report")}
+                        </button>
                       )}
                     </div>
                   </div>
