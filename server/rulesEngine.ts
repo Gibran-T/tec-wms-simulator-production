@@ -1124,6 +1124,166 @@ export function getM5KpiDataFromSeed(initialStateJson?: M5InitialStateJson | nul
   return initialStateJson?.m5Contract?.kpiData ?? CANONICAL_M4_KPI_DATA;
 }
 
+export type M5KpiLedgerEvidence = {
+  receivedQty: number;
+  putawayQty: number;
+  cycleCountQty: number | null;
+  varianceQty: number;
+  varianceResolved: boolean;
+  replenishmentQty: number | null;
+  stockQtyAtBin: number;
+  evidenceSource: "run_ledger";
+};
+
+function sumPostedM5Qty(transactions: M5TransactionRow[], docType: string, sku: string): number {
+  return transactions
+    .filter((t) => t.posted && t.docType === docType && t.sku === sku)
+    .reduce((sum, t) => sum + Math.abs(Number(t.qty ?? 0)), 0);
+}
+
+/** Derive M5 KPI inputs from run transactions, inventory counts, and contract bundle. */
+export function deriveM5KpiFromRunEvidence(
+  initialStateJson: M5InitialStateJson | null | undefined,
+  state: {
+    transactions: M5TransactionRow[];
+    inventoryCounts: M5InventoryCountRow[];
+    inventoryAdjustments: M5InventoryAdjustmentRow[];
+    inventory: Record<string, number>;
+    replenishmentQty?: number | null;
+  },
+): { kpiData: KpiData; evidence: M5KpiLedgerEvidence } {
+  const contract = getM5ContractFromSeed(initialStateJson);
+  const contractKpi = contract?.kpiData ?? CANONICAL_M4_KPI_DATA;
+  const sku = contract?.sku ?? "SKU-001";
+  const toBin = contract?.toBin ?? "B-01-R1-L1";
+
+  const receivedQty = sumPostedM5Qty(state.transactions, "GR", sku);
+  const putawayQty = sumPostedM5Qty(state.transactions, "PUTAWAY", sku);
+  const countRow = state.inventoryCounts.find((c) => c.sku === sku);
+  const cycleCountQty = countRow?.countedQty ?? null;
+  const varianceQty = countRow?.varianceQty ?? 0;
+  const varianceResolved = isM5VarianceResolved(
+    initialStateJson,
+    state.inventoryCounts,
+    state.inventoryAdjustments,
+    state.transactions,
+  );
+
+  const stockKey = `${sku}::${toBin}`;
+  let stockQtyAtBin = state.inventory[stockKey] ?? 0;
+  if (stockQtyAtBin <= 0) {
+    stockQtyAtBin = cycleCountQty ?? putawayQty ?? receivedQty ?? contract?.qty ?? 0;
+    if (!varianceResolved && varianceQty !== 0 && countRow?.countedQty != null) {
+      stockQtyAtBin = countRow.countedQty;
+    }
+  }
+  if (stockQtyAtBin < 0) stockQtyAtBin = 0;
+
+  const unitValue = contractKpi.averageStock > 0
+    ? contractKpi.stockValue / contractKpi.averageStock
+    : 120;
+  const rotationTarget = contractKpi.averageStock > 0
+    ? contractKpi.annualConsumption / contractKpi.averageStock
+    : 6;
+
+  const averageStock = stockQtyAtBin > 0 ? stockQtyAtBin : contractKpi.averageStock;
+  const annualConsumption = Math.round(averageStock * rotationTarget);
+  const stockValue = Math.round(averageStock * unitValue);
+
+  const kpiData: KpiData = {
+    annualConsumption,
+    averageStock,
+    ordersFulfilled: contractKpi.ordersFulfilled,
+    totalOrders: contractKpi.totalOrders,
+    operationalErrors: contractKpi.operationalErrors,
+    totalOperations: contractKpi.totalOperations,
+    avgLeadTimeDays: contractKpi.avgLeadTimeDays,
+    stockValue,
+  };
+
+  return {
+    kpiData,
+    evidence: {
+      receivedQty,
+      putawayQty,
+      cycleCountQty,
+      varianceQty,
+      varianceResolved,
+      replenishmentQty: state.replenishmentQty ?? null,
+      stockQtyAtBin,
+      evidenceSource: "run_ledger",
+    },
+  };
+}
+
+export function isCanonicalM5KpiPaste(kpiData: KpiData): boolean {
+  const fields: (keyof KpiData)[] = [
+    "annualConsumption", "averageStock", "ordersFulfilled", "totalOrders",
+    "operationalErrors", "totalOperations", "avgLeadTimeDays", "stockValue",
+  ];
+  return fields.every((key) => Math.abs(kpiData[key] - CANONICAL_M4_KPI_DATA[key]) < 0.001);
+}
+
+function kpiDataMatchesWithinTolerance(a: KpiData, b: KpiData, pct = 0.05): boolean {
+  const fields: (keyof KpiData)[] = [
+    "annualConsumption", "averageStock", "ordersFulfilled", "totalOrders",
+    "operationalErrors", "totalOperations", "avgLeadTimeDays", "stockValue",
+  ];
+  for (const key of fields) {
+    const tol = Math.max(Math.abs(b[key]) * pct, 0.01);
+    if (Math.abs(a[key] - b[key]) > tol) return false;
+  }
+  return true;
+}
+
+export function validateM5KpiSubmission(
+  submitted: KpiData,
+  derived: KpiData,
+  options: { isDemo: boolean; confirmedFromLedger: boolean },
+): ValidationResult {
+  if (options.isDemo) {
+    return { allowed: true };
+  }
+  if (!options.confirmedFromLedger) {
+    return {
+      allowed: false,
+      reason: "Confirm KPI values are anchored to run ledger",
+      reasonFr: "Confirmez que les KPI sont ancrés au moniteur d'exécution (coche requise)",
+      reasonEn: "Confirm KPI values are anchored to run ledger (checkbox required)",
+    };
+  }
+  if (isCanonicalM5KpiPaste(submitted)) {
+    return {
+      allowed: false,
+      reason: "Canonical KPI paste rejected — derive from run ledger",
+      reasonFr: "Coller les valeurs canoniques Annexe A est refusé — calculez depuis le moniteur",
+      reasonEn: "Canonical KPI paste rejected — derive values from run ledger",
+    };
+  }
+  if (!kpiDataMatchesWithinTolerance(submitted, derived, 0.05)) {
+    return {
+      allowed: false,
+      reason: "KPI values must match run-derived ledger within tolerance",
+      reasonFr: "Les KPI doivent correspondre aux valeurs dérivées du moniteur (±5 %)",
+      reasonEn: "KPI values must match run-derived ledger within tolerance (±5%)",
+    };
+  }
+  return { allowed: true };
+}
+
+export function formatM5KpiEvidenceSource(evidence: M5KpiLedgerEvidence): string {
+  return [
+    `source=${evidence.evidenceSource}`,
+    `received=${evidence.receivedQty}`,
+    `putaway=${evidence.putawayQty}`,
+    `cycleCount=${evidence.cycleCountQty ?? "n/a"}`,
+    `variance=${evidence.varianceQty}`,
+    `varianceResolved=${evidence.varianceResolved}`,
+    `replenish=${evidence.replenishmentQty ?? "n/a"}`,
+    `stockAtBin=${evidence.stockQtyAtBin}`,
+  ].join("|");
+}
+
 export function getM5CycleCountTargets(initialStateJson?: M5InitialStateJson | null): M5CycleCountTarget[] {
   const raw = initialStateJson?.m5Contract?.cycleCountTargets;
   if (!Array.isArray(raw)) return [];

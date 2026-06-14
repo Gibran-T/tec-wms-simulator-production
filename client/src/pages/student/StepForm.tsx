@@ -628,6 +628,7 @@ type FormValues = {
   totalOperations?: string;
   avgLeadTimeDays?: string;
   stockValue?: string;
+  kpiLedgerConfirmed?: boolean;
 };
 
 function PedagogicalPanel({ cfg, isDemo }: { cfg: typeof STEP_CONFIG[string]; isDemo: boolean }) {
@@ -792,6 +793,11 @@ export default function StepForm() {
   const cfg = STEP_CONFIG[step?.toLowerCase() ?? ""] ?? STEP_CONFIG.po;
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
+  const isM5KpiStep = step?.toLowerCase() === "m5_kpi";
+  const { data: m5KpiLedger } = trpc.m5.kpiLedger.useQuery(
+    { runId: parseInt(runId) },
+    { enabled: isM5KpiStep && !!runId },
+  );
   const { data: masterData } = trpc.master.skus.useQuery();
   const { data: bins } = trpc.master.bins.useQuery();
 
@@ -879,6 +885,23 @@ export default function StepForm() {
   if (typeof window !== 'undefined') (window as any).__rhfSetValue = setValue;
   const [feedbackPanel, setFeedbackPanel] = useState<{ data: any } | null>(null);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [kpiLedgerConfirmed, setKpiLedgerConfirmed] = useState(false);
+
+  const isDemo = runData?.isDemo ?? false;
+
+  useEffect(() => {
+    if (!isM5KpiStep || !m5KpiLedger?.kpiData) return;
+    const d = m5KpiLedger.kpiData;
+    setValue("annualConsumption", String(d.annualConsumption));
+    setValue("averageStock", String(d.averageStock));
+    setValue("ordersFulfilled", String(d.ordersFulfilled));
+    setValue("totalOrders", String(d.totalOrders));
+    setValue("operationalErrors", String(d.operationalErrors));
+    setValue("totalOperations", String(d.totalOperations));
+    setValue("avgLeadTimeDays", String(d.avgLeadTimeDays));
+    setValue("stockValue", String(d.stockValue));
+    if (isDemo) setKpiLedgerConfirmed(true);
+  }, [isM5KpiStep, m5KpiLedger, setValue, isDemo]);
 
   function handleSuccess(data: any) {
     // Fix 3: Reset all form fields (dropdowns, inputs) after successful submission
@@ -1102,7 +1125,24 @@ export default function StepForm() {
       case "m5_replenish":
         return submitM5Replenish.mutate({ ...base, sku: values.sku!, systemQty: Number(values.systemQty ?? 0), minQty: Number(values.minQty ?? 0), maxQty: Number(values.maxQty ?? 0), safetyStock: Number(values.safetyStock ?? 0), studentQty: Number(values.studentQty ?? 0) });
       case "m5_kpi":
-        return submitM5Kpi.mutate({ ...base, kpiData: { annualConsumption: Number(values.annualConsumption ?? 2400), averageStock: Number(values.averageStock ?? 400), ordersFulfilled: Number(values.ordersFulfilled ?? 285), totalOrders: Number(values.totalOrders ?? 300), operationalErrors: Number(values.operationalErrors ?? 12), totalOperations: Number(values.totalOperations ?? 300), avgLeadTimeDays: Number(values.avgLeadTimeDays ?? 3.5), stockValue: Number(values.stockValue ?? 48000) } });
+        if (!isDemo && !kpiLedgerConfirmed) {
+          toast.error(t("Confirmez que les KPI sont ancrés au moniteur d'exécution.", "Confirm KPI values are anchored to the run monitor."));
+          return;
+        }
+        return submitM5Kpi.mutate({
+          ...base,
+          confirmedFromLedger: kpiLedgerConfirmed,
+          kpiData: {
+            annualConsumption: Number(values.annualConsumption ?? 0),
+            averageStock: Number(values.averageStock ?? 0),
+            ordersFulfilled: Number(values.ordersFulfilled ?? 0),
+            totalOrders: Number(values.totalOrders ?? 0),
+            operationalErrors: Number(values.operationalErrors ?? 0),
+            totalOperations: Number(values.totalOperations ?? 0),
+            avgLeadTimeDays: Number(values.avgLeadTimeDays ?? 0),
+            stockValue: Number(values.stockValue ?? 0),
+          },
+        });
       case "m5_decision":
         return submitM5Decision.mutate({ ...base, studentDecision: values.studentAnswer! });
       case "compliance_m5":
@@ -1132,7 +1172,6 @@ export default function StepForm() {
     );
   }
 
-  const isDemo = runData?.isDemo ?? false;
   const nextStep = (runData?.nextStep as any)?.code;
   const isCurrentStep = nextStep === cfg.code;
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
@@ -1941,39 +1980,77 @@ export default function StepForm() {
 
               {/* KPI Data fields (M5 only) */}
               {cfg.fields.includes("annualConsumption") && (
+                <div className="space-y-3">
+                  {isM5KpiStep && m5KpiLedger?.evidence && (
+                    <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded p-3 text-[10px] space-y-1">
+                      <p className="font-bold text-slate-700 dark:text-slate-300">
+                        {t("Ancrage moniteur M5", "M5 monitor anchor")}
+                      </p>
+                      <p className="font-mono text-muted-foreground">
+                        {t("Réception", "Received")}: {m5KpiLedger.evidence.receivedQty} · {t("Putaway", "Putaway")}: {m5KpiLedger.evidence.putawayQty} · CC: {m5KpiLedger.evidence.cycleCountQty ?? "—"} · {t("Variance", "Variance")}: {m5KpiLedger.evidence.varianceQty} · {t("Stock bin", "Bin stock")}: {m5KpiLedger.evidence.stockQtyAtBin}
+                      </p>
+                      {m5KpiLedger.kpiResult && (
+                        <p className="text-muted-foreground">
+                          → rotation {m5KpiLedger.kpiResult.rotationRate}× · service {(m5KpiLedger.kpiResult.serviceLevel * 100).toFixed(1)}% · {t("erreurs", "errors")} {(m5KpiLedger.kpiResult.errorRate * 100).toFixed(1)}%
+                        </p>
+                      )}
+                      {isDemo && m5KpiLedger.canonicalExample && (
+                        <p className="text-indigo-600 dark:text-indigo-400 mt-1">
+                          {t("Exemple Annexe A (démo)", "Annex A example (demo)")}: 2400/400 · 285/300 · 12/300 · 3,5 j · 48 000 $
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {!isDemo && isM5KpiStep && (
+                    <label className="flex items-start gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={kpiLedgerConfirmed}
+                        onChange={(e) => setKpiLedgerConfirmed(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        {t(
+                          "Je confirme que les KPI ci-dessous sont dérivés du moniteur d'exécution (réception, putaway, CC, ADJ, réappro).",
+                          "I confirm the KPIs below are derived from the run monitor (reception, putaway, CC, ADJ, replenishment).",
+                        )}
+                      </span>
+                    </label>
+                  )}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="fiori-field-label">{t("Consommation annuelle", "Annual consumption")}</label>
-                    <input {...register("annualConsumption")} type="number" defaultValue={2400} className="fiori-field-input fiori-field-active" />
+                    <input {...register("annualConsumption")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Stock moyen", "Average stock")}</label>
-                    <input {...register("averageStock")} type="number" defaultValue={400} className="fiori-field-input fiori-field-active" />
+                    <input {...register("averageStock")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Commandes livrées", "Orders fulfilled")}</label>
-                    <input {...register("ordersFulfilled")} type="number" defaultValue={285} className="fiori-field-input fiori-field-active" />
+                    <input {...register("ordersFulfilled")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Total commandes", "Total orders")}</label>
-                    <input {...register("totalOrders")} type="number" defaultValue={300} className="fiori-field-input fiori-field-active" />
+                    <input {...register("totalOrders")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Erreurs opérationnelles", "Operational errors")}</label>
-                    <input {...register("operationalErrors")} type="number" defaultValue={12} className="fiori-field-input fiori-field-active" />
+                    <input {...register("operationalErrors")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Total opérations", "Total operations")}</label>
-                    <input {...register("totalOperations")} type="number" defaultValue={300} className="fiori-field-input fiori-field-active" />
+                    <input {...register("totalOperations")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Délai moyen (jours)", "Avg lead time (days)")}</label>
-                    <input {...register("avgLeadTimeDays")} type="number" step="0.1" defaultValue={3.5} className="fiori-field-input fiori-field-active" />
+                    <input {...register("avgLeadTimeDays")} type="number" step="0.1" className="fiori-field-input fiori-field-active" />
                   </div>
                   <div>
                     <label className="fiori-field-label">{t("Valeur stock ($)", "Stock value ($)")}</label>
-                    <input {...register("stockValue")} type="number" defaultValue={48000} className="fiori-field-input fiori-field-active" />
+                    <input {...register("stockValue")} type="number" className="fiori-field-input fiori-field-active" />
                   </div>
+                </div>
                 </div>
               )}
 

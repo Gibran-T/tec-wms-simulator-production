@@ -33,6 +33,10 @@ import {
   assertM5VarianceGate,
   validateM5Compliance,
   validateM5Reception,
+  deriveM5KpiFromRunEvidence,
+  validateM5KpiSubmission,
+  isCanonicalM5KpiPaste,
+  formatM5KpiEvidenceSource,
   getNextRequiredStepAllModules,
   calculateProgressPctAllModules,
 } from "./rulesEngine";
@@ -873,5 +877,72 @@ describe("Wave 4 — M5 runtime alignment", () => {
       SCN_015_M5_STATE.m5Contract,
     );
     expect(result.allowed).toBe(false);
+  });
+
+  it("11. V4.6 deriveM5KpiFromRunEvidence anchors stock to run ledger (non-canonical)", () => {
+    const { kpiData, evidence } = deriveM5KpiFromRunEvidence(SCN_015_M5_STATE, {
+      transactions: [
+        { docType: "GR", sku: "SKU-001", qty: 50, posted: true },
+        { docType: "PUTAWAY", sku: "SKU-001", qty: 50, posted: true },
+      ],
+      inventoryCounts: [{ sku: "SKU-001", systemQty: 50, countedQty: 50, varianceQty: 0 }],
+      inventoryAdjustments: [],
+      inventory: { "SKU-001::B-01-R1-L1": 50 },
+    });
+    expect(evidence.receivedQty).toBe(50);
+    expect(evidence.putawayQty).toBe(50);
+    expect(evidence.stockQtyAtBin).toBe(50);
+    expect(kpiData.averageStock).toBe(50);
+    expect(isCanonicalM5KpiPaste(kpiData)).toBe(false);
+  });
+
+  it("12. V4.6 rejects canonical KPI paste in eval without ledger confirmation", () => {
+    const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_015_M5_STATE, {
+      transactions: [{ docType: "GR", sku: "SKU-001", qty: 50, posted: true }],
+      inventoryCounts: [],
+      inventoryAdjustments: [],
+      inventory: { "SKU-001::B-01-R1-L1": 50 },
+    });
+    const noConfirm = validateM5KpiSubmission(CANONICAL_M4_KPI_DATA, derived, {
+      isDemo: false,
+      confirmedFromLedger: false,
+    });
+    expect(noConfirm.allowed).toBe(false);
+    expect(noConfirm.reasonFr).toMatch(/coche|ancr/i);
+
+    const canonicalPaste = validateM5KpiSubmission(CANONICAL_M4_KPI_DATA, derived, {
+      isDemo: false,
+      confirmedFromLedger: true,
+    });
+    expect(canonicalPaste.allowed).toBe(false);
+    expect(canonicalPaste.reasonFr).toMatch(/canonique|Annexe/i);
+  });
+
+  it("13. V4.6 accepts ledger-derived KPI with confirmation in eval", () => {
+    const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_016_M5_STATE, {
+      transactions: [
+        { docType: "GR", sku: "SKU-001", qty: 50, posted: true },
+        { docType: "PUTAWAY", sku: "SKU-001", qty: 50, posted: true },
+        { docType: "ADJ", sku: "SKU-001", qty: -5, posted: true },
+      ],
+      inventoryCounts: [{ sku: "SKU-001", systemQty: 50, countedQty: 45, varianceQty: -5 }],
+      inventoryAdjustments: [{ sku: "SKU-001", varianceQty: -5 }],
+      inventory: { "SKU-001::B-01-R1-L1": 45 },
+    });
+    const ok = validateM5KpiSubmission(derived, derived, {
+      isDemo: false,
+      confirmedFromLedger: true,
+    });
+    expect(ok.allowed).toBe(true);
+    expect(formatM5KpiEvidenceSource({
+      receivedQty: 50,
+      putawayQty: 50,
+      cycleCountQty: 45,
+      varianceQty: -5,
+      varianceResolved: true,
+      replenishmentQty: null,
+      stockQtyAtBin: 45,
+      evidenceSource: "run_ledger",
+    })).toMatch(/source=run_ledger/);
   });
 });

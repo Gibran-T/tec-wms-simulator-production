@@ -118,12 +118,16 @@ import {
   getM5ContractFromSeed,
   getM5KpiDataFromSeed,
   getM5CycleCountTargets,
+  deriveM5KpiFromRunEvidence,
+  validateM5KpiSubmission,
+  formatM5KpiEvidenceSource,
   assertM5VarianceGate,
   validateM5Reception,
   validateM5Putaway,
   validateM5Compliance,
   hasM5VarianceContract,
   getM4KpiDataFromSeed,
+  CANONICAL_M4_KPI_DATA,
   type KpiData,
   type M4InitialStateJson,
   type M5InitialStateJson,
@@ -2843,6 +2847,38 @@ export const appRouter = router({
 
   // ─── Module 5: Integrated Simulation ──────────────────────────────────────
   m5: router({
+    /** M5 KPI ledger anchor — derive KPI inputs from run evidence */
+    kpiLedger: protectedProcedure
+      .input(z.object({ runId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const run = await getRunById(input.runId);
+        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
+          throw new TRPCError({ code: "FORBIDDEN" });
+        }
+        const state = await buildRunState(input.runId);
+        const replenishments = await getReplenishmentSuggestionsByRun(input.runId);
+        const contract = getM5ContractFromSeed(state.m5InitialStateJson);
+        const replRow = contract?.sku
+          ? replenishments.find((r) => r.sku === contract.sku)
+          : replenishments[0];
+        const { kpiData, evidence } = deriveM5KpiFromRunEvidence(state.m5InitialStateJson, {
+          transactions: state.transactions,
+          inventoryCounts: state.inventoryCounts,
+          inventoryAdjustments: state.inventoryAdjustments,
+          inventory: state.inventory,
+          replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+        });
+        const kpiResult = calculateKpis(kpiData);
+        return {
+          kpiData,
+          kpiResult,
+          evidence,
+          canonicalExample: CANONICAL_M4_KPI_DATA,
+          isDemo: run.isDemo,
+        };
+      }),
+
     /** M5 Step 1: M5_RECEPTION */
     submitReception: protectedProcedure
       .input(z.object({ runId: z.number(), sku: z.string(), qty: z.number().positive(), docRef: z.string() }))
@@ -3011,7 +3047,15 @@ export const appRouter = router({
 
     /** M5 Step 5: M5_KPI */
     submitKpi: protectedProcedure
-      .input(z.object({ runId: z.number(), kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }) }))
+      .input(z.object({
+        runId: z.number(),
+        kpiData: z.object({
+          annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(),
+          totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(),
+          avgLeadTimeDays: z.number(), stockValue: z.number(),
+        }),
+        confirmedFromLedger: z.boolean().optional(),
+      }))
       .mutation(async ({ ctx, input }) => {
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
@@ -3028,7 +3072,27 @@ export const appRouter = router({
         if (!varianceGate.allowed) {
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(varianceGate, ctx.req) });
         }
+        const replenishments = await getReplenishmentSuggestionsByRun(input.runId);
+        const contract = getM5ContractFromSeed(m5State);
+        const replRow = contract?.sku
+          ? replenishments.find((r) => r.sku === contract.sku)
+          : replenishments[0];
+        const { kpiData: derivedKpi, evidence } = deriveM5KpiFromRunEvidence(m5State, {
+          transactions: state.transactions,
+          inventoryCounts: state.inventoryCounts,
+          inventoryAdjustments: state.inventoryAdjustments,
+          inventory: state.inventory,
+          replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+        });
+        const kpiValidation = validateM5KpiSubmission(input.kpiData, derivedKpi, {
+          isDemo: run.isDemo,
+          confirmedFromLedger: input.confirmedFromLedger ?? false,
+        });
+        if (!kpiValidation.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(kpiValidation, ctx.req) });
+        }
         const kpiResult = calculateKpis(input.kpiData);
+        const evidenceSource = formatM5KpiEvidenceSource(evidence);
         await addKpiSnapshot({
           runId: input.runId,
           rotationRate: kpiResult.rotationRate,
@@ -3038,8 +3102,15 @@ export const appRouter = router({
           stockImmobilizedValue: kpiResult.stockImmobilizedValue,
         });
         await markStepComplete(input.runId, "M5_KPI");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_KPI_COMPLETED", pointsDelta: 10, message: "KPI M5 calculés — snapshot enregistré" });
-        return { success: true, kpiResult };
+        if (!run.isDemo) {
+          await addScoringEvent({
+            runId: input.runId,
+            eventType: "M5_KPI_COMPLETED",
+            pointsDelta: 10,
+            message: `KPI M5 calculés — snapshot enregistré | ${evidenceSource}`,
+          });
+        }
+        return { success: true, kpiResult, evidenceSource };
       }),
 
     /** M5 Step 6: M5_DECISION — strategic decision */
