@@ -732,23 +732,43 @@ const M5_KPI_SNAPSHOT = {
   stockImmobilizedValue: 48000,
 };
 
-const M5_NOMINAL_STEPS = [
-  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH", "M5_KPI", "M5_DECISION", "COMPLIANCE_M5",
+/** Prior ops steps complete; COMPLIANCE_M5 intentionally omitted (submitted via submitComplianceM5). */
+const M5_NOMINAL_PRIOR_STEPS = [
+  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_REPLENISH", "M5_KPI", "M5_DECISION",
 ];
 
-const M5_VARIANCE_STEPS = [
-  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_ADJ", "M5_REPLENISH", "M5_KPI", "M5_DECISION", "COMPLIANCE_M5",
+const M5_VARIANCE_PRIOR_STEPS = [
+  "M5_RECEPTION", "M5_PUTAWAY", "M5_CYCLE_COUNT", "M5_ADJ", "M5_REPLENISH", "M5_KPI", "M5_DECISION",
 ];
 
 describe("Wave 4 — M5 runtime alignment", () => {
-  it("1. SCN-015 nominal completion passes validateM5Compliance", () => {
+  it("1. COMPLIANCE_M5 does not require itself pre-completed", () => {
     const result = validateM5Compliance({
       scnCode: "SCN-015",
       initialStateJson: SCN_015_M5_STATE,
-      completedSteps: M5_NOMINAL_STEPS,
+      completedSteps: M5_NOMINAL_PRIOR_STEPS,
       inventoryCounts: [{ sku: "SKU-001", varianceQty: 0 }],
       inventoryAdjustments: [],
       transactions: [],
+      inventory: { "SKU-001::B-01-R1-L1": 50 },
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(true);
+    expect(result.reasonFr).not.toMatch(/COMPLIANCE_M5/i);
+  });
+
+  it("2. SCN-015 compliance passes after valid prior chain", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-015",
+      initialStateJson: SCN_015_M5_STATE,
+      completedSteps: M5_NOMINAL_PRIOR_STEPS,
+      inventoryCounts: [{ sku: "SKU-001", varianceQty: 0 }],
+      inventoryAdjustments: [],
+      transactions: [
+        { docType: "GR", sku: "SKU-001", qty: 50, posted: true },
+        { docType: "PUTAWAY", sku: "SKU-001", qty: 50, posted: true },
+      ],
       inventory: { "SKU-001::B-01-R1-L1": 50 },
       kpiSnapshot: M5_KPI_SNAPSHOT,
       decisionRejected: false,
@@ -801,11 +821,57 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(result.reasonFr).toMatch(/M5_ADJ|Écart/i);
   });
 
-  it("6. SCN-017 KPI snapshot required for compliance", () => {
+  it("6. SCN-016 compliance passes after ADJ resolution", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-016",
+      initialStateJson: SCN_016_M5_STATE,
+      completedSteps: M5_VARIANCE_PRIOR_STEPS,
+      inventoryCounts: [{ sku: "SKU-001", varianceQty: -5 }],
+      inventoryAdjustments: [{ sku: "SKU-001", varianceQty: -5 }],
+      transactions: [{ docType: "ADJ", sku: "SKU-001", qty: -5, posted: true }],
+      inventory: { "SKU-001::B-01-R1-L1": 45 },
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("7. SCN-017 compliance passes after KPI-linked strategic decision", () => {
     const result = validateM5Compliance({
       scnCode: "SCN-017",
       initialStateJson: SCN_017_M5_STATE,
-      completedSteps: M5_NOMINAL_STEPS,
+      completedSteps: M5_NOMINAL_PRIOR_STEPS,
+      inventoryCounts: [],
+      inventoryAdjustments: [],
+      transactions: [],
+      inventory: {},
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: false,
+    });
+    expect(result.allowed).toBe(true);
+  });
+
+  it("7b. SCN-017 missing strategic decision evidence blocks compliance", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-017",
+      initialStateJson: SCN_017_M5_STATE,
+      completedSteps: M5_NOMINAL_PRIOR_STEPS,
+      inventoryCounts: [],
+      inventoryAdjustments: [],
+      transactions: [],
+      inventory: {},
+      kpiSnapshot: M5_KPI_SNAPSHOT,
+      decisionRejected: true,
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.reasonFr).toMatch(/justification KPI/i);
+  });
+
+  it("8. SCN-017 KPI snapshot required for compliance", () => {
+    const result = validateM5Compliance({
+      scnCode: "SCN-017",
+      initialStateJson: SCN_017_M5_STATE,
+      completedSteps: M5_NOMINAL_PRIOR_STEPS,
       inventoryCounts: [],
       inventoryAdjustments: [],
       transactions: [],
@@ -817,13 +883,13 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(result.reasonFr).toMatch(/Snapshot KPI/i);
   });
 
-  it("7. SCN-017 decision rejects generic keyword-only text", () => {
+  it("9. SCN-017 decision rejects generic keyword-only text", () => {
     const generic = "Améliorer la performance globale de l'entrepôt avec rotation service erreur formation.";
     const result = scoreM5StrategicDecision(generic, M5_KPI_SNAPSHOT);
     expect(result.rejected).toBe(true);
   });
 
-  it("8. SCN-017 decision accepts KPI-linked strategic answer", () => {
+  it("10. SCN-017 decision accepts KPI-linked strategic answer", () => {
     const strategic = "Rotation 6× normal et service 95% excellent ; erreurs 4% acceptable. "
       + "J'arbitre entre maintien du stock immobilisé 48000 $ et plan formation picking. "
       + "Recommandation : initiative qualité 90 j pour réduire erreurs à 2% sans descendre sous 93% service.";
@@ -832,7 +898,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(result.score).toBeGreaterThanOrEqual(50);
   });
 
-  it("9. validateM5Compliance blocks missing evidence", () => {
+  it("11. validateM5Compliance blocks missing evidence", () => {
     const result = validateM5Compliance({
       scnCode: "SCN-015",
       initialStateJson: SCN_015_M5_STATE,
@@ -847,7 +913,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(result.allowed).toBe(false);
   });
 
-  it("10. rollback flag ENABLE_M5_COMPLIANCE_VALIDATOR=false restores legacy bypass", () => {
+  it("12. rollback flag ENABLE_M5_COMPLIANCE_VALIDATOR=false restores legacy bypass", () => {
     const prev = process.env.ENABLE_M5_COMPLIANCE_VALIDATOR;
     process.env.ENABLE_M5_COMPLIANCE_VALIDATOR = "false";
     expect(process.env.ENABLE_M5_COMPLIANCE_VALIDATOR !== "false").toBe(false);
@@ -879,7 +945,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(result.allowed).toBe(false);
   });
 
-  it("11. V4.6 deriveM5KpiFromRunEvidence anchors stock to run ledger (non-canonical)", () => {
+  it("13. V4.6 deriveM5KpiFromRunEvidence anchors stock to run ledger (non-canonical)", () => {
     const { kpiData, evidence } = deriveM5KpiFromRunEvidence(SCN_015_M5_STATE, {
       transactions: [
         { docType: "GR", sku: "SKU-001", qty: 50, posted: true },
@@ -896,7 +962,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(isCanonicalM5KpiPaste(kpiData)).toBe(false);
   });
 
-  it("12. V4.6 rejects canonical KPI paste in eval without ledger confirmation", () => {
+  it("14. V4.6 rejects canonical KPI paste in eval without ledger confirmation", () => {
     const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_015_M5_STATE, {
       transactions: [{ docType: "GR", sku: "SKU-001", qty: 50, posted: true }],
       inventoryCounts: [],
@@ -918,7 +984,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(canonicalPaste.reasonFr).toMatch(/canonique|Annexe/i);
   });
 
-  it("13. V4.6 accepts ledger-derived KPI with confirmation in eval", () => {
+  it("15. V4.6 accepts ledger-derived KPI with confirmation in eval", () => {
     const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_016_M5_STATE, {
       transactions: [
         { docType: "GR", sku: "SKU-001", qty: 50, posted: true },

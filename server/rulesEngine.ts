@@ -1608,6 +1608,7 @@ export function validateM5Compliance(input: {
   });
 
   for (const step of steps) {
+    if (step.code === "COMPLIANCE_M5") continue;
     if (!input.completedSteps.includes(step.code)) {
       issues.push(`Step ${step.code} not completed`);
       issuesFr.push(`Étape ${step.code} non complétée`);

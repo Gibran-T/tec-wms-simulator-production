@@ -10,6 +10,28 @@
 
 ## Executive verdict
 
+### **READY FOR MANUAL SMOKE RE-RUN**
+
+Hotfix **B-01** (2026-06-15): `validateM5Compliance` no longer requires `COMPLIANCE_M5` pre-completed when invoked from `submitComplianceM5`. Automated suite **357/357 PASS**, production build **EXIT 0**. Manual matrix V4-M1/M4/M7 **requires re-run** after this fix.
+
+---
+
+## Hotfix B-01 — COMPLIANCE_M5 self-check (2026-06-15)
+
+| Field | Value |
+|-------|-------|
+| **Blocker** | `validateM5Compliance` loop checked all effective steps including `COMPLIANCE_M5`, causing `submitComplianceM5` to fail with `Étape COMPLIANCE_M5 non complétée` |
+| **Fix** | Skip `COMPLIANCE_M5` in prerequisite step loop; validate prior ops evidence only |
+| **File** | `server/rulesEngine.ts` |
+| **Tests** | `server/module345.rules.test.ts` — 4 new cases (+357 total) |
+| **Commit** | `fix(rc12): unblock m5 compliance submission` |
+
+**Preserved gates:** unresolved variance, missing KPI snapshot, SCN-017 strategic decision rejection, negative stock, unposted transactions.
+
+---
+
+## Prior cleanup verdict (2026-06-14)
+
 ### **READY FOR RE-AUDIT**
 
 All four audit blockers (B1–B4) addressed in code and governance. Automated suite **353/353 PASS**, production build **EXIT 0**. Manual browser matrix documented as **PENDING** in `MANUAL_SMOKE_WAVE4.md` (not falsely claimed executed).
@@ -71,7 +93,7 @@ Paper bridge and manual-only grading copy **retired** from instructor slides.
 ## Verification
 
 ```text
-pnpm test  → 18 files · 353 tests · ALL PASS
+pnpm test  → 18 files · 357 tests · ALL PASS (post B-01 hotfix)
 pnpm build → vite + esbuild · EXIT 0
 ```
 
@@ -105,7 +127,7 @@ pnpm build → vite + esbuild · EXIT 0
 |---------|--------|
 | P0-03 variance + M5_ADJ | CLOSED (79536f2) |
 | P0-04 Annexe B rubric | CLOSED (79536f2) |
-| P0-06 validateM5Compliance | CLOSED (79536f2) |
+| P0-06 validateM5Compliance | **CLOSED** (B-01 hotfix — self-step excluded) |
 | P1-08 KPI ledger anchor | **CLOSED** (this cleanup) |
 | P1-11 m5Contract seed | CLOSED (79536f2) |
 | Instructor slides GREEN | **CLOSED** (B1) |
@@ -118,7 +140,7 @@ pnpm build → vite + esbuild · EXIT 0
 
 ## Sign-off
 
-**Verdict:** **READY FOR RE-AUDIT**  
-**Remaining for G4 VERIFIED — READY TO PUSH:** Execute V4-M1–V4-M7 on staging; attach evidence to close manual gate.
+**Verdict:** **READY FOR MANUAL SMOKE RE-RUN**  
+**Remaining for G4 VERIFIED — READY TO PUSH:** Re-run V4-M1, V4-M4, V4-M7 on local/staging after B-01; attach evidence to close manual gate.
 
 **DO NOT PUSH** until re-audit confirms manual smoke PASS.
