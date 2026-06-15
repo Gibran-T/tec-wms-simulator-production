@@ -16,6 +16,14 @@ if (!DATABASE_URL) {
 
 const conn = await mysql.createConnection(DATABASE_URL);
 
+// Privileged bootstrap passwords may be overridden via environment so the
+// demo defaults below are never required in shared/production environments.
+// Backward compatible: defaults are unchanged when the env vars are unset.
+// For a hardened, idempotent admin/teacher bootstrap see
+// scripts/bootstrap-local-auth.mjs (Phase A + Phase B).
+const ADMIN_PASSWORD = process.env.BOOTSTRAP_ADMIN_PASSWORD ?? "Admin2025!";
+const TEACHER_PASSWORD = process.env.BOOTSTRAP_TEACHER_PASSWORD ?? "TeacherDemo2025!";
+
 const accounts = [
   // Students
   { email: "alice.martin@teclog.ca",   name: "Alice Martin",       role: "student", password: "TecLog2025!" },
@@ -23,9 +31,9 @@ const accounts = [
   { email: "chloe.chen@teclog.ca",     name: "Chloé Chen",         role: "student", password: "TecLog2025!" },
   { email: "david.benali@teclog.ca",   name: "David Benali",       role: "student", password: "TecLog2025!" },
   // Teacher
-  { email: "prof@teclog.ca",           name: "Professeur Demo",    role: "teacher", password: "TeacherDemo2025!" },
+  { email: "prof@teclog.ca",           name: "Professeur Demo",    role: "teacher", password: TEACHER_PASSWORD },
   // Admin
-  { email: "admin@teclog.ca",          name: "Admin TEC.LOG",      role: "admin",   password: "Admin2025!" },
+  { email: "admin@teclog.ca",          name: "Admin TEC.LOG",      role: "admin",   password: ADMIN_PASSWORD },
 ];
 
 console.log("🌱 Seeding test accounts...\n");
@@ -61,10 +69,12 @@ console.log("    alice.martin@teclog.ca");
 console.log("    bob.tremblay@teclog.ca");
 console.log("    chloe.chen@teclog.ca");
 console.log("    david.benali@teclog.ca");
-console.log("  TEACHER  (password: TeacherDemo2025!)");
-console.log("    prof@teclog.ca");
-console.log("  ADMIN    (password: Admin2025!)");
-console.log("    admin@teclog.ca");
+  const teacherPwLabel = process.env.BOOTSTRAP_TEACHER_PASSWORD ? "from env" : "TeacherDemo2025!";
+  const adminPwLabel = process.env.BOOTSTRAP_ADMIN_PASSWORD ? "from env" : "Admin2025!";
+  console.log(`  TEACHER  (password: ${teacherPwLabel})`);
+  console.log("    prof@teclog.ca");
+  console.log(`  ADMIN    (password: ${adminPwLabel})`);
+  console.log("    admin@teclog.ca");
 console.log("═══════════════════════════════════════════════════\n");
 
 await conn.end();
