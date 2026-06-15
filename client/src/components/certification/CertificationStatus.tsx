@@ -79,3 +79,48 @@ export function CertificationProgressRing({ pct, accent = "#64748b" }: { pct: nu
     </div>
   );
 }
+
+export type GoldCertState = "AWARDED" | "ELIGIBLE" | "IN_PROGRESS" | "LOCKED";
+
+const GOLD_STATE_STYLE: Record<GoldCertState, { bg: string; text: string; border: string }> = {
+  AWARDED: {
+    bg: "bg-emerald-50 dark:bg-emerald-950/40",
+    text: "text-emerald-800 dark:text-emerald-200",
+    border: "border-emerald-300 dark:border-emerald-700",
+  },
+  ELIGIBLE: {
+    bg: "bg-blue-50 dark:bg-blue-950/40",
+    text: "text-blue-800 dark:text-blue-200",
+    border: "border-blue-300 dark:border-blue-700",
+  },
+  IN_PROGRESS: {
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    text: "text-amber-900 dark:text-amber-200",
+    border: "border-amber-200 dark:border-amber-800",
+  },
+  LOCKED: {
+    bg: "bg-muted/40",
+    text: "text-muted-foreground",
+    border: "border-border",
+  },
+};
+
+export function resolveGoldStateFromApi(state: GoldCertState): GoldCertState {
+  return state;
+}
+
+export function GoldStatusChip({ state }: { state: GoldCertState }) {
+  const { t } = useLanguage();
+  const labels: Record<GoldCertState, { fr: string; en: string }> = {
+    AWARDED: { fr: "Obtenue", en: "Awarded" },
+    ELIGIBLE: { fr: "Éligible", en: "Eligible" },
+    IN_PROGRESS: { fr: "En cours", en: "In progress" },
+    LOCKED: { fr: "Verrouillé", en: "Locked" },
+  };
+  const style = GOLD_STATE_STYLE[state];
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wide border ${style.bg} ${style.text} ${style.border}`}>
+      {t(labels[state].fr, labels[state].en)}
+    </span>
+  );
+}

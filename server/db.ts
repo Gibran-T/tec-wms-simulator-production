@@ -1252,3 +1252,17 @@ export async function unlockGoldCertification(userId: number): Promise<void> {
   await db.update(profiles).set({ goldCertified: true }).where(eq(profiles.userId, userId));
 }
 
+export {
+  checkM5QuizPassed,
+  getGoldCertificationStatus,
+  isGoldUnlockEnabled,
+  resolveGoldState,
+  GOLD_SCN_KEYS,
+  GOLD_REQUIREMENTS_TOTAL,
+  getGoldScenarioPassThreshold,
+  type GoldCertificationStatus,
+  type GoldScenarioCompletionMap,
+  type GoldScnKey,
+  type GoldState,
+} from "./goldCertification";
+

@@ -57,6 +57,7 @@ export default function TeacherDashboard() {
   const { data: assignments } = trpc.assignments.all.useQuery();
   const { data: monitor } = trpc.monitor.allRuns.useQuery();
   const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery();
+  const { data: goldRoster } = trpc.profiles.goldRoster.useQuery();
   const utils = trpc.useUtils();
   const validateM3 = trpc.warehouse.validateTeacherModule.useMutation({
     onSuccess: () => void utils.warehouse.allModuleProgress.invalidate(),
@@ -252,6 +253,41 @@ export default function TeacherDashboard() {
           );
         })}
       </div>
+
+      {/* ── Gold certification roster (read-only) ─────────────────────────────── */}
+      {(goldRoster ?? []).some((s) => s.silverCertified || s.goldState !== "LOCKED") && (
+        <div className="bg-card border border-amber-200 rounded-md mb-6 p-4">
+          <p className="text-xs font-semibold text-amber-900 flex items-center gap-2 mb-3">
+            <Layers size={14} />
+            {t("Parcours Gold — état des étudiants", "Gold pathway — student status")}
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-[11px]">
+              <thead>
+                <tr className="text-muted-foreground border-b border-border">
+                  <th className="py-2 pr-3 font-semibold">{t("Étudiant", "Student")}</th>
+                  <th className="py-2 pr-3 font-semibold">Silver</th>
+                  <th className="py-2 pr-3 font-semibold">Gold</th>
+                  <th className="py-2 font-semibold">{t("Blocage", "Blocker")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(goldRoster ?? [])
+                  .filter((s) => s.silverCertified || s.goldState !== "LOCKED")
+                  .slice(0, 12)
+                  .map((row) => (
+                    <tr key={row.userId} className="border-b border-border/60 last:border-0">
+                      <td className="py-2 pr-3 font-medium">{row.name ?? row.email}</td>
+                      <td className="py-2 pr-3">{row.silverCertified ? "✓" : "—"}</td>
+                      <td className="py-2 pr-3 font-semibold text-amber-800">{row.goldState}</td>
+                      <td className="py-2 text-muted-foreground truncate max-w-[200px]">{row.blockerSummary ?? "—"}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ── M3 instructor validation (P0-07) ─────────────────────────────────── */}
       {m3AwaitingValidation.length > 0 && (

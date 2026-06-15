@@ -101,3 +101,60 @@ export function GoldBadgeLockedSvg({ size = 120, className = "" }: { size?: numb
     </svg>
   );
 }
+
+export function GoldBadgeSvg({ size = 120, className = "", variant = "full" }: Props) {
+  const id = `gold-badge-${variant}`;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 160 160"
+      className={className}
+      aria-hidden
+      role="img"
+    >
+      <defs>
+        <linearGradient id={`${id}-ring`} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ca8a04" />
+          <stop offset="35%" stopColor="#fde047" />
+          <stop offset="55%" stopColor="#fbbf24" />
+          <stop offset="100%" stopColor="#a16207" />
+        </linearGradient>
+        <linearGradient id={`${id}-inner`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#fefce8" />
+          <stop offset="100%" stopColor="#fde68a" />
+        </linearGradient>
+        <filter id={`${id}-shadow`} x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
+        </filter>
+      </defs>
+      <circle cx="80" cy="80" r="76" fill={`url(#${id}-ring)`} filter={`url(#${id}-shadow)`} />
+      <circle cx="80" cy="80" r="68" fill="none" stroke="#a16207" strokeWidth="1" opacity="0.4" />
+      <circle cx="80" cy="80" r="58" fill={`url(#${id}-inner)`} stroke="#ca8a04" strokeWidth="1.5" />
+      <path
+        d="M80 38 L98 48 L98 72 C98 88 80 102 80 102 C80 102 62 88 62 72 L62 48 Z"
+        fill="#ca8a04"
+        fillOpacity="0.2"
+        stroke="#a16207"
+        strokeWidth="1.5"
+      />
+      <text x="80" y="68" textAnchor="middle" fontSize="11" fontWeight="700" fill="#78350f" letterSpacing="1">
+        GOLD
+      </text>
+      <text x="80" y="82" textAnchor="middle" fontSize="9" fontWeight="600" fill="#0070f2">
+        TEC.LOG
+      </text>
+      {variant === "full" && (
+        <>
+          <text x="80" y="96" textAnchor="middle" fontSize="6" fill="#92400e" letterSpacing="0.5">
+            COLLÈGE DE LA CONCORDE
+          </text>
+          <path d="M58 118 L80 128 L102 118 L102 124 L80 134 L58 124 Z" fill="#ca8a04" opacity="0.9" />
+          <text x="80" y="126" textAnchor="middle" fontSize="6" fill="white" fontWeight="600">
+            M1–M5 · INTÉGRÉ
+          </text>
+        </>
+      )}
+    </svg>
+  );
+}

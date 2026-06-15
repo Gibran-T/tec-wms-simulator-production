@@ -63,6 +63,8 @@ import {
   checkM1ComplianceValidated,
   checkNoUnresolvedBlockers,
   getSilverCertificationStatus,
+  getGoldCertificationStatus,
+  isGoldUnlockEnabled,
   unlockSilverCertification,
   unlockGoldCertification,
 } from "./db";
@@ -636,6 +638,43 @@ export const appRouter = router({
       }
       return status;
     }),
+    goldStatus: protectedProcedure.query(async ({ ctx }) => {
+      const status = await getGoldCertificationStatus(ctx.user.id);
+      if (status.goldEligible && !status.goldCertified && isGoldUnlockEnabled()) {
+        await unlockGoldCertification(ctx.user.id);
+        return {
+          ...status,
+          goldCertified: true,
+          state: "AWARDED" as const,
+        };
+      }
+      return status;
+    }),
+    goldStatusForStudent: teacherProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return getGoldCertificationStatus(input.userId);
+      }),
+    goldRoster: teacherProcedure.query(async () => {
+      const all = await getAllUsers();
+      const students = all.filter((u) => u.role === "student");
+      return Promise.all(
+        students.map(async (u) => {
+          const gold = await getGoldCertificationStatus(u.id);
+          const profile = await getProfileByUserId(u.id);
+          return {
+            userId: u.id,
+            name: u.name,
+            email: u.email,
+            silverCertified: profile?.silverCertified ?? false,
+            goldState: gold.state,
+            goldEligible: gold.goldEligible,
+            goldCertified: gold.goldCertified,
+            blockerSummary: gold.blockerSummary,
+          };
+        }),
+      );
+    }),
     upsert: protectedProcedure
       .input(z.object({
         cohortId: z.number().nullable().optional(),
@@ -755,9 +794,12 @@ export const appRouter = router({
           const noBlockers = await checkNoUnresolvedBlockers(user.id);
           
           const shouldHaveSilver = quizPassed && scenariosCompleted && complianceValidated && noBlockers;
+          const goldStatus = await getGoldCertificationStatus(user.id);
+          const shouldHaveGold = goldStatus.goldEligible && isGoldUnlockEnabled();
           
           // Check if certification state is stale
           const silverIsStale = currentSilver !== shouldHaveSilver;
+          const goldIsStale = currentGold !== shouldHaveGold;
           
           if (isOfficialStudent) {
             auditReport.accountsPreserved.push({
@@ -765,6 +807,8 @@ export const appRouter = router({
               name: user.name,
               silverCertified: currentSilver,
               shouldHaveSilver,
+              goldCertified: currentGold,
+              shouldHaveGold,
               reason: 'Official student - preserved'
             });
           } else if (isTestAccount) {
@@ -773,14 +817,16 @@ export const appRouter = router({
               name: user.name,
               reason: 'Test/demo account - marked for QA cohort'
             });
-          } else if (silverIsStale) {
+          } else if (silverIsStale || goldIsStale) {
             auditReport.certificationChanges.push({
               email: user.email,
               name: user.name,
               silverBefore: currentSilver,
               silverAfter: shouldHaveSilver,
               goldBefore: currentGold,
-              goldAfter: false,
+              goldAfter: shouldHaveGold,
+              goldEligible: goldStatus.goldEligible,
+              goldBlockerSummary: goldStatus.blockerSummary,
               quizPassed,
               scenariosCompleted,
               complianceValidated,
@@ -791,7 +837,7 @@ export const appRouter = router({
             if (!input.dryRun) {
               await upsertProfile(user.id, { 
                 silverCertified: shouldHaveSilver,
-                goldCertified: false
+                goldCertified: shouldHaveGold,
               });
               auditReport.accountsModified.push({
                 email: user.email,
@@ -1923,6 +1969,13 @@ export const appRouter = router({
 
           if (m1QuizPassed && allM1ScenariosCompleted && m1ComplianceValidated && noUnresolvedBlockers) {
             await unlockSilverCertification(ctx.user.id);
+          }
+        }
+
+        if (input.moduleId === 5 && isGoldUnlockEnabled()) {
+          const goldStatus = await getGoldCertificationStatus(ctx.user.id);
+          if (goldStatus.goldEligible && !goldStatus.goldCertified) {
+            await unlockGoldCertification(ctx.user.id);
           }
         }
 

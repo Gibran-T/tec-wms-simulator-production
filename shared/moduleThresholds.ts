@@ -5,6 +5,9 @@
 
 export const QUIZ_PASS_THRESHOLD = 60;
 
+/** SCN-017 Gold capstone numeric floor (GOV-T02 signed @ 70). */
+export const GOLD_CAPSTONE_THRESHOLD = 70;
+
 /** Official scenario evaluation pass threshold per module (GOV-T01). */
 export function getModuleScenarioPassThreshold(moduleId: number): number {
   return moduleId >= 3 ? 70 : 60;
