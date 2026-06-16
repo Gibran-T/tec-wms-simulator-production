@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function Home() {
@@ -31,7 +30,7 @@ export default function Home() {
   }
 
   if (user) {
-    window.location.href = user.role === "admin" ? "/teacher" : "/student/scenarios";
+    window.location.href = (user.role === "admin" || user.role === "teacher") ? "/teacher" : "/student/scenarios";
     return null;
   }
 
@@ -212,8 +211,8 @@ export default function Home() {
               {/* Info note */}
               <p className="text-[10px] text-center" style={{ color: "#4a6a8a" }}>
                 {t(
-                  "Authentification sécurisée via Manus OAuth.",
-                  "Secure authentication via Manus OAuth."
+                  "Authentification locale sécurisée. Connexion institutionnelle disponible si activée.",
+                  "Secure local authentication. Institutional sign-in available when enabled."
                 )}<br />
                 {t("Usage pédagogique uniquement.", "For educational use only.")}
               </p>

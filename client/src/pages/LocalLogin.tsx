@@ -15,11 +15,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Globe, Moon, Sun, Layers, BookOpen, Award, Clock } from "lucide-react";
+import { getOAuthLoginUrl } from "@/const";
 
 export default function LocalLogin() {
   const [, navigate] = useLocation();
   const { language: lang, setLanguage: setLang, t } = useLanguage();
   const { theme, toggleTheme } = useTheme();
+  const oauthLoginUrl = getOAuthLoginUrl();
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -224,6 +226,20 @@ export default function LocalLogin() {
                         {t("Se connecter", "Sign In")}
                       </Button>
                     </form>
+
+                    {oauthLoginUrl && (
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => { window.location.href = oauthLoginUrl; }}
+                        >
+                          {t("Connexion institutionnelle", "Institutional Sign In")}
+                        </Button>
+                      </div>
+                    )}
+
                     <div className="mt-4 pt-4 border-t border-border text-center space-y-2">
                       <a
                         href="/forgot-password"

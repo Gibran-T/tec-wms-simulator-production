@@ -194,13 +194,15 @@ The following environment variables are required:
 |----------|-------------|----------|
 | `DATABASE_URL` | MySQL/TiDB connection string | Yes |
 | `JWT_SECRET` | Session cookie signing secret (min. 32 chars) | Yes |
-| `VITE_APP_ID` | OAuth application ID | Yes |
-| `OAUTH_SERVER_URL` | OAuth backend base URL | Yes |
-| `VITE_OAUTH_PORTAL_URL` | OAuth login portal URL (frontend) | Yes |
+| `VITE_APP_ID` | Stable app/session identifier; also used by optional OAuth | Yes |
+| `OAUTH_SERVER_URL` | Optional OAuth backend base URL | No |
+| `VITE_OAUTH_PORTAL_URL` | Optional OAuth login portal URL (frontend) | No |
 | `BUILT_IN_FORGE_API_KEY` | Server-side API key | Yes |
 | `VITE_FRONTEND_FORGE_API_KEY` | Frontend API key | Yes |
 | `BUILT_IN_FORGE_API_URL` | API base URL (server) | Yes |
 | `VITE_FRONTEND_FORGE_API_URL` | API base URL (frontend) | Yes |
+
+Default authentication is local email/password at `/login`. OAuth is optional and the institutional sign-in button is shown only when both `VITE_OAUTH_PORTAL_URL` and `VITE_APP_ID` are configured on the frontend, with `OAUTH_SERVER_URL` configured on the backend.
 
 **Security:** Never expose `BUILT_IN_FORGE_API_KEY` to the client. Never commit `.env` files to version control.
 

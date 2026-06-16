@@ -11,6 +11,11 @@ function getQueryParam(req: Request, key: string): string | undefined {
 
 export function registerOAuthRoutes(app: Express) {
   app.get("/api/oauth/callback", async (req: Request, res: Response) => {
+    if (!process.env.OAUTH_SERVER_URL) {
+      res.status(503).json({ error: "OAuth provider is not configured" });
+      return;
+    }
+
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
 
