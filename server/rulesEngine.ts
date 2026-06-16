@@ -473,6 +473,11 @@ export function validateCycleCountEntriesComplete(
   targets: M3CycleCountTarget[],
   counts: M3InventoryCountRow[],
 ): ValidationResult & { complete: boolean } {
+  // hotfix(rc13): CC_COUNT completes when all target SKUs have been counted (any qty).
+  // Exact physicalQty match is NOT required here — the student enters their observed count
+  // and the variance is computed and reconciled in CC_RECON. Requiring an exact match
+  // caused the step to loop indefinitely because the student had no way to know the
+  // expected physical quantity.
   if (targets.length === 0) return { allowed: true, complete: true };
   const issues: string[] = [];
   const issuesFr: string[] = [];
@@ -481,12 +486,6 @@ export function validateCycleCountEntriesComplete(
     if (!row) {
       issues.push(`Missing count for ${target.sku}`);
       issuesFr.push(`Comptage manquant pour ${target.sku}`);
-      continue;
-    }
-    const countedQty = Number(row.countedQty);
-    if (countedQty !== target.physicalQty) {
-      issues.push(`${target.sku}: expected physical qty ${target.physicalQty}, got ${countedQty}`);
-      issuesFr.push(`${target.sku} : quantité physique attendue ${target.physicalQty}, saisie ${countedQty}`);
     }
   }
   if (issues.length > 0) {

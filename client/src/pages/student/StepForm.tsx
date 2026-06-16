@@ -1609,6 +1609,47 @@ export default function StepForm() {
                 </div>
               )}
 
+              {/* ── CC_COUNT: target guidance panel (hotfix rc13) ─────── */}
+              {step?.toLowerCase() === "cc_count" && m3CycleCountTargets.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-[10px]">
+                  <p className="font-bold text-blue-800 dark:text-blue-200 mb-1">
+                    📋 {t("Articles à compter (MI04)", "Items to count (MI04)")}
+                  </p>
+                  <p className="text-blue-700 dark:text-blue-300 mb-2">
+                    {t(
+                      "Soumettez un comptage par SKU. Entrez la quantité physique réelle que vous observez dans l'entrepôt.",
+                      "Submit one count per SKU. Enter the actual physical quantity you observe in the warehouse.",
+                    )}
+                  </p>
+                  <table className="w-full font-mono text-[9px] border-collapse">
+                    <thead>
+                      <tr className="text-blue-600 dark:text-blue-400">
+                        <th className="text-left pr-3 pb-1">{t("SKU", "SKU")}</th>
+                        <th className="text-left pr-3 pb-1">{t("Bin", "Bin")}</th>
+                        <th className="text-right pr-3 pb-1">{t("Qté système", "System qty")}</th>
+                        <th className="text-right pb-1">{t("Qté physique attendue", "Expected physical qty")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {m3CycleCountTargets.map((target) => (
+                        <tr key={target.sku} className="border-t border-blue-200 dark:border-blue-800">
+                          <td className="pr-3 py-0.5 font-semibold text-blue-900 dark:text-blue-100">{target.sku}</td>
+                          <td className="pr-3 py-0.5 text-blue-700 dark:text-blue-300">{target.bin ?? "—"}</td>
+                          <td className="pr-3 py-0.5 text-right text-blue-800 dark:text-blue-200">{target.systemQty}</td>
+                          <td className="py-0.5 text-right font-bold text-blue-900 dark:text-blue-100">{target.physicalQty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-[9px] text-blue-500 dark:text-blue-400 mt-2 italic">
+                    {t(
+                      "Sélectionnez un SKU dans la liste ci-dessous, renseignez les quantités système et comptée, puis soumettez. Répétez pour chaque SKU.",
+                      "Select a SKU from the list below, fill in the system and counted quantities, then submit. Repeat for each SKU.",
+                    )}
+                  </p>
+                </div>
+              )}
+
               {/* ── Standard fields ─────────────────────────────────────── */}
               {cfg.fields.includes("docRef") && (
                 <div>
