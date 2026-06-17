@@ -10,6 +10,8 @@ import {
   SilverStatusChip,
   GoldStatusChip,
   resolveSilverState,
+  resolveSilverContinuePath,
+  shouldShowSilverContinueButton,
   type SilverCertState,
   type GoldCertState,
 } from "@/components/certification/CertificationStatus";
@@ -143,6 +145,8 @@ export function CertificationsPage() {
   const allRequirementsMet = metCount === silverRequirements.length;
   const silverState = resolveSilverState({ silverEarned, silverEligible, hasAnyProgress, allRequirementsMet });
   const canPreviewCert = silverEarned || silverState === "eligible";
+  const showSilverContinue = shouldShowSilverContinueButton(silverEarned, silverState);
+  const silverContinuePath = resolveSilverContinuePath(quizPassed);
 
   const goldState: GoldCertState = goldStatus?.state ?? "LOCKED";
   const goldEarned = goldStatus?.goldCertified ?? false;
@@ -328,8 +332,8 @@ export function CertificationsPage() {
                       : t("Aperçu du certificat (éligible)", "Certificate preview (eligible)")}
                   </Button>
                 )}
-                {!silverEarned && (
-                  <Button variant="outline" onClick={() => navigate("/student/quiz/1")}>
+                {showSilverContinue && (
+                  <Button variant="outline" onClick={() => navigate(silverContinuePath)}>
                     {t("Continuer le parcours", "Continue pathway")}
                   </Button>
                 )}

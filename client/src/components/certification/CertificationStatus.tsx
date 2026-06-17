@@ -37,6 +37,19 @@ export function resolveSilverState(input: {
   return "a_commencer";
 }
 
+/** Hide when Silver is earned or all gates met (eligible → certificate preview). */
+export function shouldShowSilverContinueButton(
+  silverEarned: boolean,
+  silverState: SilverCertState,
+): boolean {
+  return !silverEarned && silverState !== "eligible";
+}
+
+/** Route to quiz only while M1 quiz is open; otherwise scenarios hub. */
+export function resolveSilverContinuePath(quizPassed: boolean): "/student/quiz/1" | "/student/scenarios" {
+  return quizPassed ? "/student/scenarios" : "/student/quiz/1";
+}
+
 export function SilverStatusChip({ state }: { state: SilverCertState }) {
   const { t } = useLanguage();
   const labels: Record<SilverCertState, { fr: string; en: string }> = {

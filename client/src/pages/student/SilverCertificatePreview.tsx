@@ -7,6 +7,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import SilverBadgeSvg from "@/components/certification/SilverBadgeSvg";
 import { SilverStatusChip, resolveSilverState } from "@/components/certification/CertificationStatus";
+import { lookupSilverRegistryByStudentNumber } from "@shared/silverCertificationRegistry";
 
 const ACHIEVEMENTS = [
   { fr: "SCN-001 — Cycle opérationnel complet", en: "SCN-001 — Complete Operational Cycle" },
@@ -36,6 +37,7 @@ export default function SilverCertificatePreview() {
   const { data: profile } = trpc.profiles.mine.useQuery();
 
   const studentName = profile?.displayName?.trim() || user?.name || t("Étudiant", "Student");
+  const registryEntry = lookupSilverRegistryByStudentNumber(profile?.studentNumber ?? null);
   const silverEarned = silverStatus?.silverCertified ?? false;
   const silverEligible = silverStatus?.silverEligible ?? false;
   const allRequirementsMet =
@@ -156,6 +158,11 @@ export default function SilverCertificatePreview() {
               {t("Décerné à", "Awarded to")}
             </p>
             <p className="text-2xl md:text-3xl font-semibold text-foreground font-serif">{studentName}</p>
+            {silverEarned && registryEntry && (
+              <p className="text-xs font-mono text-muted-foreground mt-2 tracking-wide">
+                {registryEntry.certificateId}
+              </p>
+            )}
             <p className="text-xs text-muted-foreground mt-2">{issueDate}</p>
           </div>
 

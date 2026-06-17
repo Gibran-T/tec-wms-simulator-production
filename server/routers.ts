@@ -3370,6 +3370,14 @@ export const appRouter = router({
           score,
           passed,
         });
+
+        if (input.moduleId === 1) {
+          const status = await getSilverCertificationStatus(ctx.user.id);
+          if (status.silverEligible && !status.silverCertified) {
+            await unlockSilverCertification(ctx.user.id);
+          }
+        }
+
         return { score, passed, correct, total: questions.length, passingScore: quiz.passingScore, feedback };
       }),
 

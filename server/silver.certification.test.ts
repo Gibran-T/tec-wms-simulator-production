@@ -3,8 +3,44 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { calculateTotalScore } from "./scoringEngine";
-import { M1_SCN_KEYS } from "./db";
+import { M1_SCN_KEYS, type M1ScenarioCompletionMap } from "./db";
 import { filterCanonicalScenariosForModule, OFFICIAL_SCN_BY_MODULE } from "./canonicalScenarios";
+import {
+  resolveSilverState,
+  resolveSilverContinuePath,
+  shouldShowSilverContinueButton,
+} from "../client/src/components/certification/CertificationStatus";
+import {
+  SILVER_REGISTRY_COHORT_2026,
+  lookupSilverRegistryByCertificateId,
+  lookupSilverRegistryByStudentNumber,
+} from "../shared/silverCertificationRegistry";
+
+const serverDir = path.dirname(fileURLToPath(import.meta.url));
+
+function readSource(filename: string): string {
+  return readFileSync(path.join(serverDir, filename), "utf8");
+}
+
+function computeSilverEligible(input: {
+  quizPassed: boolean;
+  scenariosCompleted: M1ScenarioCompletionMap;
+  complianceValidated: boolean;
+  noBlockers: boolean;
+}): boolean {
+  const allScenariosDone = M1_SCN_KEYS.every((k) => input.scenariosCompleted[k]);
+  return input.quizPassed && allScenariosDone && input.complianceValidated && input.noBlockers;
+}
+
+function allScenariosComplete(): M1ScenarioCompletionMap {
+  return {
+    SCN001: true,
+    SCN002: true,
+    SCN003: true,
+    SCN004: true,
+    SCN005: true,
+  };
+}
 
 describe("Silver certification — eligibility rules", () => {
   it("M1_SCN_KEYS maps five scenarios SCN-001 to SCN-005", () => {
@@ -61,5 +97,185 @@ describe("Silver certification — eligibility rules", () => {
     expect(fnBody).toContain("for (const scnCode of OFFICIAL_SCN_BY_MODULE[1])");
     expect(fnBody).toMatch(/if \(!latestRun\) return false;/);
     expect(fnBody).not.toMatch(/if \(!latestRun\) continue;/);
+  });
+});
+
+describe("Silver certification — RC13 quiz.submit unlock hotfix", () => {
+  it("quiz.submit evaluates Silver unlock after M1 quiz save (mirror silverStatus)", () => {
+    const source = readSource("routers.ts");
+    const submitMatch = source.match(/quiz:\s*router\(\{[\s\S]*?submit:\s*protectedProcedure[\s\S]*?checkAnswer:/);
+    expect(submitMatch).toBeTruthy();
+    const submitBody = submitMatch![0];
+    expect(submitBody).toContain("saveQuizAttempt");
+    expect(submitBody).toContain("if (input.moduleId === 1)");
+    expect(submitBody).toContain("getSilverCertificationStatus(ctx.user.id)");
+    expect(submitBody).toContain("status.silverEligible && !status.silverCertified");
+    expect(submitBody).toContain("unlockSilverCertification(ctx.user.id)");
+  });
+
+  it("student becomes Silver eligible when Quiz M1 is the final gate (quiz-last path)", () => {
+    const eligible = computeSilverEligible({
+      quizPassed: true,
+      scenariosCompleted: allScenariosComplete(),
+      complianceValidated: true,
+      noBlockers: true,
+    });
+    expect(eligible).toBe(true);
+  });
+
+  it("student does not become Silver eligible when any SCN-001..005 is missing", () => {
+    for (const missing of M1_SCN_KEYS) {
+      const scenarios = allScenariosComplete();
+      scenarios[missing] = false;
+      expect(
+        computeSilverEligible({
+          quizPassed: true,
+          scenariosCompleted: scenarios,
+          complianceValidated: true,
+          noBlockers: true,
+        }),
+      ).toBe(false);
+    }
+  });
+
+  it("student does not become Silver eligible when any latest eval run is below threshold", () => {
+    const failingScenarios = allScenariosComplete();
+    failingScenarios.SCN003 = false;
+    expect(
+      computeSilverEligible({
+        quizPassed: true,
+        scenariosCompleted: failingScenarios,
+        complianceValidated: true,
+        noBlockers: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("student does not become Silver eligible without compliance on all canonical M1 SCNs", () => {
+    expect(
+      computeSilverEligible({
+        quizPassed: true,
+        scenariosCompleted: allScenariosComplete(),
+        complianceValidated: false,
+        noBlockers: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("student does not become Silver eligible with unresolved blockers", () => {
+    expect(
+      computeSilverEligible({
+        quizPassed: true,
+        scenariosCompleted: allScenariosComplete(),
+        complianceValidated: true,
+        noBlockers: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("demo runs do not count toward Silver (isDemo=false filter contract)", () => {
+    const dbSource = readSource("db.ts");
+    expect(dbSource).toContain('eq(scenarioRuns.isDemo, false)');
+    const demoRun = { status: "completed" as const, isDemo: true };
+    const evalRun = { status: "completed" as const, isDemo: false };
+    expect(demoRun.isDemo).toBe(true);
+    expect(evalRun.isDemo).toBe(false);
+  });
+
+  it("unlockSilverCertification only sets silverCertified=true (no revocation path)", () => {
+    const dbSource = readSource("db.ts");
+    const fnMatch = dbSource.match(/export async function unlockSilverCertification[\s\S]*?\n\}/);
+    expect(fnMatch).toBeTruthy();
+    expect(fnMatch![0]).toContain("silverCertified: true");
+    expect(fnMatch![0]).not.toContain("silverCertified: false");
+  });
+
+  it("existing Silver is not re-evaluated for revocation in quiz.submit unlock guard", () => {
+    const source = readSource("routers.ts");
+    const submitMatch = source.match(/quiz:\s*router\(\{[\s\S]*?submit:\s*protectedProcedure[\s\S]*?checkAnswer:/);
+    expect(submitMatch![0]).toContain("!status.silverCertified");
+  });
+
+  it("Gold logic is unaffected by quiz.submit M1 unlock (no gold unlock in quiz path)", () => {
+    const source = readSource("routers.ts");
+    const submitMatch = source.match(/quiz:\s*router\(\{[\s\S]*?submit:\s*protectedProcedure[\s\S]*?checkAnswer:/);
+    expect(submitMatch![0]).not.toContain("unlockGoldCertification");
+    expect(submitMatch![0]).not.toContain("getGoldCertificationStatus");
+  });
+});
+
+describe("Silver certification — UI display contract", () => {
+  it("profiles.silverCertified=true renders Obtenue / Obtained state", () => {
+    expect(
+      resolveSilverState({
+        silverEarned: true,
+        silverEligible: true,
+        hasAnyProgress: true,
+        allRequirementsMet: true,
+      }),
+    ).toBe("obtenue");
+  });
+
+  it("silverEarned hides Continue pathway button", () => {
+    expect(shouldShowSilverContinueButton(true, "obtenue")).toBe(false);
+  });
+
+  it("eligible state hides Continue pathway button (certificate preview instead)", () => {
+    expect(shouldShowSilverContinueButton(false, "eligible")).toBe(false);
+  });
+
+  it("in-progress state shows Continue pathway button", () => {
+    expect(shouldShowSilverContinueButton(false, "en_cours")).toBe(true);
+  });
+
+  it("Continue routes to scenarios when M1 quiz is already passed", () => {
+    expect(resolveSilverContinuePath(true)).toBe("/student/scenarios");
+    expect(resolveSilverContinuePath(false)).toBe("/student/quiz/1");
+  });
+
+  it("CertificationsPage uses Continue helpers (not hardcoded quiz/1 only)", () => {
+    const source = readFileSync(
+      path.join(serverDir, "../client/src/pages/student/CertificationsPage.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("shouldShowSilverContinueButton");
+    expect(source).toContain("resolveSilverContinuePath");
+    expect(source).not.toMatch(/\{!silverEarned && \([\s\S]*?navigate\("\/student\/quiz\/1"\)/);
+  });
+
+  it("eligible-but-not-persisted shows Eligible until silverCertified is set", () => {
+    expect(
+      resolveSilverState({
+        silverEarned: false,
+        silverEligible: true,
+        hasAnyProgress: true,
+        allRequirementsMet: true,
+      }),
+    ).toBe("eligible");
+  });
+});
+
+describe("Silver certification — RC13 cohort registry", () => {
+  it("registers four first-cohort Silver credential IDs", () => {
+    expect(SILVER_REGISTRY_COHORT_2026).toHaveLength(4);
+    expect(SILVER_REGISTRY_COHORT_2026.map((e) => e.certificateId)).toEqual([
+      "TEC-SIL-2026-001",
+      "TEC-SIL-2026-002",
+      "TEC-SIL-2026-003",
+      "TEC-SIL-2026-004",
+    ]);
+  });
+
+  it("looks up registry entry by student number", () => {
+    expect(lookupSilverRegistryByStudentNumber("1011-KF")?.certificateId).toBe("TEC-SIL-2026-001");
+    expect(lookupSilverRegistryByStudentNumber("2026-1806")?.displayName).toBe("Aissata Soukeina Camara");
+    expect(lookupSilverRegistryByStudentNumber(" 613-462 ")?.certificateId).toBe("TEC-SIL-2026-004");
+    expect(lookupSilverRegistryByStudentNumber(null)).toBeNull();
+    expect(lookupSilverRegistryByStudentNumber("unknown")).toBeNull();
+  });
+
+  it("looks up registry entry by certificate ID", () => {
+    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-003")?.studentNumber).toBe("00-2004");
+    expect(lookupSilverRegistryByCertificateId("TEC-SIL-9999-999")).toBeNull();
   });
 });
