@@ -2626,6 +2626,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
         const varianceThreshold = getM3VarianceThreshold(initialStateJson);
+        const replenishParamsForRecon = getReplenishmentParamsFromSeed(initialStateJson);
         for (const adj of input.adjustments) {
           if (adj.varianceQty === 0) continue;
           const qtyCheck = validateAdjustment(adj.varianceQty, adj.varianceQty);
@@ -2678,6 +2679,12 @@ export const appRouter = router({
         if (!state.completedSteps.includes("CC_RECON")) {
           await markStepComplete(input.runId, "CC_RECON");
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: 15, message: "Réconciliation et ajustements validés" });
+          // SCN-009 / SCN-010: no replenishment targets → auto-complete REPLENISH so the student
+          // can proceed directly to COMPLIANCE_M3 without a meaningless REPLENISH form submission.
+          if (replenishParamsForRecon.length === 0 && !state.completedSteps.includes("REPLENISH")) {
+            await markStepComplete(input.runId, "REPLENISH");
+            if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: 20, message: "Réapprovisionnement non requis pour ce scénario" });
+          }
         }
         const adjustmentsApplied = input.adjustments.filter((a) => a.varianceQty !== 0).length;
         return { success: true, adjustmentsApplied, complete: true };
