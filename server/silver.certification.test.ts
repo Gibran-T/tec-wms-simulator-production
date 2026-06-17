@@ -267,15 +267,19 @@ describe("Silver certification — RC13 cohort registry", () => {
   });
 
   it("looks up registry entry by student number", () => {
-    expect(lookupSilverRegistryByStudentNumber("1011-KF")?.certificateId).toBe("TEC-SIL-2026-001");
+    expect(lookupSilverRegistryByStudentNumber("2026-1806")?.certificateId).toBe("TEC-SIL-2026-001");
     expect(lookupSilverRegistryByStudentNumber("2026-1806")?.displayName).toBe("Aissata Soukeina Camara");
+    expect(lookupSilverRegistryByStudentNumber("00-2004")?.certificateId).toBe("TEC-SIL-2026-002");
+    expect(lookupSilverRegistryByStudentNumber("1011-KF")?.certificateId).toBe("TEC-SIL-2026-003");
     expect(lookupSilverRegistryByStudentNumber(" 613-462 ")?.certificateId).toBe("TEC-SIL-2026-004");
     expect(lookupSilverRegistryByStudentNumber(null)).toBeNull();
     expect(lookupSilverRegistryByStudentNumber("unknown")).toBeNull();
   });
 
   it("looks up registry entry by certificate ID", () => {
-    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-003")?.studentNumber).toBe("00-2004");
+    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-001")?.displayName).toBe("Aissata Soukeina Camara");
+    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-002")?.studentNumber).toBe("00-2004");
+    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-003")?.studentNumber).toBe("1011-KF");
     expect(lookupSilverRegistryByCertificateId("TEC-SIL-9999-999")).toBeNull();
   });
 });

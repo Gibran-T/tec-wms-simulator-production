@@ -10,20 +10,20 @@ export type SilverRegistryEntry = {
 export const SILVER_REGISTRY_COHORT_2026: readonly SilverRegistryEntry[] = [
   {
     certificateId: "TEC-SIL-2026-001",
-    displayName: "Fredy Tamile Lola",
-    studentNumber: "1011-KF",
-    cohortYear: 2026,
-  },
-  {
-    certificateId: "TEC-SIL-2026-002",
     displayName: "Aissata Soukeina Camara",
     studentNumber: "2026-1806",
     cohortYear: 2026,
   },
   {
-    certificateId: "TEC-SIL-2026-003",
+    certificateId: "TEC-SIL-2026-002",
     displayName: "Darlin Campaz Paredes",
     studentNumber: "00-2004",
+    cohortYear: 2026,
+  },
+  {
+    certificateId: "TEC-SIL-2026-003",
+    displayName: "Fredy Tamile Lola",
+    studentNumber: "1011-KF",
     cohortYear: 2026,
   },
   {
