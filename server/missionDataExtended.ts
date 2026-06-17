@@ -259,7 +259,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
     odooEquivalent: "Reordering rules, Min/Max",
     industryRelevance: "Éviter ruptures tout en limitant stock dormant.",
     demoGuidance: "Comparez formules Min/Max dans le panneau learning.",
-    evalGuidance: "Calculs ROP/EOQ évalués en mode officiel.",
+    evalGuidance: "Calcul Min/Max évalué : Q = Stock max − Stock actuel pour chaque SKU.",
     recoveryPaths: ["Recalculer besoin net puis REPLENISH"],
     alternativeActions: [
       "Réapprovisionner en quantité inférieure au besoin calculé",

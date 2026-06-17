@@ -338,7 +338,7 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
     case "5-5":
       return (
         <VisualFrame title="Certification Gold" subtitle="Parcours intégré M1–M5" accent={accent}>
-          <CertBadge tier="gold" lines={["Capstone opérationnel complet", "Statut : en développement", "Non déblocable automatiquement", "QR / LinkedIn · à venir"]} />
+          <CertBadge tier="gold" lines={["Capstone opérationnel complet", "Débloquable via SCN-017", "Critères M1–M5 validés", "Badge QR après validation Gold"]} />
         </VisualFrame>
       );
     default:

@@ -1,4 +1,20 @@
 /** M5 KPI Control Tower — student-safe capstone copy for SCN-015/016/017 */
+
+/** Annexe B — M5 operational cycle rubric (what each step proves) */
+export const ANNEXE_B_M5_OPS_RUBRIC = {
+  titleFr: "Annexe B — Grille opérationnelle M5",
+  titleEn: "Annex B — M5 Operational Rubric",
+  steps: [
+    { code: "M5_RECEPTION", fr: "Réception PO — quantité & référence exactes", en: "PO Receipt — exact quantity & reference" },
+    { code: "M5_PUTAWAY", fr: "Rangement — bin source → bin destination correct", en: "Putaway — correct source → destination bin" },
+    { code: "M5_CYCLE_COUNT", fr: "Comptage cyclique — détecter variance éventuelle", en: "Cycle count — detect any variance" },
+    { code: "M5_ADJ", fr: "Ajustement MI07 — résoudre variance avant KPI (SCN-016)", en: "MI07 Adjustment — resolve variance before KPI (SCN-016)" },
+    { code: "M5_REPLENISH", fr: "Réapprovisionnement — Q = Max − stock actuel", en: "Replenishment — Q = Max − current stock" },
+    { code: "M5_KPI", fr: "Snapshot KPI — confirmer valeurs du cycle (pas de copier-coller)", en: "KPI Snapshot — confirm cycle values (no copy-paste)" },
+    { code: "M5_DECISION", fr: "Décision — KPI cités + arbitrage + horizon 90–180 j", en: "Decision — KPIs cited + trade-off + 90–180 day horizon" },
+    { code: "COMPLIANCE_M5", fr: "Conformité — toutes étapes validées, snapshot requis", en: "Compliance — all steps validated, snapshot required" },
+  ],
+} as const;
 export type M5KpiTowerEntry = {
   kpiEvaluated: { fr: string; en: string };
   target: { fr: string; en: string };

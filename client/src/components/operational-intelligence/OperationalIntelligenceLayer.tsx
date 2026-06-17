@@ -9,8 +9,8 @@ import type { MissionData } from "../../../../server/missionData";
 import { resolveScnCode } from "../../../../server/missionData";
 import { COMPETENCY_MAP } from "@/data/competencyMap";
 import { getStepErpHint } from "@/data/stepErpMap";
-import { M4_KPI_CONTROL_TOWER } from "@/data/m4KpiControlTower";
-import { M5_KPI_CONTROL_TOWER, M5_DECISION_SCAFFOLD } from "@/data/m5KpiControlTower";
+import { M4_KPI_CONTROL_TOWER, ANNEXE_A_KPI_GUIDE } from "@/data/m4KpiControlTower";
+import { M5_KPI_CONTROL_TOWER, M5_DECISION_SCAFFOLD, ANNEXE_B_M5_OPS_RUBRIC } from "@/data/m5KpiControlTower";
 import { getEvalScoreThreshold, getModuleCertContext } from "@/data/moduleThresholds";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
@@ -340,13 +340,14 @@ const M4_DECISION_SCAFFOLD: Record<string, { fr: string; en: string }> = {
   },
 };
 
-function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode, t, language }: {
+function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode, moduleId, t, language }: {
   mission: MissionData | null;
   nextStepCode?: string;
   compliance: IntelligenceRunState["compliance"];
   isDemo: boolean;
   onExecute: (code: string) => void;
   scnCode: string | null;
+  moduleId: number;
   t: (fr: string, en: string) => string;
   language: string;
 }) {
@@ -418,16 +419,76 @@ function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode,
           {pickLang(pedagogy.learningTakeaway, language)}
         </p>
       )}
-      {scnCode && M4_DECISION_SCAFFOLD[scnCode] && (
+      {moduleId === 4 && (
+        <details className="text-[10px] border border-slate-200 dark:border-slate-700 rounded">
+          <summary className="px-2 py-1.5 font-bold text-slate-600 dark:text-slate-400 cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+            📊 {isFr ? ANNEXE_A_KPI_GUIDE.titleFr : ANNEXE_A_KPI_GUIDE.titleEn}
+          </summary>
+          <div className="p-2">
+            <table className="w-full text-[9px] border-collapse">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800">
+                  <th className="text-left p-1 border border-slate-200 dark:border-slate-700">{t("KPI", "KPI")}</th>
+                  <th className="text-center p-1 border border-slate-200 dark:border-slate-700 text-red-600">{t("Critique", "Critical")}</th>
+                  <th className="text-center p-1 border border-slate-200 dark:border-slate-700 text-amber-600">{t("Normal", "Normal")}</th>
+                  <th className="text-center p-1 border border-slate-200 dark:border-slate-700 text-green-600">{t("Excellent", "Excellent")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ANNEXE_A_KPI_GUIDE.rows.map((row) => (
+                  <tr key={isFr ? row.kpi.fr : row.kpi.en} className="border-b border-slate-100 dark:border-slate-800">
+                    <td className="p-1 border border-slate-200 dark:border-slate-700 font-semibold">{isFr ? row.kpi.fr : row.kpi.en}</td>
+                    <td className="p-1 border border-slate-200 dark:border-slate-700 text-center text-red-700 dark:text-red-400">{isFr ? row.critical.fr : row.critical.en}</td>
+                    <td className="p-1 border border-slate-200 dark:border-slate-700 text-center text-amber-700 dark:text-amber-400">{isFr ? row.normal.fr : row.normal.en}</td>
+                    <td className="p-1 border border-slate-200 dark:border-slate-700 text-center text-green-700 dark:text-green-400">{isFr ? row.excellent.fr : row.excellent.en}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+      {moduleId === 5 && (
+        <details className="text-[10px] border border-slate-200 dark:border-slate-700 rounded">
+          <summary className="px-2 py-1.5 font-bold text-slate-600 dark:text-slate-400 cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+            🗂 {isFr ? ANNEXE_B_M5_OPS_RUBRIC.titleFr : ANNEXE_B_M5_OPS_RUBRIC.titleEn}
+          </summary>
+          <div className="p-2 space-y-1">
+            {ANNEXE_B_M5_OPS_RUBRIC.steps.filter((s) => s.code !== "M5_ADJ" || scnCode === "SCN-016").map((step) => (
+              <div key={step.code} className="flex gap-2">
+                <span className="font-mono text-primary shrink-0">{step.code}</span>
+                <span className="text-slate-600 dark:text-slate-400">{isFr ? step.fr : step.en}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+      {scnCode && M4_DECISION_SCAFFOLD[scnCode] && isDemo && (
         <div className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2 text-emerald-900 dark:text-emerald-200">
-          <p className="font-bold uppercase mb-1">{t("Guide décision M4", "M4 decision guide")}</p>
+          <p className="font-bold uppercase mb-1">{t("Guide décision M4 (Démo)", "M4 Decision Guide (Demo)")}</p>
           <p>{isFr ? M4_DECISION_SCAFFOLD[scnCode].fr : M4_DECISION_SCAFFOLD[scnCode].en}</p>
         </div>
       )}
-      {scnCode && M5_DECISION_SCAFFOLD[scnCode] && (
+      {scnCode && M4_DECISION_SCAFFOLD[scnCode] && !isDemo && (
+        <div className="text-[10px] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-300">
+          <p className="font-bold uppercase mb-1">{t("Mode évaluation M4", "M4 Evaluation Mode")}</p>
+          <p>{isFr
+            ? "Rédigez votre diagnostic en vous appuyant sur les KPI observés. Justifiez votre décision avec les valeurs mesurées."
+            : "Write your diagnostic based on observed KPIs. Justify your decision with measured values."}</p>
+        </div>
+      )}
+      {scnCode && M5_DECISION_SCAFFOLD[scnCode] && isDemo && (
         <div className="text-[10px] bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-2 text-emerald-900 dark:text-emerald-200">
-          <p className="font-bold uppercase mb-1">{t("Guide décision M5", "M5 decision guide")}</p>
+          <p className="font-bold uppercase mb-1">{t("Guide décision M5 (Démo)", "M5 Decision Guide (Demo)")}</p>
           <p>{isFr ? M5_DECISION_SCAFFOLD[scnCode].fr : M5_DECISION_SCAFFOLD[scnCode].en}</p>
+        </div>
+      )}
+      {scnCode && M5_DECISION_SCAFFOLD[scnCode] && !isDemo && (
+        <div className="text-[10px] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-300">
+          <p className="font-bold uppercase mb-1">{t("Mode évaluation M5", "M5 Evaluation Mode")}</p>
+          <p>{isFr
+            ? "Décision stratégique : citez ≥2 KPI chiffrés de votre snapshot, nommez un arbitrage explicite et proposez un horizon 90–180 j."
+            : "Strategic decision: cite ≥2 numeric KPIs from your snapshot, name an explicit trade-off, and propose a 90–180 day horizon."}</p>
         </div>
       )}
     </div>
@@ -650,6 +711,7 @@ export default function OperationalIntelligenceLayer(props: IntelligenceRunState
             isDemo={props.isDemo}
             onExecute={props.onExecuteStep}
             scnCode={scnCode}
+            moduleId={props.moduleId}
             t={t}
             language={language}
           />

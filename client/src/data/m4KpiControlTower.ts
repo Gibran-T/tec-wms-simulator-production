@@ -1,4 +1,36 @@
 /** Display-only M4 KPI control tower content (SCN-012–014). No scenario logic. */
+
+/** Annexe A — KPI interpretation reference guide (student-safe, no expected answers) */
+export const ANNEXE_A_KPI_GUIDE = {
+  titleFr: "Annexe A — Grille de lecture KPI",
+  titleEn: "Annex A — KPI Interpretation Grid",
+  rows: [
+    {
+      kpi: { fr: "Rotation des stocks", en: "Inventory Turnover" },
+      critical: { fr: "< 4× / an", en: "< 4×/yr" },
+      normal: { fr: "4–12× / an", en: "4–12×/yr" },
+      excellent: { fr: "> 12× / an", en: "> 12×/yr" },
+    },
+    {
+      kpi: { fr: "Taux de service (OTIF)", en: "Service Level (OTIF)" },
+      critical: { fr: "< 90 %", en: "< 90%" },
+      normal: { fr: "90–94 %", en: "90–94%" },
+      excellent: { fr: "≥ 95 %", en: "≥ 95%" },
+    },
+    {
+      kpi: { fr: "Taux d'erreur opérationnel", en: "Operational Error Rate" },
+      critical: { fr: "> 5 %", en: "> 5%" },
+      normal: { fr: "1–5 %", en: "1–5%" },
+      excellent: { fr: "< 1 %", en: "< 1%" },
+    },
+    {
+      kpi: { fr: "Délai fournisseur", en: "Supplier Lead Time" },
+      critical: { fr: "> 7 jours", en: "> 7 days" },
+      normal: { fr: "3–7 jours", en: "3–7 days" },
+      excellent: { fr: "< 3 jours", en: "< 3 days" },
+    },
+  ],
+} as const;
 export interface M4KpiTowerEntry {
   kpiEvaluated: { fr: string; en: string };
   target: { fr: string; en: string };

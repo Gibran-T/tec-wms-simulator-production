@@ -817,7 +817,7 @@ export function validateM4Compliance(input: {
       }
       const hasErrorLink =
         m4HasTerm(diag, ["erreur", "error"]) &&
-        m4HasTerm(diag, ["picking", "reception", "receiving", "otif"]);
+        m4HasTerm(diag, ["picking", "prélèvement", "prelevement", "reception", "receiving", "otif"]);
       if (!hasErrorLink) {
         issues.push("SCN-013: diagnostic must correlate errors with picking/receiving/OTIF");
         issuesFr.push("SCN-013 : corrélation erreurs picking/réception/OTIF requise");
@@ -831,7 +831,7 @@ export function validateM4Compliance(input: {
       }
       const destockPrimary =
         m4HasTerm(diag, ["destock", "surstock"]) &&
-        !m4HasTerm(diag, ["picking", "reception", "execution", "qualite", "formation"]);
+        !m4HasTerm(diag, ["picking", "prelevement", "reception", "execution", "qualite", "formation"]);
       if (destockPrimary) {
         issues.push("SCN-013: destock as primary lever without execution framing");
         issuesFr.push("SCN-013 : destock comme levier principal sans cadrage exécution");
@@ -844,7 +844,7 @@ export function validateM4Compliance(input: {
         issues.push("SCN-014: diagnostic must cite at least 3 KPI domains");
         issuesFr.push("SCN-014 : au moins 3 domaines KPI requis");
       }
-      if (!m4HasTerm(diag, ["report", "differ", "maintien", "sacrifi", "priori", "trade-off", "arbitrage"])) {
+      if (!m4HasTerm(diag, ["report", "differ", "maintien", "sacrifi", "priori", "trade-off", "tradeoff", "arbitrage"])) {
         issues.push("SCN-014: trade-off language required");
         issuesFr.push("SCN-014 : vocabulaire arbitrage/trade-off requis");
       }

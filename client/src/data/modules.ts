@@ -1023,14 +1023,14 @@ const module5: ModuleData = {
       bodyFr: [
         "Certification Gold : parcours intégré M1–M5",
         "Capstone : maîtrise opérationnelle complète",
-        "Statut : en développement — non déblocable automatiquement",
-        "Badge numérique (QR / LinkedIn — à venir)",
+        "Débloquable via SCN-017 — Capstone stratégique",
+        "Badge numérique QR après validation Gold",
       ],
       bodyEn: [
         "Gold certification: integrated M1–M5 pathway",
         "Capstone: complete operational mastery",
-        "Status: in development — not auto-unlockable yet",
-        "Digital badge (QR / LinkedIn — coming later)",
+        "Unlockable via SCN-017 — Strategic Capstone",
+        "Digital QR badge awarded after Gold validation",
       ],
       notesFr: "Expliquez que Gold représente la certification complète du programme. Elle sera disponible lorsque les critères M2–M5 seront validés côté serveur.",
       notesEn: "Explain that Gold represents full program certification. It will be available when M2–M5 criteria are validated server-side.",

@@ -105,7 +105,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Avancé M3", en: "M3 Advanced" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Planification réappro M3 — calculs ROP/EOQ évalués", en: "M3 replenishment — ROP/EOQ calculations assessed" },
+    certificationNote: { fr: "Planification réappro M3 — calcul Min/Max Q = Max − stock évalué", en: "M3 replenishment — Min/Max Q = Max − stock calculation assessed" },
   },
   "SCN-012": {
     scnCode: "SCN-012", moduleId: 4,
