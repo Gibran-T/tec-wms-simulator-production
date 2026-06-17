@@ -28,9 +28,10 @@ export const getOAuthLoginUrl = (): string | null => {
 };
 
 /**
- * Returns the default login path.
- * Local /login is always the primary entrypoint; OAuth is opt-in via getOAuthLoginUrl().
- * Kept as a named export so existing call sites in main.tsx, useAuth.ts,
- * DashboardLayout.tsx, and SlideViewer.tsx continue to work unchanged.
+ * Returns the login entry point appropriate for the current deployment.
+ * On Manus (VITE_OAUTH_PORTAL_URL + VITE_APP_ID set): returns the OAuth portal URL.
+ * On Railway / local (no OAuth env): returns the local /login path.
+ * This ensures Manus OAuth is preserved while Railway local-auth works without
+ * any environment configuration changes.
  */
-export const getLoginUrl = () => LOCAL_LOGIN_PATH;
+export const getLoginUrl = () => getOAuthLoginUrl() ?? LOCAL_LOGIN_PATH;

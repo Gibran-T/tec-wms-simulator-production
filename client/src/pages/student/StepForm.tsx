@@ -815,6 +815,12 @@ export default function StepForm() {
   const m3CycleCountTargets = m3InitialState?.cycleCountTargets ?? [];
   const m3ReplenishmentParams = m3InitialState?.replenishmentParams ?? [];
 
+  /** True only for SCN-017 (STRATEGIC_CAPSTONE) — stricter M5_DECISION requirements. */
+  const isM5Strategic = useMemo(() => {
+    const json = runData?.scenario?.initialStateJson as { m5Contract?: { decisionLevel?: string } } | null | undefined;
+    return json?.m5Contract?.decisionLevel === "STRATEGIC";
+  }, [runData?.scenario?.initialStateJson]);
+
   // ── M1 mutations ──────────────────────────────────────────────────────────
   const submitPO = trpc.transactions.submitPO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitGR = trpc.transactions.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -904,23 +910,24 @@ export default function StepForm() {
   }, [isM5KpiStep, m5KpiLedger, setValue, isDemo]);
 
   function handleSuccess(data: any) {
-    // Fix 3: Reset all form fields (dropdowns, inputs) after successful submission
+    // Reset all form fields (dropdowns, inputs) after successful submission
     reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });
-    // Show persistent feedback panel
-    setFeedbackPanel({ data });
     refetch();
-    // Also show a brief toast
     if (data?.demoWarning) {
       toast.warning(`⚠ ${t("Avertissement (mode démo)", "Warning (demo mode)")} : ${data.demoWarning}`, { duration: 4000 });
+      setFeedbackPanel({ data });
     } else if (data?.complete === false) {
+      // Partial submission (e.g. multi-SKU CC_COUNT or REPLENISH) — keep form visible so
+      // the student can immediately enter the next SKU. Do NOT show the green success panel.
       const remaining = (data?.remainingSkus as string[] | undefined)?.join(", ");
       toast.info(
         remaining
           ? t(`Enregistré — SKU restants : ${remaining}`, `Saved — remaining SKU(s): ${remaining}`)
           : t("Enregistré — complétez les cibles restantes pour valider l'étape.", "Saved — complete remaining targets to finish this step."),
-        { duration: 5000 },
+        { duration: 6000 },
       );
     } else {
+      setFeedbackPanel({ data });
       toast.success(t("Étape validée — consultez le feedback ci-dessous", "Step validated — see feedback below"), { duration: 3000 });
     }
     return; // Don't auto-redirect — wait for user to click Continue
@@ -1609,6 +1616,21 @@ export default function StepForm() {
                 </div>
               )}
 
+              {/* ── SCN-011: replenishment-only scenario — no cycle count targets ─── */}
+              {["cc_list", "cc_count", "cc_recon"].includes(step?.toLowerCase() ?? "") && m3CycleCountTargets.length === 0 && (
+                <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg">
+                  <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase mb-1">
+                    ℹ️ {t("Comptage non requis", "No cycle count required")}
+                  </p>
+                  <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                    {t(
+                      "Ce scénario ne contient pas d'articles à compter. Complétez cette étape rapidement et concentrez-vous sur le réapprovisionnement Min/Max à l'étape REPLENISH.",
+                      "This scenario has no items to count. Complete this step quickly and focus on Min/Max replenishment at the REPLENISH step.",
+                    )}
+                  </p>
+                </div>
+              )}
+
               {/* ── CC_COUNT: target guidance panel (hotfix rc13) ─────── */}
               {step?.toLowerCase() === "cc_count" && m3CycleCountTargets.length > 0 && (
                 <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-[10px]">
@@ -1785,6 +1807,28 @@ export default function StepForm() {
                 </div>
               )}
 
+              {/* CC_COUNT multi-target hint — shown when scenario has specific SKUs to count */}
+              {cfg.fields.includes("countedQty") && step?.toLowerCase() === "cc_count" && m3CycleCountTargets.length > 0 && (
+                <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-[10px]">
+                  <p className="font-bold text-blue-800 dark:text-blue-200 mb-1">
+                    {t("Comptage multi-SKU requis", "Multi-SKU count required")}
+                  </p>
+                  <p className="text-blue-700 dark:text-blue-300">
+                    {t(
+                      "Soumettez CC_COUNT une fois par SKU ci-dessous. L'étape se valide lorsque tous les comptages sont saisis.",
+                      "Submit CC_COUNT once per SKU below. The step completes when all counts are entered.",
+                    )}
+                  </p>
+                  <ul className="mt-2 font-mono space-y-0.5 text-blue-800 dark:text-blue-200">
+                    {m3CycleCountTargets.map((tgt) => (
+                      <li key={tgt.sku}>
+                        {tgt.sku} — {t("Système", "System")}: {tgt.systemQty} / Bin: {tgt.bin ?? "—"}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* System Qty field */}
               {cfg.fields.includes("systemQty") && (
                 <div>
@@ -1857,10 +1901,10 @@ export default function StepForm() {
 
               {cfg.fields.includes("studentQty") && (
                 <div className="space-y-3">
-                  {/* ROP/EOQ Pedagogical Reference Panel */}
+                  {/* Min/Max Replenishment Pedagogical Reference Panel */}
                   <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">
-                      📐 {t("Formules de référence — MRP/ROP/EOQ", "Reference formulas — MRP/ROP/EOQ")}
+                      📐 {t("Formules de référence — Min/Max & ROP", "Reference formulas — Min/Max & ROP")}
                     </p>
                     <div className="space-y-2 text-[10px] font-mono">
                       <div className="bg-white dark:bg-blue-900/30 rounded p-2 border border-blue-100 dark:border-blue-800">
@@ -2012,8 +2056,12 @@ export default function StepForm() {
                   )}
                   {step?.toLowerCase() === "m5_decision" && (
                     <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
-                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Guide décision stratégique", "Strategic decision guide")}</p>
-                      <p className="text-[10px] text-muted-foreground">{t("Citez ≥2 KPI chiffrés du snapshot M5_KPI · trade-off explicite · recommandation · horizon 90–180 j. Réponses génériques rejetées.", "Cite ≥2 numeric KPIs from M5_KPI snapshot · explicit trade-off · recommendation · 90–180 day horizon. Generic answers rejected.")}</p>
+                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {isM5Strategic ? t("Guide décision stratégique (SCN-017)", "Strategic decision guide (SCN-017)") : t("Guide décision tactique", "Tactical decision guide")}</p>
+                      {isM5Strategic ? (
+                        <p className="text-[10px] text-muted-foreground">{t("Citez ≥2 KPI chiffrés du snapshot M5_KPI · trade-off explicite · recommandation · horizon 90–180 j. Réponses génériques rejetées.", "Cite ≥2 numeric KPIs from M5_KPI snapshot · explicit trade-off · recommendation · 90–180 day horizon. Generic answers rejected.")}</p>
+                      ) : (
+                        <p className="text-[10px] text-muted-foreground">{t("Analysez les KPI observés (rotation, service, erreurs) et proposez une action opérationnelle : réapprovisionnement, formation, ou amélioration des procédures.", "Analyze the observed KPIs (rotation, service, errors) and propose an operational action: replenishment, training, or procedure improvement.")}</p>
+                      )}
                     </div>
                   )}
                 </div>
