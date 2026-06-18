@@ -262,3 +262,35 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
 }
+
+/* ─── Silver Premium Certificate — A4 landscape print ───────────────────── */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+    background: white !important;
+  }
+
+  .fiori-shell-bar,
+  nav,
+  .silver-certificate-no-print {
+    display: none !important;
+  }
+
+  .silver-certificate-page {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .silver-certificate-document {
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
