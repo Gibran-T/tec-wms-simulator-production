@@ -1,12 +1,12 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import SilverBadgeSvg from "@/components/certification/SilverBadgeSvg";
-import { SilverStatusChip, type SilverCertState } from "@/components/certification/CertificationStatus";
 import CertificationCompletionBadge from "@/components/certification/CertificationCompletionBadge";
 import VerificationIdBlock from "@/components/certification/VerificationIdBlock";
 import DualSignatureBlock from "@/components/certification/DualSignatureBlock";
 import QrPlaceholder from "@/components/certification/QrPlaceholder";
 import CollegeCrest from "@/components/certification/CollegeCrest";
 import InstitutionalCertificateFooter from "@/components/certification/InstitutionalCertificateFooter";
+import type { SilverCertState } from "@/components/certification/CertificationStatus";
 
 const ACHIEVEMENTS = [
   { fr: "SCN-001 — Cycle opérationnel complet", en: "SCN-001 — Complete Operational Cycle" },
@@ -38,6 +38,16 @@ export type SilverCertificateDocumentProps = {
   state: SilverCertState;
 };
 
+function CeremonySeparator() {
+  return (
+    <div className="flex items-center justify-center gap-3 my-3 md:my-4 max-w-xs mx-auto" aria-hidden>
+      <div className="flex-1 h-px bg-slate-300" />
+      <div className="w-2 h-2 rotate-45 border border-slate-400 bg-white" />
+      <div className="flex-1 h-px bg-slate-300" />
+    </div>
+  );
+}
+
 export default function SilverCertificateDocument({
   studentName,
   issueDate,
@@ -45,124 +55,119 @@ export default function SilverCertificateDocument({
   silverEarned,
   isPreviewOnly,
   showCompletion,
-  state,
 }: SilverCertificateDocumentProps) {
   const { t } = useLanguage();
 
   return (
-    <div
-      className={`silver-certificate-document relative border-2 rounded-lg bg-gradient-to-br from-white via-slate-50 to-slate-100 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 p-6 md:p-8 lg:p-10 shadow-xl print:shadow-none print:rounded-none print:border-slate-300 ${
-        isPreviewOnly ? "border-blue-300/60" : "border-slate-300 dark:border-slate-600"
-      }`}
-    >
-      {isPreviewOnly && (
-        <div className="absolute top-4 right-4 md:top-6 md:right-8 rotate-12 opacity-20 pointer-events-none select-none z-10">
-          <span className="text-3xl md:text-4xl font-black uppercase tracking-widest text-blue-600 border-4 border-blue-600 px-4 py-2 rounded">
-            {t("APERÇU", "PREVIEW")}
-          </span>
-        </div>
-      )}
+    <div className="space-y-4">
+      {/* A4 landscape premium certificate */}
+      <div
+        className={`silver-certificate-document relative bg-white shadow-xl print:shadow-none overflow-hidden flex flex-col ${
+          isPreviewOnly ? "ring-2 ring-blue-200/60" : ""
+        }`}
+        style={{ aspectRatio: "297 / 210" }}
+      >
+        {isPreviewOnly && (
+          <div className="absolute top-6 right-8 rotate-12 opacity-15 pointer-events-none select-none z-20">
+            <span className="text-3xl font-black uppercase tracking-widest text-blue-600 border-4 border-blue-600 px-4 py-2">
+              {t("APERÇU", "PREVIEW")}
+            </span>
+          </div>
+        )}
 
-      {/* Ornamental double frame */}
-      <div className="absolute inset-3 md:inset-4 border-2 border-slate-200 dark:border-slate-700 rounded pointer-events-none" />
-      <div className="absolute inset-5 md:inset-6 border border-slate-200/80 dark:border-slate-700/80 rounded pointer-events-none" />
+        {/* Blue double border frame */}
+        <div className="absolute inset-0 border-[3px] border-[#0070f2] pointer-events-none z-10" />
+        <div className="absolute inset-[6px] border-2 border-[#0070f2]/50 pointer-events-none z-10" />
+        {/* Top center tab notch */}
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-2 bg-[#0070f2] z-10 pointer-events-none"
+          aria-hidden
+        />
 
-      <div className="relative z-[1] flex flex-col gap-5 md:gap-6">
-        {/* Header row — crest + institution + seal */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-3 md:gap-4 min-w-0">
+        {/* Certificate body */}
+        <div className="relative z-[1] flex flex-col flex-1 px-5 md:px-7 lg:px-9 pt-5 md:pt-6 pb-0 min-h-0">
+          {/* Header — crest + seal */}
+          <div className="flex items-start justify-between gap-4 mb-2 md:mb-3">
             <CollegeCrest />
-            <div className="text-left space-y-0.5 pt-1">
-              <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500 font-medium">
-                {t("Collège de la Concorde", "Collège de la Concorde")}
-              </p>
-              <p className="text-xs font-semibold text-[#0070f2]">{t("Programme TEC.LOG", "TEC.LOG Program")}</p>
-              <p className="text-[10px] text-muted-foreground tracking-wide max-w-xs">
-                {t("Operational Competency Credential · TEC.WMS", "Operational Competency Credential · TEC.WMS")}
-              </p>
+            <div className="shrink-0 print:[&_svg]:!w-[42mm] print:[&_svg]:!h-[42mm]">
+              <SilverBadgeSvg size={160} variant="full" className="drop-shadow-md w-[120px] h-[120px] md:w-[160px] md:h-[160px]" />
             </div>
           </div>
-          <div className="shrink-0 print:[&_svg]:!w-[100mm] print:[&_svg]:!h-[100mm]">
-            <SilverBadgeSvg size={140} variant="full" className="drop-shadow-sm" />
+
+          {/* Center ceremony block */}
+          <div className="flex-1 flex flex-col items-center justify-center text-center px-2 md:px-8 py-2 md:py-3 min-h-0">
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.22em] text-slate-500 font-semibold">
+              {t("Le présent document atteste que", "This is to certify that")}
+            </p>
+            <p className="text-xl md:text-2xl lg:text-[28px] font-serif font-bold text-[#0070f2] leading-tight mt-2 md:mt-3 px-2">
+              {studentName}
+            </p>
+            <CeremonySeparator />
+            <p className="text-[9px] md:text-[10px] uppercase tracking-[0.2em] text-slate-500 font-semibold">
+              {t("A complété avec succès", "Has successfully completed")}
+            </p>
+            <h1 className="text-lg md:text-xl lg:text-2xl font-serif font-bold tracking-[0.06em] text-[#0f2a44] mt-2 leading-tight">
+              {t("CERTIFICATION SILVER TEC.WMS", "TEC.WMS SILVER CERTIFICATION")}
+            </h1>
+            <p className="text-[9px] md:text-[10px] text-slate-500 max-w-lg mx-auto mt-2 md:mt-3 leading-relaxed">
+              {t(
+                "Démontrant une connaissance avancée et une compétence pratique en gestion d'entrepôt avec TEC.WMS.",
+                "Demonstrating advanced knowledge and practical competence in warehouse management with TEC.WMS.",
+              )}
+            </p>
           </div>
-        </div>
 
-        {/* Tier headline */}
-        <div className="text-center border-b border-slate-200 dark:border-slate-700 pb-4">
-          <SilverStatusChip state={state} />
-          <h1 className="text-xl md:text-2xl lg:text-[26px] font-bold tracking-[0.08em] text-slate-800 dark:text-slate-100 mt-3">
-            {t("CERTIFICATION SILVER", "SILVER CERTIFICATION")}
-          </h1>
-          <p className="text-xs md:text-sm font-medium text-slate-600 dark:text-slate-400 mt-1">
-            {t("ERP/WMS Foundation Operations · Module 1", "ERP/WMS Foundation Operations · Module 1")}
-          </p>
-        </div>
+          {/* Bottom three-column area */}
+          <div className="grid grid-cols-3 gap-2 md:gap-4 items-end py-3 md:py-4 border-t border-slate-200/80">
+            <CertificationCompletionBadge visible={showCompletion} issueDate={issueDate} />
+            <DualSignatureBlock />
+            <div className="flex flex-col items-start">
+              <VerificationIdBlock
+                certificateId={certificateId}
+                silverEarned={silverEarned}
+                isPreviewOnly={isPreviewOnly}
+              />
+              <QrPlaceholder />
+            </div>
+          </div>
 
-        {/* Completion + Verification row */}
-        <div className="flex flex-col sm:flex-row items-stretch justify-center gap-4 md:gap-8 px-2 md:px-6">
-          <CertificationCompletionBadge visible={showCompletion} />
-          <VerificationIdBlock
-            certificateId={certificateId}
-            silverEarned={silverEarned}
-            isPreviewOnly={isPreviewOnly}
-          />
+          <InstitutionalCertificateFooter />
         </div>
+      </div>
 
-        {/* Ceremonial certification + recipient */}
-        <div className="text-center border-y border-slate-200 dark:border-slate-700 py-5 px-4">
-          <p className="text-[11px] md:text-xs uppercase tracking-[0.22em] text-slate-600 font-semibold mb-3">
-            {t("Le présent document atteste que", "This is to certify that")}
-          </p>
-          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-4">
-            {t(
-              "a satisfait aux exigences de la Certification Silver TEC.LOG — Opérations fondamentales ERP/WMS · Module 1, démontrant une maîtrise opérationnelle des processus WMS fondamentaux.",
-              "has met the requirements of the TEC.LOG Silver Certification — ERP/WMS Foundation Operations · Module 1, demonstrating operational mastery of foundational WMS processes.",
-            )}
-          </p>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            {t("Décerné à", "Awarded to")}
-          </p>
-          <p className="text-2xl md:text-[28px] font-semibold text-[#0070f2] font-serif leading-tight">{studentName}</p>
-          <p className="text-xs text-muted-foreground mt-2">{issueDate}</p>
-        </div>
-
-        {/* Achievements + competencies */}
-        <div className="grid md:grid-cols-2 gap-6 md:gap-10 px-2 md:px-4">
+      {/* Supporting details — below certificate, non-dominant */}
+      <div className="silver-certificate-supporting rounded-lg border border-slate-200 bg-slate-50/60 dark:bg-slate-900/30 dark:border-slate-700 px-4 py-4 md:px-6 md:py-5 print:hidden">
+        <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-400 mb-3 text-center">
+          {t("Détails de certification", "Certification Details")}
+        </p>
+        <div className="grid md:grid-cols-2 gap-5 md:gap-8">
           <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 mb-3 border-b border-slate-200 dark:border-slate-700 pb-1">
+            <h2 className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">
               {t("Réalisations opérationnelles", "Operational Achievements")}
             </h2>
-            <ul className="space-y-1.5 text-[11px] md:text-xs">
+            <ul className="space-y-1 text-[10px] md:text-[11px]">
               {ACHIEVEMENTS.map((item) => (
                 <li key={item.en} className="flex items-start gap-2">
                   <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                  <span className="text-foreground/90">{t(item.fr, item.en)}</span>
+                  <span className="text-foreground/85">{t(item.fr, item.en)}</span>
                 </li>
               ))}
             </ul>
           </div>
           <div>
-            <h2 className="text-[10px] font-bold uppercase tracking-[0.12em] text-slate-500 mb-3 border-b border-slate-200 dark:border-slate-700 pb-1">
+            <h2 className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-500 mb-2 border-b border-slate-200 dark:border-slate-700 pb-1">
               {t("Compétences certifiées", "Certified Competencies")}
             </h2>
-            <ul className="space-y-1.5 text-[11px] md:text-xs">
+            <ul className="space-y-1 text-[10px] md:text-[11px]">
               {COMPETENCIES.map((item) => (
                 <li key={item.en} className="flex items-start gap-2">
                   <span className="text-emerald-600 font-bold shrink-0">✓</span>
-                  <span className="text-foreground/90">{t(item.fr, item.en)}</span>
+                  <span className="text-foreground/85">{t(item.fr, item.en)}</span>
                 </li>
               ))}
             </ul>
           </div>
         </div>
-
-        {/* Dual signature + QR row */}
-        <div className="flex flex-col sm:flex-row items-end justify-between gap-6 pt-4 border-t border-slate-200 dark:border-slate-700 px-2 md:px-4">
-          <DualSignatureBlock />
-          <QrPlaceholder />
-        </div>
-
-        <InstitutionalCertificateFooter />
       </div>
     </div>
   );
