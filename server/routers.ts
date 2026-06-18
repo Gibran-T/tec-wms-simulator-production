@@ -1361,6 +1361,17 @@ export const appRouter = router({
           } : null,
           // Unposted transactions always exposed for Ghost GR recovery (SCN-002, SCN-005)
           unpostedTransactions: state.transactions.filter((t) => !t.posted),
+          m3Evidence: moduleId === 3 ? {
+            inventoryCounts: state.inventoryCounts,
+            inventoryAdjustments: state.inventoryAdjustments,
+            replenishmentSuggestions: replenishmentSuggestions.map((s) => ({
+              sku: s.sku,
+              systemQty: Number(s.systemQty),
+              suggestedQty: Number(s.suggestedQty),
+              reason: s.reason,
+            })),
+            initialStateJson: scenario?.initialStateJson ?? null,
+          } : undefined,
         };
       }),
   }),

@@ -605,7 +605,7 @@ function PanelE({
 }
 
 function PanelF({
-  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language,
+  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language, scnCode,
 }: {
   mission: MissionData | null;
   stepLabels: { key: string; labelFr: string; labelEn: string }[];
@@ -615,6 +615,7 @@ function PanelF({
   getStepStatus: (key: string) => string;
   t: (fr: string, en: string) => string;
   language: string;
+  scnCode?: string | null;
 }) {
   const flowSteps = stepLabels.map((s) => language === "FR" ? s.labelFr : s.labelEn);
   const currentLabel = stepLabels.find((s) => s.key === nextStepCode);
@@ -632,9 +633,21 @@ function PanelF({
             status === "active" ? "bg-primary text-primary-foreground border-primary" :
             status === "demo-available" ? "bg-indigo-100 text-indigo-800 border-indigo-300" :
             "bg-slate-100 text-slate-500 border-slate-200";
+          const isConfirmatory = scnCode === "SCN-011" && ["CC_LIST", "CC_COUNT", "CC_RECON"].includes(s.key);
+          const isReplenishFocus = scnCode === "SCN-011" && s.key === "REPLENISH";
           return (
             <span key={s.key} className={`text-[9px] font-mono font-bold px-2 py-0.5 border ${cls}`}>
               {s.key}{completedSteps.includes(s.key) ? " ✓" : ""}
+              {isConfirmatory && (
+                <span className="font-normal text-slate-500 ml-0.5">
+                  {t("(confirmatoire)", "(confirmatory)")}
+                </span>
+              )}
+              {isReplenishFocus && (
+                <span className="font-black ml-0.5">
+                  {t("(focus principal)", "(main focus)")}
+                </span>
+              )}
             </span>
           );
         })}
@@ -746,6 +759,7 @@ export default function OperationalIntelligenceLayer(props: IntelligenceRunState
             }}
             t={t}
             language={language}
+            scnCode={scnCode}
           />
         </PanelShell>
       </div>

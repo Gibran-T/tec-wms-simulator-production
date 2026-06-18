@@ -101,9 +101,9 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
     situation: { fr: "Inventaire cyclique : SKU-001 (100) et SKU-003 (80) en système.", en: "Cycle count: SKU-001 (100) and SKU-003 (80) in system." },
     evidenceToObserve: { fr: "Stocks B-01-R1-L1 et B-01-R1-L2 ; écart −3 attendu sur SKU-001.", en: "Stock at B-01-R1-L1 and B-01-R1-L2; −3 variance expected on SKU-001." },
     operationalProblem: { fr: "Identifier l'écart système vs physique.", en: "Identify system vs physical discrepancy." },
-    expectedActionHint: { fr: "Générez la liste de comptage, saisissez les quantités physiques réelles.", en: "Generate count list, enter actual physical quantities." },
-    transactionMonitorHint: { fr: "Transactions de réception déjà postées — focus sur comptage.", en: "Receipt transactions already posted — focus on counting." },
-    complianceHint: { fr: "Écart identifié doit être réconcilié avant clôture M3.", en: "Identified variance must be reconciled before M3 closing." },
+    expectedActionHint: { fr: "Comptage → réconciliation → ajustement MI07 obligatoire pour l'écart −3.", en: "Count → reconcile → mandatory MI07 adjustment for the −3 variance." },
+    transactionMonitorHint: { fr: "Transactions de réception déjà postées — focus sur comptage. Après CC_RECON, une ligne ADJ étudiant doit apparaître au moniteur.", en: "Receipt transactions already posted — focus on counting. After CC_RECON, a student ADJ line must appear in the monitor." },
+    complianceHint: { fr: "L'ajustement ADJ (MI07) doit être posté dans CC_RECON avant COMPLIANCE_M3.", en: "The ADJ (MI07) adjustment must be posted in CC_RECON before COMPLIANCE_M3." },
     learningTakeaway: { fr: "Le comptage cyclique détecte les dérives avant rupture.", en: "Cycle counting detects drift before stockouts." },
   },
   "SCN-010": {
@@ -119,7 +119,7 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   "SCN-011": {
     scnCode: "SCN-011",
     situation: { fr: "SKU-004 (30) et SKU-005 (40) sous seuil Min.", en: "SKU-004 (30) and SKU-005 (40) below Min threshold." },
-    evidenceToObserve: { fr: "Niveaux vs Min/Max/SS dans le panneau réappro.", en: "Levels vs Min/Max/SS in replenishment panel." },
+    evidenceToObserve: { fr: "Niveaux vs Min/Max/SS visibles dans le cockpit dès l'ouverture.", en: "Levels vs Min/Max/SS visible in the cockpit from first load." },
     operationalProblem: { fr: "Risque de rupture — calcul de réappro requis.", en: "Stockout risk — replenishment calculation required." },
     expectedActionHint: { fr: "Analysez Min/Max, calculez Q = Max − stock pour chaque SKU, proposez REPLENISH.", en: "Analyze Min/Max, calculate Q = Max − stock for each SKU, propose REPLENISH." },
     transactionMonitorHint: { fr: "GI passées ont réduit les stocks sous Min.", en: "Past GIs reduced stock below Min." },

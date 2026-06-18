@@ -119,6 +119,67 @@ export default function MissionControl() {
   const nextStepCode = (nextStep as { code?: string } | null)?.code;
   const nextStepDef = STEPS.find(s => s.key === nextStepCode);
 
+  const m3InitialState = m3Evidence?.initialStateJson;
+  const m3ReplenishParams = isM3 ? getReplenishmentParams(m3InitialState) : [];
+  const m3ReplenishRows = isM3 && m3Scn === "SCN-011"
+    ? buildReplenishmentParamRows(m3ReplenishParams, (inventory ?? {}) as Record<string, number>)
+    : [];
+  const m3ResolutionChain = isM3 && m3Scn === "SCN-009" && m3Evidence
+    ? buildM3ResolutionChain({
+        completedSteps: completedSteps as string[],
+        nextStepCode,
+        inventoryCounts: m3Evidence.inventoryCounts,
+        inventoryAdjustments: m3Evidence.inventoryAdjustments,
+        initialStateJson: m3Evidence.initialStateJson,
+        transactions: allTransactions.map((tx) => ({
+          docType: tx.docType,
+          sku: tx.sku,
+          qty: Number(tx.qty),
+          posted: tx.posted,
+        })),
+      })
+    : [];
+  const m3PerformanceMetrics = isM3 && m3Evidence
+    ? computeM3PerformanceMetrics({
+        scnCode: m3Scn,
+        initialStateJson: m3Evidence.initialStateJson,
+        inventory: (inventory ?? {}) as Record<string, number>,
+        inventoryCounts: m3Evidence.inventoryCounts,
+        inventoryAdjustments: m3Evidence.inventoryAdjustments,
+        replenishmentSuggestions: m3Evidence.replenishmentSuggestions,
+        transactions: allTransactions.map((tx) => ({
+          docType: tx.docType,
+          sku: tx.sku,
+          qty: Number(tx.qty),
+          posted: tx.posted,
+        })),
+      })
+    : [];
+  const m3ActionHint = isM3 && pedagogy
+    ? getM3StepAwareHint(m3Scn, nextStepCode, pedagogy, language)
+    : null;
+  const showScn011ConfirmatoryBanner = m3Scn === "SCN-011" && isScn011ConfirmatoryStep(nextStepCode);
+  const m3ConfirmationTargets = m3Scn === "SCN-011"
+    ? m3ReplenishRows.map((r) => ({
+        sku: r.sku,
+        systemLevel: r.stock,
+        roleFr: "Confirmer sous Min",
+        roleEn: "Confirm below Min",
+      }))
+    : [];
+
+  const gridStatusLabel = (status: ReturnType<typeof getM3GridStatus>) => {
+    const labels: Record<typeof status, { fr: string; en: string; cls: string }> = {
+      BELOW_MIN: { fr: "BELOW_MIN", en: "BELOW_MIN", cls: "bg-red-100 text-red-700" },
+      VARIANCE_OPEN: { fr: "VARIANCE_OPEN", en: "VARIANCE_OPEN", cls: "bg-amber-100 text-amber-800" },
+      RECONCILED: { fr: "RECONCILED", en: "RECONCILED", cls: "bg-green-100 text-green-700" },
+      AVAILABLE: { fr: "AVAILABLE", en: "AVAILABLE", cls: "bg-green-100 text-green-700" },
+      EMPTY: { fr: "EMPTY", en: "EMPTY", cls: "bg-slate-100 text-slate-600" },
+    };
+    const l = labels[status];
+    return { text: language === "FR" ? l.fr : l.en, cls: l.cls };
+  };
+
   return (
     <FioriShell
       title={`COCKPIT OPÉRATIONNEL — ${scenario?.name}`}
@@ -201,8 +262,8 @@ export default function MissionControl() {
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                     {run.status === "completed"
                       ? t("Consultez votre rapport de mission pour valider la progression du module et la certification.", "Review your mission report to confirm module progress and certification.")
-                      : nextStepCode && pedagogy
-                        ? pickLang(pedagogy.expectedActionHint, language)
+                      : nextStepCode && (isM3 ? m3ActionHint : pedagogy)
+                        ? (isM3 ? m3ActionHint : pickLang(pedagogy!.expectedActionHint, language))
                         : nextStepCode
                           ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.")
                           : pedagogy
@@ -229,6 +290,44 @@ export default function MissionControl() {
               </div>
             </div>
 
+            {isM3 && m3Scn === "SCN-009" && m3ResolutionChain.length > 0 && (
+              <M3ResolutionChainRow chips={m3ResolutionChain} language={language} />
+            )}
+
+            {isM5 && run.status !== "completed" && (
+              <M5ExecutiveChainStrip
+                completedSteps={completedSteps as string[]}
+                nextStepCode={nextStepCode}
+                scnCode={scnCode}
+              />
+            )}
+
+            {showScn011ConfirmatoryBanner && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700">
+                <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase mb-1">
+                  ℹ️ {t("Étape confirmatoire", "Confirmatory step")}
+                </p>
+                <p className="text-[10px] text-amber-700 dark:text-amber-300">
+                  {t(
+                    "Ce scénario ne contient pas d'articles à compter. Complétez cette étape rapidement et concentrez-vous sur le réapprovisionnement Min/Max à l'étape REPLENISH.",
+                    "This scenario has no items to count. Complete this step quickly and focus on Min/Max replenishment at the REPLENISH step.",
+                  )}
+                </p>
+                {m3ConfirmationTargets.length > 0 && (
+                  <M3ConfirmationTargetsTable rows={m3ConfirmationTargets} t={t} language={language} />
+                )}
+              </div>
+            )}
+
+            {isM3 && m3Scn === "SCN-011" && m3ReplenishRows.length > 0 && (
+              <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden p-4">
+                <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3">
+                  {t("Paramètres de réapprovisionnement Min/Max", "Min/Max replenishment parameters")}
+                </p>
+                <M3ReplenishmentParamsTable rows={m3ReplenishRows} t={t} language={language} />
+              </div>
+            )}
+
             {/* Inventory Grid (SAP-like) */}
             <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden">
               <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center justify-between">
@@ -252,14 +351,41 @@ export default function MissionControl() {
                     {Object.entries(inventory || {}).length > 0 ? (
                       Object.entries(inventory as Record<string, number>).map(([key, qty]) => {
                         const [sku, bin] = key.split("::");
+                        const m3Status = isM3 && m3Evidence
+                          ? getM3GridStatus(
+                              m3Scn,
+                              sku,
+                              qty,
+                              m3Evidence.inventoryCounts,
+                              m3Evidence.inventoryAdjustments,
+                              allTransactions.map((tx) => ({
+                                docType: tx.docType,
+                                sku: tx.sku,
+                                qty: Number(tx.qty),
+                                posted: tx.posted,
+                              })),
+                              m3ReplenishParams,
+                            )
+                          : qty > 0 ? "AVAILABLE" : "EMPTY";
+                        const statusDisplay = isM3
+                          ? gridStatusLabel(m3Status as ReturnType<typeof getM3GridStatus>)
+                          : { text: qty > 0 ? "AVAILABLE" : "EMPTY", cls: qty > 0 ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600" };
+                        const minMaxParam = m3Scn === "SCN-011" ? m3ReplenishParams.find((p) => p.sku === sku) : undefined;
                         return (
                           <tr key={key} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
                             <td className="px-4 py-3 font-bold text-primary">{bin}</td>
-                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{sku}</td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">
+                              {sku}
+                              {minMaxParam && (
+                                <span className="block text-[9px] text-slate-400 font-mono mt-0.5">
+                                  {minMaxParam.minQty}/{minMaxParam.maxQty}
+                                </span>
+                              )}
+                            </td>
                             <td className={`px-4 py-3 text-right font-bold ${qty < 0 ? 'text-red-600' : 'text-slate-900 dark:text-white'}`}>{qty}</td>
                             <td className="px-4 py-3">
-                              <span className={`px-2 py-0.5 text-[9px] font-bold ${qty > 0 ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'}`}>
-                                {qty > 0 ? 'AVAILABLE' : 'EMPTY'}
+                              <span className={`px-2 py-0.5 text-[9px] font-bold ${statusDisplay.cls}`}>
+                                {statusDisplay.text}
                               </span>
                             </td>
                           </tr>
@@ -316,20 +442,29 @@ export default function MissionControl() {
                   </thead>
                   <tbody className="text-[10px] font-mono">
                     {allTransactions.length > 0 ? (
-                      [...allTransactions].reverse().map((tx, idx) => (
-                        <tr key={idx} className="border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      [...allTransactions].reverse().map((tx, idx) => {
+                        const isStudentAdj = isM3 && m3Evidence && isStudentAdjTransaction(tx, m3Evidence.initialStateJson);
+                        return (
+                        <tr key={idx} className={`border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isStudentAdj ? "bg-primary/5" : ""}`}>
                           <td className="px-4 py-2 font-bold">{tx.docType}</td>
                           <td className="px-4 py-2 text-slate-500">{tx.docRef || "—"}</td>
                           <td className="px-4 py-2">{tx.sku}</td>
                           <td className="px-4 py-2 text-primary font-semibold">{tx.bin}</td>
                           <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
                           <td className="px-4 py-2">
+                            {isStudentAdj ? (
+                              <span className="px-1.5 py-0.5 rounded-sm font-bold bg-primary/10 text-primary text-[9px]">
+                                {t("Action étudiant", "Student action")}
+                              </span>
+                            ) : (
                             <span className={`px-1.5 py-0.5 rounded-sm font-bold ${tx.posted ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700 animate-pulse"}`}>
                               {tx.posted ? "POSTED" : "PENDING"}
                             </span>
+                            )}
                           </td>
                         </tr>
-                      ))
+                        );
+                      })
                     ) : (
                       <tr>
                         <td colSpan={6} className="px-4 py-6 text-center text-slate-400 italic">
@@ -339,6 +474,7 @@ export default function MissionControl() {
                     )}
                   </tbody>
                 </table>
+                )}
               </div>
             </div>
           </div>
@@ -417,6 +553,24 @@ export default function MissionControl() {
                     <span className="font-mono font-bold">{completedSteps.length} / {effectiveSteps.length}</span>
                   </div>
                 </div>
+
+                {isM3 && m3PerformanceMetrics.length > 0 && (
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase text-center">
+                      {t("Indicateurs contextuels — non notés", "Contextual indicators — not scored")}
+                    </p>
+                    {m3PerformanceMetrics.map((metric) => (
+                      <div key={metric.labelFr} className="flex justify-between text-[10px]">
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {language === "FR" ? metric.labelFr : metric.labelEn}
+                        </span>
+                        <span className="font-mono font-bold text-primary">
+                          {language === "FR" ? metric.valueFr : metric.valueEn}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

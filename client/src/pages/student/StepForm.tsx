@@ -7,6 +7,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
+import { buildReplenishmentParamRows } from "@/lib/m3OperationalEvidence";
+import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -789,7 +791,7 @@ function BackendTransparencyPanel({ runData }: { runData: any }) {
 export default function StepForm() {
   const { runId, step } = useParams<{ runId: string; step: string }>();
   const [, navigate] = useLocation();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const cfg = STEP_CONFIG[step?.toLowerCase() ?? ""] ?? STEP_CONFIG.po;
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
@@ -814,6 +816,10 @@ export default function StepForm() {
 
   const m3CycleCountTargets = m3InitialState?.cycleCountTargets ?? [];
   const m3ReplenishmentParams = m3InitialState?.replenishmentParams ?? [];
+  const m3ReplenishParamRows = useMemo(
+    () => buildReplenishmentParamRows(m3ReplenishmentParams, (runData?.inventory ?? {}) as Record<string, number>),
+    [m3ReplenishmentParams, runData?.inventory],
+  );
 
   /** True only for SCN-017 (STRATEGIC_CAPSTONE) — stricter M5_DECISION requirements. */
   const isM5Strategic = useMemo(() => {
@@ -1628,6 +1634,16 @@ export default function StepForm() {
                       "This scenario has no items to count. Complete this step quickly and focus on Min/Max replenishment at the REPLENISH step.",
                     )}
                   </p>
+                  {m3ReplenishParamRows.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-amber-200 dark:border-amber-800">
+                      <M3ReplenishmentParamsTable
+                        rows={m3ReplenishParamRows}
+                        t={t}
+                        language={language}
+                        compact
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
