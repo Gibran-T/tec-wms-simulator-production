@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320">
+  <rect width="720" height="320" fill="#f8fafc"/>
+  <text x="24" y="28" fill="#334155" font-size="12" font-weight="bold">RC14 M4 Wave 1  Run Report snapshot block (mock)</text>
+  <rect x="24" y="44" width="672" height="72" fill="#eff6ff" stroke="#93c5fd" rx="4"/>
+  <text x="36" y="64" fill="#1d4ed8" font-size="10" font-weight="bold">EXTRAIT ANALYTIQUE CANONIQUE</text>
+  <text x="36" y="84" fill="#0f172a" font-family="monospace" font-size="11">Snapshot KPI · 6× · 95,0 % OTIF · 4,0 % erreurs · 3,5 j · 48 000 $</text>
+  <text x="36" y="102" fill="#64748b" font-size="10" font-style="italic">Lens : arbitrage multi-KPI  S&OP board (SCN-014)</text>
+  <text x="24" y="140" fill="#334155" font-size="10" font-weight="bold">INTERPRÉTATIONS KPI (MODULE 4)</text>
+  <rect x="24" y="152" width="672" height="48" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="36" y="172" fill="#166534" font-family="monospace" font-size="9">rotationRate · Correct · feedback engine</text>
+  <text x="36" y="188" fill="#64748b" font-size="9">Student answer (full text in report cards)</text>
+</svg>

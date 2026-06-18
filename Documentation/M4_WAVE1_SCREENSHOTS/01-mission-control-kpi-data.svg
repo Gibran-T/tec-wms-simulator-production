@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540">
+  <rect width="960" height="540" fill="#0f172a"/>
+  <text x="24" y="32" fill="#94a3b8" font-family="monospace" font-size="11">RC14 M4 Wave 1  Mission Control after KPI_DATA (SCN-012 mock)</text>
+  <rect x="24" y="48" width="912" height="44" fill="#1e293b" stroke="#334155"/>
+  <text x="36" y="74" fill="#f8fafc" font-family="monospace" font-size="11">Snapshot KPI · 6× · 95,0 % OTIF · 4,0 % erreurs · 3,5 j · 48 000 $</text>
+  <rect x="24" y="108" width="440" height="180" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="36" y="128" fill="#0f766e" font-size="11" font-weight="bold">OIL Panel B  KPI Tiles (Annexe A)</text>
+  <rect x="36" y="140" width="90" height="56" fill="#fffbeb" stroke="#fbbf24"/><text x="44" y="158" font-size="9">Rotation</text><text x="44" y="178" font-size="12" font-weight="bold">6×</text>
+  <rect x="132" y="140" width="90" height="56" fill="#f0fdf4" stroke="#22c55e"/><text x="140" y="158" font-size="9">Service</text><text x="140" y="178" font-size="12" font-weight="bold">95,0 %</text>
+  <rect x="228" y="140" width="90" height="56" fill="#fffbeb" stroke="#fbbf24"/><text x="236" y="158" font-size="9">Erreurs</text><text x="236" y="178" font-size="12" font-weight="bold">4,0 %</text>
+  <rect x="324" y="140" width="90" height="56" fill="#fffbeb" stroke="#fbbf24"/><text x="332" y="158" font-size="9">Délai</text><text x="332" y="178" font-size="12" font-weight="bold">3,5 j</text>
+  <text x="36" y="220" fill="#64748b" font-size="10">Trail: [Rotation ó] [Service ó] [Diagnostic ó]</text>
+  <text x="36" y="244" fill="#92400e" font-size="10">Alerte pédagogique: 6× = bande normale  évitez surstock par réflexe</text>
+  <rect x="496" y="108" width="440" height="380" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="508" y="128" fill="#334155" font-size="11" font-weight="bold">Moniteur d'évidence KPI</text>
+  <text x="508" y="148" fill="#64748b" font-size="9" font-style="italic">Extracts analytiques (lecture seule)  pas de transactions WMS</text>
+  <text x="508" y="176" fill="#0f172a" font-family="monospace" font-size="9">T+0:08 CO-PA  Capital immobilisé 48 000 $</text>
+  <text x="508" y="194" fill="#0f172a" font-family="monospace" font-size="9">T+0:05 ME2M  Délai fournisseur moyen : 3,5 j  [NORMAL]</text>
+  <text x="508" y="212" fill="#0f172a" font-family="monospace" font-size="9">T+0:00 MB52   Conso. annuelle 2 400 u. · Stock moyen 400 u.</text>
+</svg>
