@@ -255,6 +255,30 @@ describe("Silver certification — UI display contract", () => {
   });
 });
 
+describe("Silver certification — certified state display alignment", () => {
+  it("getSilverCertificationStatus returns all gates true when silverCertified is set", () => {
+    const dbSource = readSource("db.ts");
+    const fnMatch = dbSource.match(/export async function getSilverCertificationStatus[\s\S]*?\n\}/);
+    expect(fnMatch).toBeTruthy();
+    const fnBody = fnMatch![0];
+    expect(fnBody).toMatch(/if \(silverCertified\)/);
+    expect(fnBody).toContain("quizPassed: true");
+    expect(fnBody).toContain("complianceValidated: true");
+    expect(fnBody).toContain("noBlockers: true");
+    expect(fnBody).toContain("silverEligible: true");
+    expect(fnBody).toMatch(/SCN001:\s*true[\s\S]*SCN005:\s*true/);
+  });
+
+  it("uncertified students still use live M1 gate computation", () => {
+    const dbSource = readSource("db.ts");
+    const fnMatch = dbSource.match(/export async function getSilverCertificationStatus[\s\S]*?\n\}/);
+    expect(fnMatch![0]).toContain("checkM1QuizPassed");
+    expect(fnMatch![0]).toContain("getM1ScenarioCompletionStatus");
+    expect(fnMatch![0]).toContain("checkM1ComplianceValidated");
+    expect(fnMatch![0]).toContain("checkNoUnresolvedBlockers");
+  });
+});
+
 describe("Silver certification — RC13 cohort registry", () => {
   it("registers four first-cohort Silver credential IDs", () => {
     expect(SILVER_REGISTRY_COHORT_2026).toHaveLength(4);

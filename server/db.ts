@@ -1223,6 +1223,25 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
 
 export async function getSilverCertificationStatus(userId: number): Promise<SilverCertificationStatus> {
   const profile = await getProfileByUserId(userId);
+  const silverCertified = profile?.silverCertified ?? false;
+
+  if (silverCertified) {
+    return {
+      quizPassed: true,
+      scenariosCompleted: {
+        SCN001: true,
+        SCN002: true,
+        SCN003: true,
+        SCN004: true,
+        SCN005: true,
+      },
+      complianceValidated: true,
+      noBlockers: true,
+      silverEligible: true,
+      silverCertified: true,
+    };
+  }
+
   const quizPassed = await checkM1QuizPassed(userId);
   const scenariosCompleted = await getM1ScenarioCompletionStatus(userId);
   const complianceValidated = await checkM1ComplianceValidated(userId);
@@ -1236,7 +1255,7 @@ export async function getSilverCertificationStatus(userId: number): Promise<Silv
     complianceValidated,
     noBlockers,
     silverEligible,
-    silverCertified: profile?.silverCertified ?? false,
+    silverCertified: false,
   };
 }
 
