@@ -22,6 +22,29 @@ import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
 import { getMissionForScenario, resolveScnCode } from "../../../../server/missionData";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
+import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
+import M4KpiEvidenceFeed from "@/components/operational-intelligence/m4/M4KpiEvidenceFeed";
+import { isM4EvidenceScn, type M4KpiInterpretationRow, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
+import {
+  buildM3ResolutionChain,
+  buildReplenishmentParamRows,
+  computeM3PerformanceMetrics,
+  getM3GridStatus,
+  getM3StepAwareHint,
+  getReplenishmentParams,
+  isScn011ConfirmatoryStep,
+  isStudentAdjTransaction,
+  type M3RunEvidence,
+} from "@/lib/m3OperationalEvidence";
+import {
+  M3ConfirmationTargetsTable,
+  M3ReplenishmentParamsTable,
+  M3ResolutionChainRow,
+} from "@/components/operational-intelligence/M3OperationalTowerView";
+import M5KpiLedgerWidget from "@/components/m5/M5KpiLedgerWidget";
+import M5TransactionTimeline from "@/components/m5/M5TransactionTimeline";
+import M5ZoneFlowBar from "@/components/m5/M5ZoneFlowBar";
+import M5ExecutiveChainStrip from "@/components/m5/M5ExecutiveChainStrip";
 
 import { useAuth } from "@/_core/hooks/useAuth";
 
@@ -98,13 +121,28 @@ export default function MissionControl() {
     progressPct, isDemo, moduleId, steps: backendSteps, inventory,
   } = data;
 
+  const kpiInterpretations = (data as { kpiInterpretations?: M4KpiInterpretationRow[] }).kpiInterpretations;
+  const m4KpiSnapshot = (data as { m4KpiSnapshot?: M4KpiSnapshot }).m4KpiSnapshot;
+
+  const m3Evidence = (data as { m3Evidence?: M3RunEvidence }).m3Evidence;
+  const isM3 = moduleId === 3;
+  const isM5 = moduleId === 5;
+
   const mission = getMissionForScenario(
     scenario ? { ...scenario, moduleId: scenario.moduleId ?? moduleId } : null
   );
   const scnCode = mission?.scnCode ?? resolveScnCode(
     scenario ? { ...scenario, moduleId: scenario.moduleId ?? moduleId } : null
   );
+  const m3Scn = isM3 ? scnCode as "SCN-009" | "SCN-010" | "SCN-011" | undefined : undefined;
   const pedagogy = getCockpitPedagogy(scnCode);
+  const showM4Evidence = isM4EvidenceScn(moduleId, scnCode) && !!m4KpiSnapshot;
+  const m5VarianceBlocked =
+    isM5 &&
+    scnCode === "SCN-016" &&
+    m5KpiLedger?.evidence != null &&
+    m5KpiLedger.evidence.varianceQty !== 0 &&
+    !m5KpiLedger.evidence.varianceResolved;
 
   const STEPS = (backendSteps ?? []).map((s: { code: string; labelEn?: string; labelFr?: string; sapCode?: string }) => ({
     key: s.code,
@@ -237,12 +275,26 @@ export default function MissionControl() {
           stepLabels={STEPS.map((s) => ({ key: s.key, labelFr: s.labelFr, labelEn: s.label }))}
           effectiveStepCount={effectiveSteps.length}
           onExecuteStep={(code) => navigate(`/student/run/${runId}/step/${code.toLowerCase()}`)}
+          m3Evidence={m3Evidence}
+          m5KpiLedger={m5KpiLedger}
+          kpiInterpretations={kpiInterpretations}
+          m4KpiSnapshot={m4KpiSnapshot}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* ── LEFT COLUMN: Operational Focus & Inventory (8 cols) ── */}
           <div className="lg:col-span-8 space-y-6">
+
+            {showM4Evidence && m4KpiSnapshot && scnCode && (
+              <M4KpiSnapshotHeader
+                snapshot={m4KpiSnapshot}
+                scnCode={scnCode}
+                language={language}
+                t={t}
+                variant="cockpit"
+              />
+            )}
             
             {/* Next Action Cockpit */}
             <div className={`p-6 border-l-8 ${
@@ -412,16 +464,22 @@ export default function MissionControl() {
               />
             )}
 
-            {/* Transaction Monitor */}
+            {/* Transaction Monitor / M4 KPI Evidence Monitor */}
             <div className="bg-card border border-border rounded-none shadow-sm overflow-hidden">
               <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Activity size={16} className="text-slate-500" />
-                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">{t("Moniteur de Transactions", "Transaction Monitor")}</span>
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                    {showM4Evidence
+                      ? t("Moniteur d'évidence KPI", "KPI Evidence Monitor")
+                      : t("Moniteur de Transactions", "Transaction Monitor")}
+                  </span>
                 </div>
-                <span className="text-[10px] font-mono text-slate-500">
-                  {t("Postées", "Posted")}: {allTransactions.filter((tx) => tx.posted).length} · {t("En attente", "Pending")}: {unpostedTxs.length}
-                </span>
+                {!showM4Evidence && (
+                  <span className="text-[10px] font-mono text-slate-500">
+                    {t("Postées", "Posted")}: {allTransactions.filter((tx) => tx.posted).length} · {t("En attente", "Pending")}: {unpostedTxs.length}
+                  </span>
+                )}
               </div>
               {pedagogy && (
                 <p className="px-4 py-2 text-[10px] text-slate-600 dark:text-slate-400 border-b border-border bg-slate-50/80 dark:bg-slate-900/40 italic">
@@ -429,6 +487,15 @@ export default function MissionControl() {
                 </p>
               )}
               <div className="max-h-60 overflow-y-auto">
+                {showM4Evidence && scnCode ? (
+                  <M4KpiEvidenceFeed
+                    scnCode={scnCode}
+                    completedSteps={completedSteps as string[]}
+                    kpiInterpretations={kpiInterpretations}
+                    language={language}
+                    t={t}
+                  />
+                ) : (
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900 border-b border-border">

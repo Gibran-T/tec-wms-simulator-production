@@ -11,10 +11,20 @@ import { COMPETENCY_MAP } from "@/data/competencyMap";
 import { getStepErpHint } from "@/data/stepErpMap";
 import { M4_KPI_CONTROL_TOWER, ANNEXE_A_KPI_GUIDE } from "@/data/m4KpiControlTower";
 import { M5_KPI_CONTROL_TOWER, M5_DECISION_SCAFFOLD, ANNEXE_B_M5_OPS_RUBRIC } from "@/data/m5KpiControlTower";
+import { M3_OPERATIONAL_CONTROL_TOWER } from "@/data/m3OperationalControlTower";
+import {
+  buildM3ResolutionChain,
+  computeM3OperationalBadges,
+  type M3RunEvidence,
+} from "@/lib/m3OperationalEvidence";
+import { M3OperationalTowerView } from "@/components/operational-intelligence/M3OperationalTowerView";
 import { getEvalScoreThreshold, getModuleCertContext } from "@/data/moduleThresholds";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
+import M4EvidenceLayer from "@/components/operational-intelligence/m4/M4EvidenceLayer";
+import { isM4EvidenceScn, type M4KpiInterpretationRow, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
+import M5DynamicKpiTower from "@/components/m5/M5DynamicKpiTower";
 
 type TxRow = {
   docType: string;
@@ -43,8 +53,27 @@ export interface IntelligenceRunState {
   stepLabels: { key: string; labelFr: string; labelEn: string }[];
   effectiveStepCount: number;
   onExecuteStep: (stepCode: string) => void;
+  m3Evidence?: M3RunEvidence;
   /** Dev preview only — skips authenticated tRPC queries in Panel E */
   previewMode?: boolean;
+  kpiInterpretations?: M4KpiInterpretationRow[];
+  m4KpiSnapshot?: M4KpiSnapshot;
+  /** M5 Wave 1 — live KPI ledger for dynamic tower (Panel B) */
+  m5KpiLedger?: {
+    kpiData: { avgLeadTimeDays: number; stockValue: number };
+    kpiResult: {
+      rotationRate: number;
+      serviceLevel: number;
+      errorRate: number;
+      stockImmobilizedValue: number;
+    };
+    evidence: {
+      receivedQty: number;
+      putawayQty: number;
+      varianceQty: number;
+      varianceResolved: boolean;
+    };
+  };
 }
 
 function PanelShell({
@@ -181,7 +210,46 @@ function PanelB({
   const pedagogy = getCockpitPedagogy(scnCode);
   const m4Kpi = scnCode && state.moduleId === 4 ? M4_KPI_CONTROL_TOWER[scnCode] : null;
   const m5Kpi = scnCode && state.moduleId === 5 ? M5_KPI_CONTROL_TOWER[scnCode] : null;
-  const showTxTable = !m4Kpi && !m5Kpi || pending.length > 0 || posted.length > 0;
+  const showM4Evidence = isM4EvidenceScn(state.moduleId, scnCode) && !!state.m4KpiSnapshot;
+  const m3Tower = scnCode && state.moduleId === 3 ? M3_OPERATIONAL_CONTROL_TOWER[scnCode] : null;
+  const m3Evidence = state.m3Evidence;
+  const m3Badges = m3Tower && m3Evidence
+    ? computeM3OperationalBadges({
+        scnCode: scnCode!,
+        initialStateJson: m3Evidence.initialStateJson,
+        inventory: state.inventory,
+        inventoryCounts: m3Evidence.inventoryCounts,
+        inventoryAdjustments: m3Evidence.inventoryAdjustments,
+        replenishmentSuggestions: m3Evidence.replenishmentSuggestions,
+        completedSteps: state.completedSteps,
+        nextStepCode: state.nextStep?.code,
+        transactions: state.allTransactions.map((tx) => ({
+          docType: tx.docType,
+          sku: tx.sku,
+          qty: Number(tx.qty),
+          posted: tx.posted,
+        })),
+      })
+    : [];
+  const m3ResolutionChain = scnCode === "SCN-009" && m3Evidence
+    ? buildM3ResolutionChain({
+        completedSteps: state.completedSteps,
+        nextStepCode: state.nextStep?.code,
+        inventoryCounts: m3Evidence.inventoryCounts,
+        inventoryAdjustments: m3Evidence.inventoryAdjustments,
+        initialStateJson: m3Evidence.initialStateJson,
+        transactions: state.allTransactions.map((tx) => ({
+          docType: tx.docType,
+          sku: tx.sku,
+          qty: Number(tx.qty),
+          posted: tx.posted,
+        })),
+      })
+    : undefined;
+  const showTxTable =
+    state.moduleId === 5
+      ? true
+      : !m4Kpi || pending.length > 0 || posted.length > 0;
 
   return (
     <div className="space-y-4 text-xs">
@@ -202,15 +270,38 @@ function PanelB({
         </span>
       </div>
 
-      {m4Kpi && <M4KpiTowerView entry={m4Kpi} t={t} language={language} />}
+      {m3Tower && (
+        <M3OperationalTowerView
+          entry={m3Tower}
+          badges={m3Badges}
+          resolutionChain={m3ResolutionChain}
+          t={t}
+          language={language}
+        />
+      )}
 
-      {m5Kpi && <M4KpiTowerView entry={m5Kpi} t={t} language={language} />}
+      {showM4Evidence && scnCode && state.m4KpiSnapshot && (
+        <M4EvidenceLayer
+          scnCode={scnCode}
+          completedSteps={state.completedSteps}
+          snapshot={state.m4KpiSnapshot}
+          kpiInterpretations={state.kpiInterpretations}
+          language={language}
+          t={t}
+          showSnapshot={false}
+          towerView={<M4KpiTowerView entry={m4Kpi!} t={t} language={language} />}
+        />
+      )}
 
-      {m5Kpi?.varianceSignal && (
-        <div className="p-2 bg-red-50 dark:bg-red-950/30 border border-red-300 text-[10px] text-red-800 dark:text-red-200">
-          <p className="font-bold uppercase">{t("Signal variance", "Variance signal")}</p>
-          <p>{pickLang(m5Kpi.varianceSignal, language)}</p>
-        </div>
+      {m4Kpi && !showM4Evidence && <M4KpiTowerView entry={m4Kpi} t={t} language={language} />}
+
+      {m5Kpi && (
+        <M5DynamicKpiTower
+          entry={m5Kpi}
+          ledger={state.m5KpiLedger}
+          scnCode={scnCode}
+          completedSteps={state.completedSteps}
+        />
       )}
 
       {pending.length > 0 && (

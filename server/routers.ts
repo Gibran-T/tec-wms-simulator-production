@@ -178,6 +178,21 @@ function resolveM4KpiDataForScenario(
   return getM4KpiDataFromSeed(scenario?.initialStateJson as M4InitialStateJson | null | undefined);
 }
 
+function buildM4KpiSnapshot(scenario: Awaited<ReturnType<typeof getScenarioById>>) {
+  const kpiData = resolveM4KpiDataForScenario(scenario);
+  const kpiResult = calculateKpis(kpiData);
+  return {
+    rotationRate: kpiResult.rotationRate,
+    serviceLevel: kpiResult.serviceLevel,
+    errorRate: kpiResult.errorRate,
+    averageLeadTime: kpiResult.averageLeadTime,
+    stockImmobilizedValue: kpiResult.stockImmobilizedValue,
+    rotationStatus: kpiResult.rotationStatus,
+    serviceLevelStatus: kpiResult.serviceLevelStatus,
+    errorRateStatus: kpiResult.errorRateStatus,
+  };
+}
+
 // ─── Role Guards ──────────────────────────────────────────────────────────────
 const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
   if (ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
@@ -1242,6 +1257,8 @@ export const appRouter = router({
             }))
           : undefined;
 
+        const m4KpiSnapshot = moduleId === 4 ? buildM4KpiSnapshot(scenario) : undefined;
+
         const m5KpiSnapshot = moduleId === 5
           ? await getKpiSnapshotByRun(input.runId)
           : null;
@@ -1268,6 +1285,7 @@ export const appRouter = router({
           zoneFlow,
           transactionTimeline,
           kpiInterpretations,
+          m4KpiSnapshot,
           m5Report: moduleId === 5 ? {
             kpiSnapshot: m5KpiSnapshot ? {
               rotationRate: Number(m5KpiSnapshot.rotationRate),
@@ -1335,6 +1353,19 @@ export const appRouter = router({
          const moduleId = scenario?.moduleId ?? 1;
         const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId, state);
         const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId, state);
+        const replenishmentSuggestions = moduleId === 3
+          ? await getReplenishmentSuggestionsByRun(input.runId)
+          : [];
+        const kpiInterpretations = moduleId === 4
+          ? (await getKpiInterpretationsByRun(input.runId)).map((r) => ({
+              kpiKey: r.kpiKey,
+              studentAnswer: r.studentAnswer,
+              isCorrect: r.isCorrect,
+              feedback: r.feedback ?? "",
+              pointsDelta: r.pointsDelta,
+            }))
+          : undefined;
+        const m4KpiSnapshot = moduleId === 4 ? buildM4KpiSnapshot(scenario) : undefined;
         return {
           run,
           scenario,
@@ -1351,6 +1382,8 @@ export const appRouter = router({
             : moduleId === 4 ? MODULE4_STEPS
             : getEffectiveM5Steps(state.m5InitialStateJson, state),
           isDemo: run.isDemo,
+          kpiInterpretations,
+          m4KpiSnapshot,
           // Full transaction ledger for monitor (M2 preloaded PO/GR must be visible)
           transactions: state.transactions,
           // Backend transparency data (visible only in demo mode on frontend)

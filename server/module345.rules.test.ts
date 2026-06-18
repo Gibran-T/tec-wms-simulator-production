@@ -434,6 +434,20 @@ describe("Module 4 — getM4KpiDataFromSeed", () => {
   });
 });
 
+describe("Module 4 — m4KpiSnapshot display payload", () => {
+  it("matches calculateKpis(CANONICAL_M4_KPI_DATA) for evidence layer", () => {
+    const kpiResult = calculateKpis(CANONICAL_M4_KPI_DATA);
+    expect(kpiResult.rotationRate).toBe(6);
+    expect(kpiResult.serviceLevel).toBe(0.95);
+    expect(kpiResult.errorRate).toBe(0.04);
+    expect(kpiResult.averageLeadTime).toBe(3.5);
+    expect(kpiResult.stockImmobilizedValue).toBe(48000);
+    expect(kpiResult.rotationStatus).toBe("normal");
+    expect(kpiResult.serviceLevelStatus).toBe("excellent");
+    expect(kpiResult.errorRateStatus).toBe("acceptable");
+  });
+});
+
 describe("Module 4 — validateM4Compliance", () => {
   const kpiResult = calculateKpis(CANONICAL_M4_KPI_DATA);
   const completedSteps = ["KPI_DATA", "KPI_ROTATION", "KPI_SERVICE", "KPI_DIAGNOSTIC"];

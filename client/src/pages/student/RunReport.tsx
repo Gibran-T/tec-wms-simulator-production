@@ -4,6 +4,11 @@ import { useParams, useLocation } from "wouter";
 import { CheckCircle, AlertTriangle, Trophy, ArrowLeft, FlaskConical, TrendingUp, BookOpen, Lightbulb, RotateCcw } from "lucide-react";
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
+import { isM4EvidenceScn, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
+import { resolveScnCode } from "../../../../server/missionData";
+import { M5TransactionTimelineReport } from "@/components/m5/M5TransactionTimeline";
+import { M5ZoneFlowBarReport } from "@/components/m5/M5ZoneFlowBar";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
@@ -40,6 +45,16 @@ function normalizeReportDetail(
       feedback: string;
       pointsDelta?: number;
     }>;
+    m4KpiSnapshot?: {
+      rotationRate: number;
+      serviceLevel: number;
+      errorRate: number;
+      averageLeadTime: number;
+      stockImmobilizedValue: number;
+      rotationStatus: string;
+      serviceLevelStatus: string;
+      errorRateStatus: string;
+    };
     m5Report?: {
       kpiSnapshot: {
         rotationRate: number;
@@ -224,7 +239,7 @@ function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number;
 export default function RunReport() {
   const { runId } = useParams<{ runId: string }>();
   const [, navigate] = useLocation();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const parsedRunId = parseInt(runId ?? "", 10);
   const queryEnabled = Number.isFinite(parsedRunId) && parsedRunId > 0;
   const { data, isLoading, isError: stateError } = trpc.runs.state.useQuery(
@@ -297,13 +312,18 @@ export default function RunReport() {
     );
   }
 
-  const { run, scenario, completedSteps, compliance, totalScore, progressPct } = data;
+  const { run, scenario, completedSteps, compliance, totalScore, progressPct, moduleId } = data as typeof data & { moduleId?: number };
   const safeCompliance = {
     compliant: compliance?.compliant ?? false,
     issuesFr: compliance?.issuesFr ?? [],
   };
   const safeScore = totalScore ?? (run as { score?: number }).score ?? 0;
   const safeDetail = normalizeReportDetail(detail);
+  const scnCode = resolveScnCode(scenario ?? null);
+  const m4KpiSnapshot: M4KpiSnapshot | undefined =
+    (data as { m4KpiSnapshot?: M4KpiSnapshot }).m4KpiSnapshot
+    ?? (safeDetail as { m4KpiSnapshot?: M4KpiSnapshot } | null)?.m4KpiSnapshot;
+  const showM4ReportSnapshot = isM4EvidenceScn(moduleId ?? scenario?.moduleId ?? 0, scnCode) && !!m4KpiSnapshot;
   const detailUnavailable = detailError || detailLoading || !safeDetail;
   const isDemo = run.isDemo;
   const isPerfect = safeScore >= 100;
@@ -545,7 +565,19 @@ export default function RunReport() {
             </div>
           )}
 
-          {/* M4 KPI interpretations (REPORT-M4) */}
+          {/* M4 KPI snapshot + interpretations */}
+          {showM4ReportSnapshot && m4KpiSnapshot && scnCode && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <M4KpiSnapshotHeader
+                snapshot={m4KpiSnapshot}
+                scnCode={scnCode}
+                language={language}
+                t={t}
+                variant="report"
+              />
+            </div>
+          )}
+
           {safeDetail?.kpiInterpretations && safeDetail.kpiInterpretations.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">
