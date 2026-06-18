@@ -3,8 +3,10 @@ import SilverBadgeSvg from "@/components/certification/SilverBadgeSvg";
 import { SilverStatusChip, type SilverCertState } from "@/components/certification/CertificationStatus";
 import CertificationCompletionBadge from "@/components/certification/CertificationCompletionBadge";
 import VerificationIdBlock from "@/components/certification/VerificationIdBlock";
-import SignaturePlaceholder from "@/components/certification/SignaturePlaceholder";
+import DualSignatureBlock from "@/components/certification/DualSignatureBlock";
 import QrPlaceholder from "@/components/certification/QrPlaceholder";
+import CollegeCrest from "@/components/certification/CollegeCrest";
+import InstitutionalCertificateFooter from "@/components/certification/InstitutionalCertificateFooter";
 
 const ACHIEVEMENTS = [
   { fr: "SCN-001 — Cycle opérationnel complet", en: "SCN-001 — Complete Operational Cycle" },
@@ -66,16 +68,19 @@ export default function SilverCertificateDocument({
       <div className="absolute inset-5 md:inset-6 border border-slate-200/80 dark:border-slate-700/80 rounded pointer-events-none" />
 
       <div className="relative z-[1] flex flex-col gap-5 md:gap-6">
-        {/* Header row — institution + seal */}
+        {/* Header row — crest + institution + seal */}
         <div className="flex items-start justify-between gap-4">
-          <div className="text-left space-y-0.5 pt-1">
-            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500 font-medium">
-              {t("Collège de la Concorde", "Collège de la Concorde")}
-            </p>
-            <p className="text-xs font-semibold text-[#0070f2]">{t("Programme TEC.LOG", "TEC.LOG Program")}</p>
-            <p className="text-[10px] text-muted-foreground tracking-wide max-w-xs">
-              {t("Operational Competency Credential · TEC.WMS", "Operational Competency Credential · TEC.WMS")}
-            </p>
+          <div className="flex items-start gap-3 md:gap-4 min-w-0">
+            <CollegeCrest />
+            <div className="text-left space-y-0.5 pt-1">
+              <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500 font-medium">
+                {t("Collège de la Concorde", "Collège de la Concorde")}
+              </p>
+              <p className="text-xs font-semibold text-[#0070f2]">{t("Programme TEC.LOG", "TEC.LOG Program")}</p>
+              <p className="text-[10px] text-muted-foreground tracking-wide max-w-xs">
+                {t("Operational Competency Credential · TEC.WMS", "Operational Competency Credential · TEC.WMS")}
+              </p>
+            </div>
           </div>
           <div className="shrink-0 print:[&_svg]:!w-[100mm] print:[&_svg]:!h-[100mm]">
             <SilverBadgeSvg size={140} variant="full" className="drop-shadow-sm" />
@@ -103,12 +108,21 @@ export default function SilverCertificateDocument({
           />
         </div>
 
-        {/* Recipient */}
+        {/* Ceremonial certification + recipient */}
         <div className="text-center border-y border-slate-200 dark:border-slate-700 py-5 px-4">
+          <p className="text-[11px] md:text-xs uppercase tracking-[0.22em] text-slate-600 font-semibold mb-3">
+            {t("Le présent document atteste que", "This is to certify that")}
+          </p>
+          <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed mb-4">
+            {t(
+              "a satisfait aux exigences de la Certification Silver TEC.LOG — Opérations fondamentales ERP/WMS · Module 1, démontrant une maîtrise opérationnelle des processus WMS fondamentaux.",
+              "has met the requirements of the TEC.LOG Silver Certification — ERP/WMS Foundation Operations · Module 1, demonstrating operational mastery of foundational WMS processes.",
+            )}
+          </p>
           <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">
             {t("Décerné à", "Awarded to")}
           </p>
-          <p className="text-2xl md:text-[28px] font-semibold text-foreground font-serif leading-tight">{studentName}</p>
+          <p className="text-2xl md:text-[28px] font-semibold text-[#0070f2] font-serif leading-tight">{studentName}</p>
           <p className="text-xs text-muted-foreground mt-2">{issueDate}</p>
         </div>
 
@@ -142,11 +156,13 @@ export default function SilverCertificateDocument({
           </div>
         </div>
 
-        {/* Signature + QR footer */}
+        {/* Dual signature + QR row */}
         <div className="flex flex-col sm:flex-row items-end justify-between gap-6 pt-4 border-t border-slate-200 dark:border-slate-700 px-2 md:px-4">
-          <SignaturePlaceholder />
+          <DualSignatureBlock />
           <QrPlaceholder />
         </div>
+
+        <InstitutionalCertificateFooter />
       </div>
     </div>
   );
