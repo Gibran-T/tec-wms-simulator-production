@@ -67,6 +67,15 @@ function normalizeReportDetail(
       adjustments: Array<{ sku: string; varianceQty: number; adjustmentQty: number; reason: string }>;
       contract?: { sku?: string; qty?: number; poRef?: string; profile?: string };
     };
+    zoneFlow?: Array<{ zone: string; color: string; txCount: number }>;
+    transactionTimeline?: Array<{
+      docType: string;
+      sku: string;
+      bin: string;
+      qty: number;
+      zone: string;
+      docRef?: string | null;
+    }>;
   } | null | undefined,
 ) {
   if (!detail) return null;
@@ -628,6 +637,12 @@ export default function RunReport() {
                     <p key={i} className="text-muted-foreground">{a.sku}: {a.adjustmentQty} u. — {a.reason}</p>
                   ))}
                 </div>
+              )}
+              {safeDetail.zoneFlow && safeDetail.zoneFlow.length > 0 && (
+                <M5ZoneFlowBarReport rows={safeDetail.zoneFlow} />
+              )}
+              {safeDetail.transactionTimeline && safeDetail.transactionTimeline.length > 0 && (
+                <M5TransactionTimelineReport rows={safeDetail.transactionTimeline} />
               )}
             </div>
           )}

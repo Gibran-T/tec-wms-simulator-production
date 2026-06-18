@@ -60,6 +60,14 @@ export default function MissionControl() {
   
   const { data, isLoading } = trpc.runs.state.useQuery({ runId: runIdNum });
   const { data: txList } = trpc.transactions.list.useQuery({ runId: runIdNum }, { enabled: !!data && !isLoading });
+  const isM5Early = data?.moduleId === 5;
+  const { data: m5KpiLedger, isFetching: m5LedgerLoading } = trpc.m5.kpiLedger.useQuery(
+    { runId: runIdNum },
+    {
+      enabled: !!isM5Early && !!data && data.run?.status !== "completed",
+      refetchInterval: isM5Early ? 3000 : false,
+    },
+  );
 
   type TxRow = { docType: string; sku: string; bin: string; qty: number; posted?: boolean; docRef?: string | null };
 
@@ -456,6 +464,26 @@ export default function MissionControl() {
                 </table>
               </div>
             </div>
+
+            {isM5 && (
+              <M5KpiLedgerWidget
+                ledger={m5KpiLedger}
+                scnCode={scnCode}
+                isLoading={m5LedgerLoading}
+              />
+            )}
+
+            {isM5 && (
+              <>
+                <M5ZoneFlowBar transactions={allTransactions} />
+                <M5TransactionTimeline
+                  transactions={allTransactions}
+                  completedSteps={completedSteps as string[]}
+                  scnCode={scnCode}
+                  varianceBlocked={m5VarianceBlocked}
+                />
+              </>
+            )}
 
             {unpostedTxs.length > 0 && (
               <UnpostedTransactionsPanel
