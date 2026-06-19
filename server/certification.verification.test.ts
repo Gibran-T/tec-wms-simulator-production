@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -61,6 +61,21 @@ describe("Certification verification portal — V1", () => {
       linkedinCredentialUrl:
         "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=TEC.WMS+Silver+Certification&organizationName=Coll%C3%A8ge+de+la+Concorde&issueYear=2026&issueMonth=6&certId=TECWMS-SIL-2026-001&certUrl=https%3A%2F%2Ftec-wms-simulator-production-production.up.railway.app%2Fverify%2FTECWMS-SIL-2026-001",
     });
+  });
+
+  it("stores certificate PDFs under Vite publicDir so they ship in dist/public", () => {
+    const vitePublicCertificatesDir = path.join(
+      rootDir,
+      "../client/public/certificates/silver/2026",
+    );
+    for (const certificateId of [
+      "TECWMS-SIL-2026-001",
+      "TECWMS-SIL-2026-002",
+      "TECWMS-SIL-2026-003",
+      "TECWMS-SIL-2026-004",
+    ]) {
+      expect(existsSync(path.join(vitePublicCertificatesDir, `${certificateId}.pdf`))).toBe(true);
+    }
   });
 
   it("exposes public /verify/:certificateId route without auth guard", () => {
