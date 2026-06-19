@@ -40,6 +40,7 @@ import SilverCertificatePreview from "./pages/student/SilverCertificatePreview";
 import GoldCertificatePreview from "./pages/student/GoldCertificatePreview";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import CertificateVerifyPage from "./pages/verify/CertificateVerifyPage";
 
 /** Legacy path used by ScenarioList before Mission Control migration. */
 function RunReportRedirect() {
@@ -102,6 +103,7 @@ function Router() {
       <Route path="/forgot-password" component={ForgotPasswordPage} />
       <Route path="/reset-password/:token" component={ResetPasswordPage} />
       <Route path="/legal" component={Legal} />
+      <Route path="/verify/:certificateId" component={CertificateVerifyPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
