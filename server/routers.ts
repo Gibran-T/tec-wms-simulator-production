@@ -152,6 +152,7 @@ import {
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
+import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
 import { computeModulePassResult } from "@shared/moduleThresholds";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1247,7 +1248,7 @@ export const appRouter = router({
             docRef: t.docRef,
           }));
 
-        const kpiInterpretations = moduleId === 4
+        const kpiInterpretations = moduleId === 4 || moduleId === 5
           ? (await getKpiInterpretationsByRun(input.runId)).map((r) => ({
               kpiKey: r.kpiKey,
               studentAnswer: r.studentAnswer,
@@ -1255,6 +1256,16 @@ export const appRouter = router({
               feedback: r.feedback ?? "",
               pointsDelta: r.pointsDelta,
             }))
+          : undefined;
+
+        const scnCode = resolveScenarioScnCode(scenario);
+        const learningFeedback = run.status === "completed"
+          ? buildLearningFeedbackPayload({
+              scnCode,
+              moduleId,
+              kpiInterpretations: kpiInterpretations ?? [],
+              scoringEvents: events.map((e) => ({ eventType: e.eventType, message: e.message })),
+            })
           : undefined;
 
         const m4KpiSnapshot = moduleId === 4 ? buildM4KpiSnapshot(scenario) : undefined;
@@ -1284,7 +1295,8 @@ export const appRouter = router({
           progressPct: calculateProgressPctAllModules(state.completedSteps, moduleId, state),
           zoneFlow,
           transactionTimeline,
-          kpiInterpretations,
+          kpiInterpretations: moduleId === 4 ? kpiInterpretations : undefined,
+          learningFeedback: learningFeedback ?? undefined,
           m4KpiSnapshot,
           m5Report: moduleId === 5 ? {
             kpiSnapshot: m5KpiSnapshot ? {
@@ -3269,6 +3281,14 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
         }
         await markStepComplete(input.runId, "M5_DECISION");
+        await addKpiInterpretation({
+          runId: input.runId,
+          kpiKey: "m5Decision",
+          studentAnswer: input.studentDecision,
+          isCorrect: !result.rejected,
+          pointsDelta: result.score,
+          feedback: result.feedback,
+        });
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "M5_DECISION_COMPLETED", pointsDelta: result.score, message: `Décision stratégique: ${result.score}/30 pts` });
         return { success: true, ...result };
       }),

@@ -5,8 +5,10 @@ import { CheckCircle, AlertTriangle, Trophy, ArrowLeft, FlaskConical, TrendingUp
 import { useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
+import LearningFeedbackLayer from "@/components/learning-feedback/LearningFeedbackLayer";
 import { isM4EvidenceScn, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
 import { resolveScnCode } from "../../../../server/missionData";
+import type { LearningFeedbackPayload } from "@shared/learningFeedbackTypes";
 import { M5TransactionTimelineReport } from "@/components/m5/M5TransactionTimeline";
 import { M5ZoneFlowBarReport } from "@/components/m5/M5ZoneFlowBar";
 import {
@@ -45,6 +47,7 @@ function normalizeReportDetail(
       feedback: string;
       pointsDelta?: number;
     }>;
+    learningFeedback?: LearningFeedbackPayload | null;
     m4KpiSnapshot?: {
       rotationRate: number;
       serviceLevel: number;
@@ -333,6 +336,7 @@ export default function RunReport() {
     (data as { m4KpiSnapshot?: M4KpiSnapshot }).m4KpiSnapshot
     ?? (safeDetail as { m4KpiSnapshot?: M4KpiSnapshot } | null)?.m4KpiSnapshot;
   const showM4ReportSnapshot = isM4EvidenceScn(moduleId ?? scenario?.moduleId ?? 0, scnCode) && !!m4KpiSnapshot;
+  const showLearningFeedback = run.status === "completed" && !!safeDetail?.learningFeedback;
   const detailUnavailable = detailError || detailLoading || !safeDetail;
   const isDemo = run.isDemo;
   const isPerfect = safeScore >= 100;
@@ -587,7 +591,7 @@ export default function RunReport() {
             </div>
           )}
 
-          {safeDetail?.kpiInterpretations && safeDetail.kpiInterpretations.length > 0 && (
+          {safeDetail?.kpiInterpretations && safeDetail.kpiInterpretations.length > 0 && !showLearningFeedback && (
             <div className="mt-4 pt-4 border-t border-border">
               <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">
                 {t("Interprétations KPI (Module 4)", "KPI Interpretations (Module 4)")}
@@ -645,6 +649,14 @@ export default function RunReport() {
                 <M5TransactionTimelineReport rows={safeDetail.transactionTimeline} />
               )}
             </div>
+          )}
+
+          {showLearningFeedback && safeDetail.learningFeedback && (
+            <LearningFeedbackLayer
+              payload={safeDetail.learningFeedback}
+              language={language}
+              t={t}
+            />
           )}
         </div>
 
