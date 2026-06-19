@@ -984,6 +984,17 @@ export const MODULE4_STEPS = [
   { code: "KPI_DIAGNOSTIC", labelFr: "Synthèse décisionnelle multi-KPI", labelEn: "Multi-KPI Decision Synthesis", order: 4, prerequisite: "KPI_SERVICE", moduleId: 4 },
   { code: "COMPLIANCE_M4", labelFr: "Validation conformité interprétations M4", labelEn: "M4 Interpretation Compliance Validation", order: 5, prerequisite: "KPI_DIAGNOSTIC", moduleId: 4 }
 ];
+
+/** M4 step maxima — authoritative for runtime awards and report display (10+20+20+25+25 = 100). */
+export const M4_STEP_MAX: Record<string, number> = {
+  KPI_DATA: 10,
+  KPI_ROTATION: 20,
+  KPI_SERVICE: 20,
+  KPI_DIAGNOSTIC: 25,
+  COMPLIANCE_M4: 25,
+};
+
+export const M4_PERFECT_RUN_TOTAL = Object.values(M4_STEP_MAX).reduce((sum, pts) => sum + pts, 0);
 export function calculateKpis(data) {
   const rotationRate = data.averageStock > 0 ? data.annualConsumption / data.averageStock : 0;
   const serviceLevel = data.totalOrders > 0 ? data.ordersFulfilled / data.totalOrders : 0;
@@ -1009,7 +1020,7 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
     const isCorrect = correct === "surstock" && (answer.includes("surstock") || answer.includes("sur-stock") || answer.includes("excès")) || correct === "normal" && (answer.includes("normal") || answer.includes("optimal") || answer.includes("équilibr")) || correct === "sous-performance" && (answer.includes("sous") || answer.includes("rupture") || answer.includes("insuffisant"));
     return {
       isCorrect,
-      pointsDelta: isCorrect ? 15 : -5,
+      pointsDelta: isCorrect ? M4_STEP_MAX.KPI_ROTATION : -5,
       feedback: isCorrect ? `Correct — taux de rotation ${kpiResult.rotationRate}x → situation ${correct}` : `Incorrect — taux ${kpiResult.rotationRate}x indique une situation de ${correct}`
     };
   }
@@ -1018,7 +1029,7 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
     const isCorrect = correct === "excellent" && (answer.includes("excellent") || answer.includes("très bon") || answer.includes("optimal")) || correct === "acceptable" && (answer.includes("acceptable") || answer.includes("moyen") || answer.includes("correct")) || correct === "insuffisant" && (answer.includes("insuffisant") || answer.includes("faible") || answer.includes("problème") || answer.includes("améliorer"));
     return {
       isCorrect,
-      pointsDelta: isCorrect ? 15 : -5,
+      pointsDelta: isCorrect ? M4_STEP_MAX.KPI_SERVICE : -5,
       feedback: isCorrect ? `Correct — taux de service ${(kpiResult.serviceLevel * 100).toFixed(1)}% → ${correct}` : `Incorrect — ${(kpiResult.serviceLevel * 100).toFixed(1)}% indique un niveau ${correct}`
     };
   }
@@ -1034,7 +1045,7 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
   const hasRecommendation = answer.length > 50 && (answer.includes("recommand") || answer.includes("action") || answer.includes("améliorer") || answer.includes("stratégie") || answer.includes("décision"));
   return {
     isCorrect: hasRecommendation,
-    pointsDelta: hasRecommendation ? 20 : 0,
+    pointsDelta: hasRecommendation ? M4_STEP_MAX.KPI_DIAGNOSTIC : 0,
     feedback: hasRecommendation ? "Bonne analyse stratégique — recommandation pertinente identifiée" : "Analyse incomplète — une recommandation stratégique justifiée est attendue"
   };
 }

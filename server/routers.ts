@@ -86,6 +86,7 @@ import {
   MODULE3_STEPS,
   MODULE4_STEPS,
   MODULE5_STEPS,
+  M4_STEP_MAX,
   validatePutaway,
   validateGRZone,
   validatePutawayM1Zone,
@@ -1044,8 +1045,8 @@ export const appRouter = router({
           PUTAWAY: 25, FIFO_PICK: 25, STOCK_ACCURACY: 25, COMPLIANCE_ADV: 25,
           // M3
           CC_LIST: 10, CC_COUNT: 20, CC_RECON: 15, REPLENISH: 20, COMPLIANCE_M3: 15,
-          // M4
-          KPI_DATA: 10, KPI_ROTATION: 20, KPI_SERVICE: 20, KPI_DIAGNOSTIC: 20, COMPLIANCE_M4: 15,
+          // M4 (10+20+20+25+25 = 100)
+          ...M4_STEP_MAX,
           // M5
           M5_RECEPTION: 10, M5_PUTAWAY: 10, M5_CYCLE_COUNT: 15, M5_ADJ: 10, M5_REPLENISH: 20, M5_KPI: 10, M5_DECISION: 30, COMPLIANCE_M5: 20,
         };
@@ -2908,7 +2909,7 @@ export const appRouter = router({
         const enableValidator = process.env.ENABLE_M4_COMPLIANCE_VALIDATOR !== "false";
         if (!enableValidator) {
           await markStepComplete(input.runId, "COMPLIANCE_M4");
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: 15, message: "Conformité Module 4 validée" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: M4_STEP_MAX.COMPLIANCE_M4, message: "Conformité Module 4 validée" });
           await completeRun(input.runId);
           return { success: true };
         }
@@ -2941,7 +2942,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(compliance, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_M4");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: 15, message: "Conformité Module 4 validée" });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M4_COMPLETED", pointsDelta: M4_STEP_MAX.COMPLIANCE_M4, message: "Conformité Module 4 validée" });
         await completeRun(input.runId);
         return { success: true };
       }),

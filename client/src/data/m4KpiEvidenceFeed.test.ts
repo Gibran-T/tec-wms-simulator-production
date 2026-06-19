@@ -61,9 +61,9 @@ describe("m4KpiEvidenceFeed — row gating", () => {
       ["KPI_DATA", "KPI_ROTATION", "KPI_SERVICE", "KPI_DIAGNOSTIC", "COMPLIANCE_M4"],
       "SCN-012",
       [
-        { kpiKey: "rotationRate", studentAnswer: "normal", isCorrect: true, feedback: "", pointsDelta: 15 },
-        { kpiKey: "serviceLevel", studentAnswer: "excellent", isCorrect: true, feedback: "", pointsDelta: 15 },
-        { kpiKey: "diagnostic", studentAnswer: "x".repeat(60), isCorrect: true, feedback: "", pointsDelta: 20 },
+        { kpiKey: "rotationRate", studentAnswer: "normal", isCorrect: true, feedback: "", pointsDelta: 20 },
+        { kpiKey: "serviceLevel", studentAnswer: "excellent", isCorrect: true, feedback: "", pointsDelta: 20 },
+        { kpiKey: "diagnostic", studentAnswer: "x".repeat(60), isCorrect: true, feedback: "", pointsDelta: 25 },
       ],
     );
     const iso = rows.find((r) => r.id === "iso-compliance");

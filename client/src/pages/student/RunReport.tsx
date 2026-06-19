@@ -9,6 +9,7 @@ import LearningFeedbackLayer from "@/components/learning-feedback/LearningFeedba
 import { isM4EvidenceScn, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
 import { resolveScnCode } from "../../../../server/missionData";
 import type { LearningFeedbackPayload } from "@shared/learningFeedbackTypes";
+import { getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
 import { M5TransactionTimelineReport } from "@/components/m5/M5TransactionTimeline";
 import { M5ZoneFlowBarReport } from "@/components/m5/M5ZoneFlowBar";
 import {
@@ -339,6 +340,8 @@ export default function RunReport() {
   const showLearningFeedback = run.status === "completed" && !!safeDetail?.learningFeedback;
   const detailUnavailable = detailError || detailLoading || !safeDetail;
   const isDemo = run.isDemo;
+  const resolvedModuleId = moduleId ?? scenario?.moduleId ?? 1;
+  const passThreshold = getModuleScenarioPassThreshold(resolvedModuleId);
   const isPerfect = safeScore >= 100;
 
   return (
@@ -503,12 +506,12 @@ export default function RunReport() {
                     className="h-full rounded-full"
                     style={{
                       width: `${safeScore}%`,
-                      backgroundColor: isDemo ? "#7c3aed" : safeScore >= 60 ? "#16a34a" : "#dc2626"
+                      backgroundColor: isDemo ? "#7c3aed" : safeScore >= passThreshold ? "#16a34a" : "#dc2626"
                     }}
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1 text-right">
-                  {t("Seuil de réussite : 60 pts", "Pass threshold: 60 pts")} — {safeScore >= 60 ? `✅ ${t("Atteint", "Reached")}` : `❌ ${t("Non atteint", "Not reached")}`}
+                  {t(`Seuil de réussite : ${passThreshold} pts`, `Pass threshold: ${passThreshold} pts`)} — {safeScore >= passThreshold ? `✅ ${t("Atteint", "Reached")}` : `❌ ${t("Non atteint", "Not reached")}`}
                   {isDemo && ` (${t("non officiel", "unofficial")})`}
                 </p>
               </div>

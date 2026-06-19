@@ -19,6 +19,8 @@ import {
   calculateKpis,
   scoreKpiInterpretation,
   MODULE4_STEPS,
+  M4_STEP_MAX,
+  M4_PERFECT_RUN_TOTAL,
   validateM4Compliance,
   CANONICAL_M4_KPI_DATA,
   getM4KpiDataFromSeed,
@@ -367,10 +369,10 @@ describe("Module 4 — scoreKpiInterpretation", () => {
     errorRateStatus: "acceptable" as const,
   };
 
-  it("awards +15 for correct rotation rate interpretation (surstock)", () => {
+  it("awards +20 for correct rotation rate interpretation (surstock)", () => {
     const result = scoreKpiInterpretation("rotationRate", "Le taux indique un surstock important", kpiResult);
     expect(result.isCorrect).toBe(true);
-    expect(result.pointsDelta).toBe(15);
+    expect(result.pointsDelta).toBe(20);
   });
 
   it("deducts -5 for incorrect rotation rate interpretation", () => {
@@ -379,10 +381,10 @@ describe("Module 4 — scoreKpiInterpretation", () => {
     expect(result.pointsDelta).toBe(-5);
   });
 
-  it("awards +15 for correct service level interpretation (acceptable)", () => {
+  it("awards +20 for correct service level interpretation (acceptable)", () => {
     const result = scoreKpiInterpretation("serviceLevel", "Le taux de service est acceptable mais peut être amélioré", kpiResult);
     expect(result.isCorrect).toBe(true);
-    expect(result.pointsDelta).toBe(15);
+    expect(result.pointsDelta).toBe(20);
   });
 
   it("awards +15 for correct error rate interpretation (acceptable)", () => {
@@ -391,17 +393,35 @@ describe("Module 4 — scoreKpiInterpretation", () => {
     expect(result.pointsDelta).toBe(15);
   });
 
-  it("awards +20 for diagnostic with strategic recommendation", () => {
+  it("awards +25 for diagnostic with strategic recommendation", () => {
     const longAnswer = "Je recommande d'améliorer les procédures de réception pour réduire les erreurs. Une action corrective sur le processus de picking est nécessaire pour améliorer la stratégie logistique.";
     const result = scoreKpiInterpretation("diagnostic", longAnswer, kpiResult);
     expect(result.isCorrect).toBe(true);
-    expect(result.pointsDelta).toBe(20);
+    expect(result.pointsDelta).toBe(25);
   });
 
   it("returns 0 for diagnostic without strategic recommendation", () => {
     const result = scoreKpiInterpretation("diagnostic", "Les KPI sont corrects.", kpiResult);
     expect(result.isCorrect).toBe(false);
     expect(result.pointsDelta).toBe(0);
+  });
+});
+
+describe("Module 4 — M4_STEP_MAX alignment", () => {
+  it("step maxima sum to 100 for perfect-run scale", () => {
+    expect(M4_PERFECT_RUN_TOTAL).toBe(100);
+  });
+
+  it("M4_STEP_MAX matches scoreKpiInterpretation awards", () => {
+    const kpiResult = calculateKpis(CANONICAL_M4_KPI_DATA);
+    expect(scoreKpiInterpretation("rotationRate", "Rotation normale et equilibree", kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_ROTATION);
+    expect(scoreKpiInterpretation("serviceLevel", "Service excellent optimal", kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_SERVICE);
+    const diag = "Je recommande une action strategique pour ameliorer le service avec decision claire.";
+    expect(scoreKpiInterpretation("diagnostic", diag.repeat(2), kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_DIAGNOSTIC);
+  });
+
+  it("perfect-run event budget is 10+20+20+25+25", () => {
+    expect(M4_STEP_MAX.KPI_DATA + M4_STEP_MAX.KPI_ROTATION + M4_STEP_MAX.KPI_SERVICE + M4_STEP_MAX.KPI_DIAGNOSTIC + M4_STEP_MAX.COMPLIANCE_M4).toBe(100);
   });
 });
 
