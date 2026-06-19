@@ -21,6 +21,7 @@ import {
   getCohortsByTeacher,
   getCycleCountsByRun,
   getModuleProgressByUser,
+  getModuleProgressWithModules,
   getPassedModuleIds,
   getProgressByRun,
   getPutawayByRun,
@@ -539,22 +540,7 @@ export const appRouter = router({
 
   // ─── Modules progress ─────────────────────────────────────────────────────
   modules: router({
-    progress: protectedProcedure.query(async ({ ctx }) => {
-      const db = await import("./db").then((m) => m.getDb());
-      if (!db) return [];
-      const { modules: modulesTable, moduleProgress: mpTable } = await import("../drizzle/schema");
-      const { eq } = await import("drizzle-orm");
-      const rows = await db
-        .select({ progress: mpTable, module: modulesTable })
-        .from(mpTable)
-        .innerJoin(modulesTable, eq(mpTable.moduleId, modulesTable.id))
-        .where(eq(mpTable.userId, ctx.user.id));
-      return rows.map((r) => ({
-        ...r.progress,
-        moduleCode: r.module.code,
-        moduleTitleFr: r.module.titleFr,
-      }));
-    }),
+    progress: protectedProcedure.query(({ ctx }) => getModuleProgressWithModules(ctx.user.id)),
   }),
 
   // ─── KPI (Module 4) ────────────────────────────────────────────────────────

@@ -545,10 +545,58 @@ export async function addPutawayRecord(data: {
 }
 
 // ─── Module Progress ──────────────────────────────────────────────────────────
+const moduleProgressCanonicalOrder = [
+  desc(moduleProgress.teacherValidated),
+  desc(moduleProgress.passed),
+  desc(moduleProgress.bestScore),
+  desc(moduleProgress.completedAt),
+  desc(moduleProgress.createdAt),
+  desc(moduleProgress.id),
+] as const;
+
+function dedupeModuleProgressRows<T extends { moduleId: number }>(rows: T[]): T[] {
+  const seen = new Set<number>();
+  const deduped: T[] = [];
+  for (const row of rows) {
+    if (seen.has(row.moduleId)) continue;
+    seen.add(row.moduleId);
+    deduped.push(row);
+  }
+  return deduped;
+}
+
 export async function getModuleProgressByUser(userId: number) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(moduleProgress).where(eq(moduleProgress.userId, userId));
+  const rows = await db
+    .select()
+    .from(moduleProgress)
+    .where(eq(moduleProgress.userId, userId))
+    .orderBy(...moduleProgressCanonicalOrder);
+  return dedupeModuleProgressRows(rows);
+}
+
+export async function getModuleProgressWithModules(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ progress: moduleProgress, module: modules })
+    .from(moduleProgress)
+    .innerJoin(modules, eq(moduleProgress.moduleId, modules.id))
+    .where(eq(moduleProgress.userId, userId))
+    .orderBy(...moduleProgressCanonicalOrder);
+  const seen = new Set<number>();
+  const result = [];
+  for (const row of rows) {
+    if (seen.has(row.progress.moduleId)) continue;
+    seen.add(row.progress.moduleId);
+    result.push({
+      ...row.progress,
+      moduleCode: row.module.code,
+      moduleTitleFr: row.module.titleFr,
+    });
+  }
+  return result;
 }
 
 export async function getPassedModuleIds(userId: number): Promise<number[]> {
@@ -557,7 +605,8 @@ export async function getPassedModuleIds(userId: number): Promise<number[]> {
   const rows = await db
     .select({ moduleId: moduleProgress.moduleId })
     .from(moduleProgress)
-    .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.passed, true)));
+    .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.passed, true)))
+    .groupBy(moduleProgress.moduleId);
   return rows.map((r) => r.moduleId);
 }
 
@@ -570,16 +619,23 @@ export async function upsertModuleProgress(data: {
 }) {
   const db = await getDb();
   if (!db) return;
+
+  const patch = {
+    passed: data.passed,
+    bestScore: data.bestScore,
+    completedAt: data.completedAt ?? null,
+  };
+
+  const existing = await getModuleProgressRow(data.userId, data.moduleId);
+  if (existing) {
+    await db.update(moduleProgress).set(patch).where(eq(moduleProgress.id, existing.id));
+    return;
+  }
+
   await db
     .insert(moduleProgress)
     .values({ ...data, completedAt: data.completedAt ?? null })
-    .onDuplicateKeyUpdate({
-      set: {
-        passed: data.passed,
-        bestScore: data.bestScore,
-        completedAt: data.completedAt ?? null,
-      },
-    });
+    .onDuplicateKeyUpdate({ set: patch });
 }
 
 export async function getModuleProgressRow(userId: number, moduleId: number) {
@@ -589,6 +645,7 @@ export async function getModuleProgressRow(userId: number, moduleId: number) {
     .select()
     .from(moduleProgress)
     .where(and(eq(moduleProgress.userId, userId), eq(moduleProgress.moduleId, moduleId)))
+    .orderBy(...moduleProgressCanonicalOrder)
     .limit(1);
   return rows[0] ?? null;
 }

@@ -241,7 +241,9 @@ export const moduleProgress = mysqlTable("module_progress", {
   teacherValidated: boolean("teacherValidated").default(false).notNull(),
   teacherValidatedAt: timestamp("teacherValidatedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userModuleIdx: uniqueIndex("module_progress_user_module_idx").on(table.userId, table.moduleId),
+}));
 
 export type ModuleProgress = typeof moduleProgress.$inferSelect;
 
