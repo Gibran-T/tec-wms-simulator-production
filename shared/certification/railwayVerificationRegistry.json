@@ -1,0 +1,26 @@
+[
+  {
+    "certificateId": "TECWMS-SIL-2026-001",
+    "studentName": "Darlin Campaz Paredes",
+    "studentNumber": "002004",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-002",
+    "studentName": "Fredy Tamile Lola",
+    "studentNumber": "1011-KF",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-003",
+    "studentName": "Prince Agbodjan Sewa Francis Ghislain",
+    "studentNumber": "613-462",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-004",
+    "studentName": "Aissata Soukeina Camara",
+    "studentNumber": "2026-1806",
+    "status": "ACTIVE"
+  }
+]
