@@ -153,6 +153,7 @@ import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
+import { buildRunReportRecommendations } from "@shared/runReportRecommendations";
 import { computeModulePassResult } from "@shared/moduleThresholds";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
@@ -1199,26 +1200,13 @@ export const appRouter = router({
         const bonuses = events.filter(e => e.eventType === "PERFECT_RUN_BONUS");
 
         // ── Personalized recommendations ─────────────────────────────────────
-        const errorTypes = new Set(errors.map(e => e.eventType));
-        const recommendations: string[] = [];
-        if (errorTypes.has("OUT_OF_SEQUENCE"))
-          recommendations.push("Mémorisez le flux complet : ME21N → MIGO(→REC) → LT0A(REC→STOCK) → VA01 → VL01N(STOCK→EXP) → VL02N(→EXP) → MI01");
-        if (errorTypes.has("NEGATIVE_STOCK_ATTEMPT"))
-          recommendations.push("Avant chaque GI, vérifiez le stock disponible en zone STOCKAGE (MB52). Si insuffisant, créez d'abord une PO et postez la GR.");
-        if (errorTypes.has("UNPOSTED_TX_LEFT"))
-          recommendations.push("Adoptez le réflexe \"créer + poster\" : ne quittez jamais une étape sans poster la transaction");
-        if (errorTypes.has("UNRESOLVED_VARIANCE"))
-          recommendations.push("Après MI01/MI04, toujours finaliser avec MI07 (validation des écarts) avant la conformité");
-        if (errorTypes.has("WRONG_ZONE_GR") || errorTypes.has("WRONG_ZONE_PUTAWAY"))
-          recommendations.push("Flux de réception : MIGO → emplacement REC-01/REC-02, puis LT0A pour ranger en zone STOCKAGE (B-01, A-01, etc.)");
-        if (errorTypes.has("WRONG_ZONE_PICKING") || errorTypes.has("WRONG_ZONE_GI"))
-          recommendations.push("Flux d'expédition : VL01N pour prélever du STOCKAGE vers EXP-01/EXP-02, puis VL02N pour poster la GI depuis le quai d'expédition");
-        if (errorTypes.has("CAPACITY_OVERFLOW"))
-          recommendations.push("En cas de dépassement de capacité, répartissez la quantité sur plusieurs bins STOCKAGE plutôt que de forcer un seul emplacement");
-        if (!compliance.compliant)
-          recommendations.push("Relancez la simulation en Mode Démonstration pour explorer librement les étapes sans pénalité");
-        if (recommendations.length === 0 && errors.length === 0)
-          recommendations.push("Excellente maîtrise du flux complet ! Passez au Module 2 pour approfondir FIFO, gestion de lots et traçabilité.");
+        const recommendations = buildRunReportRecommendations({
+          moduleId,
+          scnCode: resolveScenarioScnCode(scenario),
+          errorEventTypes: errors.map((e) => e.eventType),
+          complianceCompliant: compliance.compliant,
+          errorCount: errors.length,
+        });
 
         const totalScore = calculateTotalScore(events);
         const { label: scoreLabel, color: scoreColor } = getScoreLabel(totalScore);
@@ -1263,6 +1251,7 @@ export const appRouter = router({
           ? buildLearningFeedbackPayload({
               scnCode,
               moduleId,
+              completedStepCodes: state.completedSteps,
               kpiInterpretations: kpiInterpretations ?? [],
               scoringEvents: events.map((e) => ({ eventType: e.eventType, message: e.message })),
             })

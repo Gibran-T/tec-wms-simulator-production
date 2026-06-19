@@ -1,6 +1,7 @@
 import { GraduationCap } from "lucide-react";
 import type { LearningFeedbackPayload } from "@shared/learningFeedbackTypes";
 import { getLearningFeedbackScenario } from "@shared/learningFeedbackRegistry";
+import { resolveVisibleLearningSteps } from "@shared/learningFeedbackPayload";
 import LearningFeedbackHeader from "./LearningFeedbackHeader";
 import LearningStepCard from "./LearningStepCard";
 import CommonMistakesBlock from "./CommonMistakesBlock";
@@ -13,10 +14,11 @@ type Props = {
 
 function defaultExpanded(
   stepCode: string,
-  payload?: { submissionCorrect?: boolean | null },
+  payload?: { submissionCorrect?: boolean | null; stepCompleted?: boolean },
 ): boolean {
   if (stepCode.startsWith("COMPLIANCE")) return false;
   if (payload?.submissionCorrect === false) return true;
+  if (payload?.stepCompleted) return true;
   if (payload?.submissionCorrect == null) return true;
   return false;
 }
@@ -26,6 +28,10 @@ export default function LearningFeedbackLayer({ payload, language, t }: Props) {
   if (!scenario) return null;
 
   const payloadByStep = new Map(payload.steps.map((s) => [s.stepCode, s]));
+  const completedStepCodes = payload.steps
+    .filter((s) => s.stepCompleted)
+    .map((s) => s.stepCode);
+  const visibleSteps = resolveVisibleLearningSteps(scenario, completedStepCodes);
 
   return (
     <div
@@ -48,7 +54,7 @@ export default function LearningFeedbackLayer({ payload, language, t }: Props) {
         language={language}
       />
       <div className="space-y-2 mt-3">
-        {scenario.steps.map((step) => {
+        {visibleSteps.map((step) => {
           const stepPayload = payloadByStep.get(step.stepCode);
           return (
             <LearningStepCard
