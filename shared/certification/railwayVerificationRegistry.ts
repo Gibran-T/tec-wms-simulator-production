@@ -1,3 +1,9 @@
+import {
+  buildCertificatePdfUrl,
+  buildLinkedInCredentialUrl,
+  buildProductionVerificationUrl,
+  buildVerificationPath,
+} from "./certificateUrls";
 import registryData from "./railwayVerificationRegistry.json";
 
 export type VerificationStatus = "ACTIVE" | "REVOKED" | "EXPIRED";
@@ -14,6 +20,9 @@ export type VerifiedCredential = RailwayVerificationEntry & {
   certificationLevel: "SILVER";
   issueDate: "2026-06-18";
   issuedBy: "Collège de la Concorde";
+  pdfUrl: string;
+  verificationUrl: string;
+  linkedinCredentialUrl: string;
 };
 
 export const RAILWAY_VERIFICATION_REGISTRY: readonly RailwayVerificationEntry[] =
@@ -43,5 +52,8 @@ export function lookupVerifiedCredentialByCertificateId(
     certificationLevel: VERIFICATION_LEVEL,
     issueDate: VERIFICATION_ISSUE_DATE,
     issuedBy: VERIFICATION_ISSUED_BY,
+    pdfUrl: buildCertificatePdfUrl(entry.certificateId),
+    verificationUrl: buildVerificationPath(entry.certificateId),
+    linkedinCredentialUrl: buildLinkedInCredentialUrl(entry.certificateId),
   };
 }

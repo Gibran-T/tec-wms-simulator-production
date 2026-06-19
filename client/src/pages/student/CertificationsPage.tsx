@@ -15,6 +15,9 @@ import {
   type SilverCertState,
   type GoldCertState,
 } from "@/components/certification/CertificationStatus";
+import CertificateCredentialActions from "@/components/certification/CertificateCredentialActions";
+import { lookupSilverRegistryByStudentNumber } from "@shared/silverCertificationRegistry";
+import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
 
 type M1ScnKey = "SCN001" | "SCN002" | "SCN003" | "SCN004" | "SCN005";
 
@@ -112,6 +115,7 @@ export function CertificationsPage() {
 
   const { data: silverStatus, isLoading } = trpc.profiles.silverStatus.useQuery();
   const { data: goldStatus, isLoading: goldLoading } = trpc.profiles.goldStatus.useQuery();
+  const { data: profile } = trpc.profiles.mine.useQuery();
 
   const quizPassed = silverStatus?.quizPassed ?? false;
   const scenariosCompleted = silverStatus?.scenariosCompleted;
@@ -147,6 +151,11 @@ export function CertificationsPage() {
   const canPreviewCert = silverEarned || silverState === "eligible";
   const showSilverContinue = shouldShowSilverContinueButton(silverEarned, silverState);
   const silverContinuePath = resolveSilverContinuePath(quizPassed);
+  const silverRegistryEntry = lookupSilverRegistryByStudentNumber(profile?.studentNumber ?? null);
+  const activeSilverCredential =
+    silverEarned && silverRegistryEntry?.status === "ACTIVE"
+      ? lookupVerifiedCredentialByCertificateId(silverRegistryEntry.certificateId)
+      : null;
 
   const goldState: GoldCertState = goldStatus?.state ?? "LOCKED";
   const goldEarned = goldStatus?.goldCertified ?? false;
@@ -325,6 +334,14 @@ export function CertificationsPage() {
               </ul>
 
               <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
+                {activeSilverCredential && (
+                  <CertificateCredentialActions
+                    pdfUrl={activeSilverCredential.pdfUrl}
+                    verificationUrl={activeSilverCredential.verificationUrl}
+                    linkedinCredentialUrl={activeSilverCredential.linkedinCredentialUrl}
+                    layout="certifications"
+                  />
+                )}
                 {canPreviewCert && (
                   <Button onClick={() => navigate("/student/certifications/silver")} className="bg-[#0f2a44] hover:bg-[#0f2a44]/90">
                     {silverEarned

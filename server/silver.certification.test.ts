@@ -243,6 +243,23 @@ describe("Silver certification — UI display contract", () => {
     expect(source).not.toMatch(/\{!silverEarned && \([\s\S]*?navigate\("\/student\/quiz\/1"\)/);
   });
 
+  it("CertificationsPage exposes PDF, verify, and LinkedIn actions for ACTIVE Silver credentials", () => {
+    const pageSource = readFileSync(
+      path.join(serverDir, "../client/src/pages/student/CertificationsPage.tsx"),
+      "utf8",
+    );
+    const actionsSource = readFileSync(
+      path.join(serverDir, "../client/src/components/certification/CertificateCredentialActions.tsx"),
+      "utf8",
+    );
+    expect(pageSource).toContain("CertificateCredentialActions");
+    expect(pageSource).toContain("lookupVerifiedCredentialByCertificateId");
+    expect(pageSource).toContain('status === "ACTIVE"');
+    expect(actionsSource).toContain("Voir la certification");
+    expect(actionsSource).toContain("Télécharger PDF");
+    expect(actionsSource).toContain("Ajouter à LinkedIn");
+  });
+
   it("eligible-but-not-persisted shows Eligible until silverCertified is set", () => {
     expect(
       resolveSilverState({
@@ -283,27 +300,40 @@ describe("Silver certification — RC13 cohort registry", () => {
   it("registers four first-cohort Silver credential IDs", () => {
     expect(SILVER_REGISTRY_COHORT_2026).toHaveLength(4);
     expect(SILVER_REGISTRY_COHORT_2026.map((e) => e.certificateId)).toEqual([
-      "TEC-SIL-2026-001",
-      "TEC-SIL-2026-002",
-      "TEC-SIL-2026-003",
-      "TEC-SIL-2026-004",
+      "TECWMS-SIL-2026-001",
+      "TECWMS-SIL-2026-002",
+      "TECWMS-SIL-2026-003",
+      "TECWMS-SIL-2026-004",
     ]);
   });
 
   it("looks up registry entry by student number", () => {
-    expect(lookupSilverRegistryByStudentNumber("2026-1806")?.certificateId).toBe("TEC-SIL-2026-001");
+    expect(lookupSilverRegistryByStudentNumber("002004")?.certificateId).toBe("TECWMS-SIL-2026-001");
+    expect(lookupSilverRegistryByStudentNumber("002004")?.displayName).toBe("Darlin Campaz Paredes");
+    expect(lookupSilverRegistryByStudentNumber("00-2004")?.certificateId).toBe("TECWMS-SIL-2026-001");
+    expect(lookupSilverRegistryByStudentNumber("1011-KF")?.certificateId).toBe("TECWMS-SIL-2026-002");
+    expect(lookupSilverRegistryByStudentNumber(" 613-462 ")?.certificateId).toBe("TECWMS-SIL-2026-003");
+    expect(lookupSilverRegistryByStudentNumber("2026-1806")?.certificateId).toBe("TECWMS-SIL-2026-004");
     expect(lookupSilverRegistryByStudentNumber("2026-1806")?.displayName).toBe("Aissata Soukeina Camara");
-    expect(lookupSilverRegistryByStudentNumber("00-2004")?.certificateId).toBe("TEC-SIL-2026-002");
-    expect(lookupSilverRegistryByStudentNumber("1011-KF")?.certificateId).toBe("TEC-SIL-2026-003");
-    expect(lookupSilverRegistryByStudentNumber(" 613-462 ")?.certificateId).toBe("TEC-SIL-2026-004");
     expect(lookupSilverRegistryByStudentNumber(null)).toBeNull();
     expect(lookupSilverRegistryByStudentNumber("unknown")).toBeNull();
   });
 
   it("looks up registry entry by certificate ID", () => {
-    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-001")?.displayName).toBe("Aissata Soukeina Camara");
-    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-002")?.studentNumber).toBe("00-2004");
-    expect(lookupSilverRegistryByCertificateId("TEC-SIL-2026-003")?.studentNumber).toBe("1011-KF");
-    expect(lookupSilverRegistryByCertificateId("TEC-SIL-9999-999")).toBeNull();
+    expect(lookupSilverRegistryByCertificateId("TECWMS-SIL-2026-001")?.displayName).toBe("Darlin Campaz Paredes");
+    expect(lookupSilverRegistryByCertificateId("tecwms-sil-2026-002")?.studentNumber).toBe("1011-KF");
+    expect(lookupSilverRegistryByCertificateId("TECWMS-SIL-2026-003")?.studentNumber).toBe("613-462");
+    expect(lookupSilverRegistryByCertificateId("TECWMS-SIL-9999-999")).toBeNull();
+  });
+
+  it("includes verification metadata for public credential lookup", () => {
+    const entry = lookupSilverRegistryByCertificateId("TECWMS-SIL-2026-004");
+    expect(entry).toMatchObject({
+      status: "ACTIVE",
+      program: "TEC.WMS",
+      certificationLevel: "SILVER",
+      issueDate: "2026-06-18",
+      issuedBy: "Collège de la Concorde",
+    });
   });
 });

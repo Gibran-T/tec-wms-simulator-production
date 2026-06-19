@@ -56,6 +56,10 @@ describe("Certification verification portal — V1", () => {
       issueDate: VERIFICATION_ISSUE_DATE,
       issuedBy: VERIFICATION_ISSUED_BY,
       status: "ACTIVE",
+      pdfUrl: "/certificates/silver/2026/TECWMS-SIL-2026-001.pdf",
+      verificationUrl: "/verify/TECWMS-SIL-2026-001",
+      linkedinCredentialUrl:
+        "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=TEC.WMS+Silver+Certification&organizationName=Coll%C3%A8ge+de+la+Concorde&issueYear=2026&issueMonth=6&certId=TECWMS-SIL-2026-001&certUrl=https%3A%2F%2Ftec-wms-simulator-production-production.up.railway.app%2Fverify%2FTECWMS-SIL-2026-001",
     });
   });
 
@@ -70,9 +74,18 @@ describe("Certification verification portal — V1", () => {
       path.join(rootDir, "../client/src/pages/verify/CertificateVerifyPage.tsx"),
       "utf8",
     );
+    const actionsSource = readFileSync(
+      path.join(rootDir, "../client/src/components/certification/CertificateCredentialActions.tsx"),
+      "utf8",
+    );
     expect(pageSource).toContain("lookupVerifiedCredentialByCertificateId");
     expect(pageSource).toContain("@shared/certification/railwayVerificationRegistry");
     expect(pageSource).toContain("Certificate Not Found");
     expect(pageSource).toContain("Verified Credential");
+    expect(pageSource).toContain("Credential URL");
+    expect(pageSource).toContain("Credential ID");
+    expect(pageSource).toContain("CertificateCredentialActions");
+    expect(actionsSource).toContain("Télécharger PDF");
+    expect(actionsSource).toContain("Ajouter à LinkedIn");
   });
 });

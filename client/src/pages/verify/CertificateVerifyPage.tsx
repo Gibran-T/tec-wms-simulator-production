@@ -1,6 +1,8 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import SilverBadgeSvg from "@/components/certification/SilverBadgeSvg";
+import CertificateCredentialActions from "@/components/certification/CertificateCredentialActions";
 import { Badge } from "@/components/ui/badge";
+import { buildProductionVerificationUrl } from "@shared/certification/certificateUrls";
 import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
 import { ShieldCheck, ShieldX } from "lucide-react";
 import { useParams } from "wouter";
@@ -100,8 +102,13 @@ export default function CertificateVerifyPage() {
                   mono
                 />
                 <DetailField
-                  label={t("Identifiant de certification", "Certificate ID")}
+                  label={t("Identifiant de certification", "Credential ID")}
                   value={entry.certificateId}
+                  mono
+                />
+                <DetailField
+                  label={t("URL de certification", "Credential URL")}
+                  value={buildProductionVerificationUrl(entry.certificateId)}
                   mono
                 />
                 <DetailField label={t("Programme", "Program")} value={entry.program} />
@@ -124,6 +131,13 @@ export default function CertificateVerifyPage() {
                   {entry.status}
                 </Badge>
               </div>
+
+              <CertificateCredentialActions
+                pdfUrl={entry.pdfUrl}
+                verificationUrl={entry.verificationUrl}
+                linkedinCredentialUrl={entry.linkedinCredentialUrl}
+                layout="verify"
+              />
             </div>
           </div>
         ) : (
