@@ -342,7 +342,7 @@ export function CertificationsPage() {
                     layout="certifications"
                   />
                 )}
-                {canPreviewCert && (
+                {canPreviewCert && !activeSilverCredential && (
                   <Button onClick={() => navigate("/student/certifications/silver")} className="bg-[#0f2a44] hover:bg-[#0f2a44]/90">
                     {silverEarned
                       ? t("Voir mon certificat Silver", "View my Silver certificate")
