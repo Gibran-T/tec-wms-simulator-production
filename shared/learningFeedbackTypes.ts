@@ -55,6 +55,8 @@ export type LearningFeedbackStepPayload = {
   studentSubmission?: string | null;
   submissionCorrect?: boolean | null;
   submissionFeedback?: string | null;
+  /** Runtime step completed — drives visible learning cards on Run Report. */
+  stepCompleted?: boolean;
 };
 
 export type LearningFeedbackPayload = {
