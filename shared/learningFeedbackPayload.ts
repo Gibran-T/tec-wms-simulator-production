@@ -1,9 +1,4 @@
-import type {
-  LearningFeedbackPayload,
-  LearningFeedbackScenario,
-  LearningFeedbackStep,
-  LearningFeedbackStepPayload,
-} from "./learningFeedbackTypes";
+import type { LearningFeedbackPayload, LearningFeedbackStepPayload } from "./learningFeedbackTypes";
 import { LEARNING_FEEDBACK_REGISTRY } from "./learningFeedbackRegistry";
 import { isLearningFeedbackScn } from "./learningFeedbackTypes";
 
@@ -26,29 +21,13 @@ type ScoringEventRow = {
   message?: string | null;
 };
 
-/** Steps shown on Run Report — completed runtime steps + pedagogical blocks when relevant. */
-export function resolveVisibleLearningSteps(
-  scenario: LearningFeedbackScenario,
-  completedStepCodes: string[],
-): LearningFeedbackStep[] {
-  const completed = new Set(completedStepCodes);
-  return scenario.steps.filter((step) => {
-    if (completed.has(step.stepCode)) return true;
-    if (step.pedagogicalOnly && step.stepCode === "KPI_ERRORS") {
-      return completed.has("KPI_SERVICE");
-    }
-    return false;
-  });
-}
-
 export function buildLearningFeedbackPayload(input: {
   scnCode: string | null;
   moduleId: number;
-  completedStepCodes?: string[];
   kpiInterpretations?: KpiInterpretationRow[];
   scoringEvents?: ScoringEventRow[];
 }): LearningFeedbackPayload | null {
-  const { scnCode, moduleId, completedStepCodes = [], kpiInterpretations = [], scoringEvents = [] } = input;
+  const { scnCode, moduleId, kpiInterpretations = [], scoringEvents = [] } = input;
   if (!isLearningFeedbackScn(scnCode)) return null;
   if (moduleId !== 4 && moduleId !== 5) return null;
 
@@ -64,12 +43,8 @@ export function buildLearningFeedbackPayload(input: {
     submissionByStep.set(stepCode, row);
   }
 
-  const completed = new Set(completedStepCodes);
   const steps: LearningFeedbackStepPayload[] = registry.steps.map((step) => {
     const sub = submissionByStep.get(step.stepCode);
-    const stepCompleted =
-      completed.has(step.stepCode)
-      || (step.pedagogicalOnly && step.stepCode === "KPI_ERRORS" && completed.has("KPI_SERVICE"));
     return {
       stepCode: step.stepCode,
       labelFr: step.label.fr,
@@ -77,7 +52,6 @@ export function buildLearningFeedbackPayload(input: {
       studentSubmission: sub?.studentAnswer ?? null,
       submissionCorrect: sub ? sub.isCorrect : null,
       submissionFeedback: sub?.feedback ?? null,
-      stepCompleted,
     };
   });
 

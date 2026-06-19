@@ -61,9 +61,6 @@ export default function LearningStepCard({
         {payload?.submissionCorrect === false && (
           <span className="text-[9px] font-bold text-amber-600 uppercase">{t("Revoir", "Review")}</span>
         )}
-        {payload?.stepCompleted && payload?.submissionCorrect == null && (
-          <span className="text-[9px] font-bold text-emerald-600 uppercase">{t("Validé", "Done")}</span>
-        )}
       </button>
       {expanded && (
         <div className="p-3 space-y-3 border-t border-border">
