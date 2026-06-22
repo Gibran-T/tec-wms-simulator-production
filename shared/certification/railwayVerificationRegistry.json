@@ -3,24 +3,56 @@
     "certificateId": "TECWMS-SIL-2026-001",
     "studentName": "Darlin Campaz Paredes",
     "studentNumber": "002004",
+    "certificationLevel": "SILVER",
     "status": "ACTIVE"
   },
   {
     "certificateId": "TECWMS-SIL-2026-002",
     "studentName": "Fredy Tamile Lola",
     "studentNumber": "1011-KF",
+    "certificationLevel": "SILVER",
     "status": "ACTIVE"
   },
   {
     "certificateId": "TECWMS-SIL-2026-003",
     "studentName": "Prince Agbodjan Sewa Francis Ghislain",
     "studentNumber": "613-462",
+    "certificationLevel": "SILVER",
     "status": "ACTIVE"
   },
   {
     "certificateId": "TECWMS-SIL-2026-004",
     "studentName": "Aissata Soukeina Camara",
     "studentNumber": "2026-1806",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-001",
+    "studentName": "Darlin Campaz Paredes",
+    "studentNumber": "002004",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-002",
+    "studentName": "Fredy Tamile Lola",
+    "studentNumber": "1011-KF",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-003",
+    "studentName": "Prince Agbodjan Sewa Francis Ghislain",
+    "studentNumber": "613-462",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-004",
+    "studentName": "Aissata Soukeina Camara",
+    "studentNumber": "2026-1806",
+    "certificationLevel": "GOLD",
     "status": "ACTIVE"
   }
 ]

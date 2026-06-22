@@ -1,5 +1,5 @@
 import { useLanguage } from "@/contexts/LanguageContext";
-import SilverBadgeSvg from "@/components/certification/SilverBadgeSvg";
+import SilverBadgeSvg, { GoldBadgeSvg } from "@/components/certification/SilverBadgeSvg";
 import CertificateCredentialActions from "@/components/certification/CertificateCredentialActions";
 import { Badge } from "@/components/ui/badge";
 import { buildProductionVerificationUrl } from "@shared/certification/certificateUrls";
@@ -84,7 +84,11 @@ export default function CertificateVerifyPage() {
 
             <div className="px-5 sm:px-8 py-6 sm:py-8">
               <div className="flex flex-col sm:flex-row sm:items-center gap-6 mb-8 pb-8 border-b border-slate-200">
-                <SilverBadgeSvg size={96} variant="compact" className="mx-auto sm:mx-0 shrink-0" />
+                {entry.certificationLevel === "GOLD" ? (
+                  <GoldBadgeSvg size={96} variant="compact" className="mx-auto sm:mx-0 shrink-0" />
+                ) : (
+                  <SilverBadgeSvg size={96} variant="compact" className="mx-auto sm:mx-0 shrink-0" />
+                )}
                 <div className="text-center sm:text-left min-w-0 flex-1">
                   <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-1">
                     {t("Nom de l'étudiant", "Student Name")}

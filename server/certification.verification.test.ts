@@ -6,7 +6,6 @@ import {
   RAILWAY_VERIFICATION_REGISTRY,
   VERIFICATION_ISSUED_BY,
   VERIFICATION_ISSUE_DATE,
-  VERIFICATION_LEVEL,
   VERIFICATION_PROGRAM,
   lookupVerifiedCredentialByCertificateId,
 } from "../shared/certification/railwayVerificationRegistry";
@@ -14,12 +13,14 @@ import {
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 describe("Certification verification portal — V1", () => {
-  it("loads four ACTIVE credentials from railwayVerificationRegistry.json", () => {
-    expect(RAILWAY_VERIFICATION_REGISTRY).toHaveLength(4);
+  it("loads eight ACTIVE credentials from railwayVerificationRegistry.json", () => {
+    expect(RAILWAY_VERIFICATION_REGISTRY).toHaveLength(8);
     expect(RAILWAY_VERIFICATION_REGISTRY.every((entry) => entry.status === "ACTIVE")).toBe(true);
+    expect(RAILWAY_VERIFICATION_REGISTRY.filter((entry) => entry.certificationLevel === "SILVER")).toHaveLength(4);
+    expect(RAILWAY_VERIFICATION_REGISTRY.filter((entry) => entry.certificationLevel === "GOLD")).toHaveLength(4);
   });
 
-  it("resolves acceptance certificate IDs to student names", () => {
+  it("resolves Silver acceptance certificate IDs to student names", () => {
     expect(lookupVerifiedCredentialByCertificateId("TECWMS-SIL-2026-001")?.studentName).toBe(
       "Darlin Campaz Paredes",
     );
@@ -34,9 +35,25 @@ describe("Certification verification portal — V1", () => {
     );
   });
 
+  it("resolves Gold acceptance certificate IDs to student names", () => {
+    expect(lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-2026-001")?.studentName).toBe(
+      "Darlin Campaz Paredes",
+    );
+    expect(lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-2026-002")?.studentName).toBe(
+      "Fredy Tamile Lola",
+    );
+    expect(lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-2026-003")?.studentName).toBe(
+      "Prince Agbodjan Sewa Francis Ghislain",
+    );
+    expect(lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-2026-004")?.studentName).toBe(
+      "Aissata Soukeina Camara",
+    );
+  });
+
   it("returns null for unknown certificate IDs", () => {
     expect(lookupVerifiedCredentialByCertificateId("INVALID")).toBeNull();
     expect(lookupVerifiedCredentialByCertificateId("TECWMS-SIL-9999-999")).toBeNull();
+    expect(lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-9999-999")).toBeNull();
   });
 
   it("normalizes certificate ID casing and whitespace", () => {
@@ -46,16 +63,20 @@ describe("Certification verification portal — V1", () => {
     expect(lookupVerifiedCredentialByCertificateId("  TECWMS-SIL-2026-003  ")?.studentName).toBe(
       "Prince Agbodjan Sewa Francis Ghislain",
     );
+    expect(lookupVerifiedCredentialByCertificateId("tecwms-gold-2026-001")?.studentName).toBe(
+      "Darlin Campaz Paredes",
+    );
   });
 
-  it("includes fixed institutional verification metadata", () => {
+  it("includes fixed institutional verification metadata for Silver", () => {
     const entry = lookupVerifiedCredentialByCertificateId("TECWMS-SIL-2026-001");
     expect(entry).toMatchObject({
       program: VERIFICATION_PROGRAM,
-      certificationLevel: VERIFICATION_LEVEL,
+      certificationLevel: "SILVER",
       issueDate: VERIFICATION_ISSUE_DATE,
       issuedBy: VERIFICATION_ISSUED_BY,
       status: "ACTIVE",
+      studentNumber: "002004",
       pdfUrl: "/certificates/silver/2026/TECWMS-SIL-2026-001.pdf",
       verificationUrl: "/verify/TECWMS-SIL-2026-001",
       linkedinCredentialUrl:
@@ -63,7 +84,23 @@ describe("Certification verification portal — V1", () => {
     });
   });
 
-  it("stores certificate PDFs under Vite publicDir so they ship in dist/public", () => {
+  it("includes fixed institutional verification metadata for Gold", () => {
+    const entry = lookupVerifiedCredentialByCertificateId("TECWMS-GOLD-2026-001");
+    expect(entry).toMatchObject({
+      program: VERIFICATION_PROGRAM,
+      certificationLevel: "GOLD",
+      issueDate: VERIFICATION_ISSUE_DATE,
+      issuedBy: VERIFICATION_ISSUED_BY,
+      status: "ACTIVE",
+      studentNumber: "002004",
+      pdfUrl: "/certificates/gold/2026/TECWMS-GOLD-2026-001.pdf",
+      verificationUrl: "/verify/TECWMS-GOLD-2026-001",
+      linkedinCredentialUrl:
+        "https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=TEC.WMS+Gold+Certification&organizationName=Coll%C3%A8ge+de+la+Concorde&issueYear=2026&issueMonth=6&certId=TECWMS-GOLD-2026-001&certUrl=https%3A%2F%2Ftec-wms-simulator-production-production.up.railway.app%2Fverify%2FTECWMS-GOLD-2026-001",
+    });
+  });
+
+  it("stores Silver certificate PDFs under Vite publicDir so they ship in dist/public", () => {
     const vitePublicCertificatesDir = path.join(
       rootDir,
       "../client/public/certificates/silver/2026",
@@ -95,6 +132,7 @@ describe("Certification verification portal — V1", () => {
     );
     expect(pageSource).toContain("lookupVerifiedCredentialByCertificateId");
     expect(pageSource).toContain("@shared/certification/railwayVerificationRegistry");
+    expect(pageSource).toContain("GoldBadgeSvg");
     expect(pageSource).toContain("Certificate Not Found");
     expect(pageSource).toContain("Verified Credential");
     expect(pageSource).toContain("Credential URL");

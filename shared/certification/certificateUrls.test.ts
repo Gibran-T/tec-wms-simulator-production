@@ -17,7 +17,17 @@ describe("certificateUrls", () => {
     );
   });
 
-  it("builds LinkedIn add-certification URL with institutional metadata", () => {
+  it("builds PDF and verification paths for Gold cohort IDs", () => {
+    expect(buildCertificatePdfUrl("TECWMS-GOLD-2026-001")).toBe(
+      "/certificates/gold/2026/TECWMS-GOLD-2026-001.pdf",
+    );
+    expect(buildVerificationPath("TECWMS-GOLD-2026-001")).toBe("/verify/TECWMS-GOLD-2026-001");
+    expect(buildProductionVerificationUrl("TECWMS-GOLD-2026-001")).toBe(
+      "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-001",
+    );
+  });
+
+  it("builds LinkedIn add-certification URL with institutional metadata for Silver", () => {
     const url = new URL(buildLinkedInCredentialUrl("TECWMS-SIL-2026-001"));
     expect(url.origin + url.pathname).toBe("https://www.linkedin.com/profile/add");
     expect(url.searchParams.get("startTask")).toBe("CERTIFICATION_NAME");
@@ -28,6 +38,15 @@ describe("certificateUrls", () => {
     expect(url.searchParams.get("certId")).toBe("TECWMS-SIL-2026-001");
     expect(url.searchParams.get("certUrl")).toBe(
       "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-001",
+    );
+  });
+
+  it("builds LinkedIn add-certification URL with institutional metadata for Gold", () => {
+    const url = new URL(buildLinkedInCredentialUrl("TECWMS-GOLD-2026-001"));
+    expect(url.searchParams.get("name")).toBe("TEC.WMS Gold Certification");
+    expect(url.searchParams.get("certId")).toBe("TECWMS-GOLD-2026-001");
+    expect(url.searchParams.get("certUrl")).toBe(
+      "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-001",
     );
   });
 });

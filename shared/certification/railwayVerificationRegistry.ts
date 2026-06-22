@@ -1,8 +1,8 @@
 import {
   buildCertificatePdfUrl,
   buildLinkedInCredentialUrl,
-  buildProductionVerificationUrl,
   buildVerificationPath,
+  type CertificationTier,
 } from "./certificateUrls";
 import registryData from "./railwayVerificationRegistry.json";
 
@@ -12,12 +12,12 @@ export type RailwayVerificationEntry = {
   certificateId: string;
   studentName: string;
   studentNumber: string;
+  certificationLevel: CertificationTier;
   status: VerificationStatus;
 };
 
 export type VerifiedCredential = RailwayVerificationEntry & {
   program: "TEC.WMS";
-  certificationLevel: "SILVER";
   issueDate: "2026-06-18";
   issuedBy: "Collège de la Concorde";
   pdfUrl: string;
@@ -29,7 +29,6 @@ export const RAILWAY_VERIFICATION_REGISTRY: readonly RailwayVerificationEntry[] 
   registryData as RailwayVerificationEntry[];
 
 export const VERIFICATION_PROGRAM = "TEC.WMS" as const;
-export const VERIFICATION_LEVEL = "SILVER" as const;
 export const VERIFICATION_ISSUE_DATE = "2026-06-18" as const;
 export const VERIFICATION_ISSUED_BY = "Collège de la Concorde" as const;
 
@@ -49,11 +48,13 @@ export function lookupVerifiedCredentialByCertificateId(
   return {
     ...entry,
     program: VERIFICATION_PROGRAM,
-    certificationLevel: VERIFICATION_LEVEL,
     issueDate: VERIFICATION_ISSUE_DATE,
     issuedBy: VERIFICATION_ISSUED_BY,
-    pdfUrl: buildCertificatePdfUrl(entry.certificateId),
+    pdfUrl: buildCertificatePdfUrl(entry.certificateId, entry.certificationLevel),
     verificationUrl: buildVerificationPath(entry.certificateId),
-    linkedinCredentialUrl: buildLinkedInCredentialUrl(entry.certificateId),
+    linkedinCredentialUrl: buildLinkedInCredentialUrl(
+      entry.certificateId,
+      entry.certificationLevel,
+    ),
   };
 }
