@@ -638,6 +638,57 @@ export async function upsertModuleProgress(data: {
     .onDuplicateKeyUpdate({ set: patch });
 }
 
+export type ModuleCheckpointUpsertPayload = {
+  moduleId: number;
+  passed: boolean;
+  bestScore: number;
+  averageScore: number | null;
+  completedAt: Date | null;
+  progressPct: number;
+  completedScenarios: number;
+  requiredScenarios: number;
+  scenarioStatus: Record<string, { passed: boolean; score: number | null; runId: number | null }>;
+  engineVersion: string;
+};
+
+/** Persist checkpoint engine snapshot (M2–M5); preserves teacherValidated fields. */
+export async function upsertModuleCheckpointSnapshot(
+  userId: number,
+  snapshot: ModuleCheckpointUpsertPayload,
+) {
+  const db = await getDb();
+  if (!db) return;
+
+  const patch = {
+    passed: snapshot.passed,
+    bestScore: snapshot.bestScore,
+    averageScore: snapshot.averageScore,
+    completedAt: snapshot.completedAt,
+    progressPct: snapshot.progressPct,
+    completedScenarios: snapshot.completedScenarios,
+    requiredScenarios: snapshot.requiredScenarios,
+    scenarioStatusJson: snapshot.scenarioStatus,
+    engineVersion: snapshot.engineVersion,
+  };
+
+  const existing = await getModuleProgressRow(userId, snapshot.moduleId);
+  if (existing) {
+    await db.update(moduleProgress).set(patch).where(eq(moduleProgress.id, existing.id));
+    return;
+  }
+
+  await db
+    .insert(moduleProgress)
+    .values({
+      userId,
+      moduleId: snapshot.moduleId,
+      ...patch,
+      teacherValidated: false,
+      teacherValidatedAt: null,
+    })
+    .onDuplicateKeyUpdate({ set: patch });
+}
+
 export async function getModuleProgressRow(userId: number, moduleId: number) {
   const db = await getDb();
   if (!db) return null;

@@ -70,6 +70,11 @@ import {
   unlockGoldCertification,
 } from "./db";
 import {
+  isCheckpointEngineEnabled,
+  isCheckpointModule,
+  recomputeModuleCheckpoint,
+} from "./checkpointEngine";
+import {
   calculateBinLoad,
   calculateInventory,
   calculateProgressPct,
@@ -1988,20 +1993,28 @@ export const appRouter = router({
     recordModulePass: protectedProcedure
       .input(z.object({ moduleId: z.number(), score: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const existing = await getModuleProgressRow(ctx.user.id, input.moduleId);
-        const { passed } = computeModulePassResult(
-          input.moduleId,
-          input.score,
-          existing?.passed ?? false,
-        );
-        const bestScore = Math.max(existing?.bestScore ?? 0, input.score);
-        await upsertModuleProgress({
-          userId: ctx.user.id,
-          moduleId: input.moduleId,
-          passed,
-          bestScore,
-          completedAt: passed ? (existing?.completedAt ?? new Date()) : undefined,
-        });
+        let passed: boolean;
+
+        if (isCheckpointModule(input.moduleId) && isCheckpointEngineEnabled()) {
+          const snapshot = await recomputeModuleCheckpoint(ctx.user.id, input.moduleId);
+          passed = snapshot?.passed ?? false;
+        } else {
+          const existing = await getModuleProgressRow(ctx.user.id, input.moduleId);
+          const result = computeModulePassResult(
+            input.moduleId,
+            input.score,
+            existing?.passed ?? false,
+          );
+          passed = result.passed;
+          const bestScore = Math.max(existing?.bestScore ?? 0, input.score);
+          await upsertModuleProgress({
+            userId: ctx.user.id,
+            moduleId: input.moduleId,
+            passed,
+            bestScore,
+            completedAt: passed ? (existing?.completedAt ?? new Date()) : undefined,
+          });
+        }
 
         // Check for M1 Silver Certification unlock conditions
         if (input.moduleId === 1) {
@@ -2047,6 +2060,9 @@ export const appRouter = router({
           });
         }
         await setTeacherValidated(input.userId, input.moduleId, input.validated);
+        if (input.moduleId === 3 && isCheckpointEngineEnabled()) {
+          await recomputeModuleCheckpoint(input.userId, 3);
+        }
         return { success: true, teacherValidated: input.validated };
       }),
   }),

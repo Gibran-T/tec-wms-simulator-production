@@ -240,6 +240,12 @@ export const moduleProgress = mysqlTable("module_progress", {
   completedAt: timestamp("completedAt"),
   teacherValidated: boolean("teacherValidated").default(false).notNull(),
   teacherValidatedAt: timestamp("teacherValidatedAt"),
+  progressPct: int("progressPct").default(0).notNull(),
+  completedScenarios: int("completedScenarios").default(0).notNull(),
+  requiredScenarios: int("requiredScenarios").default(3).notNull(),
+  averageScore: int("averageScore"),
+  scenarioStatusJson: json("scenarioStatusJson"),
+  engineVersion: varchar("engineVersion", { length: 16 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, (table) => ({
   userModuleIdx: uniqueIndex("module_progress_user_module_idx").on(table.userId, table.moduleId),
