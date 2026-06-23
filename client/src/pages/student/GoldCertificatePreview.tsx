@@ -5,8 +5,12 @@ import { trpc } from "@/lib/trpc";
 import FioriShell from "@/components/FioriShell";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { GoldBadgeSvg } from "@/components/certification/SilverBadgeSvg";
 import { GoldStatusChip, type GoldCertState } from "@/components/certification/CertificationStatus";
+import CertificateCredentialActions from "@/components/certification/CertificateCredentialActions";
+import { lookupGoldRegistryByStudentNumber } from "@shared/goldCertificationRegistry";
+import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
 
 const ACHIEVEMENTS = [
   { fr: "Silver TEC.LOG — prérequis validé", en: "TEC.LOG Silver — prerequisite validated" },
@@ -16,8 +20,34 @@ const ACHIEVEMENTS = [
   { fr: "SCN-017 — décision exécutive liée aux KPI", en: "SCN-017 — KPI-linked executive decision" },
 ];
 
+function formatIssueDate(isoDate: string, locale: "fr" | "en"): string {
+  const date = new Date(`${isoDate}T12:00:00`);
+  return date.toLocaleDateString(locale === "fr" ? "fr-CA" : "en-CA", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
+type MetadataFieldProps = {
+  label: string;
+  value: string;
+  mono?: boolean;
+};
+
+function MetadataField({ label, value, mono }: MetadataFieldProps) {
+  return (
+    <div className="min-w-0">
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground mb-1">{label}</p>
+      <p className={`text-sm font-semibold text-foreground break-words ${mono ? "font-mono tracking-wide text-xs" : ""}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 export default function GoldCertificatePreview() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { data: goldStatus, isLoading } = trpc.profiles.goldStatus.useQuery();
@@ -27,6 +57,14 @@ export default function GoldCertificatePreview() {
   const goldEarned = goldStatus?.goldCertified ?? false;
   const goldState: GoldCertState = goldStatus?.state ?? "LOCKED";
   const isPreviewOnly = !goldEarned && goldState === "ELIGIBLE";
+  const locale = language === "FR" ? "fr" : "en";
+
+  const goldRegistryEntry = lookupGoldRegistryByStudentNumber(profile?.studentNumber ?? null);
+  const activeGoldCredential =
+    goldEarned && goldRegistryEntry?.status === "ACTIVE"
+      ? lookupVerifiedCredentialByCertificateId(goldRegistryEntry.certificateId)
+      : null;
+  const missingRegistry = goldEarned && !activeGoldCredential;
 
   if (isLoading) {
     return (
@@ -111,11 +149,65 @@ export default function GoldCertificatePreview() {
           </div>
         </div>
 
+        {activeGoldCredential && (
+          <div className="rounded-xl border border-amber-200/80 bg-card shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-border bg-amber-50/50 dark:bg-amber-950/20">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                {t("Informations du certificat", "Certificate Information")}
+              </p>
+            </div>
+            <div className="px-5 py-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <MetadataField
+                label={t("Identifiant du certificat", "Certificate ID")}
+                value={activeGoldCredential.certificateId}
+                mono
+              />
+              <MetadataField
+                label={t("Date d'émission", "Issue Date")}
+                value={formatIssueDate(activeGoldCredential.issueDate, locale)}
+              />
+              <MetadataField label={t("Nom de l'étudiant", "Student Name")} value={activeGoldCredential.studentName} />
+              <MetadataField label={t("Programme", "Program")} value={activeGoldCredential.program} />
+              <div className="sm:col-span-2 flex items-center justify-between gap-3 pt-1 border-t border-border">
+                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                  {t("Statut", "Status")}
+                </p>
+                <Badge className="bg-[#107e3e] hover:bg-[#107e3e] text-white border-transparent text-xs px-3 py-1">
+                  {t("Obtenue", "Obtained")}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeGoldCredential && (
+          <CertificateCredentialActions
+            pdfUrl={activeGoldCredential.pdfUrl}
+            verificationUrl={activeGoldCredential.verificationUrl}
+            linkedinCredentialUrl={activeGoldCredential.linkedinCredentialUrl}
+            layout="credential"
+          />
+        )}
+
+        {missingRegistry && (
+          <p className="text-sm text-amber-800 dark:text-amber-200 text-center rounded-lg border border-amber-200 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3">
+            {t(
+              "Certification Gold obtenue. Votre certificat institutionnel est en cours de liaison — contactez l'administration si ce message persiste.",
+              "Gold certification obtained. Your institutional certificate is being linked — contact administration if this message persists.",
+            )}
+          </p>
+        )}
+
         <p className="text-xs text-muted-foreground text-center leading-relaxed max-w-lg mx-auto">
-          {t(
-            "Aperçu pédagogique uniquement. Le certificat officiel signé et vérifiable sera émis par le Collège de la Concorde (QR / PDF — à venir).",
-            "Pedagogical preview only. The official signed verifiable certificate will be issued by Collège de la Concorde (QR / PDF — coming later).",
-          )}
+          {goldEarned
+            ? t(
+                "Certification officielle obtenue. Le certificat peut être téléchargé et vérifié en ligne.",
+                "Official certification obtained. The certificate can be downloaded and verified online.",
+              )
+            : t(
+                "Aperçu pédagogique uniquement. Le certificat officiel signé et vérifiable sera émis par le Collège de la Concorde (QR / PDF — à venir).",
+                "Pedagogical preview only. The official signed verifiable certificate will be issued by Collège de la Concorde (QR / PDF — coming later).",
+              )}
         </p>
       </div>
     </FioriShell>

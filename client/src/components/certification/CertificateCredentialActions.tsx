@@ -6,7 +6,7 @@ type CertificateCredentialActionsProps = {
   pdfUrl: string;
   verificationUrl: string;
   linkedinCredentialUrl: string;
-  layout?: "verify" | "certifications";
+  layout?: "verify" | "certifications" | "credential";
 };
 
 export default function CertificateCredentialActions({
@@ -17,21 +17,43 @@ export default function CertificateCredentialActions({
 }: CertificateCredentialActionsProps) {
   const { t } = useLanguage();
 
-  const verifyButton =
-    layout === "certifications" ? (
-      <Button asChild className="bg-[#0f2a44] hover:bg-[#0f2a44]/90">
-        <a href={verificationUrl} target="_blank" rel="noopener noreferrer">
-          <ExternalLink size={16} />
-          {t("Voir la certification", "View credential")}
-        </a>
-      </Button>
-    ) : null;
+  const showVerifyLink = layout === "certifications" || layout === "credential";
+  const verifyOpensNewTab = layout === "certifications";
+
+  const verifyButton = showVerifyLink ? (
+    <Button
+      asChild
+      className={layout === "credential" ? "bg-amber-700 hover:bg-amber-800" : "bg-[#0f2a44] hover:bg-[#0f2a44]/90"}
+    >
+      <a
+        href={verificationUrl}
+        {...(verifyOpensNewTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      >
+        <ExternalLink size={16} />
+        {layout === "credential"
+          ? t("Vérifier ma certification", "Verify my certification")
+          : t("Voir la certification", "View credential")}
+      </a>
+    </Button>
+  ) : null;
 
   const downloadButton = (
-    <Button asChild variant={layout === "verify" ? "default" : "outline"} className={layout === "verify" ? "bg-[#0f2a44] hover:bg-[#0f2a44]/90" : undefined}>
+    <Button
+      asChild
+      variant={layout === "verify" || layout === "credential" ? "default" : "outline"}
+      className={
+        layout === "verify"
+          ? "bg-[#0f2a44] hover:bg-[#0f2a44]/90"
+          : layout === "credential"
+            ? "bg-amber-700 hover:bg-amber-800"
+            : undefined
+      }
+    >
       <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
         <FileDown size={16} />
-        {t("Télécharger PDF", "Download PDF")}
+        {layout === "credential"
+          ? t("Télécharger mon certificat Gold", "Download my Gold certificate")
+          : t("Télécharger PDF", "Download PDF")}
       </a>
     </Button>
   );
@@ -46,10 +68,22 @@ export default function CertificateCredentialActions({
   );
 
   return (
-    <div className={`flex flex-wrap gap-3 ${layout === "verify" ? "pt-2" : ""}`}>
-      {verifyButton}
-      {downloadButton}
-      {linkedInButton}
+    <div
+      className={`flex flex-wrap gap-3 ${layout === "verify" || layout === "credential" ? "pt-2" : ""} ${layout === "credential" ? "justify-center" : ""}`}
+    >
+      {layout === "credential" ? (
+        <>
+          {downloadButton}
+          {verifyButton}
+          {linkedInButton}
+        </>
+      ) : (
+        <>
+          {verifyButton}
+          {downloadButton}
+          {linkedInButton}
+        </>
+      )}
     </div>
   );
 }

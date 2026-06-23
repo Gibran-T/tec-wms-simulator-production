@@ -16,6 +16,7 @@ import {
   type GoldCertState,
 } from "@/components/certification/CertificationStatus";
 import CertificateCredentialActions from "@/components/certification/CertificateCredentialActions";
+import { lookupGoldRegistryByStudentNumber } from "@shared/goldCertificationRegistry";
 import { lookupSilverRegistryByStudentNumber } from "@shared/silverCertificationRegistry";
 import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
 
@@ -159,6 +160,11 @@ export function CertificationsPage() {
 
   const goldState: GoldCertState = goldStatus?.state ?? "LOCKED";
   const goldEarned = goldStatus?.goldCertified ?? false;
+  const goldRegistryEntry = lookupGoldRegistryByStudentNumber(profile?.studentNumber ?? null);
+  const activeGoldCredential =
+    goldEarned && goldRegistryEntry?.status === "ACTIVE"
+      ? lookupVerifiedCredentialByCertificateId(goldRegistryEntry.certificateId)
+      : null;
   const goldLocked = goldState === "LOCKED";
   const goldChecklistComplete = goldEarned;
   const complianceGoldMet =
@@ -436,7 +442,15 @@ export function CertificationsPage() {
                   </ul>
 
                   <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
-                    {canPreviewGold && (
+                    {activeGoldCredential && (
+                      <CertificateCredentialActions
+                        pdfUrl={activeGoldCredential.pdfUrl}
+                        verificationUrl={activeGoldCredential.verificationUrl}
+                        linkedinCredentialUrl={activeGoldCredential.linkedinCredentialUrl}
+                        layout="credential"
+                      />
+                    )}
+                    {canPreviewGold && !activeGoldCredential && (
                       <Button onClick={() => navigate("/student/certifications/gold")} className="bg-amber-700 hover:bg-amber-800">
                         {goldEarned
                           ? t("Voir mon certificat Gold", "View my Gold certificate")
