@@ -1,0 +1,1844 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEC.WMS — Manuel officiel de certification</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 24mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #0f2d52;
+      page-break-after: avoid;
+    }
+    h1 { font-size: 1.55em; margin-top: 1.2em; border-bottom: 2px solid #0f2d52; padding-bottom: 0.25em; }
+    h2 { font-size: 1.25em; margin-top: 1em; }
+    h3 { font-size: 1.05em; margin-top: 0.85em; color: #234a73; }
+    p, li { orphans: 3; widows: 3; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8em 0 1em;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.45em 0.55em;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #e8eef4;
+      font-weight: 600;
+      color: #0f2d52;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    blockquote {
+      margin: 0.8em 0;
+      padding: 0.6em 1em;
+      border-left: 4px solid #0f2d52;
+      background: #f4f7fa;
+      color: #333;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+      background: #f0f0f0;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 0.8em 1em;
+      font-size: 8.5pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 1.2em 0;
+    }
+    ul, ol { padding-left: 1.4em; }
+    a { color: #0f2d52; text-decoration: none; }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    .cover-page {
+      width: 210mm;
+      min-height: 297mm;
+      text-align: center;
+      padding: 55mm 25mm 20mm;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .cover-page .brand {
+      font-size: 2.6em;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #0f2d52;
+      margin-bottom: 1.5em;
+    }
+    .cover-page .title-block h1 {
+      font-size: 1.55em;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0.35em 0;
+      border: none;
+      color: #1a1a1a;
+    }
+    .cover-page .subtitle-block {
+      margin-top: 45mm;
+      font-size: 1.15em;
+      line-height: 1.65;
+      color: #333;
+    }
+    .cover-page .meta {
+      margin-top: 35mm;
+      font-size: 0.95em;
+      color: #555;
+      line-height: 1.6;
+    }
+    .doc-footer {
+      margin-top: 2em;
+      padding-top: 0.8em;
+      border-top: 1px solid #ccc;
+      font-size: 0.85em;
+      color: #555;
+      text-align: center;
+    }
+    .toc-page ol { line-height: 1.8; }
+    
+.cover-page {
+  text-align: center;
+  padding-top: 5.5cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #0f2d52;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.55em;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0.35em 0;
+  border: none;
+  color: #1a1a1a;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.65;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+  line-height: 1.6;
+}
+.doc-control table { font-size: 9pt; }
+.toc-page ol { line-height: 1.8; }
+
+  </style>
+</head>
+<body>
+<style>
+.cover-page {
+  text-align: center;
+  padding-top: 5.5cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #0f2d52;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.55em;
+  font-weight: 600;
+  line-height: 1.45;
+  margin: 0.35em 0;
+  border: none;
+  color: #1a1a1a;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.65;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+  line-height: 1.6;
+}
+.doc-control table { font-size: 9pt; }
+.toc-page ol { line-height: 1.8; }
+</style><div class="cover-page"><div class="brand">TEC.WMS</div><div class="title-block"><h1>Manuel officiel de certification</h1>
+<h2>Programme TEC.LOG — Collège de la Concorde</h2>
+</div><div class="subtitle-block"><p><strong>Credential opérationnel ERP/WMS</strong><br>Silver Premium · Gold Premium · Vérification institutionnelle</p>
+</div><div class="meta"><p><strong>Version</strong> 1.0 · <strong>Date</strong> juin 2026<br><strong>Statut</strong> Document institutionnel officiel<br><strong>Autorité</strong> Collège de la Concorde · Programme TEC.LOG<br><strong>Classification</strong> Public — gouvernance, émetteurs et vérificateurs</p>
+</div></div><h2>Avis institutionnel</h2>
+<p>Ce manuel constitue la <strong>référence officielle</strong> du système de certification TEC.WMS. Il définit la philosophie, les exigences, la gouvernance des seuils, l&#39;architecture de vérification, le format des identifiants, l&#39;intégration LinkedIn, le cycle de vie des credentials et les politiques de révocation et de réémission.</p>
+<p>Le simulateur TEC.WMS calcule l&#39;<strong>éligibilité pédagogique</strong>. Seul le <strong>processus institutionnel</strong> du Collège de la Concorde émet les credentials officiels signés, numérotés et vérifiables.</p>
+<blockquote>
+<p><strong>Principe fondateur</strong> — L&#39;éligibilité dans le simulateur n&#39;est pas une preuve d&#39;émission. Seul un identifiant actif dans le registre institutionnel constitue une certification vérifiable.</p>
+</blockquote>
+<hr>
+<div class="page-break"></div><h2>Table des matières</h2>
+<div class="toc-page"><ol>
+<li><a href="#1-philosophie-de-certification">Philosophie de certification</a></li>
+<li><a href="#2-architecture-%C3%A0-trois-couches">Architecture à trois couches</a></li>
+<li><a href="#3-exigences-silver-premium">Exigences Silver Premium</a></li>
+<li><a href="#4-exigences-gold-premium">Exigences Gold Premium</a></li>
+<li><a href="#5-gouvernance-des-seuils">Gouvernance des seuils</a></li>
+<li><a href="#6-format-des-identifiants-de-credential">Format des identifiants de credential</a></li>
+<li><a href="#7-architecture-du-portail-de-v%C3%A9rification">Architecture du portail de vérification</a></li>
+<li><a href="#8-flux-de-v%C3%A9rification-par-code-qr">Flux de vérification par code QR</a></li>
+<li><a href="#9-int%C3%A9gration-linkedin">Intégration LinkedIn</a></li>
+<li><a href="#10-cycle-de-vie-de-la-certification">Cycle de vie de la certification</a></li>
+<li><a href="#11-politique-de-r%C3%A9vocation">Politique de révocation</a></li>
+<li><a href="#12-politique-de-r%C3%A9%C3%A9mission">Politique de réémission</a></li>
+<li><a href="#13-gouvernance-institutionnelle">Gouvernance institutionnelle</a></li>
+<li><a href="#14-annexes">Annexes</a></li>
+</ol>
+</div><div class="page-break"></div><h2>1. Philosophie de certification</h2>
+<h3>1.1 Mission</h3>
+<p>La certification TEC.WMS atteste la <strong>compétence opérationnelle vérifiable</strong> en environnement ERP/WMS pédagogique. Elle s&#39;inscrit dans le programme TEC.LOG du Collège de la Concorde et vise à certifier que le titulaire peut exécuter, diagnostiquer et résoudre des flux logistiques réels — du bon de commande à la décision KPI — dans un cadre conforme aux standards professionnels.</p>
+<h3>1.2 Principes directeurs</h3>
+<table>
+<thead>
+<tr>
+<th>Principe</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Évidence opérationnelle</strong></td>
+<td>La certification repose sur des scénarios évalués (SCN), des quiz validés et des étapes de conformité documentées — jamais sur la simple présence en classe.</td>
+</tr>
+<tr>
+<td><strong>Séparation des couches</strong></td>
+<td>Éligibilité simulateur, aperçu pédagogique et credential officiel sont des artefacts distincts avec des autorités distinctes.</td>
+</tr>
+<tr>
+<td><strong>Vérifiabilité publique</strong></td>
+<td>Chaque credential officiel possède un identifiant unique résolvable via le portail de vérification institutionnel.</td>
+</tr>
+<tr>
+<td><strong>Intégrité des seuils</strong></td>
+<td>Les seuils de réussite sont canoniques (GOV-T01, GOV-T02) et ne peuvent être modifiés sans décision de gouvernance documentée.</td>
+</tr>
+<tr>
+<td><strong>Exclusion du mode démo</strong></td>
+<td>Les exécutions en mode démonstration (<code>isDemo = true</code>) n&#39;entrent jamais dans le calcul d&#39;éligibilité.</td>
+</tr>
+<tr>
+<td><strong>Bilinguisme institutionnel</strong></td>
+<td>Les artefacts officiels et le portail supportent le français et l&#39;anglais à parité sémantique.</td>
+</tr>
+<tr>
+<td><strong>Non-rétroactivité arbitraire</strong></td>
+<td>Les correctifs pédagogiques en M2–M5 n&#39;altèrent pas rétroactivement l&#39;éligibilité Silver sans décision programme explicite.</td>
+</tr>
+</tbody></table>
+<h3>1.3 Tiers de certification</h3>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Titre officiel (FR)</th>
+<th>Portée</th>
+<th>Credential</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Silver Premium</strong></td>
+<td>Certification Silver TEC.WMS</td>
+<td>Fondements ERP/WMS — Module 1</td>
+<td><code>TECWMS-SIL-{ANNÉE}-{SÉQUENCE}</code></td>
+</tr>
+<tr>
+<td><strong>Gold Premium</strong></td>
+<td>Certification Gold TEC.WMS</td>
+<td>Parcours intégré M1–M5</td>
+<td><code>TECWMS-GOLD-{ANNÉE}-{SÉQUENCE}</code></td>
+</tr>
+</tbody></table>
+<p>Silver valide les <strong>opérations fondamentales</strong> : cycle PO → GR → Putaway → SO → GI, contrôle inventaire et résolution de conformité. Gold valide le <strong>parcours intégré</strong> incluant planification M2, gestion des écarts M3, conformité multi-modules M4 et pilotage KPI / décision exécutive M5.</p>
+<h3>1.4 Distinction Excellence (hors certification minimale)</h3>
+<p>Le programme peut accorder une <strong>distinction Excellence</strong> pour les capstones ≥ 90/100 et une disponibilité stock ≥ 99,5 % lorsque applicable. Cette distinction est <strong>séparée</strong> des exigences minimales Silver et Gold Premium et ne constitue pas un tier de registre distinct en v1.0.</p>
+<hr>
+<h2>2. Architecture à trois couches</h2>
+<p>Le système de certification repose sur trois couches qui ne doivent <strong>jamais être confondues</strong> :</p>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Rôle</th>
+<th>Autorité</th>
+<th>Artefact</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Éligibilité simulateur</strong></td>
+<td>Calcule les portes (quiz, scores SCN, conformité, bloqueurs)</td>
+<td>Moteur TEC.WMS</td>
+<td>Indicateurs Silver Premium / Gold Premium dans le profil étudiant</td>
+</tr>
+<tr>
+<td><strong>Aperçu pédagogique</strong></td>
+<td>Présentation in-app pour étudiants éligibles</td>
+<td>Interface TEC.WMS</td>
+<td>Certificat Silver Premium (filigrane APERÇU si non émis)</td>
+</tr>
+<tr>
+<td><strong>Credential officiel</strong></td>
+<td>PDF signé, identifiant numéroté, QR, vérification publique</td>
+<td>Collège de la Concorde</td>
+<td>Entrée registre <code>ACTIVE</code> + PDF archivé</td>
+</tr>
+</tbody></table>
+<p><strong>Message étudiant standard :</strong></p>
+<ul>
+<li>FR : <em>Le certificat officiel signé et vérifiable sera émis par le Collège de la Concorde.</em></li>
+<li>EN : <em>The official signed verifiable certificate will be issued by Collège de la Concorde.</em></li>
+</ul>
+<hr>
+<h2>3. Exigences Silver Premium</h2>
+<h3>3.1 Prérequis généraux</h3>
+<table>
+<thead>
+<tr>
+<th>Exigence</th>
+<th>Détail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Module</strong></td>
+<td>Module 1 uniquement</td>
+</tr>
+<tr>
+<td><strong>Mode</strong></td>
+<td>Évaluation uniquement (<code>isDemo = false</code>)</td>
+</tr>
+<tr>
+<td><strong>Règle de run</strong></td>
+<td>Dernière exécution complétée retenue par scénario</td>
+</tr>
+<tr>
+<td><strong>Livraison officielle</strong></td>
+<td>Émission institutionnelle après approbation B3</td>
+</tr>
+</tbody></table>
+<h3>3.2 Grille d&#39;exigences (7 portes)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Porte</th>
+<th>Critère</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>SCN-001</td>
+<td>Cycle opérationnel complet</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>2</td>
+<td>SCN-002</td>
+<td>Résolution GR fantôme</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SCN-003</td>
+<td>Résolution pénurie stock</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SCN-004</td>
+<td>Ajustement écart inventaire</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SCN-005</td>
+<td>Résolution conformité multi-erreurs (capstone M1)</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Quiz M1</td>
+<td>Meilleure tentative</td>
+<td>≥ 60 %</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Conformité M1</td>
+<td>Étape de conformité validée sur la dernière run ; aucun bloqueur non résolu</td>
+<td>Vert</td>
+</tr>
+</tbody></table>
+<h3>3.3 Compétences certifiées (Silver)</h3>
+<ol>
+<li>Bons de commande (PO)</li>
+<li>Réception marchandises (GR)</li>
+<li>Rangement (Putaway)</li>
+<li>Commandes client (SO)</li>
+<li>Sortie marchandises (GI)</li>
+<li>Contrôle inventaire</li>
+<li>Conformité opérationnelle</li>
+<li>Résolution de problèmes WMS</li>
+</ol>
+<h3>3.4 Spécification visuelle Silver Premium</h3>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Format</strong></td>
+<td>A4 paysage (297 × 210 mm)</td>
+</tr>
+<tr>
+<td><strong>Orientation</strong></td>
+<td>Landscape premium</td>
+</tr>
+<tr>
+<td><strong>Palette</strong></td>
+<td>Papier blanc, bordure double bleue institutionnelle (<code>#0070f2</code>)</td>
+</tr>
+<tr>
+<td><strong>Médaille</strong></td>
+<td>Sceau Silver — ruban <code>M1 · FONDEMENTS</code></td>
+</tr>
+<tr>
+<td><strong>En-tête</strong></td>
+<td>Armoiries Collège de la Concorde + devise <em>Performance · Excellence · Future</em></td>
+</tr>
+<tr>
+<td><strong>Signatures</strong></td>
+<td>Directrice de programme (Nadia Allami) · Directeur technique TEC.WMS (Thiago Gibran)</td>
+</tr>
+<tr>
+<td><strong>QR</strong></td>
+<td>Bas droit — URL de vérification (§8)</td>
+</tr>
+<tr>
+<td><strong>Filigrane aperçu</strong></td>
+<td><code>APERÇU</code> / <code>PREVIEW</code> — 20 % opacité — uniquement en simulateur non émis</td>
+</tr>
+<tr>
+<td><strong>Résolution impression</strong></td>
+<td>300 DPI minimum pour PDF officiel</td>
+</tr>
+</tbody></table>
+<h3>3.5 Ce qui ne déclenche pas Silver</h3>
+<ul>
+<li><code>module_progress.passed</code> pour M1 seul (système parallèle)</li>
+<li>Complétion des diapositives</li>
+<li>Quiz M2–M5</li>
+<li>Exécutions en mode démo</li>
+<li>Aperçu simulateur sans entrée registre <code>ACTIVE</code></li>
+</ul>
+<hr>
+<h2>4. Exigences Gold Premium</h2>
+<h3>4.1 Prérequis généraux</h3>
+<table>
+<thead>
+<tr>
+<th>Exigence</th>
+<th>Détail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Prérequis absolu</strong></td>
+<td>Silver Premium accordé dans le simulateur</td>
+</tr>
+<tr>
+<td><strong>Modules</strong></td>
+<td>M2 à M5 (SCN-006 → SCN-017)</td>
+</tr>
+<tr>
+<td><strong>Approbation</strong></td>
+<td>Enregistrement B3 pour cohorte Gold</td>
+</tr>
+</tbody></table>
+<h3>4.2 Machine à états Gold</h3>
+<table>
+<thead>
+<tr>
+<th>État</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>LOCKED</code></td>
+<td>Silver non accordé</td>
+</tr>
+<tr>
+<td><code>IN_PROGRESS</code></td>
+<td>Silver accordé ; exigences incomplètes</td>
+</tr>
+<tr>
+<td><code>ELIGIBLE</code></td>
+<td>Toutes les portes passées ; credential Gold non encore émis</td>
+</tr>
+<tr>
+<td><code>AWARDED</code></td>
+<td>Gold Premium attribué ; credential émis</td>
+</tr>
+</tbody></table>
+<h3>4.3 Grille d&#39;exigences (18 portes)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Porte</th>
+<th>Critère</th>
+<th>Seuil / règle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Prérequis Silver</td>
+<td>Silver Premium accordé</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Quiz M5</td>
+<td>Meilleure tentative</td>
+<td>≥ 60 %</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SCN-006</td>
+<td>Planification flux M2</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>4</td>
+<td>SCN-007</td>
+<td>Flux M2</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>5</td>
+<td>SCN-008</td>
+<td>Flux M2</td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SCN-009</td>
+<td>Gestion écarts M3</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SCN-010</td>
+<td>Gestion écarts M3</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>8</td>
+<td>SCN-011</td>
+<td>Gestion écarts M3</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>9</td>
+<td>SCN-012</td>
+<td>Indicateurs M4</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>10</td>
+<td>SCN-013</td>
+<td>Indicateurs M4</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>11</td>
+<td>SCN-014</td>
+<td>Capstone multi-KPI M4</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>12</td>
+<td>SCN-015</td>
+<td>Simulation intégrée M5</td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td>13</td>
+<td>SCN-016</td>
+<td>Action corrective avant KPI</td>
+<td>≥ 70/100 + porte variance</td>
+</tr>
+<tr>
+<td>14</td>
+<td>SCN-017</td>
+<td>Décision exécutive capstone</td>
+<td>≥ 70/100 (GOV-T02)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Conformité M2–M5</td>
+<td>Étapes <code>COMPLIANCE_ADV</code>, <code>COMPLIANCE_M3</code>, <code>COMPLIANCE_M4</code>, <code>COMPLIANCE_M5</code></td>
+<td>Complétées</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Bloqueurs</td>
+<td>Transactions non comptabilisées / cycles non résolus</td>
+<td>Aucun</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Validateurs module</td>
+<td><code>validateM3Compliance</code>, <code>validateM4Compliance</code>, <code>validateM5Compliance</code></td>
+<td>Passés</td>
+</tr>
+<tr>
+<td>18a</td>
+<td>Porte SCN-016</td>
+<td>Variance résolue ; si <code>M5_KPI</code> complété, <code>M5_ADJ</code> avant KPI</td>
+<td>Ordre imposé</td>
+</tr>
+<tr>
+<td>18b</td>
+<td>Porte SCN-017</td>
+<td><code>M5_DECISION</code> + <code>M5_KPI</code> complétés ; snapshot KPI existant</td>
+<td>Lié</td>
+</tr>
+</tbody></table>
+<h3>4.4 Seuils par module (Gold path)</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Scénarios</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M2</td>
+<td>SCN-006, SCN-007, SCN-008</td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>SCN-009, SCN-010, SCN-011</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>SCN-012, SCN-013, SCN-014</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>SCN-015, SCN-016</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>M5 capstone</td>
+<td>SCN-017</td>
+<td>70/100 (plancher capstone GOV-T02)</td>
+</tr>
+</tbody></table>
+<h3>4.5 Compétences certifiées (Gold)</h3>
+<ol>
+<li>Planification des flux M2</li>
+<li>Gestion des écarts M3</li>
+<li>Conformité multi-modules M4</li>
+<li>Pilotage KPI et décision M5</li>
+<li>Chaîne PO → GR → Putaway → SO → GI</li>
+<li>Résolution capstone intégrée</li>
+</ol>
+<h3>4.6 Spécification visuelle Gold Premium</h3>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Format</strong></td>
+<td>A4 paysage</td>
+</tr>
+<tr>
+<td><strong>Palette</strong></td>
+<td>Fond ambre doré (<code>#fffbeb</code> → <code>#fef3c7</code>) ; ruban <code>M1–M5 · PARCOURS INTÉGRÉ</code></td>
+</tr>
+<tr>
+<td><strong>Lien Silver</strong></td>
+<td>Champ registre <code>prerequisite_certificate_id</code> vers credential Silver valide</td>
+</tr>
+<tr>
+<td><strong>Motif</strong></td>
+<td>Glyphes logistiques PO · GR · GI · KPI à 3 % opacité (impression physique)</td>
+</tr>
+</tbody></table>
+<h3>4.7 Déclencheurs d&#39;attribution Gold</h3>
+<table>
+<thead>
+<tr>
+<th>Déclencheur</th>
+<th>Emplacement</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Requête statut Gold</td>
+<td>Page certifications</td>
+<td>Si éligible et attribution autorisée</td>
+</tr>
+<tr>
+<td>Rapport run M5</td>
+<td>Fin de module 5</td>
+<td>Même condition</td>
+</tr>
+<tr>
+<td>Réconciliation admin</td>
+<td>Audit cohorte</td>
+<td>Recalcul vs éligibilité</td>
+</tr>
+</tbody></table>
+<p><strong>Sans décision institutionnelle d&#39;attribution :</strong> l&#39;étudiant peut rester <code>ELIGIBLE</code> indéfiniment sans credential Gold émis — comportement institutionnel intentionnel.</p>
+<hr>
+<h2>5. Gouvernance des seuils</h2>
+<h3>5.1 Référentiel canonique (GOV-T01)</h3>
+<table>
+<thead>
+<tr>
+<th>Paramètre</th>
+<th>Valeur</th>
+<th>Portée</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Seuil scénario M1–M2</td>
+<td><strong>60/100</strong></td>
+<td>Silver + Gold path M2</td>
+</tr>
+<tr>
+<td>Seuil scénario M3–M5</td>
+<td><strong>70/100</strong></td>
+<td>Gold path M3–M5</td>
+</tr>
+<tr>
+<td>Seuil quiz M1 / M5</td>
+<td><strong>60 %</strong></td>
+<td><code>QUIZ_PASS_THRESHOLD</code></td>
+</tr>
+<tr>
+<td>Seuil capstone SCN-017</td>
+<td><strong>70/100</strong></td>
+<td>GOV-T02</td>
+</tr>
+</tbody></table>
+<p><strong>Source unique de vérité :</strong> référentiel canonique GOV-T01 du Collège — toute dérive client/serveur est interdite.</p>
+<h3>5.2 Grandfather conditionnel (T-01 §6.3)</h3>
+<p>Pour les modules M3–M5, un score historique entre 60 et 69 peut conserver le statut <code>passed</code> si <strong>déjà marqué passé</strong> avant l&#39;élévation du seuil à 70. Les <strong>nouvelles</strong> tentatives sous 70 ne passent pas prospectivement.</p>
+<h3>5.3 Validation enseignant M3 → M4</h3>
+<p>L&#39;accès au Module 4 exige <code>module_progress.passed = true</code> <strong>et</strong> <code>teacherValidated = true</code> pour M3. Cette porte est distincte de la certification Gold mais conditionne le parcours.</p>
+<h3>5.4 Processus de modification des seuils</h3>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Responsable</th>
+<th>Livrable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1. Proposition motivée</td>
+<td>Directrice de programme</td>
+<td>Note d&#39;impact pédagogique</td>
+</tr>
+<tr>
+<td>2. Analyse technique</td>
+<td>Directeur technique TEC.WMS</td>
+<td>Rapport de compatibilité moteur</td>
+</tr>
+<tr>
+<td>3. Validation Constitution</td>
+<td>Comité TEC.LOG</td>
+<td>Référence Article VII</td>
+</tr>
+<tr>
+<td>4. Mise à jour canonique</td>
+<td>Équipe technique</td>
+<td>Mise à jour du référentiel GOV-T01 + tests de conformité</td>
+</tr>
+<tr>
+<td>5. Communication</td>
+<td>Collège</td>
+<td>Mise à jour du présent manuel</td>
+</tr>
+</tbody></table>
+<p><strong>Interdit :</strong> modifier les seuils uniquement pour faire passer des tests ou des cohortes sans décision documentée.</p>
+<h3>5.5 Exclusions du calcul de seuil</h3>
+<table>
+<thead>
+<tr>
+<th>Exclusion</th>
+<th>Règle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Mode démo</td>
+<td><code>isDemo = true</code> — exclu</td>
+</tr>
+<tr>
+<td>Runs incomplètes</td>
+<td>Non comptabilisées</td>
+</tr>
+<tr>
+<td>Quiz comme porte d&#39;accès scénario</td>
+<td>Désactivé — le quiz ne bloque pas l&#39;accès aux scénarios</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Format des identifiants de credential</h2>
+<h3>6.1 Structure canonique</h3>
+<pre><code>TECWMS-{TIER}-{ANNÉE}-{SÉQUENCE}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Règle</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>TECWMS</code></td>
+<td>Préfixe institutionnel fixe</td>
+<td>TECWMS</td>
+</tr>
+<tr>
+<td><code>TIER</code></td>
+<td><code>SIL</code> = Silver Premium · <code>GOLD</code> = Gold Premium</td>
+<td>SIL</td>
+</tr>
+<tr>
+<td><code>ANNÉE</code></td>
+<td>Année d&#39;émission de la cohorte (4 chiffres)</td>
+<td>2026</td>
+</tr>
+<tr>
+<td><code>SÉQUENCE</code></td>
+<td>Numéro séquentiel sur 3 chiffres, zéro-padding</td>
+<td>001</td>
+</tr>
+</tbody></table>
+<p><strong>Expression régulière de validation :</strong></p>
+<pre><code>^TECWMS-(SIL|GOLD)-\d{4}-\d{3}$
+</code></pre>
+<h3>6.2 Exemples officiels — Cohorte inaugurale 2026</h3>
+<table>
+<thead>
+<tr>
+<th>Identifiant</th>
+<th>Titulaire</th>
+<th>Tier</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>TECWMS-SIL-2026-001</code></td>
+<td>Darlin Campaz Paredes</td>
+<td>Silver</td>
+</tr>
+<tr>
+<td><code>TECWMS-SIL-2026-002</code></td>
+<td>Fredy Tamile Lola</td>
+<td>Silver</td>
+</tr>
+<tr>
+<td><code>TECWMS-SIL-2026-003</code></td>
+<td>Prince Agbodjan Sewa Francis Ghislain</td>
+<td>Silver</td>
+</tr>
+<tr>
+<td><code>TECWMS-SIL-2026-004</code></td>
+<td>Aissata Soukeina Camara</td>
+<td>Silver</td>
+</tr>
+<tr>
+<td><code>TECWMS-GOLD-2026-001</code></td>
+<td>Darlin Campaz Paredes</td>
+<td>Gold</td>
+</tr>
+<tr>
+<td><code>TECWMS-GOLD-2026-002</code></td>
+<td>Fredy Tamile Lola</td>
+<td>Gold</td>
+</tr>
+<tr>
+<td><code>TECWMS-GOLD-2026-003</code></td>
+<td>Prince Agbodjan Sewa Francis Ghislain</td>
+<td>Gold</td>
+</tr>
+<tr>
+<td><code>TECWMS-GOLD-2026-004</code></td>
+<td>Aissata Soukeina Camara</td>
+<td>Gold</td>
+</tr>
+</tbody></table>
+<h3>6.3 Règles d&#39;allocation</h3>
+<ol>
+<li>Numéros <strong>pré-alloués</strong> à l&#39;approbation institutionnelle — jamais dérivés de l&#39;auto-incrément simulateur.</li>
+<li>Séquence démarre à <code>001</code> pour chaque combinaison <code>TIER + ANNÉE</code>.</li>
+<li><strong>Aucune réutilisation</strong> — un identifiant révoqué reste dans le registre comme <code>REVOKED</code>.</li>
+<li>Séquences contiguës par cohorte ; tout écart requiert une note d&#39;audit.</li>
+<li>Silver et Gold sont <strong>indépendants</strong> — un titulaire peut posséder les deux identifiants.</li>
+</ol>
+<h3>6.4 Champs registre associés</h3>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Visibilité</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>certificateId</code></td>
+<td>Public</td>
+<td>Clé primaire</td>
+</tr>
+<tr>
+<td><code>studentNumber</code></td>
+<td>Portail (contexte institutionnel)</td>
+<td>Numéro étudiant Collège</td>
+</tr>
+<tr>
+<td><code>recipient_display_name</code></td>
+<td>Public</td>
+<td>Nom légal d&#39;affichage</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>Public</td>
+<td><code>ACTIVE</code> · <code>REVOKED</code> · <code>EXPIRED</code></td>
+</tr>
+<tr>
+<td><code>issueDate</code></td>
+<td>Public</td>
+<td>Date ISO d&#39;émission</td>
+</tr>
+<tr>
+<td><code>prerequisite_certificate_id</code></td>
+<td>Registre interne</td>
+<td>Lien Silver → Gold</td>
+</tr>
+<tr>
+<td><code>eligibility_snapshot_hash</code></td>
+<td>Audit interne</td>
+<td>Empreinte SHA-256 des portes à l&#39;émission</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. Architecture du portail de vérification</h2>
+<h3>7.1 Objectif</h3>
+<p>Service web <strong>public en lecture seule</strong> permettant aux employeurs, partenaires académiques et titulaires de confirmer qu&#39;un identifiant correspond à une entrée active du registre institutionnel.</p>
+<h3>7.2 Composants</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                    Portail de vérification                   │
+├─────────────────────────────────────────────────────────────┤
+│  Route UI      /verify/{certificateId}                      │
+│  Registre      Registre institutionnel TEC.WMS              │
+│  Lookup        Vérification par identifiant canonique       │
+│  Statuts       ACTIVE → affiché · REVOKED/EXPIRED → masqué  │
+│  Actions       PDF · LinkedIn · URL de vérification         │
+└─────────────────────────────────────────────────────────────┘
+</code></pre>
+<h3>7.3 URL de production</h3>
+<table>
+<thead>
+<tr>
+<th>Composant</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Base production</strong></td>
+<td>Plateforme TEC.WMS — Collège de la Concorde</td>
+</tr>
+<tr>
+<td><strong>Chemin vérification</strong></td>
+<td><code>/verify/{certificateId}</code></td>
+</tr>
+<tr>
+<td><strong>Exemple complet</strong></td>
+<td><code>https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-001</code></td>
+</tr>
+</tbody></table>
+<h3>7.4 Contenu page — credential valide</h3>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Affichage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Bannière statut</td>
+<td>✓ Certification vérifiée</td>
+</tr>
+<tr>
+<td>Nom titulaire</td>
+<td>Nom d&#39;affichage registre</td>
+</tr>
+<tr>
+<td>Identifiant</td>
+<td><code>TECWMS-SIL-2026-001</code> (monospace)</td>
+</tr>
+<tr>
+<td>Numéro étudiant</td>
+<td>Numéro Collège</td>
+</tr>
+<tr>
+<td>Programme</td>
+<td>TEC.WMS</td>
+</tr>
+<tr>
+<td>Niveau</td>
+<td>SILVER ou GOLD</td>
+</tr>
+<tr>
+<td>Date d&#39;émission</td>
+<td>Format locale <code>fr-CA</code> / <code>en-CA</code></td>
+</tr>
+<tr>
+<td>Émis par</td>
+<td>Collège de la Concorde</td>
+</tr>
+<tr>
+<td>URL credential</td>
+<td>Lien canonique de vérification</td>
+</tr>
+<tr>
+<td>Actions</td>
+<td>Télécharger PDF · Ajouter à LinkedIn</td>
+</tr>
+</tbody></table>
+<h3>7.5 États d&#39;erreur</h3>
+<table>
+<thead>
+<tr>
+<th>État</th>
+<th>Comportement</th>
+<th>Message (FR)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>NOT_FOUND</code></td>
+<td>Identifiant absent du registre</td>
+<td>Certification introuvable. Vérifiez l&#39;identifiant.</td>
+</tr>
+<tr>
+<td><code>REVOKED</code></td>
+<td>Entrée <code>REVOKED</code></td>
+<td>Non affiché comme valide — traité comme introuvable en v1.0</td>
+</tr>
+<tr>
+<td><code>MALFORMED_ID</code></td>
+<td>Format invalide</td>
+<td>Format d&#39;identifiant invalide</td>
+</tr>
+<tr>
+<td><code>EXPIRED</code></td>
+<td>Entrée <code>EXPIRED</code></td>
+<td>Non affiché comme valide</td>
+</tr>
+</tbody></table>
+<h3>7.6 Règles de confidentialité</h3>
+<ul>
+<li>Le portail public retourne le <strong>nom d&#39;affichage</strong> et les métadonnées de certification.</li>
+<li>Aucun courriel, mot de passe ou détail de score n&#39;est exposé.</li>
+<li>La recherche partielle n&#39;est <strong>pas</strong> supportée (prévention d&#39;énumération).</li>
+</ul>
+<h3>7.7 Sécurité opérationnelle</h3>
+<table>
+<thead>
+<tr>
+<th>Mécanisme</th>
+<th>Approche</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Authentification</td>
+<td>Aucune requise pour la vérification</td>
+</tr>
+<tr>
+<td>Source de vérité</td>
+<td>Registre institutionnel — le PDF est une représentation</td>
+</tr>
+<tr>
+<td>Limitation de débit</td>
+<td>60 requêtes/minute par IP (cible)</td>
+</tr>
+<tr>
+<td>Intégrité QR signée</td>
+<td>Hors scope v1.0 — URL mappe au registre</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. Flux de vérification par code QR</h2>
+<h3>8.1 Rôle du QR</h3>
+<p>Le code QR est le <strong>pont hors-ligne vers en-ligne</strong> sur le certificat imprimé ou PDF. Il encode une URL HTTPS unique pointant vers le portail de vérification du credential.</p>
+<h3>8.2 Spécification technique</h3>
+<table>
+<thead>
+<tr>
+<th>Propriété</th>
+<th>Règle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Type</strong></td>
+<td>URL (ISO/IEC 18004 QR Code Model 2)</td>
+</tr>
+<tr>
+<td><strong>Charge utile</strong></td>
+<td>URL complète incluant <code>certificateId</code></td>
+</tr>
+<tr>
+<td><strong>Correction d&#39;erreur</strong></td>
+<td>Niveau M (15 %)</td>
+</tr>
+<tr>
+<td><strong>Taille minimale impression</strong></td>
+<td>32 × 32 mm sur certificat A4</td>
+</tr>
+<tr>
+<td><strong>Zone tranquille</strong></td>
+<td>4 modules minimum</td>
+</tr>
+<tr>
+<td><strong>Couleurs</strong></td>
+<td><code>#1e293b</code> sur blanc uniquement</td>
+</tr>
+</tbody></table>
+<h3>8.3 Placement sur le certificat</h3>
+<ul>
+<li><strong>Position :</strong> Bas droit de la rangée de signatures, aligné avec les lignes de signature.</li>
+<li><strong>Étiquette :</strong> <code>Vérifier / Verify</code> + URL portail TEC.WMS</li>
+<li><strong>Hors médaille</strong> — le sceau institutionnel reste distinct pour la lisibilité du scan.</li>
+</ul>
+<h3>8.4 Workflow de vérification</h3>
+<pre><code>┌──────────────┐    scan QR     ┌─────────────────────┐
+│ Certificat   │ ─────────────► │ Portail /verify/ID  │
+│ PDF / papier │                └──────────┬──────────┘
+└──────────────┘                           │
+                                           ▼
+                              ┌────────────────────────┐
+                              │ Lookup registre ACTIVE │
+                              └──────────┬─────────────┘
+                                         │
+                    ┌────────────────────┼────────────────────┐
+                    ▼                    ▼                    ▼
+              ┌──────────┐        ┌──────────┐        ┌──────────┐
+              │  VALIDE  │        │ INTROUV. │        │ RÉVOQUÉ  │
+              │ Afficher │        │ Message  │        │ Masqué   │
+              │ détails  │        │ erreur   │        │ v1.0     │
+              └──────────┘        └──────────┘        └──────────┘
+</code></pre>
+<h3>8.5 Vérification manuelle (secours)</h3>
+<p>Sans QR, saisir l&#39;identifiant exact sur le portail. Correspondance <strong>exacte</strong> uniquement (insensible à la casse).</p>
+<h3>8.6 Génération QR</h3>
+<p>Le QR est généré <strong>uniquement à l&#39;émission officielle du PDF</strong>, jamais pour les aperçus simulateur filigranés.</p>
+<hr>
+<h2>9. Intégration LinkedIn</h2>
+<h3>9.1 Objectif</h3>
+<p>Permettre au titulaire d&#39;ajouter sa certification TEC.WMS à son profil LinkedIn via le flux officiel <strong>Add to Profile → Licenses &amp; Certifications</strong>.</p>
+<h3>9.2 Construction de l&#39;URL</h3>
+<p>Le système génère une URL <code>https://www.linkedin.com/profile/add</code> avec les paramètres suivants :</p>
+<table>
+<thead>
+<tr>
+<th>Paramètre</th>
+<th>Silver</th>
+<th>Gold</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>startTask</code></td>
+<td><code>CERTIFICATION_NAME</code></td>
+<td><code>CERTIFICATION_NAME</code></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td><code>TEC.WMS Silver Certification</code></td>
+<td><code>TEC.WMS Gold Certification</code></td>
+</tr>
+<tr>
+<td><code>organizationName</code></td>
+<td><code>Collège de la Concorde</code></td>
+<td><code>Collège de la Concorde</code></td>
+</tr>
+<tr>
+<td><code>issueYear</code></td>
+<td>Année d&#39;émission</td>
+<td>Année d&#39;émission</td>
+</tr>
+<tr>
+<td><code>issueMonth</code></td>
+<td>Mois d&#39;émission</td>
+<td>Mois d&#39;émission</td>
+</tr>
+<tr>
+<td><code>certId</code></td>
+<td><code>TECWMS-SIL-2026-00N</code></td>
+<td><code>TECWMS-GOLD-2026-00N</code></td>
+</tr>
+<tr>
+<td><code>certUrl</code></td>
+<td>URL de vérification production</td>
+<td>URL de vérification production</td>
+</tr>
+</tbody></table>
+<p><strong>Fonction de référence :</strong> générateur d&#39;URL LinkedIn intégré à la plateforme TEC.WMS.</p>
+<h3>9.3 Points d&#39;accès UI</h3>
+<table>
+<thead>
+<tr>
+<th>Emplacement</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Page <code>/verify/{certificateId}</code></td>
+<td>Bouton « Ajouter à LinkedIn »</td>
+</tr>
+<tr>
+<td>Page certifications étudiant</td>
+<td>Lien credential si registre lié</td>
+</tr>
+</tbody></table>
+<h3>9.4 Règles institutionnelles</h3>
+<ol>
+<li>Seuls les credentials <code>ACTIVE</code> dans le registre peuvent générer un lien LinkedIn valide.</li>
+<li>L&#39;URL de vérification (<code>certUrl</code>) doit résoudre vers le portail institutionnel — jamais vers un aperçu simulateur.</li>
+<li>Le titulaire est responsable de l&#39;exactitude des informations sur son profil LinkedIn après ajout.</li>
+<li>LinkedIn peut modifier son flux d&#39;ajout ; le Collège maintient la fonction de génération d&#39;URL à jour.</li>
+</ol>
+<hr>
+<h2>10. Cycle de vie de la certification</h2>
+<h3>10.1 Diagramme de cycle de vie</h3>
+<pre><code>                    ┌─────────────────┐
+                    │   INSCRIPTION   │
+                    │   (étudiant)    │
+                    └────────┬────────┘
+                             ▼
+                    ┌─────────────────┐
+                    │  APPRENTISSAGE  │
+                    │  M1 → M5        │
+                    └────────┬────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  ÉVALUATION (mode eval)      │
+              │  SCN + quiz + conformité     │
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  ÉLIGIBILITÉ SIMULATEUR      │
+              │  silverEligible / goldEligible│
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  DÉBLOCAGE FLAG (optionnel)  │
+              │  Attribution simulateur Silver/Gold │
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  APERÇU PÉDAGOGIQUE          │
+              │  (Silver/Gold Premium UI)    │
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  REVUE INSTITUTIONNELLE B3   │
+              │  Approbation cohorte         │
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  ALLOCATION IDENTIFIANT      │
+              │  TECWMS-{TIER}-{ANNÉE}-{SEQ} │
+              └──────────────┬───────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  ÉMISSION OFFICIELLE         │
+              │  PDF + QR + registre ACTIVE  │
+              └──────────────┬───────────────┘
+                             ▼
+         ┌───────────────────┴───────────────────┐
+         ▼                   ▼                       ▼
+  ┌─────────────┐    ┌─────────────┐         ┌─────────────┐
+  │  MAINTIEN   │    │  RÉÉMISSION │         │  RÉVOCATION │
+  │  ACTIVE     │    │  (§12)      │         │  (§11)      │
+  └─────────────┘    └─────────────┘         └─────────────┘
+</code></pre>
+<h3>10.2 Phases détaillées</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Description</th>
+<th>Système responsable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>P1 — Formation</strong></td>
+<td>Progression modules, scénarios, quiz</td>
+<td>TEC.WMS LMS</td>
+</tr>
+<tr>
+<td><strong>P2 — Évaluation</strong></td>
+<td>Runs scorées, conformité, bloqueurs</td>
+<td>Moteur TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>P3 — Éligibilité</strong></td>
+<td>Calcul automatique des portes</td>
+<td>Moteur de certification TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>P4 — Attribution simulateur</strong></td>
+<td>Déblocage Silver Premium / Gold Premium</td>
+<td>Serveur TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>P5 — Aperçu</strong></td>
+<td>Certificat Premium in-app</td>
+<td>Client React</td>
+</tr>
+<tr>
+<td><strong>P6 — Revue B3</strong></td>
+<td>Validation cohorte par direction</td>
+<td>Collège (hors simulateur)</td>
+</tr>
+<tr>
+<td><strong>P7 — Émission</strong></td>
+<td>PDF signé, QR, entrée registre</td>
+<td>Collège + pipeline export</td>
+</tr>
+<tr>
+<td><strong>P8 — Vérification</strong></td>
+<td>Portail public, LinkedIn</td>
+<td>Infrastructure vérification</td>
+</tr>
+</tbody></table>
+<h3>10.3 Durée de validité</h3>
+<p>En v1.0, les credentials n&#39;ont <strong>pas de date d&#39;expiration</strong> automatique. Le statut <code>EXPIRED</code> est réservé aux décisions institutionnelles explicites (changement de programme majeur).</p>
+<h3>10.4 Archivage</h3>
+<table>
+<thead>
+<tr>
+<th>Artefact</th>
+<th>Durée minimale</th>
+<th>Responsable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>PDF signé</td>
+<td>7 ans</td>
+<td>Collège de la Concorde</td>
+</tr>
+<tr>
+<td>Entrée registre</td>
+<td>Permanente</td>
+<td>Collège de la Concorde</td>
+</tr>
+<tr>
+<td>Snapshot éligibilité</td>
+<td>7 ans</td>
+<td>Collège + audit technique</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>11. Politique de révocation</h2>
+<h3>11.1 Principes</h3>
+<p>La révocation est une mesure <strong>exceptionnelle</strong> qui invalide un credential précédemment émis. Elle ne supprime pas l&#39;historique — l&#39;identifiant reste dans le registre avec le statut <code>REVOKED</code>.</p>
+<h3>11.2 Motifs de révocation</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Motif</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>R-01</code></td>
+<td>Fraude ou falsification</td>
+<td>Soumission frauduleuse de preuves</td>
+</tr>
+<tr>
+<td><code>R-02</code></td>
+<td>Erreur d&#39;identité</td>
+<td>Credential émis au mauvais titulaire</td>
+</tr>
+<tr>
+<td><code>R-03</code></td>
+<td>Violation code d&#39;éthique</td>
+<td>Conduite incompatible avec la certification</td>
+</tr>
+<tr>
+<td><code>R-04</code></td>
+<td>Annulation académique</td>
+<td>Retrait du programme pour motif disciplinaire</td>
+</tr>
+<tr>
+<td><code>R-05</code></td>
+<td>Erreur d&#39;émission</td>
+<td>Credential émis avant validation complète des portes</td>
+</tr>
+</tbody></table>
+<h3>11.3 Autorité de révocation</h3>
+<table>
+<thead>
+<tr>
+<th>Niveau</th>
+<th>Autorité</th>
+<th>Périmètre</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Décision</strong></td>
+<td>Directrice de programme (Nadia Allami)</td>
+<td>Tous les credentials TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>Exécution technique</strong></td>
+<td>Directeur technique TEC.WMS</td>
+<td>Mise à jour registre + portail</td>
+</tr>
+<tr>
+<td><strong>Consultation</strong></td>
+<td>Direction Collège</td>
+<td>Motifs R-03, R-04</td>
+</tr>
+</tbody></table>
+<h3>11.4 Procédure</h3>
+<ol>
+<li><strong>Signalement</strong> — Fraude, erreur ou incident documenté.</li>
+<li><strong>Enquête</strong> — Vérification des preuves et du snapshot d&#39;éligibilité.</li>
+<li><strong>Décision écrite</strong> — Motif codifié (R-01 à R-05) + date.</li>
+<li><strong>Mise à jour registre</strong> — <code>status = REVOKED</code> ; <code>revoked_at</code> ; <code>revocation_reason</code>.</li>
+<li><strong>Notification titulaire</strong> — Courriel institutionnel avec motif et voie de recours.</li>
+<li><strong>Mise à jour portail</strong> — Le credential n&#39;apparaît plus comme valide.</li>
+<li><strong>Archivage</strong> — Dossier d&#39;audit conservé 7 ans minimum.</li>
+</ol>
+<h3>11.5 Effets de la révocation</h3>
+<table>
+<thead>
+<tr>
+<th>Domaine</th>
+<th>Effet</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Portail vérification</td>
+<td>Credential non résolu comme valide</td>
+</tr>
+<tr>
+<td>LinkedIn</td>
+<td>Titulaire doit retirer manuellement ; le Collège peut signaler à LinkedIn</td>
+</tr>
+<tr>
+<td>Simulateur</td>
+<td>Indicateurs Silver/Gold Premium peuvent être réinitialisés par l&#39;administration</td>
+</tr>
+<tr>
+<td>PDF existant</td>
+<td>Devient non vérifiable — le registre prime sur le document</td>
+</tr>
+</tbody></table>
+<h3>11.6 Non-révocation automatique</h3>
+<p><strong>Il n&#39;existe pas de révocation automatique</strong> lorsqu&#39;un étudiant rejoue un scénario avec un score inférieur. Seules les voies administratives institutionnelles peuvent réinitialiser les indicateurs simulateur — la révocation du credential officiel reste une décision institutionnelle distincte.</p>
+<h3>11.7 Recours</h3>
+<p>Le titulaire dispose de <strong>15 jours ouvrables</strong> pour soumettre un recours écrit à la direction du programme. La décision finale appartient au Collège de la Concorde.</p>
+<hr>
+<h2>12. Politique de réémission</h2>
+<h3>12.1 Principes</h3>
+<p>La réémission couvre les cas où un credential valide doit être <strong>remplacé</strong> sans révocation pour faute — typiquement correction de nom, mise à jour visuelle ou remplacement de PDF endommagé.</p>
+<h3>12.2 Motifs de réémission</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Motif</th>
+<th>Nouvel identifiant ?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>E-01</code></td>
+<td>Correction orthographique du nom</td>
+<td>Non — même ID</td>
+</tr>
+<tr>
+<td><code>E-02</code></td>
+<td>Remplacement PDF (défaut impression)</td>
+<td>Non — même ID</td>
+</tr>
+<tr>
+<td><code>E-03</code></td>
+<td>Mise à jour template institutionnel</td>
+<td>Non — même ID, nouvelle <code>issue_date</code> optionnelle</td>
+</tr>
+<tr>
+<td><code>E-04</code></td>
+<td>Credential jamais reçu (perte confirmée)</td>
+<td>Non — réexpédition même ID</td>
+</tr>
+<tr>
+<td><code>E-05</code></td>
+<td>Changement légal de nom</td>
+<td>Non — mise à jour <code>recipient_display_name</code></td>
+</tr>
+</tbody></table>
+<h3>12.3 Motifs nécessitant un nouvel identifiant</h3>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Credential émis par erreur à un non-éligible</td>
+<td>Révoquer l&#39;ancien (R-05) + émettre nouveau si éligible</td>
+</tr>
+<tr>
+<td>Tier incorrect (Silver vs Gold)</td>
+<td>Révoquer + émettre avec bon tier et nouvelle séquence si requis</td>
+</tr>
+</tbody></table>
+<p><strong>Règle absolue :</strong> un identifiant révoqué n&#39;est <strong>jamais réattribué</strong>.</p>
+<h3>12.4 Procédure de réémission</h3>
+<ol>
+<li><strong>Demande</strong> — Titulaire ou administration via formulaire institutionnel.</li>
+<li><strong>Vérification</strong> — Statut <code>ACTIVE</code> confirmé ; motif documenté.</li>
+<li><strong>Regénération</strong> — Nouveau PDF + QR (même URL si même ID).</li>
+<li><strong>Journal</strong> — Entrée <code>updated_at</code> + note de réémission dans le dossier audit.</li>
+<li><strong>Livraison</strong> — PDF sécurisé au titulaire ; ancien PDF considéré remplacé.</li>
+</ol>
+<h3>12.5 Limites</h3>
+<table>
+<thead>
+<tr>
+<th>Limite</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Réémissions gratuites par an</td>
+<td>2 maximum (E-01 à E-04)</td>
+</tr>
+<tr>
+<td>Délai de traitement</td>
+<td>10 jours ouvrables</td>
+</tr>
+<tr>
+<td>Frais administratifs</td>
+<td>Applicables au-delà de la 2e réémission (barème Collège)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>13. Gouvernance institutionnelle</h2>
+<h3>13.1 Organigramme de gouvernance</h3>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│              Collège de la Concorde — Direction             │
+└────────────────────────────┬────────────────────────────────┘
+                             │
+         ┌───────────────────┼───────────────────┐
+         ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ Directrice de   │ │ Directeur       │ │ Comité          │
+│ programme       │ │ technique       │ │ pédagogique     │
+│ TEC.LOG         │ │ TEC.WMS         │ │ TEC.LOG         │
+│ (N. Allami)     │ │ (T. Gibran)     │ │                 │
+└────────┬────────┘ └────────┬────────┘ └────────┬────────┘
+         │                   │                   │
+         └───────────────────┼───────────────────┘
+                             ▼
+              ┌──────────────────────────────┐
+              │  Registre des certifications │
+              │  Portail de vérification     │
+              │  Politiques révocation/       │
+              │  réémission                  │
+              └──────────────────────────────┘
+</code></pre>
+<h3>13.2 Rôles et responsabilités</h3>
+<table>
+<thead>
+<tr>
+<th>Rôle</th>
+<th>Responsabilités</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Directrice de programme</strong></td>
+<td>Approbation B3 cohortes · Révocation · Politique pédagogique · Communication institutionnelle</td>
+</tr>
+<tr>
+<td><strong>Directeur technique TEC.WMS</strong></td>
+<td>Moteur d&#39;éligibilité · Registre technique · Portail · Intégrité des seuils · Audit post-déploiement</td>
+</tr>
+<tr>
+<td><strong>Enseignants TEC.LOG</strong></td>
+<td>Validation M3 (<code>teacherValidated</code>) · Preuves pédagogiques · Signalement d&#39;anomalies</td>
+</tr>
+<tr>
+<td><strong>Administration Collège</strong></td>
+<td>Émission PDF · Archivage · Numérotation · Support titulaires</td>
+</tr>
+<tr>
+<td><strong>Comité pédagogique</strong></td>
+<td>Révision Constitution · Modifications de seuils · Alignement Mission Sheets</td>
+</tr>
+</tbody></table>
+<h3>13.3 Contrôles périodiques</h3>
+<table>
+<thead>
+<tr>
+<th>Contrôle</th>
+<th>Responsable</th>
+<th>Fréquence</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Approbation B3 avant première émission</td>
+<td>Directrice de programme</td>
+<td>Par cohorte</td>
+</tr>
+<tr>
+<td>Revue des entrées registre</td>
+<td>Direction + technique</td>
+<td>Par lot de récipiendaires</td>
+</tr>
+<tr>
+<td>Spot-check vérification portail</td>
+<td>Directeur technique</td>
+<td>Post-déploiement + trimestriel</td>
+</tr>
+<tr>
+<td>Audit cohérence flags simulateur / registre</td>
+<td>Directeur technique</td>
+<td>Par release majeure</td>
+</tr>
+<tr>
+<td>Rétention archives PDF</td>
+<td>Administration Collège</td>
+<td>Continu — audit annuel</td>
+</tr>
+<tr>
+<td>Revue politique révocation/réémission</td>
+<td>Directrice de programme</td>
+<td>Annuelle</td>
+</tr>
+</tbody></table>
+<h3>13.4 Alignement constitutionnel</h3>
+<p>Ce manuel s&#39;aligne sur la <strong>Constitution pédagogique TEC.WMS</strong> :</p>
+<ul>
+<li><strong>Article VII</strong> — Frontières de certification (Silver = M1 ; Gold = parcours intégré)</li>
+<li><strong>Article IX</strong> — Gouvernance des changements (seuils, déploiements, agents IA)</li>
+</ul>
+<p>Toute modification pédagogique impactant la certification exige une <strong>décision programme distincte</strong> — pas d&#39;effet automatique via correctifs M2–M5.</p>
+<h3>13.5 Gestion des versions documentaires</h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Auteur</th>
+<th>Modification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1.0</td>
+<td>juin 2026</td>
+<td>Collège de la Concorde · TEC.LOG</td>
+<td>Publication initiale du manuel officiel</td>
+</tr>
+</tbody></table>
+<p><strong>Références :</strong> Manuel de certification TEC.WMS · Constitution pédagogique TEC.WMS · Audit intelligence certification</p>
+<h3>13.6 Contacts institutionnels</h3>
+<table>
+<thead>
+<tr>
+<th>Domaine</th>
+<th>Contact</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Questions certification</td>
+<td>Programme TEC.LOG — Collège de la Concorde</td>
+</tr>
+<tr>
+<td>Vérification employeur</td>
+<td>Portail TEC.WMS — <code>/verify/{certificateId}</code></td>
+</tr>
+<tr>
+<td>Signalement fraude</td>
+<td>Directrice de programme</td>
+</tr>
+<tr>
+<td>Support technique portail</td>
+<td>Directeur technique TEC.WMS</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>14. Annexes</h2>
+<h3>Annexe A — Matrice Silver (récapitulatif)</h3>
+<table>
+<thead>
+<tr>
+<th>SCN</th>
+<th>Intitulé</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SCN-001</td>
+<td>Cycle opérationnel complet</td>
+<td>60</td>
+</tr>
+<tr>
+<td>SCN-002</td>
+<td>Résolution GR fantôme</td>
+<td>60</td>
+</tr>
+<tr>
+<td>SCN-003</td>
+<td>Résolution pénurie stock</td>
+<td>60</td>
+</tr>
+<tr>
+<td>SCN-004</td>
+<td>Ajustement écart inventaire</td>
+<td>60</td>
+</tr>
+<tr>
+<td>SCN-005</td>
+<td>Conformité multi-erreurs</td>
+<td>60</td>
+</tr>
+<tr>
+<td>Quiz M1</td>
+<td>Validation fondements</td>
+<td>60 %</td>
+</tr>
+</tbody></table>
+<h3>Annexe B — Matrice Gold (récapitulatif)</h3>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>SCN</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M2</td>
+<td>006–008</td>
+<td>60</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>009–011</td>
+<td>70</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>012–014</td>
+<td>70</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>015–016</td>
+<td>70</td>
+</tr>
+<tr>
+<td>M5 capstone</td>
+<td>017</td>
+<td>70</td>
+</tr>
+<tr>
+<td>Quiz M5</td>
+<td>—</td>
+<td>60 %</td>
+</tr>
+</tbody></table>
+<h3>Annexe C — Schéma registre (JSON)</h3>
+<pre><code class="language-json">{
+  &quot;certificateId&quot;: &quot;TECWMS-SIL-2026-001&quot;,
+  &quot;studentName&quot;: &quot;Nom du titulaire&quot;,
+  &quot;studentNumber&quot;: &quot;000000&quot;,
+  &quot;certificationLevel&quot;: &quot;SILVER&quot;,
+  &quot;status&quot;: &quot;ACTIVE&quot;
+}
+</code></pre>
+<h3>Annexe D — Paramètres LinkedIn (exemple)</h3>
+<pre><code>https://www.linkedin.com/profile/add
+  ?startTask=CERTIFICATION_NAME
+  &amp;name=TEC.WMS+Silver+Certification
+  &amp;organizationName=Collège+de+la+Concorde
+  &amp;issueYear=2026
+  &amp;issueMonth=6
+  &amp;certId=TECWMS-SIL-2026-001
+  &amp;certUrl=https://.../verify/TECWMS-SIL-2026-001
+</code></pre>
+<hr>
+<div class="doc-footer"><p><strong>Collège de la Concorde · Programme TEC.LOG</strong><br>Manuel officiel de certification TEC.WMS · Version 1.0 · juin 2026<br>Credential opérationnel ERP/WMS — Silver Premium · Gold Premium</p>
+</div>
+
+</body>
+</html>

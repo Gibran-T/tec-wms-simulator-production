@@ -1,0 +1,2264 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEC.WMS — Guide Enseignant Officiel</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 24mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #0f2d52;
+      page-break-after: avoid;
+    }
+    h1 { font-size: 1.55em; margin-top: 1.2em; border-bottom: 2px solid #0f2d52; padding-bottom: 0.25em; }
+    h2 { font-size: 1.25em; margin-top: 1em; }
+    h3 { font-size: 1.05em; margin-top: 0.85em; color: #234a73; }
+    p, li { orphans: 3; widows: 3; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8em 0 1em;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.45em 0.55em;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #e8eef4;
+      font-weight: 600;
+      color: #0f2d52;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    blockquote {
+      margin: 0.8em 0;
+      padding: 0.6em 1em;
+      border-left: 4px solid #0f2d52;
+      background: #f4f7fa;
+      color: #333;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+      background: #f0f0f0;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 0.8em 1em;
+      font-size: 9pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 1.2em 0;
+    }
+    ul, ol { padding-left: 1.4em; }
+    a { color: #0f2d52; text-decoration: none; }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    .cover-page {
+      width: 210mm;
+      min-height: 297mm;
+      text-align: center;
+      padding: 55mm 25mm 20mm;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .cover-page .brand {
+      font-size: 2.6em;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #0f2d52;
+      margin-bottom: 1.5em;
+    }
+    .cover-page .title-block h1 {
+      font-size: 1.55em;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0.35em 0;
+      border: none;
+      color: #1a1a1a;
+    }
+    .cover-page .subtitle-block {
+      margin-top: 45mm;
+      font-size: 1.15em;
+      line-height: 1.65;
+      color: #333;
+    }
+    .cover-page .meta {
+      margin-top: 35mm;
+      font-size: 0.95em;
+      color: #555;
+      line-height: 1.6;
+    }
+    .doc-footer { display: none; }
+    .checklist-page h1 { border-bottom-color: #0f2d52; }
+    .checklist-page table td:first-child {
+      width: 2.2em;
+      font-size: 1.15em;
+      text-align: center;
+    }
+    
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.checklist-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.checklist-page td {
+  padding: 0.6em 0.4em;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+.checklist-page td:first-child {
+  width: 2em;
+  font-size: 1.2em;
+}
+
+  </style>
+</head>
+<body>
+<style>
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.checklist-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.checklist-page td {
+  padding: 0.6em 0.4em;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+.checklist-page td:first-child {
+  width: 2em;
+  font-size: 1.2em;
+}
+</style><div class="cover-page"><p class="brand">TEC.WMS</p><div class="title-block"><h1>Guide Enseignant Officiel</h1>
+<h1>Programme TEC.LOG — Gestion intégrée des stocks</h1>
+<h1>et performance logistique</h1>
+</div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong><br>Simulateur pédagogique ERP/WMS · Montréal</p>
+</div><div class="meta"><p>Parcours M1–M5 · 30 heures · 10 séances · 17 scénarios (SCN-001 → SCN-017)<br>Version juin 2026 · Document instructeur — usage institutionnel</p>
+</div></div><h1>Table des matières</h1>
+<ol>
+<li><a href="#1-pr%C3%A9sentation-du-guide">Présentation du guide</a></li>
+<li><a href="#2-vision-du-programme-teclog">Vision du programme TEC.LOG</a></li>
+<li><a href="#3-m%C3%A9thodologie-p%C3%A9dagogique">Méthodologie pédagogique</a></li>
+<li><a href="#4-structure-en-10-s%C3%A9ances-30-h">Structure en 10 séances (30 h)</a></li>
+<li><a href="#5-objectifs-par-module-m1m5">Objectifs par module M1–M5</a></li>
+<li><a href="#6-flux-p%C3%A9dagogique--diapositives-slides">Flux pédagogique — Diapositives (Slides)</a></li>
+<li><a href="#7-flux-p%C3%A9dagogique--quiz">Flux pédagogique — Quiz</a></li>
+<li><a href="#8-flux-p%C3%A9dagogique--sc%C3%A9narios-simulation">Flux pédagogique — Scénarios (Simulation)</a></li>
+<li><a href="#9-processus-de-validation-enseignant-module-3">Processus de validation enseignant (Module 3)</a></li>
+<li><a href="#10-certification-silver--processus-et-crit%C3%A8res">Certification Silver — processus et critères</a></li>
+<li><a href="#11-certification-gold--processus-et-crit%C3%A8res">Certification Gold — processus et critères</a></li>
+<li><a href="#12-moteur-de-checkpoints-checkpoint-engine">Moteur de checkpoints (Checkpoint Engine)</a></li>
+<li><a href="#13-probl%C3%A8mes-fr%C3%A9quents-des-%C3%A9tudiants">Problèmes fréquents des étudiants</a></li>
+<li><a href="#14-workflow-de-d%C3%A9livrance-des-certificats">Workflow de délivrance des certificats</a></li>
+<li><a href="#15-annexes--r%C3%A9f%C3%A9rences-et-outils-enseignant">Annexes — Références et outils enseignant</a></li>
+</ol>
+<div class="page-break"></div><h1>1. Présentation du guide</h1>
+<p>Ce <strong>Guide Enseignant Officiel TEC.WMS</strong> est le document de référence pour les instructeurs du Collège de la Concorde qui dispensent le programme <strong>TEC.LOG — Gestion intégrée des stocks et performance logistique</strong>.</p>
+<p>Il couvre l&#39;ensemble du parcours pédagogique sur la plateforme <strong>Mini-WMS Concorde</strong> : vision du programme, méthodologie, calendrier des dix séances, objectifs par module, workflows opérationnels (diapositives, quiz, scénarios), validation enseignant, certifications Silver et Gold, moteur de checkpoints, problèmes fréquents et délivrance institutionnelle des certificats.</p>
+<p><strong>Public visé :</strong> enseignants, coordonnateurs de programme, directeurs de département.</p>
+<p><strong>Prérequis techniques :</strong> compte enseignant sur TEC.WMS, accès au tableau de bord <code>/teacher</code>, familiarité de base avec les concepts ERP/WMS.</p>
+<p><strong>Documents complémentaires (étudiants) :</strong></p>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Contenu</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Guide étudiant M1–M3</td>
+<td>Préparation scénarios SCN-001 à SCN-011</td>
+</tr>
+<tr>
+<td>Guide étudiant M4–M5</td>
+<td>Préparation scénarios SCN-012 à SCN-017</td>
+</tr>
+<tr>
+<td>Constitution pédagogique TEC.WMS</td>
+<td>Hiérarchie des sources et critères GREEN</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Autorité pédagogique.</strong> En cas de divergence entre ce guide et la <strong>Constitution pédagogique TEC.WMS</strong> (PDF institutionnel), la Constitution prévaut. Les <strong>Fiches Mission</strong> (Mission Sheets) sont la vérité opérationnelle pour chaque scénario.</p>
+</blockquote>
+<div class="page-break"></div><h1>2. Vision du programme TEC.LOG</h1>
+<h2>2.1 Mission</h2>
+<p>Former des <strong>gestionnaires logistiques</strong> capables d&#39;<strong>exécuter</strong>, <strong>analyser</strong> et <strong>décider</strong> dans un environnement WMS/ERP simulé — sans dépendance à un ERP commercial en classe.</p>
+<p>Le simulateur TEC.WMS reproduit les flux transactionnels industriels (SAP S/4HANA, Odoo) dans un environnement structuré, bilingue (FR/EN), avec évaluation automatisée et conformité système.</p>
+<h2>2.2 Résultats d&#39;apprentissage globaux</h2>
+<p>À la fin du parcours M1–M5, l&#39;étudiant est capable de :</p>
+<ol>
+<li><strong>Exécuter</strong> le cycle logistique complet : PO → GR → Putaway → SO → Picking → GI → Cycle Count → Conformité.</li>
+<li><strong>Appliquer</strong> les règles d&#39;entrepôt : zones (RÉCEPTION / STOCKAGE / EXPÉDITION), capacité d&#39;emplacement, FIFO.</li>
+<li><strong>Contrôler</strong> les stocks : inventaire cyclique, écarts, ajustements (MI07), réapprovisionnement.</li>
+<li><strong>Interpréter</strong> les KPI logistiques : rotation, taux de service, OTIF, lead time, diagnostic stratégique.</li>
+<li><strong>Décider</strong> sous contrainte opérationnelle : cycle intégré Peak Week, gestion de variance, capstone stratégique S&amp;OP.</li>
+</ol>
+<h2>2.3 Architecture pédagogique en quatre couches</h2>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Rôle</th>
+<th>Artefact</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Briefing</strong></td>
+<td>Contexte, rôle, compétence visée</td>
+<td>Fiche Mission (in-app)</td>
+</tr>
+<tr>
+<td><strong>Transmission</strong></td>
+<td>Concepts, terminologie, processus</td>
+<td>Diapositives (Slides)</td>
+</tr>
+<tr>
+<td><strong>Pratique guidée</strong></td>
+<td>Exécution transactionnelle</td>
+<td>Scénarios SCN-001 → SCN-017</td>
+</tr>
+<tr>
+<td><strong>Évaluation</strong></td>
+<td>Quiz, scoring, conformité, certification</td>
+<td>Moteur de règles + certifications</td>
+</tr>
+</tbody></table>
+<h2>2.4 Parcours certification</h2>
+<table>
+<thead>
+<tr>
+<th>Niveau</th>
+<th>Intitulé officiel</th>
+<th>Périmètre</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Silver Premium</strong></td>
+<td>Certification Silver Premium TEC.WMS</td>
+<td>Module 1 — Fondements ERP/WMS</td>
+<td>4 portes M1</td>
+</tr>
+<tr>
+<td><strong>Gold Premium</strong></td>
+<td>Certification Gold Premium TEC.WMS</td>
+<td>Parcours intégré M1–M5</td>
+<td>18 portes</td>
+</tr>
+</tbody></table>
+<p>Les certifications sont <strong>distinctes</strong> de la progression par module (<code>module_progress</code>) et des checkpoints pédagogiques M2–M5.</p>
+<div class="page-break"></div><h1>3. Méthodologie pédagogique</h1>
+<h2>3.1 Modèle BRIDGE</h2>
+<p>La méthodologie TEC.LOG repose sur le modèle <strong>BRIDGE</strong>, intégré à chaque scénario :</p>
+<table>
+<thead>
+<tr>
+<th>Lettre</th>
+<th>Principe</th>
+<th>Application en classe</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>B</strong> — Briefing</td>
+<td>Rôle + compétence + contexte opérationnel</td>
+<td>Fiche Mission lue avant chaque run</td>
+</tr>
+<tr>
+<td><strong>R</strong> — Raisonnement documentaire</td>
+<td>Preuve avant action</td>
+<td>Moniteur de transactions, MB52, Annexe A</td>
+</tr>
+<tr>
+<td><strong>I</strong> — Interprétation KPI</td>
+<td>Lecture des indicateurs (M4–M5)</td>
+<td>KPI Control Tower, OIL Panel B</td>
+</tr>
+<tr>
+<td><strong>D</strong> — Décision</td>
+<td>Choix tactique ou stratégique</td>
+<td>Steps KPI_DIAGNOSTIC, M5_DECISION</td>
+</tr>
+<tr>
+<td><strong>G</strong> — Gouvernance conformité</td>
+<td>Séquence, moniteur, compliance</td>
+<td>Step COMPLIANCE_* final</td>
+</tr>
+<tr>
+<td><strong>E</strong> — Évaluation cohérente</td>
+<td>Seuils, matrices de preuves</td>
+<td>Run Report, scoring automatisé</td>
+</tr>
+</tbody></table>
+<h2>3.2 Chaîne pédagogique par scénario</h2>
+<p>Chaque scénario suit la chaîne institutionnelle :</p>
+<pre><code>Fiche Mission → Contexte opérationnel → Raisonnement attendu → Décision attendue
+→ Solution attendue → Conformité (COMPLIANCE)
+</code></pre>
+<p>L&#39;enseignant facilite cette chaîne ; le simulateur <strong>ne remplace pas</strong> le raisonnement de l&#39;étudiant (pas de pré-remplissage des réponses en mode Évaluation).</p>
+<h2>3.3 Deux modes de simulation</h2>
+<table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Usage en classe</th>
+<th>Scoring</th>
+<th>Certification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Démonstration</strong></td>
+<td>Projection enseignant, exploration libre</td>
+<td>Non comptabilisé</td>
+<td>Non</td>
+</tr>
+<tr>
+<td><strong>Évaluation</strong></td>
+<td>Travaux pratiques, devoirs, examens</td>
+<td>Oui — pénalités actives</td>
+<td>Oui</td>
+</tr>
+</tbody></table>
+<p><strong>Règle d&#39;or :</strong> seuls les runs en mode <strong>Évaluation</strong> (<code>isDemo = false</code>) comptent pour la certification et la progression officielle.</p>
+<h2>3.4 Progression Bloom</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Niveau Bloom dominant</th>
+<th>Verbe d&#39;action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>Appliquer</td>
+<td>Exécuter le flux nominal</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Appliquer / Analyser</td>
+<td>Ranger, valider capacité, FIFO</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Analyser / Évaluer</td>
+<td>Justifier écarts, réapprovisionner</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>Analyser / Évaluer</td>
+<td>Interpréter KPI, diagnostiquer</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>Évaluer / Créer</td>
+<td>Décider stratégiquement (capstone)</td>
+</tr>
+</tbody></table>
+<h2>3.5 Couche Operational Intelligence (OIL)</h2>
+<p>Pendant chaque run, six panneaux (A–F) guident l&#39;étudiant :</p>
+<ul>
+<li><strong>A</strong> — Briefing situation</li>
+<li><strong>B</strong> — Tour de contrôle / KPI Tower</li>
+<li><strong>C</strong> — Contexte ERP</li>
+<li><strong>D</strong> — Aide à la décision</li>
+<li><strong>E</strong> — Compétences visées</li>
+<li><strong>F</strong> — Points de contrôle (control points)</li>
+</ul>
+<p>L&#39;enseignant peut projeter le panneau OIL en mode démonstration pour ancrer le vocabulaire avant le travail pratique.</p>
+<div class="page-break"></div><h1>4. Structure en 10 séances (30 h)</h1>
+<p>Le programme TEC.LOG totalise <strong>30 heures</strong> réparties en <strong>10 séances de 3 heures</strong>. Chaque module couvre <strong>6 heures</strong> (deux séances), sauf la phase de consolidation M1–M3 qui précède les séances M4 et M5.</p>
+<h2>4.1 Calendrier institutionnel</h2>
+<table>
+<thead>
+<tr>
+<th>Séance</th>
+<th>Durée</th>
+<th>Module</th>
+<th>Contenu principal</th>
+<th>Livrables étudiants</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>1</strong></td>
+<td>3 h</td>
+<td>M1</td>
+<td>Slides M1 (1–5) · Quiz M1 · SCN-001, SCN-002</td>
+<td>Quiz M1 ≥ 60 % · 2 scénarios</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td>3 h</td>
+<td>M1</td>
+<td>Slides M1 (6–10) · SCN-003, SCN-004, SCN-005</td>
+<td>5 SCN M1 ≥ 60/100 · compliance</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td>3 h</td>
+<td>M2</td>
+<td>Slides M2 · SCN-006, SCN-007</td>
+<td>2 SCN M2 ≥ 60/100</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td>3 h</td>
+<td>M2</td>
+<td>SCN-008 · consolidation FIFO</td>
+<td>Module M2 passé</td>
+</tr>
+<tr>
+<td><strong>5</strong></td>
+<td>3 h</td>
+<td>M3</td>
+<td>Slides M3 · SCN-009, SCN-010</td>
+<td>2 SCN M3 ≥ 70/100</td>
+</tr>
+<tr>
+<td><strong>6</strong></td>
+<td>3 h</td>
+<td>M3</td>
+<td>SCN-011 · <strong>validation enseignant M3</strong></td>
+<td>Module M3 passé + validé</td>
+</tr>
+<tr>
+<td><strong>7</strong></td>
+<td>3 h</td>
+<td>Consolidation</td>
+<td>Renforcement M1–M3 · parcours Silver · TD</td>
+<td>Silver éligible ou obtenu</td>
+</tr>
+<tr>
+<td><strong>8</strong></td>
+<td>3 h</td>
+<td>Consolidation</td>
+<td>Rattrapage SCN · Run Report debrief · préparation M4</td>
+<td>Prérequis M4 confirmés</td>
+</tr>
+<tr>
+<td><strong>9</strong></td>
+<td>3 h</td>
+<td>M4</td>
+<td>Slides M4 · SCN-012, SCN-013, SCN-014</td>
+<td>3 SCN M4 ≥ 70/100</td>
+</tr>
+<tr>
+<td><strong>10</strong></td>
+<td>3 h</td>
+<td>M5</td>
+<td>Slides M5 · SCN-015, SCN-016, SCN-017 · clôture Gold</td>
+<td>Parcours Gold éligible</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note Cohorte Fondatrice 2026 :</strong> les séances 9 et 10 correspondent aux modules M4 et M5 (Aulas 9 et 10). Les séances 1–8 couvrent M1–M3 et la consolidation Silver Premium.</p>
+</blockquote>
+<h2>4.2 Répartition horaire par activité (modèle)</h2>
+<table>
+<thead>
+<tr>
+<th>Activité</th>
+<th>% du temps</th>
+<th>Rôle enseignant</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Diapositives (Slides)</td>
+<td>~25 %</td>
+<td>Présentation, notes orales (<code>notesFr</code>)</td>
+</tr>
+<tr>
+<td>Quiz</td>
+<td>~10 %</td>
+<td>Vérification concepts ; M1/M5 = gates cert</td>
+</tr>
+<tr>
+<td>Simulation (Scénarios)</td>
+<td>~55 %</td>
+<td>Supervision, Monitor Dashboard</td>
+</tr>
+<tr>
+<td>Débrief / Run Report</td>
+<td>~10 %</td>
+<td>Analyse erreurs, recommandations</td>
+</tr>
+</tbody></table>
+<h2>4.3 Prérequis de déblocage par séance</h2>
+<table>
+<thead>
+<tr>
+<th>Séance</th>
+<th>Gate serveur</th>
+<th>Action enseignant si bloqué</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M2 (S3+)</td>
+<td>M1 <code>module_progress.passed</code></td>
+<td>Vérifier SCN-001→005 en Évaluation</td>
+</tr>
+<tr>
+<td>M4 (S9)</td>
+<td>M3 passé <strong>et</strong> <code>teacherValidated = true</code></td>
+<td>Bouton validation M3 sur Teacher Dashboard</td>
+</tr>
+<tr>
+<td>M5 (S10)</td>
+<td>M1 passé (gate serveur)</td>
+<td>M4 passé fortement recommandé (UI)</td>
+</tr>
+<tr>
+<td>Gold</td>
+<td>Silver attribué + 18 gates</td>
+<td>Vérifier page <code>/student/certifications/gold</code></td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>5. Objectifs par module M1–M5</h1>
+<h2>5.1 Module 1 — Fondements ERP/WMS</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scénarios</strong></td>
+<td>SCN-001 → SCN-005</td>
+</tr>
+<tr>
+<td><strong>Seuil</strong></td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>6 h (Séances 1–2)</td>
+</tr>
+<tr>
+<td><strong>Diapositives</strong></td>
+<td>10 slides</td>
+</tr>
+<tr>
+<td><strong>Impact certification</strong></td>
+<td><strong>Silver</strong> (4 gates)</td>
+</tr>
+</tbody></table>
+<p><strong>Objectifs d&#39;apprentissage :</strong></p>
+<ol>
+<li>Comprendre les flux logistiques PO → GR → SO → GI.</li>
+<li>Maîtriser la création de commandes dans le WMS (ME21N équivalent).</li>
+<li>Valider les réceptions et gérer les stocks (MIGO, MB52).</li>
+<li>Effectuer un Cycle Count et finaliser la conformité (MI01, COMPLIANCE).</li>
+</ol>
+<p><strong>Pipeline opérationnel :</strong> PO → GR → STOCK → SO → GI → CC → COMPLIANCE</p>
+<p><strong>Capstone M1 :</strong> SCN-005 — Non-conformités multiples (synthèse des compétences M1).</p>
+<hr>
+<h2>5.2 Module 2 — Exécution d&#39;entrepôt</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scénarios</strong></td>
+<td>SCN-006 → SCN-008</td>
+</tr>
+<tr>
+<td><strong>Seuil</strong></td>
+<td>≥ 60/100</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>6 h (Séances 3–4)</td>
+</tr>
+<tr>
+<td><strong>Diapositives</strong></td>
+<td>7 slides</td>
+</tr>
+<tr>
+<td><strong>Impact certification</strong></td>
+<td>Contribution <strong>Gold</strong></td>
+</tr>
+</tbody></table>
+<p><strong>Objectifs d&#39;apprentissage :</strong></p>
+<ol>
+<li>Exécuter un rangement structuré depuis le quai (Putaway LT0A).</li>
+<li>Valider les limites de capacité par emplacement (bin capacity).</li>
+<li>Respecter la règle FIFO (premier entré, premier sorti).</li>
+<li>Contrôler la précision inventaire système vs physique.</li>
+</ol>
+<p><strong>Pipeline opérationnel :</strong> RÉCEPTION → PUTAWAY → BIN CAPACITY → FIFO → INVENTAIRE</p>
+<hr>
+<h2>5.3 Module 3 — Contrôle des stocks</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scénarios</strong></td>
+<td>SCN-009 → SCN-011</td>
+</tr>
+<tr>
+<td><strong>Seuil</strong></td>
+<td>≥ 70/100</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>6 h (Séances 5–6)</td>
+</tr>
+<tr>
+<td><strong>Diapositives</strong></td>
+<td>7 slides</td>
+</tr>
+<tr>
+<td><strong>Impact certification</strong></td>
+<td>Contribution <strong>Gold</strong> · <strong>Validation enseignant requise</strong></td>
+</tr>
+</tbody></table>
+<p><strong>Objectifs d&#39;apprentissage :</strong></p>
+<ol>
+<li>Réaliser un inventaire cyclique complet (MI01).</li>
+<li>Analyser et justifier les écarts de stock (variance).</li>
+<li>Générer des suggestions de réapprovisionnement (MRP).</li>
+<li>Valider les ajustements avec l&#39;enseignant (MI07).</li>
+</ol>
+<p><strong>Pipeline opérationnel :</strong> CYCLE COUNT → VARIANCE → AJUSTEMENT → RÉAPPRO → VALIDATION</p>
+<blockquote>
+<p><strong>Gate critique :</strong> la validation enseignant M3 (<code>teacherValidated</code>) est <strong>obligatoire</strong> avant tout accès M4 en mode Évaluation.</p>
+</blockquote>
+<hr>
+<h2>5.4 Module 4 — Indicateurs de performance</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scénarios</strong></td>
+<td>SCN-012 → SCN-014</td>
+</tr>
+<tr>
+<td><strong>Seuil</strong></td>
+<td>≥ 70/100 (score parfait max <strong>75/100</strong>)</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>6 h (Séance 9 + travail dirigé)</td>
+</tr>
+<tr>
+<td><strong>Diapositives</strong></td>
+<td>7 slides</td>
+</tr>
+<tr>
+<td><strong>Impact certification</strong></td>
+<td>Contribution <strong>Gold</strong> (SCN012–014)</td>
+</tr>
+</tbody></table>
+<p><strong>Objectifs d&#39;apprentissage :</strong></p>
+<ol>
+<li>Calculer les KPI logistiques clés (OTIF, Fill Rate, DSI, rotation).</li>
+<li>Analyser la rotation des stocks et le lead time.</li>
+<li>Identifier les causes racines des écarts de performance.</li>
+<li>Proposer des actions correctives basées sur les données (S&amp;OP capstone SCN-014).</li>
+</ol>
+<p><strong>Pipeline opérationnel :</strong> KPI_DATA → KPI_ROTATION → KPI_SERVICE → KPI_DIAGNOSTIC → COMPLIANCE_M4</p>
+<p><strong>Particularité M4 :</strong> scénarios <strong>analytiques</strong> — le moniteur de transactions reste <strong>vide</strong> (comportement normal).</p>
+<p><strong>Séquence obligatoire :</strong> SCN-012 → SCN-013 → SCN-014.</p>
+<hr>
+<h2>5.5 Module 5 — Simulation intégrée (Peak Week)</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Scénarios</strong></td>
+<td>SCN-015 → SCN-017</td>
+</tr>
+<tr>
+<td><strong>Seuil</strong></td>
+<td>≥ 70/100 (SCN-017 capstone ≥ 70)</td>
+</tr>
+<tr>
+<td><strong>Durée</strong></td>
+<td>6 h (Séance 10 + travail dirigé)</td>
+</tr>
+<tr>
+<td><strong>Diapositives</strong></td>
+<td>5 slides</td>
+</tr>
+<tr>
+<td><strong>Impact certification</strong></td>
+<td><strong>Capstone Gold</strong></td>
+</tr>
+</tbody></table>
+<p><strong>Objectifs d&#39;apprentissage :</strong></p>
+<ol>
+<li>Exécuter un cycle complet de bout en bout (fournisseur → entrepôt → client).</li>
+<li>Gérer des situations de crise (variance, ajustement MI07 avant KPI).</li>
+<li>Analyser les KPI en temps réel et prendre des décisions tactiques/stratégiques.</li>
+<li>Démontrer la maîtrise globale du système WMS (capstone SCN-017).</li>
+</ol>
+<p><strong>Pipeline opérationnel :</strong> RÉCEPTION → RANGEMENT → INVENTAIRE → RÉAPPRO → KPI → DÉCISION → COMPLIANCE_M5</p>
+<p><strong>Narratif Peak Week :</strong></p>
+<table>
+<thead>
+<tr>
+<th>Scénario</th>
+<th>Jour</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SCN-015</td>
+<td>Jour 1</td>
+<td>Cycle nominal intégré · décision <strong>tactique</strong></td>
+</tr>
+<tr>
+<td>SCN-016</td>
+<td>Jour 2</td>
+<td>Variance −5 · <strong>M5_ADJ avant KPI</strong> (gate obligatoire)</td>
+</tr>
+<tr>
+<td>SCN-017</td>
+<td>Jour 3</td>
+<td>Capstone stratégique · ≥2 KPIs numériques · horizon 90–180 j</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>6. Flux pédagogique — Diapositives (Slides)</h1>
+<h2>6.1 Vue d&#39;ensemble</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Nombre de slides</th>
+<th>Route enseignant</th>
+<th>Route étudiant</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>10</td>
+<td><code>/teacher/slides/1</code></td>
+<td><code>/student/slides/1</code></td>
+</tr>
+<tr>
+<td>M2</td>
+<td>7</td>
+<td><code>/teacher/slides/2</code></td>
+<td><code>/student/slides/2</code></td>
+</tr>
+<tr>
+<td>M3</td>
+<td>7</td>
+<td><code>/teacher/slides/3</code></td>
+<td><code>/student/slides/3</code></td>
+</tr>
+<tr>
+<td>M4</td>
+<td>7</td>
+<td><code>/teacher/slides/4</code></td>
+<td><code>/student/slides/4</code></td>
+</tr>
+<tr>
+<td>M5</td>
+<td>5</td>
+<td><code>/teacher/slides/5</code></td>
+<td><code>/student/slides/5</code></td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>36</strong></td>
+<td><code>/teacher/slides</code></td>
+<td><code>/student/slides</code></td>
+</tr>
+</tbody></table>
+<h2>6.2 Workflow enseignant — séance type</h2>
+<ol>
+<li><strong>Avant la séance (T−24 h)</strong> — Parcourir les slides du module ; relire les <code>notesFr</code> (notes orales intégrées).</li>
+<li><strong>Accueil (0:00–0:15)</strong> — Connexion <code>/teacher/slides/{moduleId}</code> · mode projection · vérifier affichage bilingue FR/EN.</li>
+<li><strong>Présentation (0:15–0:45)</strong> — Slides 1–3 : couverture, objectifs, concepts clés.</li>
+<li><strong>Approfondissement (0:45–1:15)</strong> — Slides 4–6 : processus, terminologie, comparaisons ERP.</li>
+<li><strong>Lien scénarios (1:15–1:30)</strong> — Dernières slides : carte SCN, exercices, synthèse.</li>
+<li><strong>Transition TP (1:30+)</strong> — Diriger les étudiants vers quiz puis scénarios.</li>
+</ol>
+<h2>6.3 Fonctionnalités SlideViewer</h2>
+<table>
+<thead>
+<tr>
+<th>Fonction</th>
+<th>Usage enseignant</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Navigation clavier (← →)</td>
+<td>Projection fluide</td>
+</tr>
+<tr>
+<td>Mode professeur (<code>professorMode</code>)</td>
+<td>Affiche les notes orales sous la diapositive</td>
+</tr>
+<tr>
+<td>Bascule FR/EN</td>
+<td>Cohérence avec la cohorte</td>
+</tr>
+<tr>
+<td>Visuels premium</td>
+<td>FLOW, WH, KPI, FIORI, CERT selon le slide</td>
+</tr>
+<tr>
+<td><code>timingMin</code></td>
+<td>Estimation du temps de parole par slide</td>
+</tr>
+</tbody></table>
+<h2>6.4 Rôle des slides dans la progression</h2>
+<blockquote>
+<p><strong>Important :</strong> les diapositives <strong>ne sont pas tracées côté serveur</strong>. Elles ne bloquent ni ne débloquent modules, certifications ou checkpoints. Elles restent le <strong>véhicule principal de transmission</strong> en classe ; leur complétion est une responsabilité pédagogique, non technique.</p>
+</blockquote>
+<h2>6.5 Cartographie slides → scénarios (M4 exemple)</h2>
+<table>
+<thead>
+<tr>
+<th>Slide M4</th>
+<th>Thème</th>
+<th>Scénario associé</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Dashboard KPI · moniteur vide = normal</td>
+<td>Intro SCN-012–014</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Rotation 2400÷400 = 6×</td>
+<td>SCN-012</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Service 95 % + erreurs 4 %</td>
+<td>SCN-013</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Productivité / coût</td>
+<td>Transversal</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Root Cause Analysis</td>
+<td>SCN-014 (capstone)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Odoo Reports (démo)</td>
+<td>Renforcement institutionnel</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Application SCN-012–014 + Annexe A</td>
+<td>Debrief + devoir</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>7. Flux pédagogique — Quiz</h1>
+<h2>7.1 Inventaire des quiz</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Questions</th>
+<th>Seuil passage</th>
+<th>Gate certification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>Banque seed</td>
+<td>≥ <strong>60 %</strong></td>
+<td><strong>Oui — Silver (gate 1)</strong></td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Banque seed</td>
+<td>≥ 60 %</td>
+<td>Non</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Banque seed</td>
+<td>≥ 60 %</td>
+<td>Non</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>4 questions</td>
+<td>≥ 60 %</td>
+<td>Non</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>Banque seed</td>
+<td>≥ <strong>60 %</strong></td>
+<td><strong>Oui — Gold (gate 2)</strong></td>
+</tr>
+</tbody></table>
+<h2>7.2 Workflow enseignant</h2>
+<h3>Avant la séance</h3>
+<ul>
+<li>Confirmer que le quiz du module est accessible : <code>/student/quiz/{moduleId}</code>.</li>
+<li>Pour M1 : insister sur le quiz <strong>avant</strong> les scénarios (gate Silver).</li>
+</ul>
+<h3>Pendant la séance</h3>
+<ol>
+<li>Allouer <strong>15–20 minutes</strong> en début de module (ou en fin de slides).</li>
+<li>Les étudiants passent le quiz en autonomie ; <strong>meilleur score</strong> conservé (<code>quizAttempts</code>).</li>
+<li>Surveiller via Monitor Dashboard les tentatives en cours.</li>
+</ol>
+<h3>Après la séance</h3>
+<ul>
+<li>Quiz M2–M4 : usage <strong>pédagogique de renforcement</strong> uniquement — aucun impact certification.</li>
+<li>Quiz M1 non réussi (&lt; 60 %) : <strong>bloquer la certification Silver</strong> même si tous les SCN M1 sont passés.</li>
+</ul>
+<h2>7.3 Règles techniques</h2>
+<ul>
+<li>Tentatives multiples autorisées ; seul le <strong>meilleur score</strong> compte.</li>
+<li>Les quiz <strong>n&#39;écrivent pas</strong> dans <code>module_progress</code>.</li>
+<li>Les quiz <strong>ne bloquent pas</strong> le démarrage d&#39;un scénario (sauf recommandation UI pour M1).</li>
+</ul>
+<h2>7.4 Checklist enseignant — Quiz</h2>
+<table>
+<thead>
+<tr>
+<th>☐</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☐</td>
+<td>Quiz M1 passé avant SCN-005 (Séance 2)</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Quiz M5 assigné avant ou pendant Séance 10</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Étudiants informés : M2–M4 quiz = renforcement, pas gate cert</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Scores consultés dans Monitor / Analytics</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>8. Flux pédagogique — Scénarios (Simulation)</h1>
+<h2>8.1 Catalogue officiel</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Scénarios</th>
+<th>Route</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>SCN-001 → SCN-005</td>
+<td><code>/student/scenarios</code></td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>SCN-006 → SCN-008</td>
+<td><code>/student/module2</code></td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>SCN-009 → SCN-011</td>
+<td><code>/student/module3</code></td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>SCN-012 → SCN-014</td>
+<td><code>/student/module4</code></td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>SCN-015 → SCN-017</td>
+<td><code>/student/module5</code></td>
+<td>70/100</td>
+</tr>
+</tbody></table>
+<h2>8.2 Workflow enseignant — run type</h2>
+<pre><code>Sélection scénario → Lecture Fiche Mission → Démarrage run (Évaluation)
+→ Mission Control → Steps séquentiels → OIL panels → COMPLIANCE
+→ Run Report → Débrief
+</code></pre>
+<h3>Étape par étape</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Étape</th>
+<th>Rôle enseignant</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><strong>Sélection</strong></td>
+<td>Confirmer mode <strong>Évaluation</strong> (pas Démo) pour cert</td>
+</tr>
+<tr>
+<td>2</td>
+<td><strong>Fiche Mission</strong></td>
+<td>Vérifier que l&#39;étudiant a lu le briefing (rôle, SKU, quantités)</td>
+</tr>
+<tr>
+<td>3</td>
+<td><strong>Mission Control</strong></td>
+<td>Superviser via <code>/teacher/monitor</code> — progression %, step actif</td>
+</tr>
+<tr>
+<td>4</td>
+<td><strong>Exécution steps</strong></td>
+<td>Intervenir si blocage récurrent ; renvoyer vers OIL Panel F</td>
+</tr>
+<tr>
+<td>5</td>
+<td><strong>COMPLIANCE</strong></td>
+<td>Step final — valide l&#39;état transactionnel</td>
+</tr>
+<tr>
+<td>6</td>
+<td><strong>Run Report</strong></td>
+<td>Débrief collectif : score, pénalités, recommandations</td>
+</tr>
+</tbody></table>
+<h2>8.3 Modes Démo vs Évaluation</h2>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Démo</th>
+<th>Évaluation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Scoring</td>
+<td>Désactivé ou indicatif</td>
+<td>Actif — pénalités</td>
+</tr>
+<tr>
+<td>Certification</td>
+<td><strong>Exclu</strong></td>
+<td><strong>Comptabilisé</strong></td>
+</tr>
+<tr>
+<td>Réponses KPI</td>
+<td>Peuvent être révélées (demo-gated)</td>
+<td>Jamais révélées</td>
+</tr>
+<tr>
+<td>Usage en classe</td>
+<td>Projection enseignant, exploration</td>
+<td>TP noté, devoirs</td>
+</tr>
+</tbody></table>
+<h2>8.4 Gates de démarrage (<code>runs.start</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Module cible</th>
+<th>Condition serveur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M2–M5</td>
+<td>M1 <code>module_progress.passed = true</code></td>
+</tr>
+<tr>
+<td>M4</td>
+<td>M3 passé <strong>et</strong> <code>teacherValidated = true</code></td>
+</tr>
+<tr>
+<td>M5</td>
+<td>M1 passé (M4 passé recommandé UI)</td>
+</tr>
+</tbody></table>
+<h2>8.5 Outils enseignant — supervision</h2>
+<table>
+<thead>
+<tr>
+<th>Outil</th>
+<th>Route</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Monitor Dashboard</td>
+<td><code>/teacher/monitor</code></td>
+<td>Runs actifs, scores, blockers</td>
+</tr>
+<tr>
+<td>Scenario Manager</td>
+<td><code>/teacher/scenarios</code></td>
+<td>Catalogue, mode démo</td>
+</tr>
+<tr>
+<td>Assignment Manager</td>
+<td><code>/teacher/assignments</code></td>
+<td>Devoirs avec échéances</td>
+</tr>
+<tr>
+<td>Analytics</td>
+<td><code>/teacher/analytics</code></td>
+<td>Distribution scores, complétion</td>
+</tr>
+<tr>
+<td>Export CSV</td>
+<td>Teacher Dashboard</td>
+<td>Rapports de notes</td>
+</tr>
+</tbody></table>
+<h2>8.6 Seuils et scores parfaits</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Seuil passage</th>
+<th>Score parfait typique</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1–M2</td>
+<td>60/100</td>
+<td>100/100</td>
+</tr>
+<tr>
+<td>M3–M5</td>
+<td>70/100</td>
+<td>100/100 (M4 max <strong>75/100</strong>)</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Ne pas pénaliser</strong> un étudiant M4 pour ne pas atteindre 100/100 — le plafond M4 est <strong>75/100</strong> par conception pédagogique.</p>
+</blockquote>
+<div class="page-break"></div><h1>9. Processus de validation enseignant (Module 3)</h1>
+<h2>9.1 Contexte</h2>
+<p>Le Module 3 introduit des ajustements d&#39;inventaire (MI07) et des décisions de réapprovisionnement qui requièrent une <strong>validation humaine</strong> avant l&#39;accès au Module 4. C&#39;est le seul module avec gate <code>teacherValidated</code> côté serveur.</p>
+<h2>9.2 Prérequis</h2>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Vérification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Module 3 passé</td>
+<td><code>module_progress.passed = true</code> pour moduleId 3</td>
+</tr>
+<tr>
+<td>Tous SCN M3 complétés</td>
+<td>SCN-009, SCN-010, SCN-011 ≥ 70/100 en Évaluation</td>
+</tr>
+<tr>
+<td>Compliance validée</td>
+<td>Step COMPLIANCE_M3 vert sur chaque run</td>
+</tr>
+</tbody></table>
+<h2>9.3 Procédure de validation</h2>
+<ol>
+<li><strong>Connexion</strong> — <code>/teacher</code> → Teacher Dashboard.</li>
+<li><strong>File d&#39;attente</strong> — Section <strong>« M3 en attente de validation »</strong> (étudiants avec M3 passé et <code>teacherValidated = false</code>).</li>
+<li><strong>Revue</strong> — Consulter Run Reports SCN-009→011 ; vérifier justification des écarts et qualité des ajustements.</li>
+<li><strong>Validation</strong> — Cliquer <strong>« Valider le Module 3 »</strong> pour l&#39;étudiant concerné.</li>
+<li><strong>Effet serveur</strong> — Mutation <code>warehouse.validateTeacherModule</code> :<ul>
+<li>Définit <code>teacherValidated = true</code> et <code>teacherValidatedAt</code>.</li>
+<li>Déclenche <code>recomputeModuleCheckpoint</code> si Checkpoint Engine activé.</li>
+<li><strong>Débloque M4</strong> en mode Évaluation.</li>
+</ul>
+</li>
+</ol>
+<h2>9.4 Calendrier recommandé</h2>
+<table>
+<thead>
+<tr>
+<th>Moment</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fin Séance 6</td>
+<td>Valider tous les étudiants ayant complété SCN-011</td>
+</tr>
+<tr>
+<td>T−24 h avant Séance 9</td>
+<td>File d&#39;attente <strong>vide</strong> — aucun étudiant bloqué sur M4</td>
+</tr>
+<tr>
+<td>Pendant Séance 9</td>
+<td>Ne pas débuter SCN-012 tant que M3 non validé</td>
+</tr>
+</tbody></table>
+<h2>9.5 Ce que la validation M3 <strong>ne fait pas</strong></h2>
+<ul>
+<li>N&#39;est <strong>pas</strong> un gate Gold (Gold ignore <code>teacherValidated</code>).</li>
+<li>Ne remplace <strong>pas</strong> le passage des scénarios M3.</li>
+<li>Ne peut <strong>pas</strong> être appliquée si M3 n&#39;est pas passé (erreur serveur).</li>
+</ul>
+<h2>9.6 Checklist validation M3</h2>
+<table>
+<thead>
+<tr>
+<th>☐</th>
+<th>Critère</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☐</td>
+<td>SCN-009 : cycle count complet, écarts identifiés</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>SCN-010 : variance justifiée, ajustement MI07 posté</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>SCN-011 : réapprovisionnement validé, compliance verte</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Run Reports consultés — pas de blockers non résolus</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Validation enregistrée avant Séance 9</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>10. Certification Silver — processus et critères</h1>
+<h2>10.1 Intitulé officiel</h2>
+<table>
+<thead>
+<tr>
+<th>FR</th>
+<th>EN</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Certification Silver Premium TEC.WMS</strong></td>
+<td><strong>TEC.WMS Silver Premium Certification</strong></td>
+</tr>
+<tr>
+<td>Opérations fondamentales ERP/WMS · Module 1</td>
+<td>ERP/WMS Foundation Operations · Module 1</td>
+</tr>
+</tbody></table>
+<h2>10.2 Les 4 gates Silver</h2>
+<p>Toutes les conditions suivantes doivent être <strong>simultanément vraies</strong> :</p>
+<table>
+<thead>
+<tr>
+<th>Gate</th>
+<th>Exigence</th>
+<th>Source technique</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>G1</strong></td>
+<td>Quiz M1 ≥ 60 %</td>
+<td>Meilleure tentative quiz M1</td>
+</tr>
+<tr>
+<td><strong>G2</strong></td>
+<td>SCN-001 → SCN-005 chacun ≥ 60/100 (Évaluation)</td>
+<td>Tous scénarios M1 au seuil</td>
+</tr>
+<tr>
+<td><strong>G3</strong></td>
+<td>Compliance M1 validée sur chaque SCN</td>
+<td>Conformité M1 complète</td>
+</tr>
+<tr>
+<td><strong>G4</strong></td>
+<td>Aucun blocker non résolu (TX non postées, CC ouvert)</td>
+<td>Intégrité transactionnelle</td>
+</tr>
+</tbody></table>
+<p><strong>Formule :</strong> <code>silverEligible = G1 ∧ G2 ∧ G3 ∧ G4</code></p>
+<h2>10.3 Attributions automatique</h2>
+<ul>
+<li><strong>Aucune action enseignant requise</strong> pour l&#39;attribution Silver.</li>
+<li>Déclenchement : visite de <code>/student/certifications</code> ou complétion du dernier gate lors d&#39;un run M1.</li>
+<li>Indicateur persistant : Silver Premium attribué dans le profil étudiant.</li>
+<li>État UI : <code>LOCKED → IN_PROGRESS → ELIGIBLE → AWARDED</code>.</li>
+</ul>
+<h2>10.4 Exclusions</h2>
+<table>
+<thead>
+<tr>
+<th>Élément</th>
+<th>Compte pour Silver ?</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Runs Démo</td>
+<td><strong>Non</strong></td>
+</tr>
+<tr>
+<td>Slides complétées</td>
+<td><strong>Non</strong> (non tracé)</td>
+</tr>
+<tr>
+<td>Quiz M2–M5</td>
+<td><strong>Non</strong></td>
+</tr>
+<tr>
+<td><code>module_progress.passed</code> M1 seul</td>
+<td><strong>Non</strong> (5 SCN requis individuellement)</td>
+</tr>
+</tbody></table>
+<h2>10.5 Workflow enseignant — Silver</h2>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Séances 1–2</td>
+<td>Superviser complétion SCN-001→005 + Quiz M1</td>
+</tr>
+<tr>
+<td>Séance 7</td>
+<td>Vérifier page Certifications — 4/4 gates vertes</td>
+</tr>
+<tr>
+<td>Post-Silver</td>
+<td>Confirmer numéro étudiant (<code>studentNumber</code>) pour registry</td>
+</tr>
+<tr>
+<td>Délivrance</td>
+<td>Voir §14 — workflow institutionnel PDF</td>
+</tr>
+</tbody></table>
+<h2>10.6 Numérotation Silver (Cohorte 2026)</h2>
+<p>Format : <code>TECWMS-SIL-{ANNÉE}-{SÉQUENCE}</code> (ex. <code>TECWMS-SIL-2026-001</code>)</p>
+<table>
+<thead>
+<tr>
+<th>Identifiant</th>
+<th>Statut registre</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TECWMS-SIL-2026-001 → 004</td>
+<td>Cohorte Fondatrice 2026 — slots pré-alloués · statut <code>ACTIVE</code></td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>11. Certification Gold — processus et critères</h1>
+<h2>11.1 Intitulé officiel</h2>
+<table>
+<thead>
+<tr>
+<th>FR</th>
+<th>EN</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Certification Gold Premium TEC.WMS</strong></td>
+<td><strong>TEC.WMS Gold Premium Certification</strong></td>
+</tr>
+<tr>
+<td>Parcours intégré M1–M5 · Opérations logistiques</td>
+<td>Integrated M1–M5 pathway · Logistics operations</td>
+</tr>
+</tbody></table>
+<h2>11.2 Prérequis absolu</h2>
+<p><strong>Silver attribué</strong> (<code>profiles.silverCertified = true</code>). Sans Silver, Gold reste <strong>LOCKED</strong> — tous les gates sont ignorés.</p>
+<h2>11.3 Les 18 gates Gold</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Gate</th>
+<th>Détail</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Silver prerequisite</td>
+<td><code>silverCertified = true</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td>Quiz M5 ≥ 60 %</td>
+<td>Meilleure tentative M5</td>
+</tr>
+<tr>
+<td>3–14</td>
+<td>SCN-006 → SCN-017</td>
+<td>Chaque SCN ≥ seuil module (M2≥60, M3/M4/M5≥70)</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Compliance M2–M5</td>
+<td>Steps COMPLIANCE_ADV, COMPLIANCE_M3, COMPLIANCE_M4, COMPLIANCE_M5</td>
+</tr>
+<tr>
+<td>16</td>
+<td>No blockers</td>
+<td>TX non postées / CC non résolus sur parcours Gold</td>
+</tr>
+<tr>
+<td>17</td>
+<td>Module compliance validators</td>
+<td>Validateurs profonds M3–M5</td>
+</tr>
+<tr>
+<td>18a</td>
+<td>SCN-016 variance gate</td>
+<td>M5_ADJ <strong>avant</strong> M5_KPI si KPI complété</td>
+</tr>
+<tr>
+<td>18b</td>
+<td>SCN-017 capstone</td>
+<td>Score ≥ 70 + KPI snapshot + M5_DECISION liée</td>
+</tr>
+</tbody></table>
+<h2>11.4 Machine d&#39;états Gold</h2>
+<pre><code>LOCKED → IN_PROGRESS → ELIGIBLE → AWARDED
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>État</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>LOCKED</td>
+<td>Silver non attribué</td>
+</tr>
+<tr>
+<td>IN_PROGRESS</td>
+<td>Silver OK, gates partiellement complétés</td>
+</tr>
+<tr>
+<td>ELIGIBLE</td>
+<td>18/18 gates vrais</td>
+</tr>
+<tr>
+<td>AWARDED</td>
+<td><code>profiles.goldCertified = true</code></td>
+</tr>
+</tbody></table>
+<h2>11.5 Attribution Gold — configuration institutionnelle</h2>
+<ul>
+<li>Par défaut, l&#39;attribution automatique Gold peut être <strong>désactivée</strong> (comportement fail-closed).</li>
+<li>L&#39;étudiant peut atteindre <strong>ELIGIBLE</strong> sans attribution automatique.</li>
+<li>L&#39;attribution <strong>AWARDED</strong> requiert une <strong>décision institutionnelle</strong> et une configuration administrateur avant la Séance 10.</li>
+</ul>
+<h2>11.6 Gates spéciaux — briefing enseignant Séance 10</h2>
+<h3>SCN-016 — Ordre variance / KPI</h3>
+<p>L&#39;étudiant <strong>doit</strong> compléter <code>M5_ADJ</code> (MI07) <strong>avant</strong> <code>M5_KPI</code>. Tenter REPLENISH ou KPI sans ADJ → <strong>échec gate</strong>.</p>
+<p><strong>Démonstration recommandée :</strong> montrer l&#39;échec intentionnel puis le chemin correct.</p>
+<h3>SCN-017 — Capstone stratégique</h3>
+<p>Exigences :</p>
+<ul>
+<li>Score global ≥ 70/100.</li>
+<li>Au moins <strong>2 KPIs numériques</strong> dans la décision.</li>
+<li>Horizon temporel <strong>90–180 jours</strong>.</li>
+<li>Trade-off explicite (vocabulaire : <code>tradeoff</code>, <code>trade-off</code>).</li>
+<li><code>M5_KPI</code> complété <strong>avant</strong> <code>M5_DECISION</code>.</li>
+</ul>
+<h2>11.7 Workflow enseignant — Gold</h2>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Séances 3–8</td>
+<td>Superviser SCN-006→011 (contribution Gold)</td>
+</tr>
+<tr>
+<td>Séance 9</td>
+<td>SCN-012→014 ≥ 70</td>
+</tr>
+<tr>
+<td>Séance 10</td>
+<td>SCN-015→017 · Quiz M5 · gates 18a/18b</td>
+</tr>
+<tr>
+<td>Post-session</td>
+<td>Vérifier <code>/student/certifications/gold</code> — 18/18</td>
+</tr>
+<tr>
+<td>Délivrance</td>
+<td>Workflow institutionnel §14 · <code>TECWMS-GOLD-2026-xxx</code></td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>12. Moteur de checkpoints (Checkpoint Engine)</h1>
+<h2>12.1 Définition</h2>
+<p>Le <strong>Checkpoint Engine</strong> est le système unifié de progression par module pour <strong>M2–M5</strong>. Il aligne l&#39;état persisté (<code>module_progress</code>) avec la vérité pédagogique : <strong>un module est passé uniquement lorsque tous les scénarios officiels du module atteignent le seuil</strong>.</p>
+<blockquote>
+<p><strong>Distinction importante :</strong> les « checkpoints » dans l&#39;UI (OIL Panel F, <code>controlPoints</code> sur la Fiche Mission) sont des <strong>points de contrôle pédagogiques statiques</strong>. Le Checkpoint Engine est un <strong>moteur serveur</strong> de progression module.</p>
+</blockquote>
+<h2>12.2 Trois systèmes parallèles (ne pas confondre)</h2>
+<table>
+<thead>
+<tr>
+<th>Système</th>
+<th>Périmètre</th>
+<th>Stockage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Certification engine</strong></td>
+<td>Silver Premium (M1) · Gold Premium (parcours M1–M5)</td>
+<td>Profil étudiant — indicateurs simulateur</td>
+</tr>
+<tr>
+<td><strong>Checkpoint engine</strong></td>
+<td>Progression M2–M5</td>
+<td>Progression par module (checkpoints)</td>
+</tr>
+<tr>
+<td><strong>Run progress %</strong></td>
+<td>Session en cours</td>
+<td>Calculé en temps réel — non persisté comme certification</td>
+</tr>
+</tbody></table>
+<h2>12.3 Règles du Checkpoint Engine</h2>
+<ol>
+<li><strong>Un module = tous les SCN officiels</strong> — <code>OFFICIAL_SCN_BY_MODULE[moduleId]</code> au seuil module.</li>
+<li><strong>Dernière run gagne</strong> — une run Évaluation échouée plus récente révoque le crédit SCN.</li>
+<li><strong>Runs Démo exclus</strong> — même règle que certification.</li>
+<li><strong>Certification engines inchangés</strong> — Silver/Gold lisent directement runs/quiz, pas <code>module_progress</code>.</li>
+<li><strong>Slides et quiz M2–M4 exclus</strong> du calcul checkpoint.</li>
+</ol>
+<h2>12.4 Champs <code>module_progress</code> étendus</h2>
+<table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>passed</code></td>
+<td>Tous SCN module ≥ seuil</td>
+</tr>
+<tr>
+<td><code>progressPct</code></td>
+<td>% SCN complétés (partiel OK)</td>
+</tr>
+<tr>
+<td><code>completedScenarios</code></td>
+<td>Liste SCN crédités</td>
+</tr>
+<tr>
+<td><code>teacherValidated</code></td>
+<td>Validation M3 (gate M4)</td>
+</tr>
+<tr>
+<td><code>teacherValidatedAt</code></td>
+<td>Horodatage validation</td>
+</tr>
+</tbody></table>
+<h2>12.5 Déclencheurs de recalcul</h2>
+<table>
+<thead>
+<tr>
+<th>Événement</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Run complétée (Run Report)</td>
+<td><code>recomputeModuleCheckpoint(userId, moduleId)</code></td>
+</tr>
+<tr>
+<td>Validation enseignant M3</td>
+<td>Recalcul module 3</td>
+</tr>
+<tr>
+<td>Script backfill (admin)</td>
+<td>Recalcul cohorte entière</td>
+</tr>
+</tbody></table>
+<h2>12.6 Activation du moteur</h2>
+<p>Le moteur de checkpoints est <strong>actif en production</strong> pour les cohortes postérieures à juin 2026. Un module M2–M5 n&#39;est marqué réussi que lorsque <strong>tous</strong> les scénarios officiels du module atteignent le seuil requis.</p>
+<h2>12.7 Implications enseignant</h2>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Interprétation</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Étudiant « M2 passé » mais SCN-007 absent</td>
+<td>Bug legacy — relancer backfill ou SCN manquant</td>
+</tr>
+<tr>
+<td><code>progressPct = 66 %</code> M3</td>
+<td>2/3 SCN complétés — pas encore passé</td>
+</tr>
+<tr>
+<td>M3 passé mais M4 bloqué</td>
+<td><code>teacherValidated = false</code> — action enseignant requise</td>
+</tr>
+<tr>
+<td>Silver ELIGIBLE mais M1 <code>passed=false</code></td>
+<td>Normal — systèmes indépendants</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>13. Problèmes fréquents des étudiants</h1>
+<h2>13.1 Module 1 — Fondements</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention enseignant</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>GR « fantôme » — stock invisible</td>
+<td>GR créée mais non <strong>postée</strong></td>
+<td>Rappeler : poster MIGO avant putaway</td>
+</tr>
+<tr>
+<td>Séquence hors ordre</td>
+<td>SO avant GR</td>
+<td>OIL Panel — chaîne PO→GR→SO</td>
+</tr>
+<tr>
+<td>Stock négatif</td>
+<td>GI sans stock suffisant</td>
+<td>Vérifier MB52 avant picking</td>
+</tr>
+<tr>
+<td>Compliance rouge</td>
+<td>CC non complété ou TX pending</td>
+<td>Moniteur transactions — tout poster</td>
+</tr>
+<tr>
+<td>Score &lt; 60 malgré flux complet</td>
+<td>Pénalités séquence / zone</td>
+<td>Run Report — analyser pénalités</td>
+</tr>
+</tbody></table>
+<h2>13.2 Module 2 — Entrepôt</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>FIFO violation</td>
+<td>Lot récent sélectionné</td>
+<td>Rappeler règle premier entré / premier sorti</td>
+</tr>
+<tr>
+<td>Capacité bin dépassée</td>
+<td>Putaway vers emplacement plein</td>
+<td>Slide M2 bin capacity</td>
+</tr>
+<tr>
+<td>Mauvaise zone</td>
+<td>Putaway vers EXPÉDITION</td>
+<td>Zones : RÉCEPTION → STOCKAGE uniquement</td>
+</tr>
+</tbody></table>
+<h2>13.3 Module 3 — Stocks</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Écart non justifié</td>
+<td>Variance ignorée</td>
+<td>Fiche Mission — texte justification requis</td>
+</tr>
+<tr>
+<td>ADJ (MI07) oublié</td>
+<td>Passage direct à réappro</td>
+<td>Pipeline CC → VARIANCE → <strong>ADJ</strong> → RÉAPPRO</td>
+</tr>
+<tr>
+<td>M4 bloqué</td>
+<td>M3 non validé enseignant</td>
+<td>Procédure §9 — validation dashboard</td>
+</tr>
+<tr>
+<td>Score 69/100</td>
+<td>Seuil M3 = <strong>70</strong></td>
+<td>Une pénalité de trop — revoir Run Report</td>
+</tr>
+</tbody></table>
+<h2>13.4 Module 4 — KPI</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Moniteur vide — « bug »</td>
+<td>Scénario <strong>analytique</strong></td>
+<td>Slide 1 M4 — comportement normal</td>
+</tr>
+<tr>
+<td>Diagnostic rejeté SCN-013</td>
+<td>Mot « prélèvement » absent</td>
+<td>Vocabulaire validator — guide étudiant</td>
+</tr>
+<tr>
+<td>Diagnostic rejeté SCN-014</td>
+<td>« trade-off » / délai 3,5 j</td>
+<td>Fiche Mission SCN-014</td>
+</tr>
+<tr>
+<td>Déception score 75/100</td>
+<td><strong>Plafond M4 = 75</strong></td>
+<td>Expliquer — ce n&#39;est pas un échec</td>
+</tr>
+<tr>
+<td>Surstock recommandé SCN-012</td>
+<td>Piège complaisance 6×</td>
+<td>Anti-surstock compliance</td>
+</tr>
+</tbody></table>
+<h2>13.5 Module 5 — Peak Week</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>KPI bloqué SCN-016</td>
+<td>ADJ non fait avant KPI</td>
+<td>Démontrer séquence M5_ADJ → M5_KPI</td>
+</tr>
+<tr>
+<td>Décision rejetée SCN-017</td>
+<td>KPI non snapshot avant décision</td>
+<td>Ordre M5_KPI → M5_DECISION</td>
+</tr>
+<tr>
+<td>Décision « générique »</td>
+<td>Pas de KPIs numériques</td>
+<td>Exiger ≥2 KPIs + horizon 90–180 j</td>
+</tr>
+<tr>
+<td>SCN-015 « stratégique » confus</td>
+<td>Profil <strong>TACTICAL</strong> (pas strategic)</td>
+<td>Clarifier : tactique vs stratégique (017)</td>
+</tr>
+<tr>
+<td>KPI copiés Annexe A</td>
+<td>Doivent être <strong>ledger-derived</strong></td>
+<td>Run eval — valeurs du moniteur</td>
+</tr>
+</tbody></table>
+<h2>13.6 Certification et compte</h2>
+<table>
+<thead>
+<tr>
+<th>Problème</th>
+<th>Cause</th>
+<th>Intervention</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Silver non débloqué</td>
+<td>Quiz M1 &lt; 60 % ou 1 SCN manquant</td>
+<td>Page <code>/student/certifications/silver</code></td>
+</tr>
+<tr>
+<td>Gold LOCKED</td>
+<td>Silver non attribué</td>
+<td>Compléter parcours M1 d&#39;abord</td>
+</tr>
+<tr>
+<td>Gold ELIGIBLE non AWARDED</td>
+<td>Attribution automatique désactivée</td>
+<td>Décision admin / coordonnateur</td>
+</tr>
+<tr>
+<td>Certificat PDF absent</td>
+<td>Phase preview UI</td>
+<td>Workflow institutionnel §14</td>
+</tr>
+<tr>
+<td>Numéro étudiant manquant</td>
+<td>Profile incomplet</td>
+<td><code>/teacher/students</code> — éditer</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>14. Workflow de délivrance des certificats</h1>
+<h2>14.1 Trois couches (ne pas confondre)</h2>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Rôle</th>
+<th>Autorité</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Éligibilité simulateur</strong></td>
+<td>Gates quiz + SCN + compliance</td>
+<td>TEC.WMS runtime</td>
+</tr>
+<tr>
+<td><strong>Aperçu pédagogique</strong></td>
+<td>Preview in-app (filigrane)</td>
+<td>UI étudiant</td>
+</tr>
+<tr>
+<td><strong>Credential officiel</strong></td>
+<td>PDF signé, numéro, QR, vérification publique</td>
+<td><strong>Collège de la Concorde</strong></td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Seul le processus institutionnel délivre un certificat numéroté inscrit au <strong>Certificate Registry</strong>.</p>
+</blockquote>
+<h2>14.2 Workflow Silver — Cohorte type</h2>
+<pre><code>1. Étudiant atteint 4/4 gates Silver (simulateur)
+2. Attribution Silver Premium automatique (simulateur)
+3. Enseignant vérifie studentNumber + identité
+4. Coordinateur programme → approbation B3 (Directrice)
+5. Allocation numéro : TECWMS-SIL-2026-xxx
+6. Génération PDF institutionnel (300 DPI, A4 paysage)
+7. Entrée registre : statut ACTIVE
+8. Remise étudiant + publication portail /verify/{certificateId}
+</code></pre>
+<h2>14.3 Workflow Gold — Cohorte type</h2>
+<pre><code>1. Silver ACTIVE confirmé (lien credential prérequis)
+2. Étudiant atteint 18/18 portes Gold
+3. Décision institutionnelle → attribution Gold dans le simulateur
+4. Approbation B3 Gold cohort
+5. Allocation : TECWMS-GOLD-2026-xxx
+6. PDF Gold (palette or, ribbon M1–M5)
+7. Registry entry + QR verification URL
+8. Remise + option LinkedIn credential URL
+</code></pre>
+<h2>14.4 Numérotation officielle</h2>
+<p>Format : <code>TECWMS-{TIER}-{ANNÉE}-{SÉQUENCE}</code></p>
+<table>
+<thead>
+<tr>
+<th>Segment</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TIER</td>
+<td><code>SIL</code> (Silver Premium) · <code>GOLD</code> (Gold Premium)</td>
+</tr>
+<tr>
+<td>ANNÉE</td>
+<td>Année de délivrance (2026)</td>
+</tr>
+<tr>
+<td>SÉQUENCE</td>
+<td>001, 002… (non réutilisable si REVOKED)</td>
+</tr>
+</tbody></table>
+<h2>14.5 Rôles et responsabilités</h2>
+<table>
+<thead>
+<tr>
+<th>Rôle</th>
+<th>Responsabilité</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Enseignant</strong></td>
+<td>Confirmer éligibilité simulateur · identité · studentNumber</td>
+</tr>
+<tr>
+<td><strong>Coordonnateur TEC.LOG</strong></td>
+<td>Consolidation roster · manifest cohorte</td>
+</tr>
+<tr>
+<td><strong>Directrice de programme (B3)</strong></td>
+<td>Approbation institutionnelle · signature PDF</td>
+</tr>
+<tr>
+<td><strong>Directeur technique TEC.WMS</strong></td>
+<td>Export eligibility snapshot · génération PDF</td>
+</tr>
+<tr>
+<td><strong>Registraire</strong></td>
+<td>Entrée registre · statut ACTIVE / REVOKED</td>
+</tr>
+</tbody></table>
+<h2>14.6 Vérification publique</h2>
+<ul>
+<li>URL : <code>{PLATFORM}/verify/{certificateId}</code></li>
+<li>QR code sur PDF → même URL</li>
+<li>Champs publics : ID, tier, nom, cohorte, date, statut</li>
+<li>Statuts registre : <code>ACTIVE</code> · <code>REVOKED</code> · <code>EXPIRED</code></li>
+</ul>
+<h2>14.7 Checklist clôture cohorte</h2>
+<table>
+<thead>
+<tr>
+<th>☐</th>
+<th>Action</th>
+<th>Responsable</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☐</td>
+<td>100 % étudiants actifs — gates Silver vérifiés</td>
+<td>Enseignant</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>studentNumber renseigné pour tous</td>
+<td>Enseignant</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Export CSV scores final</td>
+<td>Enseignant</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Eligibility snapshot signé</td>
+<td>Coordination</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Approbation B3 documentée</td>
+<td>Direction</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>PDFs générés et archivés</td>
+<td>Technique</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Entrées registre ACTIVE</td>
+<td>Registraire</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Remise credentials + debrief cohorte</td>
+<td>Enseignant</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>15. Annexes — Références et outils enseignant</h1>
+<h2>15.1 Routes essentielles</h2>
+<table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Fonction</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/teacher</code></td>
+<td>Tableau de bord principal</td>
+</tr>
+<tr>
+<td><code>/teacher/monitor</code></td>
+<td>Supervision runs en direct</td>
+</tr>
+<tr>
+<td><code>/teacher/students</code></td>
+<td>Gestion comptes · studentNumber</td>
+</tr>
+<tr>
+<td><code>/teacher/scenarios</code></td>
+<td>Catalogue scénarios · mode démo</td>
+</tr>
+<tr>
+<td><code>/teacher/slides</code></td>
+<td>Hub diapositives projection</td>
+</tr>
+<tr>
+<td><code>/teacher/analytics</code></td>
+<td>Statistiques cohorte</td>
+</tr>
+<tr>
+<td><code>/student/certifications</code></td>
+<td>Page certifications étudiant</td>
+</tr>
+</tbody></table>
+<h2>15.2 Documents de référence</h2>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>Emplacement</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Constitution pédagogique TEC.WMS</td>
+<td>Documentation institutionnelle pédagogique</td>
+</tr>
+<tr>
+<td>Package certification V1</td>
+<td>Manuel de certification TEC.WMS</td>
+</tr>
+<tr>
+<td>Guide étudiant M1–M3</td>
+<td><code>TECWMS_GUIDE_M1_M3</code></td>
+</tr>
+<tr>
+<td>Guide étudiant M4–M5</td>
+<td><code>TECWMS_GUIDE_M4_M5</code></td>
+</tr>
+<tr>
+<td>Plan d&#39;exécution Aula 9 (M4)</td>
+<td>Documentation séance M4</td>
+</tr>
+<tr>
+<td>Guide de validation opérationnelle</td>
+<td>Documentation validation cohorte</td>
+</tr>
+</tbody></table>
+<h2>15.3 Seuils officiels (référence rapide)</h2>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>M1–M2</th>
+<th>M3–M5</th>
+<th>Quiz cert</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Scénario Évaluation</td>
+<td>≥ 60/100</td>
+<td>≥ 70/100</td>
+<td>M1/M5 ≥ 60 %</td>
+</tr>
+<tr>
+<td>SCN-017 capstone</td>
+<td>—</td>
+<td>≥ 70/100</td>
+<td>—</td>
+</tr>
+</tbody></table>
+<h2>15.4 Contacts et support</h2>
+<table>
+<thead>
+<tr>
+<th>Besoin</th>
+<th>Contact</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Compte enseignant / reset mot de passe</td>
+<td>Administrateur TEC.WMS</td>
+</tr>
+<tr>
+<td>Approbation certification B3</td>
+<td>Directrice de programme TEC.LOG</td>
+</tr>
+<tr>
+<td>Incident plateforme (P0)</td>
+<td>Directeur technique TEC.WMS · procédure d&#39;escalade institutionnelle</td>
+</tr>
+<tr>
+<td>Question pédagogique SCN</td>
+<td>Coordination TEC.LOG + Fiche Mission PDF</td>
+</tr>
+</tbody></table>
+<hr>
+<div class="checklist-page"><h1>Checklist de préparation — Séance type</h1>
+<table>
+<thead>
+<tr>
+<th>☐</th>
+<th>Vérification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☐</td>
+<td>Plateforme accessible — <code>/login</code> sans erreur</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Compte enseignant actif — <code>/teacher</code></td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Slides module chargées — <code>/teacher/slides/{n}</code></td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Roster cohorte visible — 5+ étudiants</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Gates prérequis confirmés (M3 validation si S9+)</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Mode Évaluation rappelé aux étudiants</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Monitor Dashboard ouvert pour supervision</td>
+</tr>
+<tr>
+<td>☐</td>
+<td>Run Report debrief planifié (10 min fin séance)</td>
+</tr>
+</tbody></table>
+</div><hr>
+<p><strong>Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS</strong><br>Guide Enseignant Officiel · Version juin 2026 · Usage institutionnel</p>
+
+</body>
+</html>

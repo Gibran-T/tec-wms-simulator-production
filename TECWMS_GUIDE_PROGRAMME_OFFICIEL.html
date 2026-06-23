@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEC.WMS — Guide officiel du programme TEC.LOG</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 24mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #0f2d52;
+      page-break-after: avoid;
+    }
+    h1 { font-size: 1.55em; margin-top: 1.2em; border-bottom: 2px solid #0f2d52; padding-bottom: 0.25em; }
+    h2 { font-size: 1.25em; margin-top: 1em; }
+    h3 { font-size: 1.05em; margin-top: 0.85em; color: #234a73; }
+    p, li { orphans: 3; widows: 3; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8em 0 1em;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.45em 0.55em;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #e8eef4;
+      font-weight: 600;
+      color: #0f2d52;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    blockquote {
+      margin: 0.8em 0;
+      padding: 0.6em 1em;
+      border-left: 4px solid #0f2d52;
+      background: #f4f7fa;
+      color: #333;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+      background: #f0f0f0;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 0.8em 1em;
+      font-size: 9pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 1.2em 0;
+    }
+    ul, ol { padding-left: 1.4em; }
+    a { color: #0f2d52; text-decoration: none; }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    .cover-page {
+      width: 210mm;
+      min-height: 297mm;
+      text-align: center;
+      padding: 55mm 25mm 20mm;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .cover-page .brand {
+      font-size: 2.6em;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #0f2d52;
+      margin-bottom: 1.5em;
+    }
+    .cover-page .title-block h1 {
+      font-size: 1.55em;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0.35em 0;
+      border: none;
+      color: #1a1a1a;
+    }
+    .cover-page .subtitle-block {
+      margin-top: 45mm;
+      font-size: 1.15em;
+      line-height: 1.65;
+      color: #333;
+    }
+    .cover-page .meta {
+      margin-top: 35mm;
+      font-size: 0.95em;
+      color: #555;
+      line-height: 1.6;
+    }
+    
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.toc-table td:first-child {
+  width: 3em;
+  text-align: right;
+  color: #555;
+}
+
+  </style>
+</head>
+<body>
+<style>
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.toc-table td:first-child {
+  width: 3em;
+  text-align: right;
+  color: #555;
+}
+</style><div class="cover-page"><p class="brand">TEC.WMS</p><div class="title-block"><h1>Guide officiel du programme</h1>
+<h1>TEC.LOG — Opérations ERP/WMS</h1>
+</div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong><br>Programme collégial de formation en logistique intégrée<br>Simulateur pédagogique ERP/WMS</p>
+</div><div class="meta"><p>Version 1.0 · Session 2025–2026 · Document institutionnel<br>Modules M1 à M5 · 17 scénarios certifiables (SCN-001 à SCN-017)<br>Durée totale : 30 heures · Français (Canada)</p>
+</div></div><h1>Table des matières</h1>
+<table>
+<thead>
+<tr>
+<th>Section</th>
+<th>Titre</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Description du programme</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Résultats d&#39;apprentissage</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Cadre de compétences</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Compétences par module (M1–M5)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Modèle d&#39;évaluation</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Architecture des scénarios</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Modèle de certification</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Modèle de progression étudiante</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Profil du diplômé</td>
+</tr>
+<tr>
+<td>A</td>
+<td>Glossaire institutionnel</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>1. Description du programme</h1>
+<h2>1.1 Identité du programme</h2>
+<p>Le <strong>programme TEC.LOG</strong> (Technologies de la chaîne logistique) est une formation collégiale offerte par le <strong>Collège de la Concorde</strong> en partenariat avec la plateforme <strong>TEC.WMS</strong> — un simulateur pédagogique ERP/WMS inspiré des environnements SAP Fiori et des systèmes d&#39;entrepôt professionnels.</p>
+<p>Le programme vise à former des techniciennes et techniciens capables d&#39;exécuter, contrôler et piloter les opérations logistiques dans un contexte québécois, en maîtrisant les flux transactionnels de la chaîne d&#39;approvisionnement : de la commande fournisseur à l&#39;expédition client, en passant par la réception, le rangement, le contrôle des stocks et l&#39;analyse de performance.</p>
+<h2>1.2 Public cible et prérequis</h2>
+<table>
+<thead>
+<tr>
+<th>Critère</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Public</strong></td>
+<td>Étudiantes et étudiants en techniques de la logistique, gestion d&#39;entrepôt ou programmes connexes</td>
+</tr>
+<tr>
+<td><strong>Prérequis académiques</strong></td>
+<td>Aucun prérequis technique en ERP; familiarité de base avec les concepts d&#39;entrepôt recommandée</td>
+</tr>
+<tr>
+<td><strong>Prérequis technologiques</strong></td>
+<td>Accès Web au simulateur TEC.WMS, compte étudiant institutionnel</td>
+</tr>
+<tr>
+<td><strong>Langue d&#39;instruction</strong></td>
+<td>Français (Canada); terminologie bilingue FR/EN pour l&#39;employabilité</td>
+</tr>
+</tbody></table>
+<h2>1.3 Structure modulaire</h2>
+<p>Le parcours comprend <strong>cinq modules</strong> totalisant <strong>30 heures</strong> de formation pratique et théorique intégrée :</p>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Titre</th>
+<th>Durée</th>
+<th>Scénarios</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>M1</strong></td>
+<td>Fondements de la chaîne logistique et intégration ERP/WMS</td>
+<td>6 h</td>
+<td>SCN-001 → SCN-005</td>
+</tr>
+<tr>
+<td><strong>M2</strong></td>
+<td>Exécution d&#39;entrepôt et gestion des emplacements</td>
+<td>6 h</td>
+<td>SCN-006 → SCN-008</td>
+</tr>
+<tr>
+<td><strong>M3</strong></td>
+<td>Contrôle des stocks et réapprovisionnement</td>
+<td>6 h</td>
+<td>SCN-009 → SCN-011</td>
+</tr>
+<tr>
+<td><strong>M4</strong></td>
+<td>Indicateurs de performance logistique</td>
+<td>6 h</td>
+<td>SCN-012 → SCN-014</td>
+</tr>
+<tr>
+<td><strong>M5</strong></td>
+<td>Simulation opérationnelle intégrée</td>
+<td>6 h</td>
+<td>SCN-015 → SCN-017</td>
+</tr>
+</tbody></table>
+<h2>1.4 Approche pédagogique</h2>
+<p>Le programme repose sur une <strong>progression par compétences</strong> alignée sur la taxonomie de Bloom, combinant :</p>
+<ol>
+<li><strong>Cours magistraux interactifs</strong> — diapositives institutionnelles, terminologie SAP/Odoo, cartographie des flux.</li>
+<li><strong>Quiz de validation des connaissances</strong> — seuil de réussite de 60 % pour débloquer la simulation.</li>
+<li><strong>Scénarios transactionnels</strong> — 17 missions opérationnelles (SCN) dans un entrepôt simulé à trois zones (Réception, Stockage, Expédition).</li>
+<li><strong>Intelligence pédagogique</strong> — panneaux contextuels, glossaire de 80 termes TEC.LOG, rapports de performance personnalisés.</li>
+<li><strong>Certification par paliers</strong> — Silver (fondements M1) et Gold (parcours intégré M1–M5).</li>
+</ol>
+<h2>1.5 Transactions SAP de référence</h2>
+<table>
+<thead>
+<tr>
+<th>Domaine</th>
+<th>Transactions couvertes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Approvisionnement</td>
+<td>ME21N (commande d&#39;achat)</td>
+</tr>
+<tr>
+<td>Réception</td>
+<td>MIGO (réception marchandises)</td>
+</tr>
+<tr>
+<td>Rangement</td>
+<td>LT0A (mise en stock)</td>
+</tr>
+<tr>
+<td>Ventes / expédition</td>
+<td>VL01N, PGI (sortie marchandises)</td>
+</tr>
+<tr>
+<td>Inventaire</td>
+<td>MI01, MI04, MI07 (comptage cyclique)</td>
+</tr>
+<tr>
+<td>Consultation stocks</td>
+<td>MB52</td>
+</tr>
+<tr>
+<td>Planification</td>
+<td>Logique MRP, Min/Max, ROP, EOQ</td>
+</tr>
+</tbody></table>
+<h2>1.6 Contexte professionnel québécois</h2>
+<p>Les compétences visées correspondent aux exigences du marché du travail logistique au Québec : traçabilité des lots, conformité FIFO, précision d&#39;inventaire, indicateurs OTIF et taux de service, gestion des écarts et prise de décision opérationnelle sous contrainte de temps.</p>
+<div class="page-break"></div><h1>2. Résultats d&#39;apprentissage</h1>
+<p>À l&#39;issue du programme TEC.LOG, l&#39;étudiante ou l&#39;étudiant sera en mesure de :</p>
+<h2>2.1 Résultats globaux (programme)</h2>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Résultat d&#39;apprentissage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>RA-G01</strong></td>
+<td>Exécuter le cycle logistique nominal de bout en bout (PO → GR → rangement → SO → GI) dans un système ERP/WMS intégré.</td>
+</tr>
+<tr>
+<td><strong>RA-G02</strong></td>
+<td>Identifier, analyser et résoudre les anomalies opérationnelles courantes (écarts d&#39;inventaire, ruptures, non-conformités documentaires).</td>
+</tr>
+<tr>
+<td><strong>RA-G03</strong></td>
+<td>Appliquer les règles de rangement structuré, de gestion de capacité et de conformité FIFO dans un entrepôt multi-zones.</td>
+</tr>
+<tr>
+<td><strong>RA-G04</strong></td>
+<td>Réaliser un inventaire cyclique, réconcilier les écarts et formuler une décision de réapprovisionnement fondée sur une politique Min/Max.</td>
+</tr>
+<tr>
+<td><strong>RA-G05</strong></td>
+<td>Interpréter les indicateurs clés de performance logistique (rotation, taux de service, productivité) et établir un diagnostic opérationnel.</td>
+</tr>
+<tr>
+<td><strong>RA-G06</strong></td>
+<td>Piloter un cycle opérationnel intégré sous contrainte, corriger les variances et formuler une décision stratégique argumentée par les KPI.</td>
+</tr>
+<tr>
+<td><strong>RA-G07</strong></td>
+<td>Démontrer une conformité système documentée à chaque étape critique du parcours (vérification de conformité finale).</td>
+</tr>
+</tbody></table>
+<h2>2.2 Alignement Bloom par palier</h2>
+<table>
+<thead>
+<tr>
+<th>Palier</th>
+<th>Niveau Bloom dominant</th>
+<th>Modules</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fondation</td>
+<td>Comprendre → Analyser</td>
+<td>M1</td>
+</tr>
+<tr>
+<td>Exécution</td>
+<td>Appliquer → Analyser</td>
+<td>M2</td>
+</tr>
+<tr>
+<td>Contrôle</td>
+<td>Appliquer → Évaluer</td>
+<td>M3</td>
+</tr>
+<tr>
+<td>Pilotage</td>
+<td>Analyser → Évaluer</td>
+<td>M4</td>
+</tr>
+<tr>
+<td>Maîtrise</td>
+<td>Évaluer → Créer</td>
+<td>M5</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>3. Cadre de compétences</h1>
+<h2>3.1 Principes directeurs</h2>
+<p>Le cadre de compétences TEC.LOG s&#39;appuie sur la <strong>Matrice de Compétences TEC.LOG BRIDGE</strong> et distingue trois dimensions d&#39;évaluation :</p>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Description</th>
+<th>Échelle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Maturité ERP</strong></td>
+<td>Capacité à exécuter et interpréter les transactions intégrées</td>
+<td>1 à 5</td>
+</tr>
+<tr>
+<td><strong>Maturité WMS</strong></td>
+<td>Capacité à gérer les opérations d&#39;entrepôt (zones, bins, lots)</td>
+<td>1 à 5</td>
+</tr>
+<tr>
+<td><strong>Niveau Bloom</strong></td>
+<td>Profondeur cognitive exigée par le scénario</td>
+<td>Comprendre → Créer</td>
+</tr>
+</tbody></table>
+<h2>3.2 Rôles professionnels ciblés</h2>
+<table>
+<thead>
+<tr>
+<th>Rôle en entrepôt</th>
+<th>Modules principaux</th>
+<th>Niveau de responsabilité</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Opérateur entrepôt</td>
+<td>M1</td>
+<td>Exécution transactionnelle</td>
+</tr>
+<tr>
+<td>Spécialiste rangement / FIFO</td>
+<td>M2</td>
+<td>Application des règles opérationnelles</td>
+</tr>
+<tr>
+<td>Auditeur / gestionnaire inventaire</td>
+<td>M3</td>
+<td>Contrôle et réconciliation</td>
+</tr>
+<tr>
+<td>Analyste logistique</td>
+<td>M4</td>
+<td>Interprétation et diagnostic</td>
+</tr>
+<tr>
+<td>Gestionnaire / directeur opérations</td>
+<td>M5</td>
+<td>Décision intégrée et stratégique</td>
+</tr>
+</tbody></table>
+<h2>3.3 Matrice de progression des compétences</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Bloom dominant</th>
+<th>Compétences clés certifiables</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>Comprendre → Analyser</td>
+<td>Flux PO→GI, conformité documentaire, résolution d&#39;anomalies</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Appliquer → Analyser</td>
+<td>Rangement structuré, capacité d&#39;emplacement, FIFO multi-lots</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Appliquer → Évaluer</td>
+<td>Inventaire cyclique, analyse d&#39;écarts, politique réappro Min/Max</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>Analyser → Évaluer</td>
+<td>Rotation des stocks, diagnostic service/erreurs, décision multi-KPI</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>Évaluer → Créer</td>
+<td>Cycle intégré, gestion post-cycle, décision stratégique capstone</td>
+</tr>
+</tbody></table>
+<h2>3.4 Cartographie SCN → compétence certifiable</h2>
+<table>
+<thead>
+<tr>
+<th>SCN</th>
+<th>Compétence certifiable</th>
+<th>Bloom</th>
+<th>Maturité ERP/WMS</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SCN-001</td>
+<td>Cycle nominal E2E</td>
+<td>Comprendre</td>
+<td>2 / 2</td>
+</tr>
+<tr>
+<td>SCN-002</td>
+<td>Résolution GR fantôme</td>
+<td>Analyser</td>
+<td>2 / 2</td>
+</tr>
+<tr>
+<td>SCN-003</td>
+<td>Gestion rupture de stock</td>
+<td>Analyser</td>
+<td>2 / 2</td>
+</tr>
+<tr>
+<td>SCN-004</td>
+<td>Correction écart inventaire</td>
+<td>Analyser</td>
+<td>3 / 2</td>
+</tr>
+<tr>
+<td>SCN-005</td>
+<td>Résolution multi-anomalies</td>
+<td>Évaluer</td>
+<td>3 / 3</td>
+</tr>
+<tr>
+<td>SCN-006</td>
+<td>Rangement structuré</td>
+<td>Appliquer</td>
+<td>2 / 3</td>
+</tr>
+<tr>
+<td>SCN-007</td>
+<td>Gestion capacité emplacement</td>
+<td>Analyser</td>
+<td>3 / 3</td>
+</tr>
+<tr>
+<td>SCN-008</td>
+<td>Application FIFO multi-lots</td>
+<td>Analyser</td>
+<td>3 / 3</td>
+</tr>
+<tr>
+<td>SCN-009</td>
+<td>Inventaire cyclique</td>
+<td>Appliquer</td>
+<td>3 / 4</td>
+</tr>
+<tr>
+<td>SCN-010</td>
+<td>Analyse d&#39;écart significatif</td>
+<td>Évaluer</td>
+<td>4 / 4</td>
+</tr>
+<tr>
+<td>SCN-011</td>
+<td>Politique réappro Min/Max</td>
+<td>Évaluer</td>
+<td>4 / 4</td>
+</tr>
+<tr>
+<td>SCN-012</td>
+<td>Interprétation rotation</td>
+<td>Analyser</td>
+<td>4 / 4</td>
+</tr>
+<tr>
+<td>SCN-013</td>
+<td>Diagnostic service / erreurs</td>
+<td>Évaluer</td>
+<td>4 / 4</td>
+</tr>
+<tr>
+<td>SCN-014</td>
+<td>Diagnostic stratégique multi-KPI</td>
+<td>Évaluer</td>
+<td>5 / 5</td>
+</tr>
+<tr>
+<td>SCN-015</td>
+<td>Cycle opérationnel intégré</td>
+<td>Évaluer</td>
+<td>4 / 4</td>
+</tr>
+<tr>
+<td>SCN-016</td>
+<td>Gestion écarts post-cycle</td>
+<td>Évaluer</td>
+<td>5 / 5</td>
+</tr>
+<tr>
+<td>SCN-017</td>
+<td>Décision stratégique</td>
+<td><strong>Créer</strong></td>
+<td>5 / 5</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>4. Compétences par module (M1–M5)</h1>
+<h2>4.1 Module 1 — Fondements de la chaîne logistique et intégration ERP/WMS</h2>
+<p><strong>Durée :</strong> 6 heures · <strong>Scénarios :</strong> SCN-001 à SCN-005 · <strong>Seuil :</strong> 60/100</p>
+<h3>Compétences visées</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Compétence</th>
+<th>Indicateur de maîtrise</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C-M1-01</td>
+<td>Exécution opérationnelle du cycle PO→GI</td>
+<td>Complétion sans stock négatif ni transaction en suspens</td>
+</tr>
+<tr>
+<td>C-M1-02</td>
+<td>Identification de problèmes documentaires</td>
+<td>Détection et correction d&#39;une réception fantôme (GR)</td>
+</tr>
+<tr>
+<td>C-M1-03</td>
+<td>Prise de décision face à une rupture</td>
+<td>Allocation correcte malgré contrainte de disponibilité</td>
+</tr>
+<tr>
+<td>C-M1-04</td>
+<td>Analyse des écarts d&#39;inventaire</td>
+<td>Ajustement documenté d&#39;un écart de comptage</td>
+</tr>
+<tr>
+<td>C-M1-05</td>
+<td>Résolution de problèmes complexes</td>
+<td>Gestion simultanée de plusieurs anomalies</td>
+</tr>
+</tbody></table>
+<h3>Étapes opérationnelles évaluées</h3>
+<p>PO → GR → Rangement (PUTAWAY) → SO → GI → Comptage cyclique → Conformité M1</p>
+<h3>Impact certification</h3>
+<p>Réussite intégrale du module M1 = <strong>éligibilité à la Certification Silver Premium TEC.WMS</strong>.</p>
+<hr>
+<h2>4.2 Module 2 — Exécution d&#39;entrepôt et gestion des emplacements</h2>
+<p><strong>Durée :</strong> 6 heures · <strong>Scénarios :</strong> SCN-006 à SCN-008 · <strong>Seuil :</strong> 60/100</p>
+<h3>Compétences visées</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Compétence</th>
+<th>Indicateur de maîtrise</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C-M2-01</td>
+<td>Rangement structuré par zone et bin</td>
+<td>Allocation conforme aux règles de localisation</td>
+</tr>
+<tr>
+<td>C-M2-02</td>
+<td>Gestion de la capacité d&#39;emplacement</td>
+<td>Respect des limites de capacité sans surcharge</td>
+</tr>
+<tr>
+<td>C-M2-03</td>
+<td>Conformité FIFO multi-lots</td>
+<td>Sélection du lot le plus ancien au prélèvement</td>
+</tr>
+</tbody></table>
+<h3>Étapes opérationnelles évaluées</h3>
+<p>GR (pré-amorcé) → Rangement → Prélèvement FIFO → Précision inventaire → Conformité avancée M2</p>
+<h3>Déblocage</h3>
+<p>Module accessible après réussite du module M1 (seuil module atteint sur au moins un scénario d&#39;évaluation).</p>
+<hr>
+<h2>4.3 Module 3 — Contrôle des stocks et réapprovisionnement</h2>
+<p><strong>Durée :</strong> 6 heures · <strong>Scénarios :</strong> SCN-009 à SCN-011 · <strong>Seuil :</strong> 70/100</p>
+<h3>Compétences visées</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Compétence</th>
+<th>Indicateur de maîtrise</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C-M3-01</td>
+<td>Précision inventaire par comptage cyclique</td>
+<td>Exécution MI01/MI04 sans écart non traité</td>
+</tr>
+<tr>
+<td>C-M3-02</td>
+<td>Gestion des écarts significatifs</td>
+<td>Justification obligatoire en mode évaluation</td>
+</tr>
+<tr>
+<td>C-M3-03</td>
+<td>Planification réapprovisionnement Min/Max</td>
+<td>Calcul Q = Max − stock évalué, décision documentée</td>
+</tr>
+</tbody></table>
+<h3>Étapes opérationnelles évaluées</h3>
+<p>Liste CC → Comptage → Réconciliation → Réapprovisionnement → Conformité M3</p>
+<h3>Validation enseignante</h3>
+<p>La progression vers M4 peut exiger une <strong>validation enseignante</strong> du module M3 (<code>teacherValidated</code>), selon la cohorte.</p>
+<hr>
+<h2>4.4 Module 4 — Indicateurs de performance logistique</h2>
+<p><strong>Durée :</strong> 6 heures · <strong>Scénarios :</strong> SCN-012 à SCN-014 · <strong>Seuil :</strong> 70/100</p>
+<h3>Compétences visées</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Compétence</th>
+<th>Indicateur de maîtrise</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C-M4-01</td>
+<td>Interprétation de la rotation des stocks</td>
+<td>Analyse KPI rotation avec seuils de référence</td>
+</tr>
+<tr>
+<td>C-M4-02</td>
+<td>Diagnostic taux de service et erreurs</td>
+<td>Corrélation erreurs opérationnelles / KPI service</td>
+</tr>
+<tr>
+<td>C-M4-03</td>
+<td>Diagnostic stratégique multi-KPI</td>
+<td>Décision argumentée à partir de plusieurs indicateurs</td>
+</tr>
+</tbody></table>
+<h3>Étapes opérationnelles évaluées</h3>
+<p>Collecte KPI → Analyse rotation → Analyse service → Diagnostic intégré → Conformité M4</p>
+<h3>Nature de l&#39;évaluation</h3>
+<p>Évaluation <strong>sémantique</strong> des réponses écrites (analyse, diagnostic, justification) en complément de la conformité transactionnelle.</p>
+<hr>
+<h2>4.5 Module 5 — Simulation opérationnelle intégrée</h2>
+<p><strong>Durée :</strong> 6 heures · <strong>Scénarios :</strong> SCN-015 à SCN-017 · <strong>Seuil :</strong> 70/100 (capstone SCN-017 : 70/100 minimum)</p>
+<h3>Compétences visées</h3>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Compétence</th>
+<th>Indicateur de maîtrise</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>C-M5-01</td>
+<td>Opérations intégrées de bout en bout</td>
+<td>Cycle complet multi-SKU sans rupture de séquence</td>
+</tr>
+<tr>
+<td>C-M5-02</td>
+<td>Action corrective post-cycle</td>
+<td>Résolution de variance <strong>avant</strong> analyse KPI (SCN-016)</td>
+</tr>
+<tr>
+<td>C-M5-03</td>
+<td>Décision stratégique capstone</td>
+<td>Décision M5 liée à un instantané KPI documenté (SCN-017)</td>
+</tr>
+</tbody></table>
+<h3>Étapes opérationnelles évaluées</h3>
+<p>Réception M5 → Rangement → Prélèvement → Cycle count → Ajustement variance (si applicable) → KPI → Décision → Conformité M5</p>
+<h3>Impact certification</h3>
+<p>Réussite intégrale du parcours M1–M5 = <strong>éligibilité à la Certification Gold Premium TEC.WMS</strong>.</p>
+<div class="page-break"></div><h1>5. Modèle d&#39;évaluation</h1>
+<h2>5.1 Architecture d&#39;évaluation à trois niveaux</h2>
+<table>
+<thead>
+<tr>
+<th>Niveau</th>
+<th>Instrument</th>
+<th>Seuil</th>
+<th>Poids dans la progression</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Connaissances</strong></td>
+<td>Quiz de module (M1, M5)</td>
+<td>≥ 60 %</td>
+<td>Condition de déblocage simulation</td>
+</tr>
+<tr>
+<td><strong>Compétences transactionnelles</strong></td>
+<td>Scénarios SCN en mode évaluation</td>
+<td>60/100 (M1–M2) · 70/100 (M3–M5)</td>
+<td>Certification et déblocage module</td>
+</tr>
+<tr>
+<td><strong>Conformité système</strong></td>
+<td>Vérification finale de conformité</td>
+<td>Validée (étape COMPLIANCE)</td>
+<td>Condition obligatoire certification</td>
+</tr>
+</tbody></table>
+<h2>5.2 Système de notation par scénario</h2>
+<p>Chaque scénario d&#39;évaluation attribue des points selon un barème événementiel :</p>
+<table>
+<thead>
+<tr>
+<th>Catégorie</th>
+<th>Description</th>
+<th>Exemple M1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Complétion</strong></td>
+<td>Points par étape transactionnelle réussie</td>
+<td>PO (10), GR (10), Rangement (25), SO (10), GI (10), CC (10)</td>
+</tr>
+<tr>
+<td><strong>Conformité</strong></td>
+<td>Bonus de conformité système</td>
+<td>COMPLIANCE_OK (+40)</td>
+</tr>
+<tr>
+<td><strong>Pénalités</strong></td>
+<td>Déductions pour erreurs</td>
+<td>Stock négatif, mauvais lot FIFO, transaction en suspens</td>
+</tr>
+</tbody></table>
+<p>Le score total est exprimé sur <strong>100 points</strong>. Les exécutions en mode <strong>démo</strong> (<code>isDemo = true</code>) ne comptent pas pour la certification.</p>
+<h2>5.3 Seuils officiels (GOV-T01)</h2>
+<table>
+<thead>
+<tr>
+<th>Règle</th>
+<th>Valeur</th>
+<th>Application</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Quiz M1 / M5</td>
+<td>≥ 60 %</td>
+<td>Déblocage simulation et certification</td>
+</tr>
+<tr>
+<td>Scénarios M1, M2</td>
+<td>≥ 60/100</td>
+<td>Réussite scénario et module</td>
+</tr>
+<tr>
+<td>Scénarios M3, M4, M5</td>
+<td>≥ 70/100</td>
+<td>Réussite scénario et module</td>
+</tr>
+<tr>
+<td>Capstone SCN-017 (Gold)</td>
+<td>≥ 70/100</td>
+<td>Condition Gold spécifique</td>
+</tr>
+</tbody></table>
+<h2>5.4 Évaluation sémantique (M4–M5)</h2>
+<p>Pour les scénarios d&#39;analyse et de décision (SCN-012 à SCN-017), le moteur d&#39;évaluation combine :</p>
+<ol>
+<li><strong>Conformité transactionnelle</strong> — étapes complétées dans le bon ordre.</li>
+<li><strong>Analyse sémantique</strong> — présence des concepts clés, cohérence du diagnostic, lien explicite aux KPI.</li>
+<li><strong>Justification obligatoire</strong> — certains scénarios (SCN-010, SCN-014, SCN-017) exigent une réponse rédigée structurée.</li>
+</ol>
+<h2>5.5 Rapport de performance (Run Report)</h2>
+<p>À la fin de chaque exécution, l&#39;étudiant reçoit un rapport détaillé comprenant :</p>
+<ul>
+<li>Score par étape et score total</li>
+<li>Analyse des pénalités</li>
+<li>Recommandations personnalisées d&#39;amélioration</li>
+<li>État de conformité et blockers éventuels</li>
+</ul>
+<h2>5.6 Distinction progression session / certification</h2>
+<table>
+<thead>
+<tr>
+<th>Indicateur</th>
+<th>Mesure</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Progression de session (%)</strong></td>
+<td>Étapes opérationnelles complétées dans la run en cours</td>
+<td>Mission Control, tableau de bord</td>
+</tr>
+<tr>
+<td><strong>Progression certification (%)</strong></td>
+<td>Quiz + SCN + conformité + blockers</td>
+<td>Page Certifications</td>
+</tr>
+<tr>
+<td><strong>Progression module</strong></td>
+<td><code>module_progress.passed</code>, <code>bestScore</code></td>
+<td>Déblocage inter-modules</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Note pédagogique :</strong> Un score de session de 90 % signifie qu&#39;une étape opérationnelle reste à compléter dans la run courante ; cela ne garantit pas l&#39;éligibilité à la certification, qui exige la réussite de tous les scénarios requis.</p>
+</blockquote>
+<div class="page-break"></div><h1>6. Architecture des scénarios</h1>
+<h2>6.1 Catalogue officiel — 17 scénarios (SCN)</h2>
+<p>Le simulateur TEC.WMS déploie <strong>17 scénarios canoniques</strong> répartis en cinq modules :</p>
+<pre><code>M1 [SCN-001 ─ SCN-005]  Fondements et anomalies de base
+M2 [SCN-006 ─ SCN-008]  Exécution entrepôt
+M3 [SCN-009 ─ SCN-011]  Contrôle stocks
+M4 [SCN-012 ─ SCN-014]  Analyse KPI
+M5 [SCN-015 ─ SCN-017]  Intégration et capstone
+</code></pre>
+<h2>6.2 Anatomie d&#39;un scénario</h2>
+<p>Chaque scénario (SCN) comprend :</p>
+<table>
+<thead>
+<tr>
+<th>Composante</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Fiche de mission</strong></td>
+<td>Contexte opérationnel, objectifs, contraintes</td>
+</tr>
+<tr>
+<td><strong>État initial</strong></td>
+<td>Données pré-chargées (stocks, commandes, anomalies)</td>
+</tr>
+<tr>
+<td><strong>Séquence d&#39;étapes</strong></td>
+<td>Transactions ordonnées avec validations inter-étapes</td>
+</tr>
+<tr>
+<td><strong>Règles métier</strong></td>
+<td>Zones, capacité, FIFO, seuils KPI</td>
+</tr>
+<tr>
+<td><strong>Mode démo / évaluation</strong></td>
+<td>Démo = entraînement libre ; Évaluation = compte pour certification</td>
+</tr>
+<tr>
+<td><strong>Points de contrôle</strong></td>
+<td>Jalons pédagogiques affichés dans l&#39;interface Mission Control</td>
+</tr>
+</tbody></table>
+<h2>6.3 Zones de l&#39;entrepôt simulé</h2>
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Code</th>
+<th>Opérations principales</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Réception</td>
+<td>RECEPTION</td>
+<td>GR, étiquetage, contrôle qualité initial</td>
+</tr>
+<tr>
+<td>Stockage</td>
+<td>STOCKAGE</td>
+<td>Rangement, inventaire, prélèvement FIFO</td>
+</tr>
+<tr>
+<td>Expédition</td>
+<td>EXPEDITION</td>
+<td>Préparation commande, GI, conformité finale</td>
+</tr>
+</tbody></table>
+<h2>6.4 Profils de complexité par module</h2>
+<table>
+<thead>
+<tr>
+<th>Module</th>
+<th>Profil dominant</th>
+<th>Type d&#39;anomalie</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M1</td>
+<td>Nominal → multi-anomalies</td>
+<td>GR fantôme, rupture, écart CC</td>
+</tr>
+<tr>
+<td>M2</td>
+<td>Opérationnel structuré</td>
+<td>Capacité, FIFO multi-lots</td>
+</tr>
+<tr>
+<td>M3</td>
+<td>Contrôle et décision</td>
+<td>Écart significatif, calcul réappro</td>
+</tr>
+<tr>
+<td>M4</td>
+<td>Analytique</td>
+<td>Interprétation KPI, corrélation erreurs</td>
+</tr>
+<tr>
+<td>M5</td>
+<td>Intégré → capstone</td>
+<td>Variance post-cycle, décision stratégique</td>
+</tr>
+</tbody></table>
+<h2>6.5 Scénarios détaillés — M1</h2>
+<table>
+<thead>
+<tr>
+<th>SCN</th>
+<th>Titre fonctionnel</th>
+<th>Compétence</th>
+<th>Difficulté</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SCN-001</td>
+<td>Cycle nominal de bout en bout</td>
+<td>Exécution opérationnelle</td>
+<td>★☆☆</td>
+</tr>
+<tr>
+<td>SCN-002</td>
+<td>Résolution GR fantôme</td>
+<td>Identification de problème</td>
+<td>★★☆</td>
+</tr>
+<tr>
+<td>SCN-003</td>
+<td>Gestion rupture de stock</td>
+<td>Prise de décision</td>
+<td>★★☆</td>
+</tr>
+<tr>
+<td>SCN-004</td>
+<td>Correction écart inventaire</td>
+<td>Analyse des écarts</td>
+<td>★★☆</td>
+</tr>
+<tr>
+<td>SCN-005</td>
+<td>Résolution multi-anomalies</td>
+<td>Résolution complexe</td>
+<td>★★★</td>
+</tr>
+</tbody></table>
+<h2>6.6 Scénarios détaillés — M2 à M5</h2>
+<table>
+<thead>
+<tr>
+<th>SCN</th>
+<th>Module</th>
+<th>Titre fonctionnel</th>
+<th>Seuil</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SCN-006</td>
+<td>M2</td>
+<td>Rangement structuré</td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>SCN-007</td>
+<td>M2</td>
+<td>Gestion capacité emplacement</td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>SCN-008</td>
+<td>M2</td>
+<td>Application FIFO multi-lots</td>
+<td>60/100</td>
+</tr>
+<tr>
+<td>SCN-009</td>
+<td>M3</td>
+<td>Inventaire cyclique</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-010</td>
+<td>M3</td>
+<td>Analyse d&#39;écart significatif</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-011</td>
+<td>M3</td>
+<td>Politique réappro Min/Max</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-012</td>
+<td>M4</td>
+<td>Interprétation rotation</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-013</td>
+<td>M4</td>
+<td>Diagnostic service / erreurs</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-014</td>
+<td>M4</td>
+<td>Diagnostic stratégique multi-KPI</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-015</td>
+<td>M5</td>
+<td>Cycle opérationnel intégré</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-016</td>
+<td>M5</td>
+<td>Gestion écarts post-cycle</td>
+<td>70/100</td>
+</tr>
+<tr>
+<td>SCN-017</td>
+<td>M5</td>
+<td>Décision stratégique (capstone)</td>
+<td>70/100</td>
+</tr>
+</tbody></table>
+<h2>6.7 Règles d&#39;intégrité des scénarios</h2>
+<ul>
+<li><strong>Dernière exécution prévaut</strong> — pour chaque SCN, seule la dernière run d&#39;évaluation complétée détermine l&#39;éligibilité.</li>
+<li><strong>Blockers</strong> — transactions non validées ou comptages non réconciliés bloquent la certification même si le score est suffisant.</li>
+<li><strong>Ordre des étapes M5</strong> — SCN-016 exige la résolution de variance (ADJ) avant l&#39;analyse KPI lorsque le contrat de variance s&#39;applique.</li>
+</ul>
+<div class="page-break"></div><h1>7. Modèle de certification</h1>
+<h2>7.1 Architecture à trois couches</h2>
+<p>Le système de certification TEC.WMS sépare strictement trois couches :</p>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Rôle</th>
+<th>Autorité</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Éligibilité simulateur</strong></td>
+<td>Calcul des conditions (quiz, scores SCN, conformité, blockers)</td>
+<td>Moteur TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>Aperçu pédagogique</strong></td>
+<td>Prévisualisation du certificat dans l&#39;application (filigrane)</td>
+<td>Interface étudiante</td>
+</tr>
+<tr>
+<td><strong>Crédential officiel</strong></td>
+<td>PDF signé, numéro de certificat, QR, vérification publique</td>
+<td>Collège de la Concorde</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p>Le simulateur attribue les indicateurs <code>silverCertified</code> et <code>goldCertified</code>. <strong>Seul le processus institutionnel</strong> délivre le certificat numéroté inscrit au registre officiel.</p>
+</blockquote>
+<h2>7.2 Certification Silver — Fondements opérationnels</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Titre officiel</strong></td>
+<td>Certification Silver Premium TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>Sous-titre</strong></td>
+<td>Opérations fondamentales ERP/WMS · Module 1</td>
+</tr>
+<tr>
+<td><strong>Ruban</strong></td>
+<td>M1 · FONDEMENTS</td>
+</tr>
+<tr>
+<td><strong>Prérequis</strong></td>
+<td>Quiz M1 ≥ 60 % ; SCN-001 à SCN-005 chacun ≥ 60/100 ; conformité M1 validée ; aucun blocker</td>
+</tr>
+</tbody></table>
+<h3>Conditions détaillées (4 volets)</h3>
+<ol>
+<li><strong>Quiz M1</strong> — meilleur score ≥ 60 %</li>
+<li><strong>Scénarios M1</strong> — chaque SCN-001 à SCN-005 ≥ 60/100 (runs non-démo)</li>
+<li><strong>Conformité M1</strong> — étape COMPLIANCE complétée sur chaque SCN</li>
+<li><strong>Intégrité</strong> — aucune transaction en suspens ni comptage non résolu</li>
+</ol>
+<h2>7.3 Certification Gold — Parcours intégré</h2>
+<table>
+<thead>
+<tr>
+<th>Attribut</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Titre officiel</strong></td>
+<td>Certification Gold Premium TEC.WMS</td>
+</tr>
+<tr>
+<td><strong>Sous-titre</strong></td>
+<td>Parcours intégré M1–M5 · Opérations logistiques</td>
+</tr>
+<tr>
+<td><strong>Ruban</strong></td>
+<td>M1–M5 · PARCOURS INTÉGRÉ</td>
+</tr>
+<tr>
+<td><strong>Prérequis</strong></td>
+<td>Silver obtenu + conditions Gold intégrales</td>
+</tr>
+</tbody></table>
+<h3>Conditions Gold (synthèse)</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Certification Silver accordée</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Quiz M5 ≥ 60 %</td>
+</tr>
+<tr>
+<td>3</td>
+<td>SCN-006 à SCN-017 chacun au seuil module (60 ou 70/100)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Conformité M2–M5 validée (étapes COMPLIANCE_ADV, COMPLIANCE_M3, COMPLIANCE_M4, COMPLIANCE_M5)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Validateurs de module M3, M4, M5 satisfaits</td>
+</tr>
+<tr>
+<td>6</td>
+<td>SCN-016 : variance résolue avant KPI</td>
+</tr>
+<tr>
+<td>7</td>
+<td>SCN-017 : score capstone ≥ 70/100 et décision liée au KPI</td>
+</tr>
+</tbody></table>
+<h2>7.4 Numérotation et vérification</h2>
+<table>
+<thead>
+<tr>
+<th>Élément</th>
+<th>Format</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>ID Silver</strong></td>
+<td><code>TECWMS-SIL-AAAA-NNN</code> (ex. <code>TECWMS-SIL-2026-001</code> … <code>004</code> — Cohorte Fondatrice 2026)</td>
+</tr>
+<tr>
+<td><strong>ID Gold</strong></td>
+<td><code>TECWMS-GOLD-AAAA-NNN</code> (ex. <code>TECWMS-GOLD-2026-001</code> … <code>004</code> — Cohorte Fondatrice 2026)</td>
+</tr>
+<tr>
+<td><strong>Vérification</strong></td>
+<td>Portail public TEC.WMS — <code>/verify/{certificateId}</code></td>
+</tr>
+<tr>
+<td><strong>Registre</strong></td>
+<td>Registre institutionnel — statut <code>ACTIVE</code> · <code>REVOKED</code> · <code>EXPIRED</code></td>
+</tr>
+</tbody></table>
+<h2>7.5 États de certification</h2>
+<table>
+<thead>
+<tr>
+<th>État</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>LOCKED</strong></td>
+<td>Prérequis non satisfaits (ex. Gold sans Silver)</td>
+</tr>
+<tr>
+<td><strong>IN_PROGRESS</strong></td>
+<td>Parcours en cours, conditions partiellement remplies</td>
+</tr>
+<tr>
+<td><strong>ELIGIBLE</strong></td>
+<td>Toutes les conditions simulateur satisfaites</td>
+</tr>
+<tr>
+<td><strong>AWARDED</strong></td>
+<td>Certificat accordé dans le simulateur et/ou émis au registre institutionnel</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>8. Modèle de progression étudiante</h1>
+<h2>8.1 Parcours type</h2>
+<pre><code>Inscription → M1 (cours + quiz) → Simulation M1 → Certification Silver
+     ↓
+M2 (débloqué si M1 réussi) → M3 → Validation enseignante M3 (si requise)
+     ↓
+M4 → M5 (quiz M5) → Éligibilité Gold → Certification Gold
+</code></pre>
+<h2>8.2 Conditions de déblocage inter-modules</h2>
+<table>
+<thead>
+<tr>
+<th>Transition</th>
+<th>Condition simulateur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Accès M2+</td>
+<td>Module M1 marqué <code>passed</code> (seuil atteint sur au moins un scénario d&#39;évaluation)</td>
+</tr>
+<tr>
+<td>Accès M4</td>
+<td>Module M3 <code>passed</code> + <code>teacherValidated = true</code> (selon cohorte)</td>
+</tr>
+<tr>
+<td>Accès scénarios</td>
+<td>Quiz du module ≥ 60 % pour lancer la simulation</td>
+</tr>
+</tbody></table>
+<h2>8.3 Suivi de la progression et checkpoints</h2>
+<table>
+<thead>
+<tr>
+<th>Couche</th>
+<th>Périmètre</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Certification Silver Premium</strong></td>
+<td>Module M1 uniquement</td>
+<td>Credential de fondements ERP/WMS</td>
+</tr>
+<tr>
+<td><strong>Checkpoints modules</strong></td>
+<td>Modules M2–M5</td>
+<td>Progression par module — tous les SCN officiels au seuil requis</td>
+</tr>
+<tr>
+<td><strong>Certification Gold Premium</strong></td>
+<td>Parcours intégré M1–M5</td>
+<td>Credential avancé — registre institutionnel et couche credential</td>
+</tr>
+</tbody></table>
+<p>Le moteur de checkpoints (M2–M5) enregistre pour chaque module : réussite globale, pourcentage de complétion, scénarios crédités, validation enseignante M3 (accès M4) et date de première réussite.</p>
+<h2>8.4 Jalons étudiants recommandés</h2>
+<table>
+<thead>
+<tr>
+<th>Jalon</th>
+<th>Module</th>
+<th>Critère de réussite</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>J1 — Fondations</strong></td>
+<td>M1</td>
+<td>Silver éligible ou obtenu</td>
+</tr>
+<tr>
+<td><strong>J2 — Opérations</strong></td>
+<td>M2</td>
+<td>3/3 SCN ≥ 60/100</td>
+</tr>
+<tr>
+<td><strong>J3 — Contrôle</strong></td>
+<td>M3</td>
+<td>3/3 SCN ≥ 70/100 + validation enseignante</td>
+</tr>
+<tr>
+<td><strong>J4 — Pilotage</strong></td>
+<td>M4</td>
+<td>3/3 SCN ≥ 70/100</td>
+</tr>
+<tr>
+<td><strong>J5 — Maîtrise</strong></td>
+<td>M5</td>
+<td>3/3 SCN ≥ 70/100 + capstone SCN-017</td>
+</tr>
+<tr>
+<td><strong>J6 — Certification</strong></td>
+<td>M1–M5</td>
+<td>Gold éligible ou obtenu</td>
+</tr>
+</tbody></table>
+<h2>8.5 Accompagnement pédagogique</h2>
+<table>
+<thead>
+<tr>
+<th>Ressource</th>
+<th>Disponibilité</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Diapositives de cours</td>
+<td>Hub Slides par module</td>
+</tr>
+<tr>
+<td>Glossaire TEC.LOG (80 termes)</td>
+<td>Accessible en simulation</td>
+</tr>
+<tr>
+<td>Panneaux pédagogiques</td>
+<td>Après chaque étape complétée</td>
+</tr>
+<tr>
+<td>Guides de préparation</td>
+<td>Documents étudiants M1–M3 et M4–M5</td>
+</tr>
+<tr>
+<td>Rapport de run</td>
+<td>Après chaque exécution</td>
+</tr>
+<tr>
+<td>Page Certifications</td>
+<td>Checklist en temps réel</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>9. Profil du diplômé</h1>
+<h2>9.1 Profil professionnel visé</h2>
+<p>Le diplômé du programme TEC.LOG — parcours TEC.WMS est une <strong>technicienne ou un technicien en opérations logistiques intégrées</strong>, capable d&#39;intervenir autonomement dans les environnements ERP/WMS des PME et grandes entreprises québécoises.</p>
+<h2>9.2 Compétences professionnelles du diplômé</h2>
+<table>
+<thead>
+<tr>
+<th>Domaine</th>
+<th>Capacité démontrée</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Exécution</strong></td>
+<td>Traiter les transactions PO, GR, rangement, SO et GI sans erreur système</td>
+</tr>
+<tr>
+<td><strong>Qualité</strong></td>
+<td>Maintenir la conformité documentaire et la traçabilité des lots</td>
+</tr>
+<tr>
+<td><strong>Gestion d&#39;entrepôt</strong></td>
+<td>Optimiser les emplacements, respecter FIFO et capacités</td>
+</tr>
+<tr>
+<td><strong>Contrôle</strong></td>
+<td>Mener un inventaire cyclique, analyser et corriger les écarts</td>
+</tr>
+<tr>
+<td><strong>Approvisionnement</strong></td>
+<td>Appliquer une politique Min/Max et calculer les quantités de réappro</td>
+</tr>
+<tr>
+<td><strong>Analyse</strong></td>
+<td>Lire un tableau de bord KPI et formuler un diagnostic opérationnel</td>
+</tr>
+<tr>
+<td><strong>Décision</strong></td>
+<td>Proposer une action stratégique fondée sur des indicateurs mesurables</td>
+</tr>
+<tr>
+<td><strong>Intégrité</strong></td>
+<td>Respecter les procédures de conformité et documenter les écarts</td>
+</tr>
+</tbody></table>
+<h2>9.3 Postes ciblés</h2>
+<table>
+<thead>
+<tr>
+<th>Niveau</th>
+<th>Titres de poste</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Opérationnel</td>
+<td>Commis d&#39;entrepôt, préposé à la réception, cariste logistique</td>
+</tr>
+<tr>
+<td>Technique</td>
+<td>Coordonnateur de stocks, agent de répartition, commis aux inventaires</td>
+</tr>
+<tr>
+<td>Analyste</td>
+<td>Analyste logistique junior, adjoint à la planification</td>
+</tr>
+<tr>
+<td>Supervision</td>
+<td>Contremaître d&#39;entrepôt, superviseur des opérations (avec expérience)</td>
+</tr>
+</tbody></table>
+<h2>9.4 Employeurs types (Québec)</h2>
+<p>Distribution alimentaire, commerce de détail, e-commerce, manufacturier, prestataires logistiques (3PL), transporteurs intégrés — tout environnement utilisant un ERP (SAP, Odoo, Oracle, Microsoft Dynamics) couplé à un WMS.</p>
+<h2>9.5 Niveau de certification et employabilité</h2>
+<table>
+<thead>
+<tr>
+<th>Certification</th>
+<th>Signal employeur</th>
+<th>Couverture compétences</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Silver Premium</strong></td>
+<td>Opérateur ERP/WMS certifié — fondations</td>
+<td>Cycle nominal, anomalies de base, conformité M1</td>
+</tr>
+<tr>
+<td><strong>Gold Premium</strong></td>
+<td>Technicien logistique intégré certifié</td>
+<td>Parcours complet M1–M5, diagnostic KPI, décision stratégique</td>
+</tr>
+</tbody></table>
+<h2>9.6 Poursuite des études</h2>
+<p>Le programme constitue une base solide pour :</p>
+<ul>
+<li>Spécialisation en planification de la chaîne d&#39;approvisionnement (SCM)</li>
+<li>Certification SAP ou Odoo professionnelle</li>
+<li>AEC en gestion de la logistique et du transport</li>
+<li>Progression vers des rôles de supervision ou d&#39;analyse logistique</li>
+</ul>
+<div class="page-break"></div><h1>Annexe A — Glossaire institutionnel</h1>
+<table>
+<thead>
+<tr>
+<th>Terme</th>
+<th>Définition</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>TEC.LOG</strong></td>
+<td>Programme collégial de technologies de la chaîne logistique</td>
+</tr>
+<tr>
+<td><strong>TEC.WMS</strong></td>
+<td>Simulateur pédagogique ERP/WMS du Collège de la Concorde</td>
+</tr>
+<tr>
+<td><strong>SCN</strong></td>
+<td>Scénario opérationnel numéroté (SCN-001 à SCN-017)</td>
+</tr>
+<tr>
+<td><strong>Run</strong></td>
+<td>Exécution complète ou partielle d&#39;un scénario par un étudiant</td>
+</tr>
+<tr>
+<td><strong>Conformité</strong></td>
+<td>Étape finale validant l&#39;intégrité transactionnelle du système</td>
+</tr>
+<tr>
+<td><strong>Blocker</strong></td>
+<td>Condition bloquante (transaction en suspens, écart non résolu)</td>
+</tr>
+<tr>
+<td><strong>FIFO</strong></td>
+<td>First In, First Out — premier entré, premier sorti</td>
+</tr>
+<tr>
+<td><strong>CC</strong></td>
+<td>Cycle Count — comptage cyclique d&#39;inventaire</td>
+</tr>
+<tr>
+<td><strong>KPI</strong></td>
+<td>Key Performance Indicator — indicateur clé de performance</td>
+</tr>
+<tr>
+<td><strong>GR</strong></td>
+<td>Goods Receipt — réception de marchandises</td>
+</tr>
+<tr>
+<td><strong>GI</strong></td>
+<td>Goods Issue — sortie de marchandises</td>
+</tr>
+<tr>
+<td><strong>PO</strong></td>
+<td>Purchase Order — commande d&#39;achat</td>
+</tr>
+<tr>
+<td><strong>SO</strong></td>
+<td>Sales Order — commande client</td>
+</tr>
+<tr>
+<td><strong>ROP</strong></td>
+<td>Reorder Point — point de réapprovisionnement</td>
+</tr>
+<tr>
+<td><strong>EOQ</strong></td>
+<td>Economic Order Quantity — quantité économique de commande</td>
+</tr>
+<tr>
+<td><strong>OTIF</strong></td>
+<td>On Time In Full — livraison à temps et complète</td>
+</tr>
+</tbody></table>
+<hr>
+<p><strong>Document approuvé pour diffusion institutionnelle</strong></p>
+<p>Collège de la Concorde · Programme TEC.LOG · TEC.WMS v1.0<br>Session 2025–2026 · Révision : juin 2026</p>
+<p><em>Ce guide officiel du programme est la référence institutionnelle pour l&#39;architecture pédagogique, l&#39;évaluation et la certification TEC.WMS. Les seuils et conditions décrits sont alignés sur le moteur de certification en production (GOV-T01, GOV-T02).</em></p>
+
+</body>
+</html>

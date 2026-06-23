@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TEC.WMS — Guide de Préparation Modules M4 et M5</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 22mm 20mm 24mm 20mm;
+    }
+    @page :first {
+      margin: 0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 0;
+    }
+    .content-pages {
+      padding: 0;
+    }
+    h1, h2, h3, h4 {
+      color: #0f2d52;
+      page-break-after: avoid;
+    }
+    h1 { font-size: 1.55em; margin-top: 1.2em; border-bottom: 2px solid #0f2d52; padding-bottom: 0.25em; }
+    h2 { font-size: 1.25em; margin-top: 1em; }
+    h3 { font-size: 1.05em; margin-top: 0.85em; color: #234a73; }
+    p, li { orphans: 3; widows: 3; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.8em 0 1em;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid #bbb;
+      padding: 0.45em 0.55em;
+      vertical-align: top;
+      text-align: left;
+    }
+    th {
+      background: #e8eef4;
+      font-weight: 600;
+      color: #0f2d52;
+    }
+    tr:nth-child(even) td { background: #f8fafc; }
+    blockquote {
+      margin: 0.8em 0;
+      padding: 0.6em 1em;
+      border-left: 4px solid #0f2d52;
+      background: #f4f7fa;
+      color: #333;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 0.92em;
+      background: #f0f0f0;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+    pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 0.8em 1em;
+      font-size: 9pt;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      page-break-inside: avoid;
+    }
+    hr {
+      border: none;
+      border-top: 1px solid #ccc;
+      margin: 1.2em 0;
+    }
+    ul, ol { padding-left: 1.4em; }
+    a { color: #0f2d52; text-decoration: none; }
+    .page-break {
+      page-break-after: always;
+      break-after: page;
+      height: 0;
+      margin: 0;
+      padding: 0;
+      border: none;
+    }
+    .cover-page {
+      width: 210mm;
+      min-height: 297mm;
+      text-align: center;
+      padding: 55mm 25mm 20mm;
+      page-break-after: always;
+      break-after: page;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .cover-page .brand {
+      font-size: 2.6em;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      color: #0f2d52;
+      margin-bottom: 1.5em;
+    }
+    .cover-page .title-block h1 {
+      font-size: 1.55em;
+      font-weight: 600;
+      line-height: 1.45;
+      margin: 0.35em 0;
+      border: none;
+      color: #1a1a1a;
+    }
+    .cover-page .subtitle-block {
+      margin-top: 45mm;
+      font-size: 1.15em;
+      line-height: 1.65;
+      color: #333;
+    }
+    .cover-page .meta {
+      margin-top: 35mm;
+      font-size: 0.95em;
+      color: #555;
+      line-height: 1.6;
+    }
+    .doc-footer {
+      display: none;
+    }
+    .checklist-page h1 { border-bottom-color: #0f2d52; }
+    .checklist-page table td:first-child {
+      width: 2.2em;
+      font-size: 1.15em;
+      text-align: center;
+    }
+    
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+    @bottom-center {
+      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026";
+      font-size: 9pt;
+      color: #444;
+    }
+    @bottom-right {
+      content: counter(page);
+      font-size: 9pt;
+      color: #444;
+    }
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.doc-footer {
+  margin-top: 2em;
+  padding-top: 0.8em;
+  border-top: 1px solid #ccc;
+  font-size: 0.85em;
+  color: #555;
+  text-align: center;
+}
+.checklist-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.checklist-page td {
+  padding: 0.6em 0.4em;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+.checklist-page td:first-child {
+  width: 2em;
+  font-size: 1.2em;
+}
+
+  </style>
+</head>
+<body>
+<style>
+@media print {
+  @page {
+    size: A4;
+    margin: 2.5cm;
+    @bottom-center {
+      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026";
+      font-size: 9pt;
+      color: #444;
+    }
+    @bottom-right {
+      content: counter(page);
+      font-size: 9pt;
+      color: #444;
+    }
+  }
+}
+.page-break {
+  page-break-after: always;
+  break-after: page;
+}
+.cover-page {
+  text-align: center;
+  padding-top: 6cm;
+  min-height: 24cm;
+}
+.cover-page .brand {
+  font-size: 2.4em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 1.2em;
+}
+.cover-page .title-block h1 {
+  font-size: 1.6em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0.3em 0;
+  border: none;
+}
+.cover-page .subtitle-block {
+  margin-top: 4cm;
+  font-size: 1.1em;
+  line-height: 1.6;
+  color: #333;
+}
+.cover-page .meta {
+  margin-top: 3cm;
+  font-size: 0.95em;
+  color: #555;
+}
+.doc-footer {
+  margin-top: 2em;
+  padding-top: 0.8em;
+  border-top: 1px solid #ccc;
+  font-size: 0.85em;
+  color: #555;
+  text-align: center;
+}
+.checklist-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.checklist-page td {
+  padding: 0.6em 0.4em;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+.checklist-page td:first-child {
+  width: 2em;
+  font-size: 1.2em;
+}
+</style><div class="cover-page"><p class="brand">TEC.WMS</p><div class="title-block"><h1>Guide de Préparation</h1>
+<h1>Modules M4 et M5</h1>
+<h1>Préparation aux scénarios et à la certification</h1>
+</div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong><br>Simulateur pédagogique ERP/WMS</p>
+</div><div class="meta"><p>Scénarios SCN-012 à SCN-017 · Seuil de réussite : 70 / 100<br>Version juin 2026 · Document étudiant</p>
+</div></div><h1>Table des matières</h1>
+<ol>
+<li><a href="#pr%C3%A9sentation-du-guide">Présentation du guide</a></li>
+<li><a href="#r%C3%A9f%C3%A9rence-commune--bandes-kpi-annexe-a">Référence commune — Bandes KPI (Annexe A)</a></li>
+<li><a href="#deux-paradigmes-%C3%A0-distinguer">Deux paradigmes à distinguer</a></li>
+<li><a href="#module-4--tour-de-contr%C3%B4le-kpi">Module 4 — Tour de contrôle KPI</a><ul>
+<li>4.1 <a href="#scn-012--rotation-et-capital-immobilis%C3%A9">SCN-012 — Rotation et capital immobilisé</a></li>
+<li>4.2 <a href="#scn-013--service-erreurs-et-renouvellement-sla-j-90">SCN-013 — Service, erreurs et renouvellement SLA (J-90)</a></li>
+<li>4.3 <a href="#scn-014--arbitrage-sop-multi-kpi-capstone-m4">SCN-014 — Arbitrage S&amp;OP multi-KPI (capstone M4)</a></li>
+</ul>
+</li>
+<li><a href="#module-5--peak-week-simulation-int%C3%A9gr%C3%A9e">Module 5 — Peak Week (simulation intégrée)</a><ul>
+<li>5.1 <a href="#scn-015--cycle-op%C3%A9rationnel-nominal-peak-week-jour-1">SCN-015 — Cycle opérationnel nominal (Peak Week Jour 1)</a></li>
+<li>5.2 <a href="#scn-016--%C3%A9cart-inventaire-et-correction-peak-week-jour-2">SCN-016 — Écart inventaire et correction (Peak Week Jour 2)</a></li>
+<li>5.3 <a href="#scn-017--d%C3%A9cision-strat%C3%A9gique-capstone-peak-week-jour-3">SCN-017 — Décision stratégique capstone (Peak Week Jour 3)</a></li>
+</ul>
+</li>
+<li><a href="#tableau-r%C3%A9capitulatif--classification-kpi">Tableau récapitulatif — Classification KPI</a></li>
+<li><a href="#progression-p%C3%A9dagogique">Progression pédagogique</a></li>
+<li><a href="#checklist-finale-avant-soumission">Checklist finale avant soumission</a></li>
+</ol>
+<div class="page-break"></div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026</div><hr>
+<h2>Présentation du guide</h2>
+<p><strong>Programme :</strong> TEC.LOG — Simulation WMS intégrée<br><strong>Public :</strong> étudiants en préparation à l&#39;évaluation<br><strong>Scénarios couverts :</strong> SCN-012 à SCN-017<br><strong>Seuil de réussite :</strong> 70 / 100 par scénario<br><strong>Version :</strong> juin 2026</p>
+<p>Ce document consolide l&#39;essentiel pour préparer les <strong>Modules 4 et 5</strong> de la simulation WMS. Il vous aide à <strong>comprendre, observer et rédiger</strong> — pas à mémoriser des réponses toutes faites.</p>
+<table>
+<thead>
+<tr>
+<th>Ce guide vous apporte</th>
+<th>Ce guide ne contient pas</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Où regarder dans le simulateur</td>
+<td>Des formulations exactes à recopier</td>
+</tr>
+<tr>
+<td>Quels KPI lire et comment les classer</td>
+<td>Des réponses modèles des correcteurs</td>
+</tr>
+<tr>
+<td>Quels mots-clés renforcer votre analyse</td>
+<td>La logique interne de correction automatique</td>
+</tr>
+<tr>
+<td>Comment structurer votre raisonnement</td>
+<td>Des listes de mots « magiques » sans contexte</td>
+</tr>
+</tbody></table>
+<p><strong>Ordre recommandé :</strong> SCN-012 → 013 → 014 (Module 4), puis SCN-015 → 016 → 017 (Module 5 Peak Week).</p>
+<p><strong>Question réflexive avant chaque soumission :</strong> <em>« Qu&#39;est-ce que ce chiffre me dit ? Quelle action professionnelle cohérente en découle — et ai-je nommé les preuves, les compromis et l&#39;horizon attendus pour ce scénario ? »</em></p>
+<hr>
+<h2>Référence commune — Bandes KPI (Annexe A)</h2>
+<p>À connaître pour <strong>interpréter</strong>, pas pour recopier des chiffres au hasard :</p>
+<table>
+<thead>
+<tr>
+<th>Indicateur</th>
+<th>Formule / base</th>
+<th>Bande normale ou excellente</th>
+<th>Signal d&#39;alerte</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Rotation</strong></td>
+<td>Consommation ÷ stock moyen</td>
+<td><strong>4 à 12×/an = normal</strong></td>
+<td>&lt; 4× surstock · &gt; 12× sous-performance</td>
+</tr>
+<tr>
+<td><strong>Service (OTIF)</strong></td>
+<td>Commandes honorées ÷ total</td>
+<td><strong>≥ 95 % = excellent</strong></td>
+<td>&lt; 85 % insuffisant</td>
+</tr>
+<tr>
+<td><strong>Erreurs</strong></td>
+<td>Erreurs ÷ opérations</td>
+<td><strong>1 à 5 % = acceptable</strong></td>
+<td>&gt; 5 % critique</td>
+</tr>
+<tr>
+<td><strong>Délai (lead time)</strong></td>
+<td>Délai moyen fournisseur</td>
+<td><strong>3 à 7 j = normal</strong></td>
+<td>Contexte supply chain</td>
+</tr>
+</tbody></table>
+<p><strong>Module 4</strong> — données portefeuille partagé (rotation 6×, OTIF 95 %, erreurs 4 %, délai 3,5 j, capital 48 000 $). Le moniteur de transactions reste <strong>vide</strong> : c&#39;est normal.<br><strong>Module 5</strong> — vos KPI viennent du <strong>moniteur après vos opérations</strong> (échelle SKU, pas le portefeuille entier).</p>
+<p><strong>Contrat ops M5 (fiche mission) :</strong> SKU-001 · quai REC-01 · emplacement B-01-R1-L1 · lot LOT-M5-A · bon PO-M5-001 · min 10 · max 100.</p>
+<hr>
+<h2>Deux paradigmes à distinguer</h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Module 4 — Analytique</strong></th>
+<th><strong>Module 5 — Peak Week</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Activité</strong></td>
+<td>Interpréter des KPI portefeuille</td>
+<td>Exécuter un cycle entrepôt, puis décider</td>
+</tr>
+<tr>
+<td><strong>Moniteur</strong></td>
+<td>Vide — comportement attendu</td>
+<td>Transactions GR → PUTAWAY → CC → [ADJ] → REPLENISH</td>
+</tr>
+<tr>
+<td><strong>Source KPI</strong></td>
+<td>Tour de contrôle KPI + Annexe A</td>
+<td>Moniteur / snapshot de <strong>votre run</strong></td>
+</tr>
+<tr>
+<td><strong>Parcours</strong></td>
+<td>Briefing → Rotation → Service → Diagnostic → Conformité</td>
+<td>Réception → Rangement → Comptage → [Ajustement] → Réappro → KPI → Décision → Conformité</td>
+</tr>
+<tr>
+<td><strong>Niveau décision</strong></td>
+<td>Politique / arbitrage (M4)</td>
+<td>Tactique (SCN-015/016) ou stratégique (SCN-017)</td>
+</tr>
+</tbody></table>
+<div class="page-break"></div><h1>MODULE 4 — Tour de contrôle KPI</h1>
+<blockquote>
+<p>Vous <strong>analysez</strong> des indicateurs. Aucune réception, rangement ou comptage n&#39;est attendu. La preuve est dans le <strong>tour de contrôle KPI</strong> et l&#39;<strong>Annexe A</strong>.</p>
+</blockquote>
+<div class="page-break"></div><h2>SCN-012 — Rotation et capital immobilisé</h2>
+<p><strong>Rôle simulé :</strong> Analyste logistique — revue CFO du capital circulant (Q3)<br><strong>Enjeu :</strong> Les 48 000 $ immobilisés sont-ils justifiés à 6× de rotation ?<br><strong>Piège pédagogique :</strong> la <strong>complaisance</strong> à une rotation « normale » sans politique claire.</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>Question du comité finance sur le capital circulant</td>
+</tr>
+<tr>
+<td>Tour de contrôle KPI</td>
+<td>Rotation au centre ; capital immobilisé en contexte CFO</td>
+</tr>
+<tr>
+<td>Bannière pédagogique</td>
+<td>« Aucune transaction attendue — utilisez les indicateurs KPI »</td>
+</tr>
+<tr>
+<td>Annexe A</td>
+<td>Bandes 4–12× pour classer la rotation</td>
+</tr>
+<tr>
+<td>Étape KPI_DATA</td>
+<td>Consommation, stock moyen, OTIF et erreurs en contexte</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Priorité</th>
+<th>Lecture attendue</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Rotation (6×)</strong></td>
+<td>Primaire</td>
+<td>Formule consommation ÷ stock moyen → classer dans la bande</td>
+</tr>
+<tr>
+<td><strong>Capital immobilisé (48 000 $)</strong></td>
+<td>Primaire</td>
+<td>Relier au niveau de rotation — pression légitime du CFO</td>
+</tr>
+<tr>
+<td>OTIF 95 %</td>
+<td>Secondaire</td>
+<td>Excellent — contexte favorable, pas levier principal</td>
+</tr>
+<tr>
+<td>Erreurs 4 %</td>
+<td>Secondaire</td>
+<td>Acceptables — contexte seulement</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Rotation</td>
+<td><code>normale</code>, <code>équilibrée</code>, <code>bande 4–12</code>, <code>6×</code>, <code>formule</code>, <code>consommation</code>, <code>stock moyen</code>, <code>capital immobilisé</code>, <code>48 000 $</code>, <code>cohérent</code></td>
+<td>Étape rotation : formule + classification</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>excellent</code>, <code>optimal</code>, <code>seuil</code>, <code>95 %</code>, <code>OTIF</code>, <code>contexte</code></td>
+<td>Étape service : reconnaître l&#39;excellence, contextualiser</td>
+</tr>
+<tr>
+<td>Diagnostic</td>
+<td><code>recommande</code>, <code>décision</code>, <code>politique</code>, <code>maintenir</code>, <code>surveillance</code>, <code>SKU</code>, <code>revue</code>, <code>mensuelle</code> ou <code>trimestrielle</code></td>
+<td>Diagnostic : politique actionnable</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> <code>surstock</code>, <code>sur-stock</code>, <code>excès de stock</code>, <code>destock global</code>, <code>liquidation</code>, <code>rien à faire</code>, <code>formation picking</code>, <code>SLA</code>, <code>J-90</code>, vocabulaire transaction WMS (<code>MIGO</code>, <code>LT01</code>).</p>
+<h3>Structure de réponse par étape</h3>
+<ol>
+<li><strong>Données KPI</strong> — Confirmer le mode analytique ; énumérer les indicateurs repérés ; cadrer l&#39;enjeu capital / politique stock.</li>
+<li><strong>Rotation</strong> — Citer la formule → présenter le résultat → classer <strong>normale</strong> → relier au capital immobilisé.</li>
+<li><strong>Service</strong> — Calculer ou citer l&#39;OTIF → classer <strong>excellent</strong> → mentionner brièvement les erreurs en contexte.</li>
+<li><strong>Diagnostic</strong> — Constat (rotation + capital + service) → interprétation pour le CFO → <strong>recommandation</strong> (maintien + surveillance SKU ciblée) → plan mesurable (revue périodique).</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Classer 6× comme <strong>surstock</strong> (confusion avec la bande &lt; 4×).</li>
+<li>Utiliser le mot « surstock » même pour dire « pas de surstock ».</li>
+<li>Conclure « tout va bien, rien à faire » sans politique ni plan de suivi.</li>
+<li>Recommander un <strong>destock global</strong> incohérent avec rotation normale et service excellent.</li>
+<li>Appliquer la logique SCN-013 (qualité d&#39;exécution) alors que l&#39;enjeu est le <strong>capital</strong>.</li>
+<li>Tenter des transactions WMS (habitude Modules 1–3).</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Complaisance :</strong> une rotation normale ne signifie pas « aucune action » — le CFO attend une recommandation.</li>
+<li><strong>Mauvais scénario :</strong> ne pas traiter les erreurs comme levier principal ici.</li>
+<li><strong>Contradiction interne :</strong> une rotation classée normale ne peut pas motiver un vocabulaire de crise surstock.</li>
+</ul>
+<div class="page-break"></div><h2>SCN-013 — Service, erreurs et renouvellement SLA (J-90)</h2>
+<p><strong>Rôle simulé :</strong> Responsable performance — contrat SLA à renouveler dans 90 jours<br><strong>Enjeu :</strong> Analyser le <strong>piège du tableau vert</strong> : tout semble bon, mais les erreurs menacent l&#39;OTIF.<br><strong>Piège pédagogique :</strong> l&#39;<strong>OTIF excellent masque une fragilité d&#39;exécution</strong> corrigeable.</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>Horizon J-90 ; enjeu renouvellement contrat</td>
+</tr>
+<tr>
+<td>Tour de contrôle KPI</td>
+<td>OTIF <strong>et</strong> taux d&#39;erreur affichés ensemble</td>
+</tr>
+<tr>
+<td>Alerte OIL</td>
+<td>Formulation « piège tableau vert »</td>
+</tr>
+<tr>
+<td>Étape KPI_SERVICE</td>
+<td>Deux indicateurs en tension : service headline vs erreurs</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire</h3>
+<table>
+<thead>
+<tr>
+<th>KPI</th>
+<th>Priorité</th>
+<th>Lecture attendue</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>OTIF (95 %)</strong></td>
+<td>Primaire</td>
+<td>Excellent au seuil — <strong>à reconnaître</strong>, pas à minimiser</td>
+</tr>
+<tr>
+<td><strong>Erreurs (4 %)</strong></td>
+<td>Primaire</td>
+<td>Acceptables statistiquement, mais <strong>corrigeables</strong> — source de fragilité</td>
+</tr>
+<tr>
+<td>Rotation 6×</td>
+<td>Contexte</td>
+<td>Normale — une ligne suffit</td>
+</tr>
+<tr>
+<td>Délai 3,5 j</td>
+<td>Contexte</td>
+<td>Normal — supply chain</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Données</td>
+<td><code>J-90</code>, <code>SLA</code>, <code>renouvellement</code>, <code>OTIF</code>, <code>erreurs</code>, <code>tableau vert</code></td>
+<td>Cadrage initial : dual KPI service + erreurs</td>
+</tr>
+<tr>
+<td>Rotation</td>
+<td><code>normale</code>, <code>6×</code>, <code>contexte</code>, <code>portefeuille stable</code></td>
+<td>Rotation : classer, puis orienter vers l&#39;exécution</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>excellent</code>, <code>95 %</code>, <code>OTIF</code>, <code>acceptable</code>, <code>4 %</code>, <code>erreurs</code>, <code>picking</code>, <code>prélèvement</code>, <code>réception</code>, <code>fragilité</code>, <code>dérive</code>, <code>J-90</code></td>
+<td>Service : analyse <strong>duale</strong> obligatoire</td>
+</tr>
+<tr>
+<td>Diagnostic</td>
+<td><code>recommande</code>, <code>formation</code>, <code>qualité</code>, <code>checklist</code>, <code>cible</code>, <code>90 jours</code>, <code>hebdomadaire</code>, <code>suivi</code>, <code>budget</code></td>
+<td>Diagnostic : plan chiffré et mesurable</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> <code>faible service</code>, <code>insuffisant</code>, <code>excellent</code> pour les erreurs à 4 %, <code>destock</code>, <code>surstock</code>, <code>capital</code> comme levier principal, <code>rien à faire</code>, <code>statu quo</code>.</p>
+<h3>Structure de réponse par étape</h3>
+<ol>
+<li><strong>Données KPI</strong> — Cadrer la revue SLA à 90 jours ; repérer OTIF <strong>et</strong> erreurs ; signaler le piège « tout vert ».</li>
+<li><strong>Rotation</strong> — Classer normale → indiquer que ce n&#39;est <strong>pas</strong> le risque prioritaire → orienter vers service/erreurs.</li>
+<li><strong>Service</strong> — OTIF : calcul, classification excellente, reconnaissance explicite → Erreurs : classification acceptable, nuance « corrigeable » → Corrélation picking/réception → risque OTIF à J-90.</li>
+<li><strong>Diagnostic</strong> — Reconnaissance de l&#39;excellence OTIF → Risque erreurs 4 % à horizon J-90 → Recommandation programme qualité/formation → Plan chiffré (cible %, échéance, rythme de revue) → Décision : financer qualité plutôt que destock.</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Qualifier 95 % de « faible » ou « acceptable » — mauvaise bande.</li>
+<li>Analyser l&#39;OTIF <strong>sans</strong> traiter le taux d&#39;erreur.</li>
+<li>Dire « tout va bien » sans plan — tombe dans la complaisance du piège vert.</li>
+<li>Proposer le <strong>destock</strong> comme levier principal — hors sujet.</li>
+<li>Plan sans <strong>cible chiffrée</strong>, sans <strong>horizon 90 jours</strong> ni <strong>rythme de suivi</strong>.</li>
+<li>Reprendre la logique capital/destock de SCN-012.</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Tableau vert :</strong> dashboard vert, exécution ambre — ne pas se laisser rassurer par l&#39;OTIF seul.</li>
+<li><strong>Analyse incomplète :</strong> l&#39;étape service exige <strong>deux</strong> indicateurs, pas un seul.</li>
+<li><strong>Mauvais levier :</strong> le renouvellement SLA se joue sur la <strong>qualité d&#39;exécution</strong>, pas sur le stock.</li>
+</ul>
+<div class="page-break"></div><h2>SCN-014 — Arbitrage S&amp;OP multi-KPI (capstone M4)</h2>
+<p><strong>Rôle simulé :</strong> Directeur des opérations — comité S&amp;OP (budget pour <strong>une seule</strong> initiative)<br><strong>Enjeu :</strong> Arbitrer CFO (capital), Ventes (OTIF), Ops (erreurs) et supply (délai 3,5 j).<br><strong>Piège pédagogique :</strong> l&#39;<strong>optimisation mono-KPI</strong> (une lentille au détriment des autres).</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>Conflit CFO / Ventes / Ops ; <strong>une</strong> initiative financée</td>
+</tr>
+<tr>
+<td>Tour de contrôle KPI</td>
+<td>Quatre lentilles : rotation, service, erreurs, <strong>délai</strong></td>
+</tr>
+<tr>
+<td>Compétences SCN-012 et 013</td>
+<td>Ce capstone <strong>intègre</strong> rotation/capital et piège tableau vert</td>
+</tr>
+<tr>
+<td>Annexe A</td>
+<td>Toutes les bandes disponibles pour arbitrer</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire — lentilles parties prenantes</h3>
+<table>
+<thead>
+<tr>
+<th>Lentille</th>
+<th>KPI</th>
+<th>Message pour l&#39;arbitrage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>CFO</strong></td>
+<td>Rotation 6× + capital 48 000 $</td>
+<td>Normal — pression cash, pas urgence surstock</td>
+</tr>
+<tr>
+<td><strong>Ventes</strong></td>
+<td>OTIF 95 %</td>
+<td>Excellent — <strong>à préserver</strong> dans tout trade-off</td>
+</tr>
+<tr>
+<td><strong>Ops</strong></td>
+<td>Erreurs 4 %</td>
+<td>Acceptables — fragilité cachée, levier qualité naturel</td>
+</tr>
+<tr>
+<td><strong>Supply</strong></td>
+<td>Délai 3,5 j</td>
+<td>Normal — <strong>doit figurer</strong> dans la synthèse intégrée</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Domaine</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Cadrage</td>
+<td><code>S&amp;OP</code>, <code>arbitrage</code>, <code>initiative</code>, <code>trade-off</code>, <code>CFO</code>, <code>ventes</code>, <code>ops</code></td>
+<td>Données et rotation : ouvrir l&#39;arbitrage</td>
+</tr>
+<tr>
+<td>Rotation</td>
+<td><code>normale</code>, <code>6×</code>, <code>capital</code>, <code>48 000 $</code>, <code>contexte CFO</code></td>
+<td>Lentille finance — input, pas décision isolée</td>
+</tr>
+<tr>
+<td>Service</td>
+<td><code>excellent</code>, <code>95 %</code>, <code>erreurs</code>, <code>4 %</code>, <code>qualité</code>, <code>exécution</code>, <code>préserver</code></td>
+<td>Lentille ventes + ops — tension explicite</td>
+</tr>
+<tr>
+<td>Diagnostic</td>
+<td><code>délai</code>, <code>3,5 j</code>, <code>lead time</code>, <code>trade-off</code>, <code>reporte</code>, <code>maintien</code>, <code>priorité</code>, <code>sacrifice</code>, <code>90 jours</code>, <code>initiative</code></td>
+<td>Synthèse board : ≥ 3 domaines KPI, idéal 4</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> <code>surstock</code> à 6×, diagnostic mono-KPI, omission du délai, liste de souhaits sans <strong>une</strong> initiative clairement financée.</p>
+<h3>Structure de réponse par étape</h3>
+<ol>
+<li><strong>Données KPI</strong> — Cadrer la réunion S&amp;OP et la contrainte budget unique ; lister les <strong>quatre</strong> lentilles KPI.</li>
+<li><strong>Rotation</strong> — Classer normale + relier au capital → indiquer que toute action stock s&#39;intègre à l&#39;arbitrage global.</li>
+<li><strong>Service</strong> — OTIF excellent (enjeu ventes) + erreurs acceptables (enjeu ops) → tension : maintenir le service tout en corrigeant l&#39;exécution.</li>
+<li><strong>Diagnostic (paragraphe board)</strong> — Contexte S&amp;OP → Panorama ≥ 3 domaines KPI (idéal : les 4, <strong>délai inclus</strong>) → <strong>Une</strong> initiative prioritaire justifiée → <strong>Trade-off explicite</strong> (ce qui est reporté ou maintenu) → Horizon 90 jours + KPI de suivi nommés.</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Décision basée sur <strong>un seul</strong> KPI.</li>
+<li>Oublier le <strong>délai 3,5 j</strong> dans la synthèse.</li>
+<li>Liste de souhaits sans initiative clairement financée.</li>
+<li>Reprendre SCN-012 ou SCN-013 <strong>isolément</strong> sans intégration S&amp;OP.</li>
+<li>Trade-off <strong>implicite</strong> seulement — formulez clairement ce que vous maintenez vs ce que vous reportez.</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Délai invisible :</strong> souvent oublié si vous vous arrêtez aux trois KPI « habituels ».</li>
+<li><strong>Capstone ≠ scénario isolé :</strong> intégrez rotation/capital (012) <strong>et</strong> piège vert (013).</li>
+<li><strong>Triangle d&#39;arbitrage :</strong> cash (rotation/capital) · service (OTIF) · exécution (erreurs) · supply (délai).</li>
+</ul>
+<div class="page-break"></div><h1>MODULE 5 — Peak Week (simulation intégrée)</h1>
+<blockquote>
+<p>Vous <strong>exécutez</strong> un cycle entrepôt, puis <strong>dérivez</strong> vos KPI du moniteur. Ne recopiez pas les chiffres du portefeuille Module 4.</p>
+</blockquote>
+<p><strong>Chaîne ops :</strong> Réception → Rangement → Comptage → [Ajustement SCN-016] → Réappro → KPI → Décision → Conformité</p>
+<div class="page-break"></div><h2>SCN-015 — Cycle opérationnel nominal (Peak Week Jour 1)</h2>
+<p><strong>Rôle simulé :</strong> Gestionnaire logistique — cycle sans anomalie (7 étapes)<br><strong>Enjeu :</strong> Prouver que les KPI viennent de l&#39;exécution ; décision <strong>tactique</strong> post-cycle.<br><strong>Piège pédagogique :</strong> confondre les <strong>cibles d&#39;affichage</strong> (contexte M4) et les <strong>valeurs à soumettre</strong> (ledger).</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>7 étapes listées ; contrat SKU / quantité / PO / bin</td>
+</tr>
+<tr>
+<td>Stock initial</td>
+<td><strong>Vide</strong> — normal ; première preuve après réception</td>
+</tr>
+<tr>
+<td>Moniteur</td>
+<td>Transactions GR → PUTAWAY → CC → REPLENISH s&#39;enchaînent</td>
+</tr>
+<tr>
+<td>Tour de contrôle M5</td>
+<td>Cibles de <strong>contexte</strong> ≠ valeurs à <strong>soumettre</strong></td>
+</tr>
+<tr>
+<td>Étape M5_KPI</td>
+<td>Bloc d&#39;ancrage ledger + confirmation depuis moniteur</td>
+</tr>
+<tr>
+<td>Cockpit</td>
+<td>Ordre strict des étapes</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire</h3>
+<table>
+<thead>
+<tr>
+<th>Moment</th>
+<th>Source</th>
+<th>Ce qu&#39;il faut comprendre</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Avant ops</td>
+<td>Tour de contrôle (cibles)</td>
+<td>Références pédagogiques — <strong>pas</strong> vos chiffres finaux</td>
+</tr>
+<tr>
+<td>Après ops</td>
+<td>Moniteur / ledger</td>
+<td>Stock réel, consommation dérivée, valeur stock <strong>à votre échelle SKU</strong></td>
+</tr>
+<tr>
+<td>Snapshot</td>
+<td>Étape M5_KPI</td>
+<td>Rotation, service, erreurs calculés <strong>depuis votre run</strong></td>
+</tr>
+<tr>
+<td>Réappro</td>
+<td>Stock vs min/max</td>
+<td>Si stock ≥ min → pas de commande (Q = 0)</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Étape ops</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Réception</td>
+<td>Valeurs <strong>fiche mission</strong> (SKU, PO, quantité), <code>réception</code>, <code>GR</code>, <code>contrat</code></td>
+<td>Saisie conforme au contrat</td>
+</tr>
+<tr>
+<td>Rangement</td>
+<td><code>REC-01</code>, <code>B-01-R1-L1</code>, <code>LOT-M5-A</code>, <code>FIFO</code>, <code>traçabilité</code></td>
+<td>Putaway source → destination</td>
+</tr>
+<tr>
+<td>Comptage</td>
+<td><code>système</code>, <code>physique</code>, <code>variance</code>, <code>0</code>, <code>cohérence</code>, <code>MI04</code></td>
+<td>Nominal : variance nulle</td>
+</tr>
+<tr>
+<td>Réappro</td>
+<td><code>Q = 0</code>, <code>stock suffisant</code>, <code>minimum</code>, <code>pas de commande</code></td>
+<td>Comparer stock actuel au min</td>
+</tr>
+<tr>
+<td>KPI</td>
+<td><code>moniteur</code>, <code>ledger</code>, <code>dérivé</code>, <code>snapshot</code>, chiffres <strong>de votre run</strong></td>
+<td>Lire le panel, confirmer l&#39;ancrage</td>
+</tr>
+<tr>
+<td>Décision</td>
+<td><code>rotation</code>, <code>service</code>, <code>erreur</code>, <code>stock</code>, <code>formation</code>, <code>procédure</code>, <code>améliorer</code>, <code>recommande</code></td>
+<td>Synthèse KPI + action tactique</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> valeurs portefeuille M4 (<code>400</code>, <code>48 000 $</code>), structure board longue (réservée SCN-017), <code>destock global</code>, <code>surstock</code> à 6×.</p>
+<h3>Structure de réponse</h3>
+<p><strong>Ops (étapes 1 à 4) :</strong> exécuter le cycle complet dans l&#39;ordre — réception conforme au contrat → rangement avec bin et lot corrects → comptage avec variance nulle → réappro avec Q = 0 si stock ≥ min.</p>
+<p><strong>Snapshot KPI :</strong> lire chaque champ depuis le moniteur → saisir les valeurs dérivées → confirmer l&#39;ancrage → classer rotation / service / erreurs dans les bandes M4.</p>
+<p><strong>Décision tactique :</strong></p>
+<ol>
+<li>Synthèse KPI snapshot (rotation, service, erreurs — bandes).</li>
+<li>Constat ops : réappro nécessaire ou non.</li>
+<li>Action immédiate : ex. formation picking / revue procédure réception.</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Mauvais SKU, quantité, PO ou bin.</li>
+<li><strong>Sauter</strong> une étape — snapshot faussé ou progression bloquée.</li>
+<li>Coller les valeurs <strong>Annexe A / portefeuille M4</strong> dans M5_KPI.</li>
+<li>Oublier la <strong>confirmation</strong> d&#39;ancrage au moniteur.</li>
+<li>Commander un réappro alors que le stock est <strong>au-dessus du minimum</strong>.</li>
+<li>Rédiger une <strong>décision stratégique</strong> longue (réservée à SCN-017).</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Échelle SKU vs portefeuille :</strong> votre run porte sur ~50 unités, pas 400 — ne copiez pas les chiffres M4.</li>
+<li><strong>Réflexe réappro :</strong> stock suffisant → Q = 0, pas de commande par habitude.</li>
+<li><strong>Niveau décision :</strong> tactique et concise — pas d&#39;essai stratégique board.</li>
+</ul>
+<div class="page-break"></div><h2>SCN-016 — Écart inventaire et correction (Peak Week Jour 2)</h2>
+<p><strong>Rôle simulé :</strong> Gestionnaire d&#39;entrepôt — exception variance (8 étapes)<br><strong>Enjeu :</strong> Gérer un écart au comptage et <strong>corriger avant</strong> réappro, KPI et décision.<br><strong>Règle d&#39;or :</strong> <strong>Réconcilier d&#39;abord, décider ensuite.</strong><br><strong>Piège pédagogique :</strong> piloter (réappro, KPI, décision) sur un stock système non réconcilié.</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>Variance attendue au comptage ; ADJ requis avant la suite</td>
+</tr>
+<tr>
+<td>Comptage (M5_CYCLE_COUNT)</td>
+<td>Écart entre stock <strong>système</strong> et <strong>physique</strong></td>
+</tr>
+<tr>
+<td>Étape M5_ADJ (MI07)</td>
+<td>Injectée dynamiquement — <strong>8 étapes</strong> au lieu de 7</td>
+</tr>
+<tr>
+<td>Signal OIL</td>
+<td>Alerte variance ; KPI bloqué tant que l&#39;écart est ouvert</td>
+</tr>
+<tr>
+<td>Justification ADJ</td>
+<td>Champ texte — expliquer la réconciliation</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire</h3>
+<table>
+<thead>
+<tr>
+<th>Phase</th>
+<th>Focus</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Au comptage</td>
+<td>Système vs physique → <strong>delta</strong> (écart signé)</td>
+</tr>
+<tr>
+<td>Post-ADJ</td>
+<td>Stock corrigé — base fiable pour réappro et snapshot</td>
+</tr>
+<tr>
+<td>Snapshot M5_KPI</td>
+<td>Valeurs <strong>après correction</strong></td>
+</tr>
+<tr>
+<td>Réappro</td>
+<td>Utiliser le stock <strong>post-correction</strong>, pas le stock pré-écart</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Étape</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Comptage</td>
+<td><code>variance</code>, <code>écart</code>, <code>système</code>, <code>physique</code>, <code>MI04</code>, <code>investigation</code></td>
+<td>Calculer et <strong>signer</strong> l&#39;écart</td>
+</tr>
+<tr>
+<td>Ajustement</td>
+<td><code>MI07</code>, <code>ajustement</code>, <code>réconciliation</code>, <code>justification</code>, <code>stock corrigé</code>, <code>ADJ</code></td>
+<td>Poster correction + justification métier</td>
+</tr>
+<tr>
+<td>Réappro</td>
+<td><code>post-correction</code>, <code>Q = 0</code>, <code>stock suffisant</code>, <code>minimum</code></td>
+<td>Base = stock réconcilié</td>
+</tr>
+<tr>
+<td>KPI</td>
+<td><code>post-ADJ</code>, <code>ledger corrigé</code>, <code>snapshot</code>, <code>réconcilié</code></td>
+<td>Snapshot après correction uniquement</td>
+</tr>
+<tr>
+<td>Décision</td>
+<td><code>variance</code>, <code>écart</code>, <code>correction</code>, <code>fiabilité inventaire</code>, <code>comptage</code>, <code>formation</code>, <code>service</code></td>
+<td>Mentionner la résolution de l&#39;exception</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> <code>variance 0</code> (incohérent J2), mauvais signe sur l&#39;ajustement, stock pré-écart pour le réappro, valeurs portefeuille M4.</p>
+<h3>Structure de réponse</h3>
+<p><strong>Ops :</strong> flux nominal amont (réception + rangement) → détecter l&#39;écart au comptage → poster l&#39;ajustement MI07 avec justification → reprendre réappro → KPI → décision sur stock corrigé.</p>
+<p><strong>Décision tactique :</strong></p>
+<ol>
+<li>Confirmer écart résolu par ajustement.</li>
+<li>Synthèse KPI snapshot <strong>corrigé</strong> (bandes).</li>
+<li>Pas de réappro si stock ≥ min (Q = 0).</li>
+<li>Action : revue procédure comptage / formation pour éviter récurrence.</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Passer à réappro, KPI ou décision <strong>sans</strong> ADJ.</li>
+<li>Saisir un écart non conforme à la situation injectée.</li>
+<li>Mauvais <strong>signe</strong> sur l&#39;ajustement.</li>
+<li>Réappro basé sur le stock <strong>pré-correction</strong>.</li>
+<li>ADJ sans <strong>justification</strong> suffisamment explicite.</li>
+<li>Traiter comme SCN-015 (7 étapes) et oublier M5_ADJ.</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Écart non corrigé → KPI non fiables :</strong> piloter sur un stock faux mène à de mauvaises commandes et recommandations.</li>
+<li><strong>L&#39;écart n&#39;apparaît qu&#39;au comptage</strong> — pas avant.</li>
+<li><strong>8 étapes, pas 7 :</strong> M5_ADJ est obligatoire en Jour 2.</li>
+</ul>
+<div class="page-break"></div><h2>SCN-017 — Décision stratégique capstone (Peak Week Jour 3)</h2>
+<p><strong>Rôle simulé :</strong> Directeur logistique — recommandation au comité<br><strong>Enjeu :</strong> Formuler une <strong>décision stratégique</strong> de niveau direction avec preuves chiffrées.<br><strong>Niveau décision :</strong> <strong>Stratégique</strong> (politique, investissement, organisation — pas opérationnel).<br><strong>Piège pédagogique :</strong> réponse tactique courte ou générique sans preuves du snapshot.</p>
+<h3>Où porter son attention</h3>
+<table>
+<thead>
+<tr>
+<th>Zone simulateur</th>
+<th>Élément à repérer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Fiche Mission</td>
+<td>3 phases : ops → KPI → décision stratégique</td>
+</tr>
+<tr>
+<td>Cycle ops</td>
+<td>Identique au nominal (7 étapes, pas de variance)</td>
+</tr>
+<tr>
+<td>Étape M5_KPI</td>
+<td>Snapshot <strong>verrouillé</strong> — panel avec valeurs dérivées</td>
+</tr>
+<tr>
+<td>Étape M5_DECISION</td>
+<td>Guide structurel : preuves, arbitrage, horizon</td>
+</tr>
+<tr>
+<td>OIL Panel B</td>
+<td>Rappel : ≥ 2 KPI chiffrés, trade-off, horizon 90–180 j</td>
+</tr>
+</tbody></table>
+<h3>KPI à lire</h3>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Usage</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Snapshot M5_KPI (votre run)</td>
+<td><strong>Preuves chiffrées</strong> à citer dans la décision</td>
+</tr>
+<tr>
+<td>Rotation, service, erreurs, délai</td>
+<td>Classer avec les bandes apprises en M4</td>
+</tr>
+<tr>
+<td>Valeur stock (snapshot)</td>
+<td>Échelle <strong>votre cycle</strong> — pas le portefeuille 48 000 $</td>
+</tr>
+</tbody></table>
+<p><strong>Trois orientations stratégiques valides</strong> (en choisir <strong>une</strong>, argumentée) :</p>
+<table>
+<thead>
+<tr>
+<th>Orientation</th>
+<th>Idée directrice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Qualité d&#39;exécution</strong></td>
+<td>Formation, checklists, réduction erreurs avec garde-fou service</td>
+</tr>
+<tr>
+<td><strong>Working capital</strong></td>
+<td>Optimiser stock cible ; arbitrage cash vs niveau de service</td>
+</tr>
+<tr>
+<td><strong>Résilience capacité</strong></td>
+<td>Investir capacité préparation ; délai et volume</td>
+</tr>
+</tbody></table>
+<h3>Mots-clés — où et comment les utiliser</h3>
+<table>
+<thead>
+<tr>
+<th>Exigence</th>
+<th>Mots à privilégier</th>
+<th>Où les placer</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Preuves KPI (≥ 2 chiffrées)</td>
+<td>Valeurs du <strong>panneau snapshot</strong> : rotation, OTIF, erreurs, délai, valeur stock</td>
+<td>Section Preuve — citer et classer</td>
+</tr>
+<tr>
+<td>Arbitrage</td>
+<td><code>arbitrage</code>, <code>trade-off</code>, <code>compromis</code>, <code>entre … et …</code>, <code>sacrifice</code></td>
+<td>Section Arbitrage — tension explicite</td>
+</tr>
+<tr>
+<td>Recommandation</td>
+<td><code>recommandation</code>, <code>décision</code>, <code>plan</code>, <code>initiative</code>, <code>politique</code></td>
+<td>Section Recommandation — initiative claire</td>
+</tr>
+<tr>
+<td>Horizon</td>
+<td><code>90 jours</code>, <code>180 jours</code>, <code>3 mois</code>, <code>6 mois</code>, <code>trimestre</code></td>
+<td>Section Horizon — plan mesurable</td>
+</tr>
+<tr>
+<td>Selon orientation</td>
+<td><code>formation</code>, <code>working capital</code>, <code>capacité</code>, <code>résilience</code>, <code>lead time</code></td>
+<td>Adapter au choix stratégique</td>
+</tr>
+</tbody></table>
+<p><strong>Mots à éviter :</strong> actions ops pures (« poster la réception », « continuer le rangement »), texte vague sans chiffres, portefeuille M4 (<code>48 000 $</code>, stock 400 u.), décision tactique courte type SCN-015.</p>
+<h3>Structure de réponse (décision stratégique)</h3>
+<ol>
+<li><strong>Situation</strong> — Cycle ops complété ; performance globale post-Peak Week.</li>
+<li><strong>Preuve</strong> — Citer <strong>au moins deux KPI chiffrés</strong> du snapshot (avec bandes).</li>
+<li><strong>Arbitrage</strong> — Tension explicite entre options (ex. qualité vs capital vs service vs capacité).</li>
+<li><strong>Recommandation</strong> — Initiative claire + objectifs mesurables.</li>
+<li><strong>Horizon</strong> — Plan 90 à 180 jours + KPI de suivi nommés.</li>
+</ol>
+<h3>Erreurs fréquentes</h3>
+<ul>
+<li>Décision <strong>tactique courte</strong> (style SCN-015) — insuffisante pour le capstone.</li>
+<li>Texte <strong>générique</strong> sans chiffres issus du snapshot.</li>
+<li><strong>Une seule</strong> preuve KPI — la synthèse exige au moins deux citations chiffrées cohérentes.</li>
+<li>Recommandation <strong>sans arbitrage</strong> — pas de tension nommée entre options.</li>
+<li>Plan <strong>sans horizon</strong> 90 à 180 jours.</li>
+<li>Copier les chiffres <strong>portefeuille M4</strong> si le snapshot indique votre échelle SKU.</li>
+<li>Réponse <strong>purement opérationnelle</strong> — continuer les transactions au lieu de recommander une politique.</li>
+</ul>
+<h3>Pièges pédagogiques</h3>
+<ul>
+<li><strong>Preuves obligatoires :</strong> la décision board s&#39;appuie sur <strong>votre</strong> snapshot, pas sur des généralités.</li>
+<li><strong>Niveau direction :</strong> politique et investissement — pas transaction WMS.</li>
+<li><strong>Continuité M4 → M5 :</strong> mêmes bandes KPI, échelle opérationnelle différente.</li>
+<li><strong>Arbitrage implicite insuffisant :</strong> formulez la tension entre au moins deux dimensions.</li>
+</ul>
+<div class="page-break"></div><h2>Tableau récapitulatif — Classification KPI</h2>
+<table>
+<thead>
+<tr>
+<th>Indicateur</th>
+<th>Valeur de référence</th>
+<th>Bande / statut</th>
+<th>Mots de classification</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Rotation</td>
+<td><strong>6×</strong></td>
+<td>Normale (4–12×)</td>
+<td><code>normale</code>, <code>équilibrée</code></td>
+</tr>
+<tr>
+<td>Service OTIF</td>
+<td><strong>95 %</strong></td>
+<td>Excellent (≥ 95 %)</td>
+<td><code>excellent</code>, <code>optimal</code></td>
+</tr>
+<tr>
+<td>Erreurs</td>
+<td><strong>4 %</strong></td>
+<td>Acceptable (1–5 %)</td>
+<td><code>acceptable</code>, <code>modéré</code></td>
+</tr>
+<tr>
+<td>Délai</td>
+<td><strong>3,5 j</strong></td>
+<td>Normal (3–7 j)</td>
+<td><code>délai</code>, <code>lead time</code>, <code>3,5 j</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Progression pédagogique</h2>
+<pre><code class="language-text">MODULE 4 — Interpréter (moniteur vide = normal)
+  SCN-012  Rotation + capital        → politique stock, pas destock global
+  SCN-013  OTIF + erreurs J-90       → piège tableau vert, plan chiffré
+  SCN-014  S&amp;OP capstone             → arbitrage multi-KPI, délai obligatoire
+
+MODULE 5 — Exécuter puis décider (KPI = votre ledger)
+  SCN-015  Cycle nominal             → ops → KPI → décision tactique
+  SCN-016  Variance + ADJ            → corriger avant piloter → tactique
+  SCN-017  Capstone stratégique      → preuves snapshot + arbitrage board
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Transition</th>
+<th>Ce qui change</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>M3 → M4</td>
+<td>Transactions → interprétation KPI ; pas de vocabulaire ops WMS</td>
+</tr>
+<tr>
+<td>M4 → M5</td>
+<td>Portefeuille Annexe A → chiffres ledger de <strong>votre</strong> run</td>
+</tr>
+<tr>
+<td>SCN-015 → SCN-017</td>
+<td>Décision tactique courte → décision stratégique structurée</td>
+</tr>
+<tr>
+<td>SCN-012 + 013 → 014</td>
+<td>Compétences isolées → synthèse intégrée avec trade-off explicite</td>
+</tr>
+</tbody></table>
+<p><strong>En résumé :</strong> en Module 4 vous <strong>interprétez</strong> des KPI portefeuille ; en Module 5 vous <strong>prouvez</strong> vos KPI par l&#39;exécution, puis vous <strong>décidez</strong> au bon niveau (tactique ou stratégique) avec les chiffres que vous avez produits.</p>
+<div class="page-break"></div><div class="checklist-page"><h1>Checklist finale avant soumission</h1>
+<p>Avant de soumettre votre réponse dans le simulateur, parcourez cette liste. Cochez mentalement chaque point — ou imprimez cette page pour vos révisions.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Étape de préparation</strong></th>
+<th><strong>Ce que vous devez avoir fait</strong></th>
+</tr>
+</thead>
+<tbody><tr>
+<td>☐</td>
+<td><strong>Lire les slides</strong></td>
+<td>Parcourir le contenu pédagogique du module et du scénario en cours</td>
+</tr>
+<tr>
+<td>☐</td>
+<td><strong>Lire la Fiche Mission</strong></td>
+<td>Identifier le rôle simulé, l&#39;enjeu métier et les contraintes du scénario</td>
+</tr>
+<tr>
+<td>☐</td>
+<td><strong>Observer les KPI</strong></td>
+<td>Lire les indicateurs au bon endroit (tour de contrôle M4 ou moniteur M5)</td>
+</tr>
+<tr>
+<td>☐</td>
+<td><strong>Identifier les causes</strong></td>
+<td>Relier les KPI entre eux et repérer le piège pédagogique du scénario</td>
+</tr>
+<tr>
+<td>☐</td>
+<td><strong>Justifier la décision</strong></td>
+<td>Structurer votre réponse avec preuves, recommandation et horizon si requis</td>
+</tr>
+<tr>
+<td>☐</td>
+<td><strong>Vérifier la cohérence avant soumission</strong></td>
+<td>Confirmer que vos étapes, chiffres et niveau de décision correspondent au scénario</td>
+</tr>
+</tbody></table>
+<hr>
+<h3>Rappel par module</h3>
+<p><strong>Module 4 —</strong> Moniteur vide = normal. Pas de transactions WMS. Classer les KPI avec les bandes Annexe A. Diagnostic actionnable, pas passif.</p>
+<p><strong>Module 5 —</strong> KPI issus de <strong>votre</strong> run (ledger / snapshot). Ops complètes avant KPI. SCN-016 : corriger l&#39;écart avant de piloter. SCN-017 : décision stratégique avec preuves chiffrées.</p>
+<hr>
+<h3>Question finale</h3>
+<p><em>« Ma réponse est-elle cohérente avec le scénario, les KPI observés et le niveau de décision attendu (tactique ou stratégique) ? »</em></p>
+</div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026 · Guidance pédagogique uniquement</div>
+
+</body>
+</html>
