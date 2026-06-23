@@ -61,6 +61,8 @@ export const profiles = mysqlTable("profiles", {
   studentNumber: varchar("studentNumber", { length: 64 }),
   silverCertified: boolean("silverCertified").default(false).notNull(),
   goldCertified: boolean("goldCertified").default(false).notNull(),
+  /** Audit source for institutional Gold awards (e.g. FONDATRICE_2026_GOLD_AWARD). */
+  goldAwardSource: varchar("goldAwardSource", { length: 64 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

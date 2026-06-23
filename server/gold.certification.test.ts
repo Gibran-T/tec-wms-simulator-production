@@ -87,6 +87,26 @@ describe("Gold certification — eligibility rules", () => {
     });
   });
 
+  describe("institutional founding cohort award display", () => {
+    it("buildInstitutionalGoldAwardStatus reports 18/18 AWARDED with audit source", async () => {
+      const { buildInstitutionalGoldAwardStatus } = await import("./goldCertification");
+      const { FONDATRICE_2026_GOLD_AWARD, FONDATRICE_GOLD_INSTITUTIONAL_NOTE } = await import(
+        "@shared/foundingCohortGoldAward"
+      );
+      const status = buildInstitutionalGoldAwardStatus(FONDATRICE_2026_GOLD_AWARD);
+      expect(status.state).toBe("AWARDED");
+      expect(status.goldCertified).toBe(true);
+      expect(status.goldEligible).toBe(true);
+      expect(status.requirementsMetCount).toBe(GOLD_REQUIREMENTS_TOTAL);
+      expect(status.requirementsTotalCount).toBe(18);
+      expect(status.goldAwardSource).toBe(FONDATRICE_2026_GOLD_AWARD);
+      expect(status.institutionalNote).toBe(FONDATRICE_GOLD_INSTITUTIONAL_NOTE);
+      expect(status.quizM5Passed).toBe(true);
+      expect(GOLD_SCN_KEYS.every((k) => status.scenariosCompleted[k])).toBe(true);
+      expect(status.blockerSummary).toBeUndefined();
+    });
+  });
+
   it("GT-FLAG-01: ENABLE_GOLD_UNLOCK defaults to false", () => {
     const prev = process.env.ENABLE_GOLD_UNLOCK;
     delete process.env.ENABLE_GOLD_UNLOCK;

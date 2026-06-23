@@ -10,6 +10,10 @@ import {
   getModuleScenarioPassThreshold,
 } from "@shared/moduleThresholds";
 import {
+  FONDATRICE_GOLD_INSTITUTIONAL_NOTE,
+  isFoundingCohortInstitutionalGoldAward,
+} from "@shared/foundingCohortGoldAward";
+import {
   cycleCounts,
   progress,
   quizAttempts,
@@ -80,6 +84,9 @@ export type GoldCertificationStatus = {
   requirementsMetCount: number;
   requirementsTotalCount: number;
   blockerSummary?: string;
+  /** Set when Gold is awarded via institutional governance (not runtime 18-gate completion). */
+  goldAwardSource?: string;
+  institutionalNote?: string;
 };
 
 const GOLD_PATH_SCNS: OfficialScnCode[] = [
@@ -127,6 +134,37 @@ export function resolveGoldState(input: {
 
 function emptyGoldScenarioMap(): GoldScenarioCompletionMap {
   return Object.fromEntries(GOLD_SCN_KEYS.map((k) => [k, false])) as GoldScenarioCompletionMap;
+}
+
+function fullGoldScenarioMap(): GoldScenarioCompletionMap {
+  return Object.fromEntries(GOLD_SCN_KEYS.map((k) => [k, true])) as GoldScenarioCompletionMap;
+}
+
+/** Display + API status for Cohorte Fondatrice institutional Gold (mirrors Silver awarded short-circuit). */
+export function buildInstitutionalGoldAwardStatus(goldAwardSource: string): GoldCertificationStatus {
+  const scenariosCompleted = fullGoldScenarioMap();
+  const partial = {
+    silverPrerequisite: true,
+    quizM5Passed: true,
+    scenariosCompleted,
+    complianceValidated: true,
+    noBlockers: true,
+    moduleCompliancePassed: true,
+    scn016VarianceBeforeKpi: true,
+    scn017CapstoneScore: true,
+    scn017DecisionLinked: true,
+    goldEligible: true,
+    goldCertified: true,
+    goldAwardSource,
+    institutionalNote: FONDATRICE_GOLD_INSTITUTIONAL_NOTE,
+  };
+  return {
+    ...partial,
+    state: "AWARDED",
+    requirementsMetCount: GOLD_REQUIREMENTS_TOTAL,
+    requirementsTotalCount: GOLD_REQUIREMENTS_TOTAL,
+    blockerSummary: undefined,
+  };
 }
 
 async function getAllActiveScenarioRows() {
@@ -489,6 +527,15 @@ export async function getGoldCertificationStatus(userId: number): Promise<GoldCe
   const profile = await getProfileByUserId(userId);
   const silverCertified = profile?.silverCertified ?? false;
   const goldCertified = profile?.goldCertified ?? false;
+  const goldAwardSource = profile?.goldAwardSource ?? null;
+
+  if (
+    silverCertified &&
+    goldCertified &&
+    isFoundingCohortInstitutionalGoldAward(goldAwardSource)
+  ) {
+    return buildInstitutionalGoldAwardStatus(goldAwardSource!);
+  }
 
   const silverPrerequisite = silverCertified;
   const quizM5Passed = silverCertified ? await checkM5QuizPassed(userId) : false;
@@ -536,5 +583,9 @@ export async function getGoldCertificationStatus(userId: number): Promise<GoldCe
     requirementsMetCount: countRequirementsMet(partial),
     requirementsTotalCount: GOLD_REQUIREMENTS_TOTAL,
     blockerSummary: goldEligible ? undefined : firstBlockerSummary(partial),
+    goldAwardSource: goldAwardSource ?? undefined,
+    institutionalNote: isFoundingCohortInstitutionalGoldAward(goldAwardSource)
+      ? FONDATRICE_GOLD_INSTITUTIONAL_NOTE
+      : undefined,
   };
 }

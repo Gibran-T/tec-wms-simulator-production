@@ -160,16 +160,20 @@ export function CertificationsPage() {
   const goldState: GoldCertState = goldStatus?.state ?? "LOCKED";
   const goldEarned = goldStatus?.goldCertified ?? false;
   const goldLocked = goldState === "LOCKED";
+  const goldChecklistComplete = goldEarned;
   const complianceGoldMet =
-    (goldStatus?.complianceValidated ?? false) && (goldStatus?.moduleCompliancePassed ?? false);
-  const scn017Met = (goldStatus?.scn017CapstoneScore ?? false) && (goldStatus?.scn017DecisionLinked ?? false);
+    goldChecklistComplete ||
+    ((goldStatus?.complianceValidated ?? false) && (goldStatus?.moduleCompliancePassed ?? false));
+  const scn017Met =
+    goldChecklistComplete ||
+    ((goldStatus?.scn017CapstoneScore ?? false) && (goldStatus?.scn017DecisionLinked ?? false));
 
   const goldRequirements = [
     {
       id: "silver-pre",
       labelFr: "Silver obtenue (prérequis)",
       labelEn: "Silver obtained (prerequisite)",
-      met: goldStatus?.silverPrerequisite ?? false,
+      met: goldChecklistComplete || (goldStatus?.silverPrerequisite ?? false),
       action: () => navigate("/student/certifications"),
       actionFr: "Silver",
       actionEn: "Silver",
@@ -178,7 +182,7 @@ export function CertificationsPage() {
       id: "quiz-m5",
       labelFr: "Quiz M5 réussi (≥ 60 %)",
       labelEn: "M5 quiz passed (≥ 60%)",
-      met: goldStatus?.quizM5Passed ?? false,
+      met: goldChecklistComplete || (goldStatus?.quizM5Passed ?? false),
       action: () => navigate("/student/quiz/5"),
       actionFr: "Quiz M5",
       actionEn: "M5 quiz",
@@ -189,7 +193,7 @@ export function CertificationsPage() {
       labelEn: GOLD_SCN_LABELS[key].en,
       subFr: `Évaluation ${GOLD_SCN_LABELS[key].threshold}`,
       subEn: `Evaluation ${GOLD_SCN_LABELS[key].threshold}`,
-      met: goldStatus?.scenariosCompleted?.[key] ?? false,
+      met: goldChecklistComplete || (goldStatus?.scenariosCompleted?.[key] ?? false),
       action: () => navigate(key <= "SCN008" ? "/student/module2" : key <= "SCN011" ? "/student/module3" : key <= "SCN014" ? "/student/module4" : "/student/module5"),
       actionFr: "Module",
       actionEn: "Module",
@@ -207,7 +211,7 @@ export function CertificationsPage() {
       id: "blockers",
       labelFr: "Aucun blocage non résolu",
       labelEn: "No unresolved blockers",
-      met: goldStatus?.noBlockers ?? false,
+      met: goldChecklistComplete || (goldStatus?.noBlockers ?? false),
       action: () => navigate("/student/scenarios"),
       actionFr: "Résoudre",
       actionEn: "Resolve",
@@ -216,7 +220,7 @@ export function CertificationsPage() {
       id: "scn-016-seq",
       labelFr: "SCN-016 — écart corrigé avant KPI",
       labelEn: "SCN-016 — variance resolved before KPI",
-      met: goldStatus?.scn016VarianceBeforeKpi ?? false,
+      met: goldChecklistComplete || (goldStatus?.scn016VarianceBeforeKpi ?? false),
       action: () => navigate("/student/module5"),
       actionFr: "M5",
       actionEn: "M5",
@@ -232,7 +236,9 @@ export function CertificationsPage() {
     },
   ];
 
-  const goldMetCount = goldStatus?.requirementsMetCount ?? goldRequirements.filter((r) => r.met).length;
+  const goldMetCount = goldEarned
+    ? (goldStatus?.requirementsTotalCount ?? 18)
+    : (goldStatus?.requirementsMetCount ?? goldRequirements.filter((r) => r.met).length);
   const goldProgressPct = goldStatus
     ? (goldMetCount / goldStatus.requirementsTotalCount) * 100
     : 0;
@@ -385,9 +391,14 @@ export function CertificationsPage() {
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     {goldStatusBannerCopy(goldState, t)}
                   </p>
+                  {goldStatus?.institutionalNote && (
+                    <p className="text-xs text-amber-800/90 dark:text-amber-200/90 mt-2 rounded-md border border-amber-200/80 bg-amber-50/80 dark:bg-amber-950/30 px-3 py-2 leading-relaxed">
+                      {goldStatus.institutionalNote}
+                    </p>
+                  )}
                 </div>
                 {!goldLocked && (
-                  <CertificationProgressRing pct={goldProgressPct} accent="#ca8a04" />
+                  <CertificationProgressRing pct={goldEarned ? 100 : goldProgressPct} accent="#ca8a04" />
                 )}
               </div>
 
