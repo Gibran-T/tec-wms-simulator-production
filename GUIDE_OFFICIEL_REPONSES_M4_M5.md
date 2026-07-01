@@ -444,7 +444,7 @@ Formation picking et revue procédure réception pour réduire les erreurs vers 
 
 ### 9. Concepts ERP / WMS
 
-| Étape | SAP | WMS / Odoo |
+| Étape | SAP | Fonction WMS (TEC.WMS) |
 |-------|-----|------------|
 | M5_RECEPTION | MIGO 101 | Réception fournisseur |
 | M5_PUTAWAY | LT01 | Transfert interne + lot FIFO |

@@ -134,7 +134,7 @@ Le parcours comprend **cinq modules** totalisant **30 heures** de formation prat
 
 Le programme repose sur une **progression par compétences** alignée sur la taxonomie de Bloom, combinant :
 
-1. **Cours magistraux interactifs** — diapositives institutionnelles, terminologie SAP/Odoo, cartographie des flux.
+1. **Cours magistraux interactifs** — diapositives institutionnelles, terminologie SAP et ERP/WMS, cartographie des flux.
 2. **Quiz de validation des connaissances** — seuil de réussite de 60 % pour débloquer la simulation.
 3. **Scénarios transactionnels** — 17 missions opérationnelles (SCN) dans un entrepôt simulé à trois zones (Réception, Stockage, Expédition).
 4. **Intelligence pédagogique** — panneaux contextuels, glossaire de 80 termes TEC.LOG, rapports de performance personnalisés.

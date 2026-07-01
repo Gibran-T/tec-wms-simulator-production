@@ -140,7 +140,7 @@ Il couvre l'ensemble du parcours pédagogique sur la plateforme **Mini-WMS Conco
 
 Former des **gestionnaires logistiques** capables d'**exécuter**, **analyser** et **décider** dans un environnement WMS/ERP simulé — sans dépendance à un ERP commercial en classe.
 
-Le simulateur TEC.WMS reproduit les flux transactionnels industriels (SAP S/4HANA, Odoo) dans un environnement structuré, bilingue (FR/EN), avec évaluation automatisée et conformité système.
+Le simulateur TEC.WMS reproduit les flux transactionnels industriels (terminologie SAP S/4HANA) dans un environnement structuré, bilingue (FR/EN), avec évaluation automatisée et conformité système.
 
 ## 2.2 Résultats d'apprentissage globaux
 
@@ -441,7 +441,7 @@ Le programme TEC.LOG totalise **30 heures** réparties en **10 séances de 3 heu
 | 3 | Service 95 % + erreurs 4 % | SCN-013 |
 | 4 | Productivité / coût | Transversal |
 | 5 | Root Cause Analysis | SCN-014 (capstone) |
-| 6 | Odoo Reports (démo) | Renforcement institutionnel |
+| 6 | Consolidation TEC.WMS — KPI Control Tower | Renforcement institutionnel |
 | 7 | Application SCN-012–014 + Annexe A | Debrief + devoir |
 
 <div class="page-break"></div>

@@ -669,26 +669,6 @@ export default function MissionControl() {
               </div>
             </div>
 
-            {/* Teacher Demo Section (Conditional) */}
-            {isTeacher && (
-              <div className="bg-emerald-950 border border-emerald-700 rounded-none p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white">O</div>
-                  <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">Prof Demo — Odoo Lab</span>
-                </div>
-                <p className="text-[10px] text-emerald-300 leading-relaxed italic">
-                  {t("Optionnel : Utilisez ce bouton pour illustrer l'impact ERP de cette étape.", "Optional: Use this button to illustrate the ERP impact of this step.")}
-                </p>
-                <a 
-                  href="https://edu-concorde-logistics-lab.odoo.com" 
-                  target="_blank" 
-                  rel="noreferrer"
-                  className="block w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold py-2 transition-colors"
-                >
-                  {t("OUVRIR ODOO LAB →", "OPEN ODOO LAB →")}
-                </a>
-              </div>
-            )}
           </div>
         </div>
       </div>
