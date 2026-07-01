@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 import { SLIDE_COUNT_BY_MODULE } from "@/data/slideCounts";
 import { getModuleScenarioPassThreshold } from "@/data/moduleThresholds";
 
@@ -52,12 +53,14 @@ export default function TeacherDashboard() {
   const { user } = useAuth();
   const { t, language } = useLanguage();
 
+  const cohortInput = useTeacherCohortInput();
+
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: cohorts } = trpc.cohorts.list.useQuery();
-  const { data: assignments } = trpc.assignments.all.useQuery();
-  const { data: monitor } = trpc.monitor.allRuns.useQuery();
-  const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery();
-  const { data: goldRoster } = trpc.profiles.goldRoster.useQuery();
+  const { data: assignments } = trpc.assignments.all.useQuery(cohortInput);
+  const { data: monitor } = trpc.monitor.allRuns.useQuery(cohortInput);
+  const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery(cohortInput);
+  const { data: goldRoster } = trpc.profiles.goldRoster.useQuery(cohortInput);
   const utils = trpc.useUtils();
   const validateM3 = trpc.warehouse.validateTeacherModule.useMutation({
     onSuccess: () => void utils.warehouse.allModuleProgress.invalidate(),

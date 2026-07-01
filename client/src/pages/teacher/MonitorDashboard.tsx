@@ -4,12 +4,14 @@ import { Download, Monitor, RefreshCw, FlaskConical, ShieldCheck, BarChart2, Rot
 import { useState } from "react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 
 type FilterMode = "evaluation" | "demonstration" | "all";
 
 export default function MonitorDashboard() {
   const { t } = useLanguage();
-  const { data: runs, isLoading, refetch } = trpc.monitor.allRuns.useQuery();
+  const cohortInput = useTeacherCohortInput();
+  const { data: runs, isLoading, refetch } = trpc.monitor.allRuns.useQuery(cohortInput);
   const [filterMode, setFilterMode] = useState<FilterMode>("evaluation");
   const [resettingRunId, setResettingRunId] = useState<number | null>(null);
   const [confirmResetId, setConfirmResetId] = useState<number | null>(null);

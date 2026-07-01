@@ -12,6 +12,7 @@ import {
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCohort } from "@/contexts/CohortContext";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/KgVchfh3nwnwCSCPgkNzAq/concorde-logo_73f38483.png";
 const APP_VERSION = "v1.0";
@@ -31,6 +32,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
   const userMenuRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
+  const { cohorts, selectedCohortId, setSelectedCohortId } = useCohort();
 
   const logout = trpc.auth.logout.useMutation({
     onSuccess: () => { window.location.href = "/"; },
@@ -184,8 +186,28 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           {mobileMenuOpen ? <X size={16} /> : <Menu size={16} />}
         </button>
 
-        {/* ── Right controls: Lang + Dark + User Avatar Dropdown ──────────── */}
+        {/* ── Right controls: Cohort + Lang + Dark + User Avatar Dropdown ── */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
+
+          {isTeacher && cohorts.length > 0 && selectedCohortId != null && (
+            <label className="hidden sm:flex items-center gap-1.5 shrink-0">
+              <span className="text-[9px] font-semibold text-white/60 uppercase tracking-wide">
+                {t("Cohorte", "Cohort")}
+              </span>
+              <select
+                value={selectedCohortId}
+                onChange={(e) => setSelectedCohortId(Number(e.target.value))}
+                className="max-w-[140px] lg:max-w-[180px] text-[10px] font-medium rounded px-2 py-1 bg-white/15 text-white border border-white/25 hover:bg-white/20 focus:outline-none focus:ring-1 focus:ring-white/40 truncate"
+                title={t("Changer de cohorte", "Switch cohort")}
+              >
+                {cohorts.map((c) => (
+                  <option key={c.id} value={c.id} className="text-gray-900">
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {/* Language toggle FR/EN */}
           <button

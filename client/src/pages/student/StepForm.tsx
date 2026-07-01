@@ -9,6 +9,10 @@ import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
 import { buildReplenishmentParamRows } from "@/lib/m3OperationalEvidence";
 import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
+import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
+import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
+import { getAnalyticalQuestionText, isAnalyticalAnswerStep } from "@/data/analyticalStepQuestions";
+import { resolveScenarioScnCode } from "@/lib/scenarioCatalog";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -827,6 +831,17 @@ export default function StepForm() {
     return json?.m5Contract?.decisionLevel === "STRATEGIC";
   }, [runData?.scenario?.initialStateJson]);
 
+  const scnCode = useMemo(
+    () => resolveScenarioScnCode(runData?.scenario ?? null),
+    [runData?.scenario],
+  );
+
+  const isAnalyticalStep = isAnalyticalAnswerStep(step);
+  const analyticalQuestionText = useMemo(
+    () => getAnalyticalQuestionText(step ?? "", scnCode, language, isM5Strategic),
+    [step, scnCode, language, isM5Strategic],
+  );
+
   // ── M1 mutations ──────────────────────────────────────────────────────────
   const submitPO = trpc.transactions.submitPO.useMutation({ onSuccess: handleSuccess, onError: handleError });
   const submitGR = trpc.transactions.submitGR.useMutation({ onSuccess: handleSuccess, onError: handleError });
@@ -1189,7 +1204,7 @@ export default function StepForm() {
   const isCurrentStep = nextStep === cfg.code;
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
   const isLocked = !isDemo && !isCurrentStep && !isCompleted;
-  const inventory = runData?.inventory ?? {};
+  const inventory: Record<string, number> = runData?.inventory ?? {};
   const selectedSku = watch("sku") ?? "";
   const selectedBin = watch("bin") ?? "";
   const selectedFromBin = watch("fromBin") ?? "";
@@ -1437,7 +1452,8 @@ export default function StepForm() {
               </div>
             )}
 
-            {/* Objective Panel */}
+            {/* Objective Panel — hidden for analytical answer steps (integrated in AnalyticalResponseField) */}
+            {!isAnalyticalStep && (
             <div className="mx-4 mt-4 bg-primary/5 border border-primary/20 rounded-md p-3">
               <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-1">
                 <Info size={10} className="inline mr-1" />{t("Objectif pédagogique", "Pedagogical objective")}
@@ -1451,6 +1467,7 @@ export default function StepForm() {
                   : t(cfg.objectiveFr, cfg.objectiveEn)}
               </p>
             </div>
+            )}
 
             {/* Context Panel: Stock for evaluation mode */}
             {(["gi","cc","so","putaway","putaway_m1","picking_m1","fifo_pick","m5_putaway","m5_cycle_count"].includes(step?.toLowerCase() ?? "")) && !isDemo && (() => {
@@ -2029,58 +2046,20 @@ export default function StepForm() {
 
               {/* Student Answer (KPI interpretation, M5 decision) */}
               {cfg.fields.includes("studentAnswer") && (
-                <div>
-                  <label className="fiori-field-label">
-                    {t("Votre analyse / réponse", "Your analysis / answer")} <span className="text-destructive">*</span>{" "}
-                    <span className="text-[10px] text-muted-foreground ml-1">{t("Min. 5 caractères", "Min. 5 characters")}</span>
-                  </label>
-                  <textarea
-                    {...register("studentAnswer")}
-                    rows={4}
-                    placeholder={t(
-                      "Rédigez votre analyse ici. Soyez précis et justifiez votre réponse avec des données.",
-                      "Write your analysis here. Be precise and justify your answer with data."
-                    )}
-                    className="fiori-field-input fiori-field-active resize-none"
-                  />
-                  {step?.toLowerCase() === "kpi_rotation" && (
-                    <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
-                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Données de référence", "Reference data")}</p>
-                      <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                        {t("Taux de rotation", "Rotation rate")} = 2400 / 400 = <strong>6 fois/an</strong> | DSI = 365/6 = <strong>60 jours</strong>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Bande normale 4–12×/an — que recommandez-vous au comité finance ?", "Normal band 4–12×/yr — what do you recommend to the finance committee?")}</p>
-                    </div>
-                  )}
-                  {step?.toLowerCase() === "kpi_service" && (
-                    <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
-                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Données de référence", "Reference data")}</p>
-                      <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                        {t("Taux de service", "Service level")} = 285 / 300 = <strong>95%</strong>
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Objectif industrie : ≥ 95% (excellent), < 95% (à améliorer)", "Industry target: ≥ 95% (excellent), < 95% (to improve)")}</p>
-                    </div>
-                  )}
-                  {step?.toLowerCase() === "kpi_diagnostic" && (
-                    <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
-                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {t("Synthèse KPIs", "KPI Summary")}</p>
-                      <p className="text-[10px] font-mono text-blue-600 dark:text-blue-400">
-                        {t("Rotation", "Rotation")}: 6 ({t("normal", "normal")}) | {t("Service", "Service")}: 95% ({t("excellent", "excellent")}) | {t("Erreurs", "Errors")}: 4% ({t("acceptable", "acceptable")}) | {t("Délai", "Lead time")}: 3,5 j
-                      </p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{t("Structure board : contexte → levier prioritaire → trade-off → KPIs de suivi 90 j → décision", "Board structure: context → priority lever → trade-off → 90-day follow-up KPIs → decision")}</p>
-                    </div>
-                  )}
-                  {step?.toLowerCase() === "m5_decision" && (
-                    <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded p-2">
-                      <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">💡 {isM5Strategic ? t("Guide décision stratégique (SCN-017)", "Strategic decision guide (SCN-017)") : t("Guide décision tactique", "Tactical decision guide")}</p>
-                      {isM5Strategic ? (
-                        <p className="text-[10px] text-muted-foreground">{t("Citez ≥2 KPI chiffrés du snapshot M5_KPI · trade-off explicite · recommandation · horizon 90–180 j. Réponses génériques rejetées.", "Cite ≥2 numeric KPIs from M5_KPI snapshot · explicit trade-off · recommendation · 90–180 day horizon. Generic answers rejected.")}</p>
-                      ) : (
-                        <p className="text-[10px] text-muted-foreground">{t("Analysez les KPI observés (rotation, service, erreurs) et proposez une action opérationnelle : réapprovisionnement, formation, ou amélioration des procédures.", "Analyze the observed KPIs (rotation, service, errors) and propose an operational action: replenishment, training, or procedure improvement.")}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <AnalyticalResponseField
+                  questionText={analyticalQuestionText}
+                  registerProps={register("studentAnswer")}
+                  t={t}
+                  minChars={5}
+                  testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
+                  hints={
+                    <AnalyticalStepHints
+                      step={step ?? ""}
+                      t={t}
+                      isM5Strategic={isM5Strategic}
+                    />
+                  }
+                />
               )}
 
               {/* KPI Data fields (M5 only) */}

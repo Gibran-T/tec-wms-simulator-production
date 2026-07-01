@@ -4,8 +4,10 @@
  * assign cohorts, add notes, and search/filter the student roster.
  */
 import { useState, useMemo } from "react";
+import { skipToken } from "@tanstack/react-query";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 import FioriShell from "@/components/FioriShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,12 +72,12 @@ type Student = {
 
 export default function StudentManager() {
   const { t } = useLanguage();
+  const cohortInput = useTeacherCohortInput();
   const utils = trpc.useUtils();
 
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "inactive">("all");
-  const [filterCohort, setFilterCohort] = useState<string>("all");
 
   // Dialogs
   const [createOpen, setCreateOpen] = useState(false);
@@ -91,8 +93,10 @@ export default function StudentManager() {
   const [newPwd, setNewPwd] = useState("");
   const [noteText, setNoteText] = useState("");
 
-  // Data
-  const { data: students = [], isLoading, refetch } = trpc.students.list.useQuery({ includeAll: false });
+  // Data — default list scoped to selected cohort from shell switcher
+  const { data: students = [], isLoading, refetch } = trpc.students.list.useQuery(
+    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: false },
+  );
   const { data: cohorts = [] } = trpc.cohorts.list.useQuery();
 
   // Mutations
@@ -154,12 +158,9 @@ export default function StudentManager() {
         filterStatus === "all" ||
         (filterStatus === "active" && s.isActive) ||
         (filterStatus === "inactive" && !s.isActive);
-      const matchCohort =
-        filterCohort === "all" ||
-        String(s.cohortId ?? "none") === filterCohort;
-      return matchSearch && matchStatus && matchCohort;
+      return matchSearch && matchStatus;
     });
-  }, [students, search, filterStatus, filterCohort]);
+  }, [students, search, filterStatus]);
 
   const activeCount = (students as Student[]).filter((s) => s.isActive).length;
   const inactiveCount = (students as Student[]).filter((s) => !s.isActive).length;
@@ -247,20 +248,6 @@ export default function StudentManager() {
               </SelectContent>
             </Select>
 
-            {/* Cohort filter */}
-            <Select value={filterCohort} onValueChange={setFilterCohort}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder={t("Cohorte", "Cohort")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("Toutes les cohortes", "All cohorts")}</SelectItem>
-                <SelectItem value="none">{t("Sans cohorte", "No cohort")}</SelectItem>
-                {cohorts.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
             <Button variant="ghost" size="icon" onClick={() => refetch()} title={t("Actualiser", "Refresh")}>
               <RefreshCw className="w-4 h-4" />
             </Button>
@@ -298,7 +285,7 @@ export default function StudentManager() {
                   <TableCell colSpan={6} className="text-center py-12">
                     <GraduationCap className="w-10 h-10 mx-auto mb-3 text-muted-foreground/40" />
                     <p className="text-sm text-muted-foreground font-medium">
-                      {search || filterStatus !== "all" || filterCohort !== "all"
+                      {search || filterStatus !== "all"
                         ? t("Aucun étudiant ne correspond aux filtres", "No students match the filters")
                         : t("Aucun étudiant inscrit. Cliquez sur « Ajouter un étudiant » pour commencer.", "No students enrolled. Click \"Add Student\" to get started.")}
                     </p>

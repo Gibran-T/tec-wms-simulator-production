@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { LanguageProvider } from "./contexts/LanguageContext";
+import { CohortProvider } from "./contexts/CohortContext";
 import Home from "./pages/Home";
 import MissionControl from "./pages/student/MissionControl";
 import ScenarioList from "./pages/student/ScenarioList";
@@ -114,12 +115,14 @@ function App() {
   return (
     <ErrorBoundary>
       <LanguageProvider>
+        <CohortProvider>
         <ThemeProvider defaultTheme="light" switchable>
           <TooltipProvider>
             <Toaster />
             <Router />
           </TooltipProvider>
         </ThemeProvider>
+        </CohortProvider>
       </LanguageProvider>
     </ErrorBoundary>
   );

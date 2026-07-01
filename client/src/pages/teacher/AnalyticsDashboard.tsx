@@ -7,7 +7,9 @@ import FioriShell from "@/components/FioriShell";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 import { useState, useMemo } from "react";
+import { skipToken } from "@tanstack/react-query";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, LineChart, Line, RadarChart, Radar,
@@ -187,6 +189,7 @@ function EvoTooltip({ active, payload, label }: any) {
 // ─── Score Evolution Section (self-contained with its own data fetching) ───────
 function ScoreEvolutionSection() {
   const { t } = useLanguage();
+  const cohortInput = useTeacherCohortInput();
   const [selectedUserId,    setSelectedUserId]    = useState<string>("all");
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>("all");
 
@@ -194,7 +197,7 @@ function ScoreEvolutionSection() {
   const scenarioId = selectedScenarioId === "all" ? undefined : parseInt(selectedScenarioId);
 
   const { data, isLoading } = trpc.monitor.studentScoreEvolution.useQuery(
-    { userId, scenarioId },
+    cohortInput === skipToken ? skipToken : { ...cohortInput, userId, scenarioId },
     { placeholderData: (prev: any) => prev }
   );
 
@@ -382,9 +385,10 @@ function ScoreEvolutionSection() {
 // ─── Main Dashboard ────────────────────────────────────────────────────────────
 export default function AnalyticsDashboard() {
   const { t } = useLanguage();
+  const cohortInput = useTeacherCohortInput();
 
   const [, navigate] = useLocation();
-  const { data, isLoading, refetch, isFetching } = trpc.monitor.powerAnalytics.useQuery(undefined, {
+  const { data, isLoading, refetch, isFetching } = trpc.monitor.powerAnalytics.useQuery(cohortInput, {
     refetchInterval: 60_000,
   });
 

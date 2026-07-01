@@ -22,7 +22,7 @@ export default function AdminPanel() {
   // ── Data ──────────────────────────────────────────────────────────────────
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: cohorts }   = trpc.cohorts.list.useQuery();
-  const { data: runs }      = trpc.monitor.allRuns.useQuery();
+  const { data: runs }      = trpc.monitor.allRuns.useQuery({});
   const { data: users, refetch: refetchUsers } = trpc.admin.users.useQuery();
   const { data: preAuth, refetch: refetchPreAuth } = trpc.admin.listPreAuthorized.useQuery();
 

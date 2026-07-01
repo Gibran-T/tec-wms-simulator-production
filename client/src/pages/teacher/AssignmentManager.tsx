@@ -2,10 +2,12 @@ import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { ClipboardList } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 
 export default function AssignmentManager() {
   const { t, language } = useLanguage();
-  const { data: assignments } = trpc.assignments.all.useQuery();
+  const cohortInput = useTeacherCohortInput();
+  const { data: assignments } = trpc.assignments.all.useQuery(cohortInput);
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: cohorts } = trpc.cohorts.list.useQuery();
 

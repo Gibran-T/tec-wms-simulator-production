@@ -1,17 +1,22 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
+import { skipToken } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Plus, BookOpen, Users, UserCheck, ChevronDown, ChevronUp } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 
 type AssignTarget = { type: "cohort" | "student"; id: string };
 
 export default function ScenarioManager() {
   const { t } = useLanguage();
+  const cohortInput = useTeacherCohortInput();
   const { data: scenarios, refetch } = trpc.scenarios.list.useQuery();
   const { data: cohorts } = trpc.cohorts.list.useQuery();
-  const { data: students } = trpc.admin.listStudents.useQuery();
+  const { data: students } = trpc.students.list.useQuery(
+    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: false },
+  );
   const createScenario = trpc.scenarios.create.useMutation({
     onSuccess: () => { toast.success(t("Scénario créé", "Scenario created")); refetch(); setShowForm(false); }
   });
