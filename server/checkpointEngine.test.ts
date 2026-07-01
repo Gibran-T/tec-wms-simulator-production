@@ -7,6 +7,7 @@ import {
   computeCheckpointPassed,
   computeProgressPct,
   isCheckpointModule,
+  isModuleReadyForTeacherValidation,
   scnKeysForModule,
   type ScnCheckpointStatus,
 } from "./checkpointEngine";
@@ -137,6 +138,18 @@ describe("Checkpoint engine — CK-M3", () => {
     const snap = buildModuleCheckpointSnapshot(3, status, keys, true);
     expect(snap.passed).toBe(false);
     expect(snap.progressPct).toBe(25);
+  });
+
+  it("CK-M3-04: all SCNs pass enables teacher validation before module passed", () => {
+    const keys = m3Keys();
+    const status = buildStatus(keys, {
+      SCN009: scnStatus(true, 75),
+      SCN010: scnStatus(true, 80),
+      SCN011: scnStatus(true, 72),
+    });
+    const snap = buildModuleCheckpointSnapshot(3, status, keys, false);
+    expect(snap.passed).toBe(false);
+    expect(isModuleReadyForTeacherValidation(snap)).toBe(true);
   });
 });
 

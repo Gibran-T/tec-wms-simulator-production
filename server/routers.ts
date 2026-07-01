@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { cohortFilterInput, resolveCohortScope, assertTeacherOwnsCohort } from "./cohortScope";
 import {
   addCycleCount,
   addPutawayRecord,
@@ -68,10 +69,24 @@ import {
   isGoldUnlockEnabled,
   unlockSilverCertification,
   unlockGoldCertification,
+  addInventoryCount,
+  addInventoryAdjustment,
+  getInventoryAdjustmentsByRun,
+  getInventoryCountsByRun,
+  addReplenishmentSuggestion,
+  getReplenishmentSuggestionsByRun,
+  upsertInventoryCount,
+  upsertReplenishmentSuggestion,
+  addKpiSnapshot,
+  addKpiInterpretation,
+  getKpiInterpretationsByRun,
+  getKpiSnapshotByRun,
 } from "./db";
 import {
+  computeModuleCheckpointSnapshot,
   isCheckpointEngineEnabled,
   isCheckpointModule,
+  isModuleReadyForTeacherValidation,
   recomputeModuleCheckpoint,
 } from "./checkpointEngine";
 import {
@@ -92,6 +107,12 @@ import {
   MODULE4_STEPS,
   MODULE5_STEPS,
   M4_STEP_MAX,
+  M3_STEP_MAX,
+  M3_STEP_MAX_SCALED,
+  M3_REPLENISH_SCORING_EVENTS,
+  getM3StepAwardPoints,
+  getM3ReplenishStepDisplayMax,
+  scoreM3ReplenishQtyFromSuggestions,
   validatePutaway,
   validateGRZone,
   validatePutawayM1Zone,
@@ -141,21 +162,6 @@ import {
   type M4InitialStateJson,
   type M5InitialStateJson,
 } from "./rulesEngine";
-import {
-  addInventoryCount,
-  addInventoryAdjustment,
-  getInventoryAdjustmentsByRun,
-  getInventoryCountsByRun,
-  addReplenishmentSuggestion,
-  getReplenishmentSuggestionsByRun,
-  upsertInventoryCount,
-  upsertReplenishmentSuggestion,
-  addKpiSnapshot,
-  addKpiInterpretation,
-  getKpiInterpretationsByRun,
-  getKpiSnapshotByRun,
-  resolveAllCycleCountsByRun,
-} from "./db";
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { COOKIE_NAME } from "@shared/const";
@@ -471,7 +477,16 @@ export const appRouter = router({
   students: router({
     list: teacherProcedure
       .input(z.object({ cohortId: z.number().optional(), includeAll: z.boolean().optional() }))
-      .query(async ({ input }) => listStudents(input)),
+      .query(async ({ ctx, input }) => {
+        if (input.cohortId) {
+          await assertTeacherOwnsCohort(
+            ctx.user.id,
+            input.cohortId,
+            ctx.user.role === "admin",
+          );
+        }
+        return listStudents(input);
+      }),
 
     create: teacherProcedure
       .input(z.object({
@@ -480,13 +495,20 @@ export const appRouter = router({
         password: z.string().min(6),
         cohortId: z.number().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const existing = await getUserByEmail(input.email.toLowerCase());
         if (existing) throw new TRPCError({ code: "CONFLICT", message: "Un compte existe déjà avec cet email" });
         const passwordHash = await bcrypt.hash(input.password, 10);
         const user = await createLocalUser({ email: input.email.toLowerCase(), name: input.name, passwordHash, role: "student" });
         if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-        if (input.cohortId) await assignStudentToCohort(user.id, input.cohortId);
+        if (input.cohortId) {
+          await assertTeacherOwnsCohort(
+            ctx.user.id,
+            input.cohortId,
+            ctx.user.role === "admin",
+          );
+          await assignStudentToCohort(user.id, input.cohortId);
+        }
         return { success: true, userId: user.id };
       }),
 
@@ -508,7 +530,17 @@ export const appRouter = router({
 
     assignCohort: teacherProcedure
       .input(z.object({ userId: z.number(), cohortId: z.number().nullable() }))
-      .mutation(async ({ input }) => { await assignStudentToCohort(input.userId, input.cohortId); return { success: true }; }),
+      .mutation(async ({ ctx, input }) => {
+        if (input.cohortId != null) {
+          await assertTeacherOwnsCohort(
+            ctx.user.id,
+            input.cohortId,
+            ctx.user.role === "admin",
+          );
+        }
+        await assignStudentToCohort(input.userId, input.cohortId);
+        return { success: true };
+      }),
 
     stats: teacherProcedure
       .input(z.object({ userId: z.number() }))
@@ -617,7 +649,16 @@ export const appRouter = router({
       const profile = await getProfileByUserId(ctx.user.id);
       return getAssignmentsForStudent(ctx.user.id, profile?.cohortId ?? null);
     }),
-    all: teacherProcedure.query(() => getAllAssignments()),
+    all: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        return getAllAssignments({ cohortId: input.cohortId, cohortStudentUserIds: studentUserIds });
+      }),
     create: teacherProcedure
       .input(
         z.object({
@@ -627,12 +668,19 @@ export const appRouter = router({
           dueDate: z.string().nullable(),
         })
       )
-      .mutation(({ input }) =>
-        createAssignment({
+      .mutation(async ({ ctx, input }) => {
+        if (input.cohortId != null) {
+          await assertTeacherOwnsCohort(
+            ctx.user.id,
+            input.cohortId,
+            ctx.user.role === "admin",
+          );
+        }
+        return createAssignment({
           ...input,
           dueDate: input.dueDate ? new Date(input.dueDate) : null,
-        })
-      ),
+        });
+      }),
   }),
 
   // ─── Profiles ──────────────────────────────────────────────────────────────
@@ -663,33 +711,47 @@ export const appRouter = router({
       .query(async ({ input }) => {
         return getGoldCertificationStatus(input.userId);
       }),
-    goldRoster: teacherProcedure.query(async () => {
-      const all = await getAllUsers();
-      const students = all.filter((u) => u.role === "student");
-      return Promise.all(
-        students.map(async (u) => {
-          const gold = await getGoldCertificationStatus(u.id);
-          const profile = await getProfileByUserId(u.id);
-          return {
-            userId: u.id,
-            name: u.name,
-            email: u.email,
-            silverCertified: profile?.silverCertified ?? false,
-            goldState: gold.state,
-            goldEligible: gold.goldEligible,
-            goldCertified: gold.goldCertified,
-            blockerSummary: gold.blockerSummary,
-          };
-        }),
-      );
-    }),
+    goldRoster: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        const idSet = new Set(studentUserIds);
+        const all = await getAllUsers();
+        const students = all.filter((u) => u.role === "student" && idSet.has(u.id));
+        return Promise.all(
+          students.map(async (u) => {
+            const gold = await getGoldCertificationStatus(u.id);
+            const profile = await getProfileByUserId(u.id);
+            return {
+              userId: u.id,
+              name: u.name,
+              email: u.email,
+              silverCertified: profile?.silverCertified ?? false,
+              goldState: gold.state,
+              goldEligible: gold.goldEligible,
+              goldCertified: gold.goldCertified,
+              blockerSummary: gold.blockerSummary,
+            };
+          }),
+        );
+      }),
     upsert: protectedProcedure
       .input(z.object({
         cohortId: z.number().nullable().optional(),
         displayName: z.string().optional(),
         studentNumber: z.string().max(64).nullable().optional(),
       }))
-      .mutation(({ ctx, input }) => upsertProfile(ctx.user.id, input.cohortId ?? null, input.studentNumber)),
+      .mutation(({ ctx, input }) => {
+        const isTeacher = ctx.user.role === "teacher" || ctx.user.role === "admin";
+        const fields: Parameters<typeof upsertProfile>[1] = {};
+        if (input.studentNumber !== undefined) fields.studentNumber = input.studentNumber;
+        if (isTeacher && input.cohortId !== undefined) fields.cohortId = input.cohortId;
+        return upsertProfile(ctx.user.id, fields);
+      }),
   }),
 
   // ─── Admin ─────────────────────────────────────────────────────────────────
@@ -1048,8 +1110,8 @@ export const appRouter = router({
           PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, ADJ: 10, COMPLIANCE: 40,
           // M2 (GR pre-seeded; 25+25+25+25 = 100)
           PUTAWAY: 25, FIFO_PICK: 25, STOCK_ACCURACY: 25, COMPLIANCE_ADV: 25,
-          // M3
-          CC_LIST: 10, CC_COUNT: 20, CC_RECON: 15, REPLENISH: 20, COMPLIANCE_M3: 15,
+          // M3 (SCN-009/010 scaled to 100; SCN-011 REPLENISH display max includes ROP/EOQ)
+          ...M3_STEP_MAX_SCALED,
           // M4 (10+20+20+25+25 = 100)
           ...M4_STEP_MAX,
           // M5
@@ -1094,13 +1156,24 @@ export const appRouter = router({
           : MODULE1_STEPS;
         const stepCodesToReport = moduleSteps.map(s => s.code as string);
         // ── Per-step score breakdown ─────────────────────────────────────────
+        const m3InitialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const stepBreakdown = stepCodesToReport.map(step => {
           const completed = state.completedSteps.includes(step as any);
           const completionEvent = STEP_EVENT_MAP_ALL[step];
-          const completionPoints = completionEvent
-            ? events.filter(e => e.eventType === completionEvent).reduce((s, e) => s + e.pointsDelta, 0)
-            : 0;
-          const maxPoints = STEP_MAX_ALL[step] ?? 0;
+          const completionPoints =
+            moduleId === 3 && step === "REPLENISH"
+              ? events
+                  .filter((e) => (M3_REPLENISH_SCORING_EVENTS as readonly string[]).includes(e.eventType))
+                  .reduce((s, e) => s + e.pointsDelta, 0)
+              : completionEvent
+                ? events.filter(e => e.eventType === completionEvent).reduce((s, e) => s + e.pointsDelta, 0)
+                : 0;
+          const maxPoints =
+            moduleId === 3 && step === "REPLENISH"
+              ? getM3ReplenishStepDisplayMax(m3InitialStateJson)
+              : moduleId === 3 && step in M3_STEP_MAX_SCALED
+                ? M3_STEP_MAX_SCALED[step as keyof typeof M3_STEP_MAX_SCALED]
+                : STEP_MAX_ALL[step] ?? 0;
           const pct = maxPoints > 0 ? Math.round((completionPoints / maxPoints) * 100) : (completed ? 100 : 0);
           // Collect zone errors for this step
           const zoneErrors = events
@@ -1987,7 +2060,16 @@ export const appRouter = router({
     myProgress: protectedProcedure.query(({ ctx }) => getModuleProgressByUser(ctx.user.id)),
 
     /** Get all module progress (teacher view) */
-    allModuleProgress: teacherProcedure.query(() => getAllModuleProgressForMonitor()),
+    allModuleProgress: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        return getAllModuleProgressForMonitor(studentUserIds);
+      }),
 
     /** Record module pass/fail after scenario completion (GOV-T01 thresholds) */
     recordModulePass: protectedProcedure
@@ -2053,10 +2135,16 @@ export const appRouter = router({
           });
         }
         const progress = await getModuleProgressRow(input.userId, input.moduleId);
-        if (!progress?.passed) {
+        let readyForValidation = progress?.passed ?? false;
+        if (!readyForValidation && isCheckpointEngineEnabled()) {
+          const snapshot = await computeModuleCheckpointSnapshot(input.userId, 3);
+          readyForValidation = snapshot ? isModuleReadyForTeacherValidation(snapshot) : false;
+        }
+        if (!readyForValidation) {
           throw new TRPCError({
             code: "BAD_REQUEST",
-            message: "L'étudiant doit avoir réussi le Module 3 avant validation enseignant.",
+            message:
+              "L'étudiant doit avoir réussi tous les scénarios du Module 3 avant validation enseignant.",
           });
         }
         await setTeacherValidated(input.userId, input.moduleId, input.validated);
@@ -2069,29 +2157,42 @@ export const appRouter = router({
 
   monitor: router({
     // Evaluation-only runs (for analytics, scoring, ranking)
-    allRuns: teacherProcedure.query(async () => {
-      const runs = await getAllRunsForMonitor();
-      const enriched = await Promise.all(
-        runs.map(async (r) => {
-          const state = await buildRunState(r.run.id);
-          const events = r.run.isDemo ? [] : await getScoringEventsByRun(r.run.id);
-          const compliance = checkCompliance(state);
-          return {
-            ...r,
-            progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
-            completedSteps: state.completedSteps,
-            score: r.run.isDemo ? null : calculateTotalScore(events),
-            compliant: compliance.compliant,
-          };
-        })
-      );
-      // Separate evaluation vs demo for teacher view
-      return enriched;
-    }),
+    allRuns: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        const runs = await getAllRunsForMonitor(studentUserIds);
+        const enriched = await Promise.all(
+          runs.map(async (r) => {
+            const state = await buildRunState(r.run.id);
+            const events = r.run.isDemo ? [] : await getScoringEventsByRun(r.run.id);
+            const compliance = checkCompliance(state);
+            return {
+              ...r,
+              progressPct: calculateProgressPctAllModules(state.completedSteps, r.scenario.moduleId, state),
+              completedSteps: state.completedSteps,
+              score: r.run.isDemo ? null : calculateTotalScore(events),
+              compliant: compliance.compliant,
+            };
+          })
+        );
+        return enriched;
+      }),
 
     // ─── Power BI-style analytics aggregation ─────────────────────────────
-    powerAnalytics: teacherProcedure.query(async () => {
-      const allRuns = await getAllRunsForMonitor();
+    powerAnalytics: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        const allRuns = await getAllRunsForMonitor(studentUserIds);
       const evalRuns = allRuns.filter((r) => !r.run.isDemo);
       const demoRuns = allRuns.filter((r) => r.run.isDemo);
 
@@ -2257,11 +2358,17 @@ export const appRouter = router({
     // ─── Student score evolution across multiple attempts ──────────────────
     studentScoreEvolution: teacherProcedure
       .input(z.object({
-        userId: z.number().optional(),   // undefined = all students
-        scenarioId: z.number().optional(), // undefined = all scenarios
+        cohortId: z.number(),
+        userId: z.number().optional(),
+        scenarioId: z.number().optional(),
       }))
-      .query(async ({ input }) => {
-        const allRuns = await getAllRunsForMonitor();
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        const allRuns = await getAllRunsForMonitor(studentUserIds);
         const evalRuns = allRuns.filter((r) => !r.run.isDemo);
 
         // Build unique student list
@@ -2332,8 +2439,15 @@ export const appRouter = router({
         return { students, scenarioList, lines, totalAttempts: enriched.length };
       }),
 
-    analytics: teacherProcedure.query(async () => {
-      const runs = await getAllRunsForMonitor();
+    analytics: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        const runs = await getAllRunsForMonitor(studentUserIds);
       const evalRuns = runs.filter((r) => !r.run.isDemo);
       const enriched = await Promise.all(
         evalRuns.map(async (r) => {
@@ -2598,7 +2712,7 @@ export const appRouter = router({
         }
         if (!state.completedSteps.includes("CC_LIST")) {
           await markStepComplete(input.runId, "CC_LIST");
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_LIST_COMPLETED", pointsDelta: 10, message: `Liste de comptage générée pour ${input.skus.length} SKU(s)` });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_LIST_COMPLETED", pointsDelta: getM3StepAwardPoints("CC_LIST", initialStateJson), message: `Liste de comptage générée pour ${input.skus.length} SKU(s)` });
         }
         return { success: true, skus: input.skus, complete: true };
       }),
@@ -2644,7 +2758,14 @@ export const appRouter = router({
         if (!state.completedSteps.includes("CC_COUNT")) {
           await markStepComplete(input.runId, "CC_COUNT");
           const totalVariance = allCounts.reduce((s, c) => s + Math.abs(Number(c.varianceQty)), 0);
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_COUNT_COMPLETED", pointsDelta: totalVariance === 0 ? 20 : 15, message: `Comptage physique: variance totale ${totalVariance}` });
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "CC_COUNT_COMPLETED",
+              pointsDelta: getM3StepAwardPoints("CC_COUNT", initialStateJson),
+              message: `Comptage physique: variance totale ${totalVariance}`,
+            });
+          }
         }
         const totalVariance = allCounts.reduce((s, c) => s + Math.abs(Number(c.varianceQty)), 0);
         return { success: true, totalVariance, complete: true };
@@ -2737,12 +2858,12 @@ export const appRouter = router({
         }
         if (!state.completedSteps.includes("CC_RECON")) {
           await markStepComplete(input.runId, "CC_RECON");
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: 15, message: "Réconciliation et ajustements validés" });
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson), message: "Réconciliation et ajustements validés" });
           // SCN-009 / SCN-010: no replenishment targets → auto-complete REPLENISH so the student
           // can proceed directly to COMPLIANCE_M3 without a meaningless REPLENISH form submission.
           if (replenishParamsForRecon.length === 0 && !state.completedSteps.includes("REPLENISH")) {
             await markStepComplete(input.runId, "REPLENISH");
-            if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: 20, message: "Réapprovisionnement non requis pour ce scénario" });
+            if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson), message: "Réapprovisionnement non requis pour ce scénario" });
           }
         }
         const adjustmentsApplied = input.adjustments.filter((a) => a.varianceQty !== 0).length;
@@ -2779,7 +2900,6 @@ export const appRouter = router({
         }
         const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
         const diff = Math.abs(input.studentQty - suggestion.suggestedQty);
-        const points = diff === 0 ? 20 : diff <= 10 ? 15 : diff <= 25 ? 10 : 5;
         const reasonWithStudentQty = formatReplenishReasonWithStudentQty(suggestion.reason, input.studentQty);
         await upsertReplenishmentSuggestion({
           runId: input.runId,
@@ -2802,7 +2922,27 @@ export const appRouter = router({
         }
         if (!state.completedSteps.includes("REPLENISH")) {
           await markStepComplete(input.runId, "REPLENISH");
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: points, message: `Réapprovisionnement: suggéré ${suggestion.suggestedQty}, étudiant ${input.studentQty}` });
+          if (!run.isDemo) {
+            const qtyPoints = scoreM3ReplenishQtyFromSuggestions(replenishParams, allSuggestions);
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "ROP_CHECK_COMPLETED",
+              pointsDelta: M3_STEP_MAX.ROP_CHECK,
+              message: "Analyse ROP / seuil Min validée",
+            });
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "EOQ_CALC_COMPLETED",
+              pointsDelta: M3_STEP_MAX.EOQ_CALC,
+              message: "Calcul quantité réappro (Max − stock) validé",
+            });
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "REPLENISH_COMPLETED",
+              pointsDelta: qtyPoints,
+              message: `Réapprovisionnement: suggéré ${suggestion.suggestedQty}, étudiant ${input.studentQty}`,
+            });
+          }
         }
         return { success: true, suggestion, diff, studentQty: input.studentQty, complete: true };
       }),
@@ -2842,7 +2982,7 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(compliance, ctx.req) });
         }
         await markStepComplete(input.runId, "COMPLIANCE_M3");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M3_COMPLETED", pointsDelta: 15, message: "Conformité Module 3 validée" });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M3_COMPLETED", pointsDelta: getM3StepAwardPoints("COMPLIANCE_M3", scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson), message: "Conformité Module 3 validée" });
         await completeRun(input.runId);
         return { success: true };
       }),

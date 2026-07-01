@@ -33,6 +33,42 @@ export const MODULE3_STEPS = [
   { code: "REPLENISH", labelFr: "Réapprovisionnement", labelEn: "Replenishment", order: 4, prerequisite: "CC_RECON", moduleId: 3 },
   { code: "COMPLIANCE_M3", labelFr: "Conformité Module 3", labelEn: "M3 Compliance", order: 5, prerequisite: "REPLENISH", moduleId: 3 }
 ];
+
+/** M3 pipeline step maxima — SCN-011 adds ROP/EOQ planning events (+20) on top of this 80-pt base (= 100). */
+export const M3_STEP_MAX = {
+  CC_LIST: 10,
+  CC_COUNT: 20,
+  CC_RECON: 15,
+  REPLENISH: 20,
+  COMPLIANCE_M3: 15,
+  ROP_CHECK: 10,
+  EOQ_CALC: 10,
+} as const;
+
+/** Scaled awards for SCN-009/010 (no ROP/EOQ) — 80 → 100. */
+export const M3_STEP_MAX_SCALED = {
+  CC_LIST: 13,
+  CC_COUNT: 25,
+  CC_RECON: 19,
+  REPLENISH: 25,
+  COMPLIANCE_M3: 18,
+} as const;
+
+export const M3_SCALED_PERFECT_TOTAL = Object.values(M3_STEP_MAX_SCALED).reduce((sum, pts) => sum + pts, 0);
+
+export const M3_REPLENISH_SCORING_EVENTS = [
+  "ROP_CHECK_COMPLETED",
+  "EOQ_CALC_COMPLETED",
+  "REPLENISH_COMPLETED",
+] as const;
+
+export const M3_PIPELINE_PERFECT_TOTAL =
+  M3_STEP_MAX.CC_LIST +
+  M3_STEP_MAX.CC_COUNT +
+  M3_STEP_MAX.CC_RECON +
+  M3_STEP_MAX.REPLENISH +
+  M3_STEP_MAX.COMPLIANCE_M3;
+
 export function validateGRZone(bin) {
   if (!RECEPTION_BINS.includes(bin)) {
     return {
@@ -445,6 +481,68 @@ export function parseStudentQtyFromReplenishReason(reason: string): number | nul
 export function formatReplenishReasonWithStudentQty(baseReason: string, studentQty: number): string {
   const stripped = baseReason.replace(/;studentQty=-?\d+(?:\.\d+)?/g, "").trim();
   return `${stripped};studentQty=${studentQty}`;
+}
+
+export function hasM3ReplenishmentPlanning(initialStateJson?: M3InitialStateJson): boolean {
+  return getReplenishmentParamsFromSeed(initialStateJson).length > 0;
+}
+
+type M3PipelineStepKey = keyof typeof M3_STEP_MAX;
+type M3ScaledStepKey = keyof typeof M3_STEP_MAX_SCALED;
+type M3StepAwardKey = M3PipelineStepKey | M3ScaledStepKey;
+
+export function getM3StepAwardPoints(
+  step: M3StepAwardKey,
+  initialStateJson?: M3InitialStateJson,
+): number {
+  if (hasM3ReplenishmentPlanning(initialStateJson)) {
+    const pipelineStep = step as M3PipelineStepKey;
+    if (pipelineStep === "ROP_CHECK") return M3_STEP_MAX.ROP_CHECK;
+    if (pipelineStep === "EOQ_CALC") return M3_STEP_MAX.EOQ_CALC;
+    if (pipelineStep in M3_STEP_MAX) {
+      return M3_STEP_MAX[pipelineStep];
+    }
+  }
+  const scaledKey = step as M3ScaledStepKey;
+  if (scaledKey in M3_STEP_MAX_SCALED) return M3_STEP_MAX_SCALED[scaledKey];
+  return 0;
+}
+
+export function getM3ReplenishStepDisplayMax(initialStateJson?: M3InitialStateJson): number {
+  if (hasM3ReplenishmentPlanning(initialStateJson)) {
+    return M3_STEP_MAX.ROP_CHECK + M3_STEP_MAX.EOQ_CALC + M3_STEP_MAX.REPLENISH;
+  }
+  return M3_STEP_MAX_SCALED.REPLENISH;
+}
+
+export function scoreM3ReplenishQtyPoints(diff: number): number {
+  if (diff === 0) return M3_STEP_MAX.REPLENISH;
+  if (diff <= 10) return 15;
+  if (diff <= 25) return 10;
+  return 5;
+}
+
+export function scoreM3ReplenishQtyFromSuggestions(
+  params: M3ReplenishmentParam[],
+  suggestions: M3ReplenishmentSuggestionRow[],
+): number {
+  if (params.length === 0) return M3_STEP_MAX.REPLENISH;
+  let worst: number = M3_STEP_MAX.REPLENISH;
+  for (const param of params) {
+    const row = suggestions.find((s) => s.sku === param.sku);
+    if (!row) return 5;
+    const expected = computeReplenishmentSuggestion({
+      sku: param.sku,
+      systemQty: Number(row.systemQty),
+      minQty: param.minQty,
+      maxQty: param.maxQty,
+      safetyStock: param.safetyStock,
+    });
+    const studentQty = parseStudentQtyFromReplenishReason(row.reason);
+    const diff = studentQty === null ? Number.POSITIVE_INFINITY : Math.abs(studentQty - expected.suggestedQty);
+    worst = Math.min(worst, scoreM3ReplenishQtyPoints(diff));
+  }
+  return worst;
 }
 
 function findCountRow(counts: M3InventoryCountRow[], sku: string): M3InventoryCountRow | undefined {

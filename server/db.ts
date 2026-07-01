@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { calculateTotalScore } from "./scoringEngine";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
@@ -202,18 +202,30 @@ export async function getCohortsByTeacher(teacherId: number) {
   return db.select().from(cohorts).where(eq(cohorts.createdBy, teacherId));
 }
 
+export async function getCohortById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [row] = await db.select().from(cohorts).where(eq(cohorts.id, id)).limit(1);
+  return row ?? null;
+}
+
+/** Active student user IDs assigned to a cohort via profiles.cohortId. */
+export async function getStudentUserIdsInCohort(cohortId: number): Promise<number[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db
+    .select({ userId: profiles.userId })
+    .from(profiles)
+    .innerJoin(users, eq(profiles.userId, users.id))
+    .where(and(eq(profiles.cohortId, cohortId), eq(users.role, "student")));
+  return rows.map((r) => r.userId);
+}
+
 export async function createCohort(name: string, description: string | null, createdBy: number) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const result = await db.insert(cohorts).values({ name, description, createdBy });
   return result;
-}
-
-export async function getCohortById(id: number) {
-  const db = await getDb();
-  if (!db) return undefined;
-  const result = await db.select().from(cohorts).where(eq(cohorts.id, id)).limit(1);
-  return result[0];
 }
 
 export async function getStudentsByCohort(cohortId: number) {
@@ -234,15 +246,30 @@ export async function getProfileByUserId(userId: number) {
   return result[0] ?? null;
 }
 
-export async function upsertProfile(userId: number, cohortId: number | null, studentNumber?: string | null) {
+export type ProfileUpdateFields = {
+  cohortId?: number | null;
+  studentNumber?: string | null;
+  silverCertified?: boolean;
+  goldCertified?: boolean;
+};
+
+export async function upsertProfile(userId: number, fields: ProfileUpdateFields) {
   const db = await getDb();
   if (!db) return;
-  const updateSet: Record<string, unknown> = { cohortId };
-  if (studentNumber !== undefined) updateSet.studentNumber = studentNumber;
+  const existing = await getProfileByUserId(userId);
+  const cohortId = fields.cohortId !== undefined ? fields.cohortId : (existing?.cohortId ?? null);
+  const studentNumber =
+    fields.studentNumber !== undefined ? fields.studentNumber : (existing?.studentNumber ?? null);
+  const silverCertified =
+    fields.silverCertified !== undefined ? fields.silverCertified : (existing?.silverCertified ?? false);
+  const goldCertified =
+    fields.goldCertified !== undefined ? fields.goldCertified : (existing?.goldCertified ?? false);
   await db
     .insert(profiles)
-    .values({ userId, cohortId, studentNumber: studentNumber ?? null })
-    .onDuplicateKeyUpdate({ set: updateSet as any });
+    .values({ userId, cohortId, studentNumber, silverCertified, goldCertified })
+    .onDuplicateKeyUpdate({
+      set: { cohortId, studentNumber, silverCertified, goldCertified },
+    });
 }
 
 // ─── Master Data ──────────────────────────────────────────────────────────────
@@ -332,13 +359,23 @@ export async function createAssignment(data: {
   return db.insert(assignments).values({ ...data, isActive: true });
 }
 
-export async function getAllAssignments() {
+export async function getAllAssignments(opts?: {
+  cohortId?: number;
+  cohortStudentUserIds?: number[];
+}) {
   const db = await getDb();
   if (!db) return [];
-  return db
+  const rows = await db
     .select({ assignment: assignments, scenario: scenarios })
     .from(assignments)
     .innerJoin(scenarios, eq(assignments.scenarioId, scenarios.id));
+  if (!opts?.cohortId) return rows;
+  const userIds = opts.cohortStudentUserIds ?? [];
+  return rows.filter(
+    (r) =>
+      r.assignment.cohortId === opts.cohortId ||
+      (r.assignment.userId != null && userIds.includes(r.assignment.userId)),
+  );
 }
 
 // ─── Scenario Runs ────────────────────────────────────────────────────────────
@@ -379,19 +416,26 @@ export async function completeRun(runId: number) {
     .where(eq(scenarioRuns.id, runId));
 }
 
-export async function getAllRunsForMonitor() {
+export async function getAllRunsForMonitor(studentUserIds?: number[]) {
   const db = await getDb();
   if (!db) return [];
+  if (studentUserIds && studentUserIds.length === 0) return [];
   const rows = await db
     .select({ run: scenarioRuns, user: users, scenario: scenarios })
     .from(scenarioRuns)
     .innerJoin(users, eq(scenarioRuns.userId, users.id))
-    .innerJoin(scenarios, eq(scenarioRuns.scenarioId, scenarios.id));
-  // Enrich user with studentNumber from profiles
-  return Promise.all(rows.map(async (row) => {
-    const profile = await getProfileByUserId(row.user.id);
-    return { ...row, user: { ...row.user, studentNumber: profile?.studentNumber ?? null } };
-  }));
+    .innerJoin(scenarios, eq(scenarioRuns.scenarioId, scenarios.id))
+    .where(
+      studentUserIds && studentUserIds.length > 0
+        ? inArray(scenarioRuns.userId, studentUserIds)
+        : undefined,
+    );
+  return Promise.all(
+    rows.map(async (row) => {
+      const profile = await getProfileByUserId(row.user.id);
+      return { ...row, user: { ...row.user, studentNumber: profile?.studentNumber ?? null } };
+    }),
+  );
 }
 
 // ─── Transactions ─────────────────────────────────────────────────────────────
@@ -746,14 +790,20 @@ export async function checkQuizPassed(userId: number, moduleId: number): Promise
   return bestAttempt.length > 0 && bestAttempt[0].score >= QUIZ_PASS_THRESHOLD;
 }
 
-export async function getAllModuleProgressForMonitor() {
+export async function getAllModuleProgressForMonitor(studentUserIds?: number[]) {
   const db = await getDb();
   if (!db) return [];
+  if (studentUserIds && studentUserIds.length === 0) return [];
   return db
     .select({ progress: moduleProgress, user: users, module: modules })
     .from(moduleProgress)
     .innerJoin(users, eq(moduleProgress.userId, users.id))
-    .innerJoin(modules, eq(moduleProgress.moduleId, modules.id));
+    .innerJoin(modules, eq(moduleProgress.moduleId, modules.id))
+    .where(
+      studentUserIds && studentUserIds.length > 0
+        ? inArray(moduleProgress.userId, studentUserIds)
+        : undefined,
+    );
 }
 
 // ─── Admin: Reset Run ─────────────────────────────────────────────────────────

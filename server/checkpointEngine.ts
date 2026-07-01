@@ -86,6 +86,18 @@ export function isModuleCheckpointPassed(snapshot: ModuleCheckpointSnapshot): bo
   return snapshot.passed;
 }
 
+/** All official module SCNs at threshold — prerequisite for M3 teacher validation (before passed flips). */
+export function isModuleReadyForTeacherValidation(snapshot: ModuleCheckpointSnapshot): boolean {
+  if (snapshot.moduleId !== 3) return false;
+  const keys = scnKeysForModule(snapshot.moduleId);
+  const allScnsPass = keys.every((key) => snapshot.scenarioStatus[key]?.passed === true);
+  return (
+    snapshot.requiredScenarios > 0 &&
+    snapshot.completedScenarios === snapshot.requiredScenarios &&
+    allScnsPass
+  );
+}
+
 /** Pure snapshot builder — used by tests and async recompute path. */
 export function buildModuleCheckpointSnapshot(
   moduleId: number,
