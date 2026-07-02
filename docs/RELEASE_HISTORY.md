@@ -4,8 +4,9 @@
 **Repository:** `tec-wms-simulator-production`  
 **Production URL (Railway):** `https://tec-wms-simulator-production-production.up.railway.app`  
 **Document type:** Institutional release governance index  
-**Last updated:** 2026-07-01  
+**Last updated:** 2026-07-02  
 **Mode:** Documentation only — no production code changes  
+**Baseline:** RC16 — Institutional Documentation Baseline (CERTIFIED)
 
 ---
 
@@ -17,7 +18,7 @@ Institutional release documentation is organized under `docs/`:
 |--------|---------|
 | [`docs/audits/`](audits/) | Read-only institutional audits (checkpoint, cohort, certification, production acceptance) |
 | [`docs/releases/`](releases/) | Per-release reports, readiness verdicts, and sign-off artifacts |
-| `docs/RELEASE_HISTORY.md` | **This document** — canonical index across RC13 → RC15 |
+| `docs/RELEASE_HISTORY.md` | **This document** — canonical index across RC13 → RC16 |
 
 **Legacy location:** RC13 and RC14 primary audits and reports remain at the repository root and under `Documentation/` to preserve existing cross-references. Paths below point to authoritative sources regardless of folder.
 
@@ -30,6 +31,7 @@ Institutional release documentation is organized under `docs/`:
 | **RC13** | 2026-06-18 | Railway **GREEN** (deploy reconciled); live smoke **RED** | **CONDITIONAL RELEASE READY** (78/100) |
 | **RC14** | 2026-06-18 | Wave 1 **deployed** @ `496272e`; acceptance **YELLOW** | **RC14 Wave 1 — YELLOW** |
 | **RC15** | 2026-07-01 | Platform **GO — Classroom Ready**; cohort provisioning **PENDING** | **GO — Classroom Ready** (operator gate) |
+| **RC16** | 2026-07-02 | Documentation **CERTIFIED**; production stable | **RC16 INSTITUTIONAL DOCUMENTATION BASELINE — CERTIFIED** |
 
 ---
 
@@ -126,7 +128,7 @@ Elevate the **Operational Intelligence Layer** post-RC13 without altering pedago
 | [`RC14_SILVER_FINAL_ACCEPTANCE.md`](../RC14_SILVER_FINAL_ACCEPTANCE.md) | Silver display-layer closure (CONDITIONAL GO; deploy held) |
 | [`RC14_SILVER_PREMIUM_EXACT_VISUAL_ACCEPTANCE.md`](../RC14_SILVER_PREMIUM_EXACT_VISUAL_ACCEPTANCE.md) | Silver visual acceptance criteria |
 | [`RC14_M4_FINAL_ACCEPTANCE.md`](../RC14_M4_FINAL_ACCEPTANCE.md) | M4 final acceptance |
-| [`RC14_M4_SCORING_FORENSIC_AUDIT.md`](../RC14_M4_SCORING_FORENSIC_AUDIT.md) | M4 scoring economics (75/100 ceiling) |
+| [`RC14_M4_SCORING_FORENSIC_AUDIT.md`](../RC14_M4_SCORING_FORENSIC_AUDIT.md) | M4 scoring economics (historical — **superseded by RC16**) |
 | [`RC14_M3_PREMIUM_INTELLIGENCE_AUDIT.md`](../RC14_M3_PREMIUM_INTELLIGENCE_AUDIT.md) | M3 premium intelligence audit |
 | [`RC14_M4_PREMIUM_INTELLIGENCE_AUDIT.md`](../RC14_M4_PREMIUM_INTELLIGENCE_AUDIT.md) | M4 premium intelligence audit |
 | [`RC14_M5_PREMIUM_INTELLIGENCE_AUDIT.md`](../RC14_M5_PREMIUM_INTELLIGENCE_AUDIT.md) | M5 premium intelligence audit |
@@ -204,6 +206,63 @@ This release is a **readiness and remediation consolidation**, not a feature exp
 
 ---
 
+## RC16 — Institutional Documentation Baseline
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-07-02 |
+| **Baseline report** | [`docs/releases/RC16_INSTITUTIONAL_DOCUMENTATION_BASELINE.md`](releases/RC16_INSTITUTIONAL_DOCUMENTATION_BASELINE.md) |
+| **Production status** | **Stable** — no code, database, API, Railway, checkpoint, or certification changes in this release |
+| **Release decision** | **RC16 INSTITUTIONAL DOCUMENTATION BASELINE — CERTIFIED** — official institutional baseline for all future cohorts |
+
+### Objective
+
+Close every remaining institutional documentation inconsistency identified during RC16 certification workstreams. Establish RC16 as the **official institutional baseline** for instructor guides, operational procedures, scoring policy, founding cohort governance, and release history — without modifying production systems.
+
+### Workstreams
+
+| Workstream | ID | Focus | Authoritative artifact |
+|------------|-----|-------|------------------------|
+| Documentation Certification | **RC16.1** | Guide Professeur RC16, Summary, Odoo removal alignment, QA review | [`GUIDE_PROFESSEUR_QA_REVIEW_RC16.md`](../pedagogy/GUIDE_PROFESSEUR_QA_REVIEW_RC16.md) · [`ODOO_REMOVAL_ALIGNMENT_REPORT.md`](../pedagogy/ODOO_REMOVAL_ALIGNMENT_REPORT.md) |
+| Slides Certification | **RC16.2** | M1–M5 slide deck pedagogical audit (36 slides) | [`RC16_2_SLIDES_CERTIFICATION_REPORT.md`](../pedagogy/RC16_2_SLIDES_CERTIFICATION_REPORT.md) |
+| Instructor Experience Certification | **RC16.3** | Professor experience audit, Master Instructor Handbook | [`PROFESSOR_EXPERIENCE_AUDIT.md`](../pedagogy/PROFESSOR_EXPERIENCE_AUDIT.md) · [`MASTER_INSTRUCTOR_HANDBOOK.md`](../pedagogy/MASTER_INSTRUCTOR_HANDBOOK.md) |
+| Operational Playbook | **RC16.4** | Pre-class, in-class, post-class procedures | [`TEC_WMS_OPERATIONAL_PLAYBOOK_RC16.md`](../operations/TEC_WMS_OPERATIONAL_PLAYBOOK_RC16.md) |
+
+### Major institutional policies (RC16)
+
+| Policy | Rule |
+|--------|------|
+| **Scoring** | Every scenario allows **100/100** perfect execution. Passing thresholds: M1=60, M2=60, M3=70, M4=70, M5=70. Prior 75/100 M4 ceiling references are **obsolete**. |
+| **James Timothy** | Institutional demonstration account — approved for instructor demos, QA, smoke testing, operational validation. **Never** for certification validation, checkpoint validation, production grading, or automatic certification. |
+| **Cohorte Fondatrice** | Five permanent accounts (Darlin, Fredy, Prince, Aissata, James Timothy). Permanent access, preserved records, never reset/migrate/reuse. Future cohorts are independent. |
+| **Terminology** | Teacher Dashboard (`/teacher`), Student Dashboard (`/student/dashboard`), Mission Control, Public Verification (`/verify/{certificateId}`), LinkedIn prefill from credential portal. |
+
+### Audit documents
+
+| Document | Focus |
+|----------|-------|
+| [`docs/releases/RC16_INSTITUTIONAL_DOCUMENTATION_BASELINE.md`](releases/RC16_INSTITUTIONAL_DOCUMENTATION_BASELINE.md) | **Authoritative** RC16 certification and approval gate |
+| [`GUIDE_PROFESSEUR_TECWMS_10_CLASSES_RC16.md`](../pedagogy/GUIDE_PROFESSEUR_TECWMS_10_CLASSES_RC16.md) | Guide Professeur 10 classes |
+| [`GUIDE_PROFESSEUR_TECWMS_10_CLASSES_SUMMARY.md`](../pedagogy/GUIDE_PROFESSEUR_TECWMS_10_CLASSES_SUMMARY.md) | Executive summary |
+| [`GUIDE_PROFESSEUR_QUICK_REFERENCE.md`](../pedagogy/GUIDE_PROFESSEUR_QUICK_REFERENCE.md) | Quick reference |
+| [`GOLDEN_STUDENT_JAMES_TIMOTHY.md`](../testing/GOLDEN_STUDENT_JAMES_TIMOTHY.md) | James Timothy policy |
+| [`RC16_ODOO_REMOVAL_POST_DEPLOY_VALIDATION.md`](releases/RC16_ODOO_REMOVAL_POST_DEPLOY_VALIDATION.md) | Odoo removal production validation |
+| [`docs/backlog/RC16_BACKLOG.md`](../backlog/RC16_BACKLOG.md) | Post-production improvement backlog (planning only) |
+
+### Decision matrix (RC16 close)
+
+| Gate | Result |
+|------|--------|
+| Institutional scoring policy harmonized (100/100) | ✅ |
+| Release history updated (RC15 → RC16.4) | ✅ |
+| James Timothy policy standardized | ✅ |
+| Cohorte Fondatrice policy standardized | ✅ |
+| Documentation terminology harmonized | ✅ |
+| Historical audits marked superseded (not rewritten) | ✅ |
+| Production code / database / API unchanged | ✅ |
+
+---
+
 ## Release lineage
 
 ```mermaid
@@ -211,9 +270,11 @@ flowchart LR
   RC13["RC13<br/>2026-06-18<br/>CONDITIONAL 78/100"]
   RC14["RC14 Wave 1<br/>2026-06-18<br/>YELLOW"]
   RC15["RC15<br/>2026-07-01<br/>GO Classroom Ready"]
+  RC16["RC16<br/>2026-07-02<br/>DOC BASELINE CERTIFIED"]
 
   RC13 -->|"Premium OI elevation"| RC14
   RC14 -->|"Readiness consolidation<br/>+ new cohorts"| RC15
+  RC15 -->|"Documentation closure<br/>RC16.1–16.4"| RC16
   RC15 -.->|"Deferred"| SEM["Semantic Scoring<br/>(post-RC15 sprint)"]
 ```
 
@@ -221,7 +282,8 @@ flowchart LR
 |------------|-----------|
 | RC13 → RC14 | RC13 delivered functional runtime; RC14 elevated cockpit intelligence and Silver display without touching certification logic |
 | RC14 → RC15 | RC14 Wave 1 deployed but acceptance incomplete; RC15 closed classroom-blocking gaps (scoring, UX, cohort isolation, M3 validation deadlock) for multi-cohort delivery |
-| RC15 → next | Semantic scoring Phase 1; RC14 Wave 2 (M5 consequence surfaces); institutional B3/PDF/QR workflow |
+| RC15 → RC16 | RC15 achieved production classroom readiness; RC16 closed all institutional documentation inconsistencies and established the official baseline for future cohorts |
+| RC16 → next | Semantic scoring Phase 1; RC14 Wave 2 (M5 consequence surfaces); institutional B3/PDF/QR workflow |
 
 ---
 
@@ -234,4 +296,4 @@ flowchart LR
 
 ---
 
-*Institutional release governance — TEC.WMS · Collège de la Concorde · 2026-07-01*
+*Institutional release governance — TEC.WMS · Collège de la Concorde · 2026-07-02*

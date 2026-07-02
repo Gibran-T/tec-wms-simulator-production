@@ -1,3 +1,5 @@
+> **Superseded by RC16** — Known limitation L-01 (M4 75/100 ceiling) is obsolete. Official institutional policy (RC16): every scenario allows **100/100** perfect execution. Remaining RC15 content preserved for project history.
+
 # TEC.WMS — RC15 Classroom Readiness Release Report
 
 **Document type:** Institutional release report  

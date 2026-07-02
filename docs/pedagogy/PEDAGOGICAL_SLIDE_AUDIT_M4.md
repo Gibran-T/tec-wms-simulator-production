@@ -14,7 +14,7 @@
 | Operational intelligence | KPI interpretation, no stock movement | **Strong** slides 1–3, 5, 7 |
 | Annexe A bands | Rotation 4–12×, OTIF ≥95 %, errors 1–5 % | **Aligned** slides 2–3 |
 | Analytical mode | Empty monitor normal | **Stated** slide 1 ✓ |
-| Threshold | ≥ 70/100 (max 75 perfect M4) | **Not on slides** |
+| Threshold | ≥ 70/100 (max 100 perfect M4 — politique RC16) | **Not on slides** |
 | Anti-pattern | No "surstock" for 6× normal | **In professor notes** slide 7 ✓ |
 
 ---
@@ -109,7 +109,7 @@ Matches `GUIDE_OFFICIEL_REPONSES_M4_M5.md` and runtime-safe canonicals.
 - **Stock immobilisé / capital** ($48 000 coherence check)
 - **KPI_DATA → KPI_ROTATION → KPI_SERVICE → KPI_DIAGNOSTIC → COMPLIANCE_M4** pipeline labels
 - **Mots à éviter:** surstock lexicon warning on slide 2 body (only in slide 7 notes)
-- **Score max 75/100** M4 analytical scoring model
+- **Score max 100/100** M4 analytical scoring model (politique institutionnelle RC16)
 
 ### Duplicated concepts
 - Service/OTIF spread across slides 2–3 — acceptable if slide 2 refocused to rotation-only
@@ -127,7 +127,7 @@ M4_PEDAGOGICAL_INTELLIGENCE_AUDIT: SCN-012 GREEN, 013/014 YELLOW — slides 7 an
 | **P1** | Replace slide 4 with lead time + capital immobilisé |
 | **P1** | Fix notes/body mismatch slide 2 (rotation notes, not OTIF) |
 | **P2** | Add surstock anti-pattern to slide 2 body |
-| **P2** | State threshold 70/100 and analytical scoring ceiling |
+| **P2** | State threshold 70/100 and perfect-run score 100/100 |
 | **P3** | Distribute Annexe A explicitly on slide 1 professor script |
 
 ---

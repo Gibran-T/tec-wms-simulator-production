@@ -43,7 +43,7 @@
 | RC16-H08 | Author in-repo `M4_M5_SEMANTIC_SCORING_DESIGN.md` | HIGH | AI Features |
 | RC16-M01 | Semantic scoring Phase 2 (primary + keyword fallback) | MEDIUM | AI Features |
 | RC16-M02 | Premium OI Wave 2 backlog (M3/M4/M5 cockpit depth) | MEDIUM | Dashboard |
-| RC16-M03 | M4 scoring display economics (75/100 ceiling, step max confusion) | MEDIUM | UX |
+| RC16-M03 | M4 scoring display economics (75/100 ceiling, step max confusion) | MEDIUM | UX | **CLOSED (RC16 doc)** — institutional policy now 100/100; engineering backlog if UI alignment needed |
 | RC16-M04 | SCN-011 CC pipeline friction (confirmatory vs replenish) | MEDIUM | Pedagogical |
 | RC16-M05 | Silver certificate institutional visual parity | MEDIUM | UX |
 | RC16-M06 | Student guide Gold/Silver certification framing | MEDIUM | Pedagogical |
@@ -147,7 +147,7 @@ Important quality and parity improvements; safe to schedule after HIGH items and
 
 - **Theme:** UX  
 - **Source:** RC15 L-01; RC15 semantic plan R-05; `RC14_M4_SCORING_FORENSIC_AUDIT.md`  
-- **Action:** Reconcile student-facing step max display (85 sum) vs runtime award ceiling (75/100 perfect run). Display-only — **do not change** `rulesEngine` economics or pass threshold 70.  
+- **Action:** ~~Reconcile student-facing step max display~~ — **Institutional policy RC16:** 100/100 perfect execution. Any remaining UI/display mismatch is engineering-only backlog; **do not change** pass thresholds.  
 - **Acceptance:** Students understand achievable max; no false expectation of 100/100 M4 perfect run.
 
 ### RC16-M04 — SCN-011 CC pipeline friction reduction
@@ -306,7 +306,7 @@ Content, guides, instructor materials, and scenario coherence — aligned with C
 | RC16-PED09 | **M3 teacher-validation instructor briefing** | M3 | RC15 §11 pre-class checklist | Operational doc needed |
 | RC16-PED10 | **Eval scaffold gating preserved** — no answer leakage in production eval | M4/M5 | RC15 §6 | ✅ Preserved; monitor each RC |
 | RC16-PED11 | **Cohorte Fondatrice preservation policy** | Ops | RC15 §10 | ✅ Enforced; not for new cohorts |
-| RC16-PED12 | **M4 perfect-run ceiling pedagogy** — 75/100 by design, threshold 70 | M4 | RC15 L-01 | Document in instructor slides |
+| RC16-PED12 | **M4 perfect-run scoring policy** — 100/100 official, threshold 70 | M4 | RC16 baseline | ✅ Documented in instructor guides |
 
 ---
 

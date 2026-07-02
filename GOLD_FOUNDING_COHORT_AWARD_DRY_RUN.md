@@ -11,14 +11,14 @@
 
 | Mechanism | Used? | Rationale |
 |-----------|-------|-----------|
-| `profiles.goldCertified` | **YES** | Persisted award flag — same field as `unlockGoldCertification()` |
+| `profiles.goldCertified` | **YES** | Persisted award flag — institutional state only |
 | `profiles.goldAwardSource` | **YES** | Audit trail = `FONDATRICE_2026_GOLD_AWARD` |
-| Engine display short-circuit | **YES** | `getGoldCertificationStatus()` returns 18/18 when certified + source set (mirrors Silver) |
-| Live `goldEligible` from runs | **NO** | Not required for institutional award |
-| `student_certifications` table | **N/A** | Not in schema |
-| Gold registry / PDF / verify | **NO CHANGE** | Pre-provisioned assets remain HTTP 200 |
-| `scenario_runs` / `scoring_events` | **NO CHANGE** | No fabrication |
+| Engine display short-circuit | **YES** | `getGoldCertificationStatus()` returns 18/18 when certified + source set |
+| `scenario_runs` | **NO CHANGE** | No fabrication |
+| `scoring_events` | **NO CHANGE** | No fabrication |
+| `quiz_attempts` | **NO CHANGE** | Not altered |
 | Silver flags | **NO CHANGE** | Preserved |
+| Gold registry / PDF / verify | **NO CHANGE** | Existing official routes only |
 
 ---
 

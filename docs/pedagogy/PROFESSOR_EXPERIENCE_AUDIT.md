@@ -536,7 +536,7 @@ Demo Min/Max, ROP and Safety Stock in Mission Control before scenarios.
 
 ## Module 4 — Indicateurs de performance
 
-**Institutional duration:** 6 h (Séance 9) · **Slides:** 7 · **Scenarios:** SCN-012→014 · **Pass:** ≥70/100 (max score 75)
+**Institutional duration:** 6 h (Séance 9) · **Slides:** 7 · **Scenarios:** SCN-012→014 · **Pass:** ≥70/100 (max score 100 — politique RC16)
 
 ### Teaching flow
 
