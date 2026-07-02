@@ -119,6 +119,64 @@ const STEP_CONFIG: Record<string, {
       realErrorEn: "Creating a SO without available stock forces a partial delivery or backorder, generating customer delay penalties.",
     }
   },
+  po_corrective: {
+    titleFr: "PO corrective (ME21N)", titleEn: "Corrective PO (ME21N)", code: "PO_CORRECTIVE", txCode: "ME21N", tCode: "ME21N",
+    etapeFr: "Réapprovisionnement — PO corrective", etapeEn: "Replenishment — Corrective PO",
+    objectiveFr: "Créer une PO corrective pour combler le déficit de stock STOCKAGE détecté après la SO. Exemple : +30 unités pour une commande de 80 avec 50 en stock.",
+    objectiveEn: "Create a corrective PO to cover the STOCKAGE deficit detected after the SO. Example: +30 units for an order of 80 with 50 in stock.",
+    fields: ["docRef", "sku", "bin", "qty", "comment"],
+    pedagogicalDeep: {
+      whyFr: "La PO corrective déclenche l'approvisionnement d'urgence lorsque la demande SO dépasse le stock disponible en STOCKAGE.",
+      whyEn: "The corrective PO triggers emergency replenishment when SO demand exceeds available STOCKAGE stock.",
+      realSAPFr: "Dans SAP, ME21N permet de créer une commande d'achat complémentaire référencée au besoin client non couvert.",
+      realSAPEn: "In SAP, ME21N allows creating a supplementary purchase order referenced to uncovered customer demand.",
+      dependencyFr: "La PO corrective suit la détection ATP sur la SO. Elle doit couvrir au minimum le déficit (demande − stock STOCKAGE).",
+      dependencyEn: "The corrective PO follows ATP detection on the SO. It must cover at least the deficit (demand − STOCKAGE stock).",
+      realErrorFr: "Ignorer la PO corrective et tenter le Picking/GI provoque un stock négatif et bloque la conformité.",
+      realErrorEn: "Skipping the corrective PO and attempting Picking/GI causes negative stock and blocks compliance.",
+    }
+  },
+  gr_corrective: {
+    titleFr: "GR corrective (MIGO)", titleEn: "Corrective GR (MIGO)", code: "GR_CORRECTIVE", txCode: "MIGO", tCode: "MIGO",
+    etapeFr: "Réapprovisionnement — GR corrective", etapeEn: "Replenishment — Corrective GR",
+    objectiveFr: "Réceptionner la marchandise de la PO corrective au quai RÉCEPTION (REC-01/REC-02).",
+    objectiveEn: "Receive corrective PO goods at the RECEPTION dock (REC-01/REC-02).",
+    fields: ["docRef", "sku", "bin", "qty", "comment"],
+    binZoneHint: {
+      bin: { fr: "Zone attendue : RÉCEPTION — REC-01 ou REC-02", en: "Expected zone: RECEPTION — REC-01 or REC-02" },
+    },
+    pedagogicalDeep: {
+      whyFr: "La GR corrective enregistre physiquement l'arrivée du stock complémentaire au quai.",
+      whyEn: "The corrective GR physically records arrival of supplementary stock at the dock.",
+      realSAPFr: "MIGO mouvement 101 poste la réception vers la zone RÉCEPTION.",
+      realSAPEn: "MIGO movement 101 posts receipt to the RECEPTION zone.",
+      dependencyFr: "La GR corrective dépend de la PO corrective postée.",
+      dependencyEn: "The corrective GR depends on the posted corrective PO.",
+      realErrorFr: "Une GR sans PO corrective crée une réception non planifiée.",
+      realErrorEn: "A GR without corrective PO creates an unplanned receipt.",
+    }
+  },
+  putaway_corrective: {
+    titleFr: "Rangement corrective (LT0A)", titleEn: "Corrective Putaway (LT0A)", code: "PUTAWAY_CORRECTIVE", txCode: "LT0A", tCode: "LT0A",
+    etapeFr: "Réapprovisionnement — Rangement corrective", etapeEn: "Replenishment — Corrective Putaway",
+    objectiveFr: "Ranger le stock reçu (GR corrective) de RÉCEPTION vers STOCKAGE pour couvrir la demande SO avant le Picking.",
+    objectiveEn: "Put away received stock (corrective GR) from RECEPTION to STOCKAGE to cover SO demand before Picking.",
+    fields: ["docRef", "sku", "fromBin", "toBin", "qty", "comment"],
+    binZoneHint: {
+      fromBin: { fr: "Zone source : RÉCEPTION (REC-01 ou REC-02)", en: "Source zone: RECEPTION (REC-01 or REC-02)" },
+      toBin: { fr: "Zone destination : STOCKAGE (B-01-R1-L1, B-01-R1-L2…)", en: "Destination zone: STOCKAGE (B-01-R1-L1, B-01-R1-L2…)" },
+    },
+    pedagogicalDeep: {
+      whyFr: "Le rangement corrective rend le stock disponible en STOCKAGE pour le prélèvement.",
+      whyEn: "Corrective putaway makes stock available in STOCKAGE for picking.",
+      realSAPFr: "LT0A transfère le quant de RÉCEPTION vers STOCKAGE.",
+      realSAPEn: "LT0A transfers the quant from RECEPTION to STOCKAGE.",
+      dependencyFr: "Le rangement corrective suit la GR corrective. Sans cette étape, le stock reste au quai.",
+      dependencyEn: "Corrective putaway follows the corrective GR. Without this step, stock remains at the dock.",
+      realErrorFr: "Tenter le Picking sans rangement laisse le stock au quai — ATP insuffisant.",
+      realErrorEn: "Attempting Picking without putaway leaves stock at the dock — insufficient ATP.",
+    }
+  },
   picking_m1: {
     titleFr: "Prélèvement expédition (VL01N)", titleEn: "Picking to Dispatch (VL01N)", code: "PICKING_M1", txCode: "VL01N", tCode: "VL01N",
     etapeFr: "Étape 6 sur 9", etapeEn: "Step 6 of 9",
@@ -934,6 +992,9 @@ export default function StepForm() {
     // Reset all form fields (dropdowns, inputs) after successful submission
     reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });
     refetch();
+    if (data?.atpShortageDetected && data?.pedagogicalMessage) {
+      toast.warning(`⚠ ${data.pedagogicalMessage}`, { duration: 8000 });
+    }
     if (data?.demoWarning) {
       toast.warning(`⚠ ${t("Avertissement (mode démo)", "Warning (demo mode)")} : ${data.demoWarning}`, { duration: 4000 });
       setFeedbackPanel({ data });
@@ -1042,9 +1103,12 @@ export default function StepForm() {
     switch (stepLower) {
       // ── M1 ──────────────────────────────────────────────────────────────
       case "po": return submitPO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "po_corrective": return submitPO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
       case "gr":
         // M2 GR does not require a prior PO; M1 GR does
         if (runData?.moduleId === 2) return submitGR_M2.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+        return submitGR.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "gr_corrective":
         return submitGR.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
       case "putaway":
       case "putaway_m1":
@@ -1053,6 +1117,8 @@ export default function StepForm() {
           if (!values.lotNumber?.trim()) { toast.error(t("Veuillez saisir un numéro de lot.", "Please enter a lot number.")); return; }
           return submitPUTAWAY_M2.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, lotNumber: values.lotNumber!, comment: values.comment });
         }
+        return submitPUTAWAY_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
+      case "putaway_corrective":
         return submitPUTAWAY_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });
       case "so": return submitSO.mutate({ ...base, sku: values.sku!, bin: values.bin!, qty, docRef: values.docRef!, comment: values.comment });
       case "picking_m1": return submitPICKING_M1.mutate({ ...base, sku: values.sku!, fromBin: values.fromBin!, toBin: values.toBin!, qty, docRef: values.docRef!, comment: values.comment });

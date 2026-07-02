@@ -129,6 +129,8 @@ export default function MissionControl() {
     progressPct, isDemo, moduleId, steps: backendSteps, inventory,
   } = data;
 
+  const atpShortage = (data as { atpShortage?: { active: boolean; sku: string; stockAvailable: number; soDemand: number; deficit: number } | null }).atpShortage;
+
   const kpiInterpretations = (data as { kpiInterpretations?: M4KpiInterpretationRow[] }).kpiInterpretations;
   const m4KpiSnapshot = (data as { m4KpiSnapshot?: M4KpiSnapshot }).m4KpiSnapshot;
 
@@ -376,6 +378,38 @@ export default function MissionControl() {
                 {m3ConfirmationTargets.length > 0 && (
                   <M3ConfirmationTargetsTable rows={m3ConfirmationTargets} t={t} language={language} />
                 )}
+              </div>
+            )}
+
+            {scnCode === "SCN-003" && atpShortage?.active && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-400 dark:border-amber-600">
+                <p className="text-[10px] font-bold text-amber-900 dark:text-amber-100 uppercase mb-2">
+                  ⚠️ {t("Pénurie ATP — Réapprovisionnement obligatoire", "ATP Shortage — Mandatory Replenishment")}
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px] font-mono mb-2">
+                  <div className="bg-white/60 dark:bg-slate-900/40 p-2 border border-amber-200">
+                    <span className="text-slate-500 block uppercase text-[9px]">{t("Stock STOCKAGE", "STOCKAGE stock")}</span>
+                    <span className="font-bold text-amber-800 dark:text-amber-200">{atpShortage.stockAvailable}</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/40 p-2 border border-amber-200">
+                    <span className="text-slate-500 block uppercase text-[9px]">{t("Demande SO", "SO demand")}</span>
+                    <span className="font-bold text-amber-800 dark:text-amber-200">{atpShortage.soDemand}</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/40 p-2 border border-red-300">
+                    <span className="text-slate-500 block uppercase text-[9px]">{t("Déficit", "Deficit")}</span>
+                    <span className="font-bold text-red-700">−{atpShortage.deficit}</span>
+                  </div>
+                  <div className="bg-white/60 dark:bg-slate-900/40 p-2 border border-amber-200 col-span-2 md:col-span-1">
+                    <span className="text-slate-500 block uppercase text-[9px]">SKU</span>
+                    <span className="font-bold">{atpShortage.sku}</span>
+                  </div>
+                </div>
+                <p className="text-[10px] text-amber-800 dark:text-amber-200 italic">
+                  {t(
+                    "Réapprovisionnement obligatoire avant Picking/GI — PO corrective → GR corrective → Rangement corrective.",
+                    "Replenishment required before Picking/GI — corrective PO → corrective GR → corrective putaway.",
+                  )}
+                </p>
               </div>
             )}
 

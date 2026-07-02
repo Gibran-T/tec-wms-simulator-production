@@ -1,17 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { canExecuteStep, calculateInventory, checkCompliance, getNextRequiredStep, getNextRequiredStepAllModules, type RunState } from "./rulesEngine";
+import {
+  canExecuteStep,
+  calculateInventory,
+  checkCompliance,
+  detectScn003AtpShortage,
+  getNextRequiredStep,
+  getNextRequiredStepAllModules,
+  getStockageAvailableForSku,
+  type RunState,
+} from "./rulesEngine";
 
 function makeState(
   completedSteps: string[],
   transactions: RunState["transactions"] = [],
   inventory: Record<string, number> = {},
-  cycleCounts: RunState["cycleCounts"] = []
+  cycleCounts: RunState["cycleCounts"] = [],
+  scenarioMeta: { scenarioId?: number; scnCode?: string } = {}
 ): RunState {
   return {
     completedSteps: completedSteps as RunState["completedSteps"],
     transactions,
     inventory,
     cycleCounts,
+    scenarioId: scenarioMeta.scenarioId ?? null,
+    scnCode: scenarioMeta.scnCode ?? null,
   };
 }
 
@@ -235,6 +247,112 @@ describe("M1 SCN-003 initial stock at REC-01", () => {
       })) as RunState["transactions"]
     );
     expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PUTAWAY_M1");
+  });
+});
+
+describe("M1 SCN-003 ATP shortage / corrective replenishment flow", () => {
+  const scn003Meta = { scenarioId: 3, scnCode: "SCN-003" };
+
+  const afterPutawayInventory = { "SKU-003::B-01-R1-L2": 50 };
+
+  const afterSoTxs = [
+    { id: 1, runId: 1, docType: "PO", sku: "SKU-003", bin: "REC-01", qty: "50", posted: true, docRef: "PO-2025-002", moveType: null, comment: null, createdAt: new Date() },
+    { id: 2, runId: 1, docType: "GR", sku: "SKU-003", bin: "REC-01", qty: "50", posted: true, docRef: "GR-2025-002", moveType: null, comment: null, createdAt: new Date() },
+    { id: 3, runId: 1, docType: "PUTAWAY_M1", sku: "SKU-003", bin: "B-01-R1-L2", qty: "50", posted: true, docRef: "PA-001", moveType: null, comment: null, createdAt: new Date() },
+    { id: 4, runId: 1, docType: "SO", sku: "SKU-003", bin: "B-01-R1-L2", qty: "80", posted: true, docRef: "SO-001", moveType: null, comment: null, createdAt: new Date() },
+  ] as RunState["transactions"];
+
+  it("detects ATP shortage when SO 80 > STOCKAGE 50", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    const shortage = detectScn003AtpShortage(state);
+    expect(shortage).not.toBeNull();
+    expect(shortage!.stockAvailable).toBe(50);
+    expect(shortage!.soDemand).toBe(80);
+    expect(shortage!.deficit).toBe(30);
+    expect(shortage!.active).toBe(true);
+  });
+
+  it("after PUTAWAY_M1 + SO 80 does NOT advance to PICKING_M1 — next is PO_CORRECTIVE", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PO_CORRECTIVE");
+    expect(getNextRequiredStepAllModules(state.completedSteps, 1, state)?.code).toBe("PO_CORRECTIVE");
+  });
+
+  it("blocks PICKING_M1 when ATP shortage unresolved", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    const pick = canExecuteStep("PICKING_M1", state);
+    expect(pick.allowed).toBe(false);
+    expect(pick.reasonFr).toContain("Stock insuffisant");
+    expect(pick.reasonFr).toContain("30");
+  });
+
+  it("blocks GI when ATP shortage unresolved", () => {
+    const state = makeState(
+      ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1"],
+      [
+        ...afterSoTxs,
+        { id: 5, runId: 1, docType: "PICKING_M1", sku: "SKU-003", bin: "EXP-01", qty: "80", posted: true, docRef: "PK-001", moveType: null, comment: null, createdAt: new Date() },
+      ] as RunState["transactions"],
+      { "SKU-003::EXP-01": 80 },
+      [],
+      scn003Meta
+    );
+    const gi = canExecuteStep("GI", state);
+    expect(gi.allowed).toBe(false);
+    expect(gi.reasonFr).toContain("Stock insuffisant");
+  });
+
+  it("corrective flow sequence: PO_CORRECTIVE → GR_CORRECTIVE → PUTAWAY_CORRECTIVE", () => {
+    let completed = ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"];
+    let state = makeState(completed, afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(getNextRequiredStep(completed, 1, state)?.code).toBe("PO_CORRECTIVE");
+
+    completed = [...completed, "PO_CORRECTIVE"];
+    state = makeState(completed, afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(getNextRequiredStep(completed, 1, state)?.code).toBe("GR_CORRECTIVE");
+
+    completed = [...completed, "GR_CORRECTIVE"];
+    state = makeState(completed, afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(getNextRequiredStep(completed, 1, state)?.code).toBe("PUTAWAY_CORRECTIVE");
+  });
+
+  it("after corrective replenishment +30, PICKING_M1 becomes available", () => {
+    const replenishedInventory = { "SKU-003::B-01-R1-L2": 80 };
+    const replenishedTxs = [
+      ...afterSoTxs,
+      { id: 5, runId: 1, docType: "PO", sku: "SKU-003", bin: "REC-01", qty: "30", posted: true, docRef: "PO-CORR", moveType: null, comment: null, createdAt: new Date() },
+      { id: 6, runId: 1, docType: "GR", sku: "SKU-003", bin: "REC-01", qty: "30", posted: true, docRef: "GR-CORR", moveType: null, comment: null, createdAt: new Date() },
+      { id: 7, runId: 1, docType: "PUTAWAY_M1", sku: "SKU-003", bin: "B-01-R1-L2", qty: "30", posted: true, docRef: "PA-CORR", moveType: null, comment: null, createdAt: new Date() },
+    ] as RunState["transactions"];
+    const completed = ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PO_CORRECTIVE", "GR_CORRECTIVE", "PUTAWAY_CORRECTIVE"];
+    const state = makeState(completed, replenishedTxs, replenishedInventory, [], scn003Meta);
+
+    expect(detectScn003AtpShortage(state)).toBeNull();
+    expect(getStockageAvailableForSku(replenishedInventory, "SKU-003")).toBe(80);
+    expect(getNextRequiredStep(completed, 1, state)?.code).toBe("PICKING_M1");
+    expect(canExecuteStep("PICKING_M1", state).allowed).toBe(true);
+  });
+
+  it("does not affect other scenarios (SCN-001)", () => {
+    const state = makeState(
+      ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"],
+      [{ id: 1, runId: 1, docType: "SO", sku: "SKU-001", bin: "B-01-R1-L1", qty: "80", posted: true, docRef: "SO-001", moveType: null, comment: null, createdAt: new Date() }] as RunState["transactions"],
+      { "SKU-001::B-01-R1-L1": 50 },
+      [],
+      { scenarioId: 1, scnCode: "SCN-001" }
+    );
+    expect(detectScn003AtpShortage(state)).toBeNull();
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PICKING_M1");
+  });
+
+  it("no negative stock in inventory after putaway with shortage", () => {
+    const inv = calculateInventory(afterSoTxs.map((t) => ({ docType: t.docType, sku: t.sku, bin: t.bin, qty: Number(t.qty), posted: t.posted })));
+    expect(inv["SKU-003::B-01-R1-L2"]).toBe(50);
+    for (const qty of Object.values(inv)) {
+      expect(qty).toBeGreaterThanOrEqual(0);
+    }
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, inv, [], scn003Meta);
+    expect(checkCompliance(state).compliant).toBe(true);
   });
 });
 

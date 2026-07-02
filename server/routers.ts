@@ -136,6 +136,7 @@ import {
   getM3VarianceThreshold,
   getReplenishmentParamsFromSeed,
   validateAdjustment,
+  validateAdjQuantity,
   validateCycleCountEntriesComplete,
   validateCycleCountListComplete,
   validateCycleCountReconComplete,
@@ -145,6 +146,9 @@ import {
   validateVarianceEntry,
   scoreM5Decision,
   getEffectiveM1Steps,
+  detectScn003AtpShortage,
+  resolveScn003CorrectiveStepCode,
+  getScn003AtpShortageMessage,
   getEffectiveM5Steps,
   getM5ContractFromSeed,
   getM5KpiDataFromSeed,
@@ -284,6 +288,8 @@ async function buildRunState(runId: number) {
 
   return {
     completedSteps,
+    scenarioId: run?.scenarioId ?? null,
+    scnCode: scenario ? resolveScenarioScnCode(scenario) : null,
     transactions: txs.map((t) => ({
       docType: t.docType,
       sku: t.sku,
@@ -1446,6 +1452,7 @@ export const appRouter = router({
             }))
           : undefined;
         const m4KpiSnapshot = moduleId === 4 ? buildM4KpiSnapshot(scenario) : undefined;
+        const atpShortage = moduleId === 1 ? detectScn003AtpShortage(state) : null;
         return {
           run,
           scenario,
@@ -1456,6 +1463,7 @@ export const appRouter = router({
           progressPct,
           totalScore,
           moduleId,
+          atpShortage,
           steps: moduleId === 1 ? getEffectiveM1Steps(state)
             : moduleId === 2 ? MODULE2_STEPS
             : moduleId === 3 ? MODULE3_STEPS
@@ -1511,7 +1519,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         const state = await buildRunState(input.runId);
-        const validation = canExecuteStep("PO", state);
+        const stepCode = resolveScn003CorrectiveStepCode(state, "PO");
+        const validation = canExecuteStep(stepCode, state);
         if (!validation.allowed) {
           if (!run.isDemo) {
             // Evaluation mode: penalize and block
@@ -1521,7 +1530,7 @@ export const appRouter = router({
           // Demo mode: warn but allow (return warning in response)
         }
         await addTransaction({ runId: input.runId, docType: "PO", moveType: "ME21N", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "PO");
+        await markStepComplete(input.runId, stepCode);
         // Scoring applies in both eval and demo modes (demo score is non-official)
         const rulePO = getScoringRule("PO_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "PO_COMPLETED", pointsDelta: rulePO!.points, message: rulePO!.descriptionFr });
@@ -1544,7 +1553,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         const state = await buildRunState(input.runId);
-        const validation = canExecuteStep("GR", state);
+        const stepCode = resolveScn003CorrectiveStepCode(state, "GR");
+        const validation = canExecuteStep(stepCode, state);
         if (!validation.allowed) {
           if (!run.isDemo) {
             await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
@@ -1568,7 +1578,7 @@ export const appRouter = router({
           }
         }
         await addTransaction({ runId: input.runId, docType: "GR", moveType: "101", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        await markStepComplete(input.runId, "GR");
+        await markStepComplete(input.runId, stepCode);
         const ruleGR = getScoringRule("GR_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "GR_COMPLETED", pointsDelta: ruleGR!.points, message: ruleGR!.descriptionFr });
         const demoWarnGR = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
@@ -1594,7 +1604,8 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         const state = await buildRunState(input.runId);
-        const validation = canExecuteStep("PUTAWAY_M1", state);
+        const stepCode = resolveScn003CorrectiveStepCode(state, "PUTAWAY_M1");
+        const validation = canExecuteStep(stepCode, state);
         if (!validation.allowed) {
           if (!run.isDemo) {
             await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
@@ -1612,8 +1623,10 @@ export const appRouter = router({
         // Record movement: debit fromBin (REC-01 → 0), credit toBin (STOCKAGE)
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Rangement sortie ${input.fromBin}` });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
-        await markStepComplete(input.runId, "PUTAWAY_M1");
-        await markStepComplete(input.runId, "STOCK");
+        await markStepComplete(input.runId, stepCode);
+        if (stepCode === "PUTAWAY_M1") {
+          await markStepComplete(input.runId, "STOCK");
+        }
         await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
@@ -1648,7 +1661,16 @@ export const appRouter = router({
         await markStepComplete(input.runId, "SO");
         const ruleSO = getScoringRule("SO_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "SO_COMPLETED", pointsDelta: ruleSO!.points, message: ruleSO!.descriptionFr });
-        return { success: true, demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null };
+        const updatedState = await buildRunState(input.runId);
+        const atpShortage = detectScn003AtpShortage(updatedState);
+        const lang = ctx.req?.headers?.["accept-language"]?.includes("en") ? "en" : "fr";
+        return {
+          success: true,
+          demoWarning: run.isDemo && !validation.allowed ? pickReason(validation, ctx.req) : null,
+          atpShortageDetected: !!atpShortage?.active,
+          atpShortage: atpShortage ?? null,
+          pedagogicalMessage: atpShortage ? getScn003AtpShortageMessage(atpShortage, lang) : null,
+        };
       }),
 
     // Submit GI
@@ -1767,6 +1789,10 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
+        const qtyCheck = validateAdjQuantity(input.qty);
+        if (!qtyCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(qtyCheck, ctx.req) });
+        }
         await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         // Auto-resolve all pending cycle count variances for this run after ADJ is posted
         await resolveAllCycleCountsByRun(input.runId);

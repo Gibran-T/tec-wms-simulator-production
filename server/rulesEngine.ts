@@ -138,9 +138,13 @@ export function validateGIZone(bin) {
   return { allowed: true };
 }
 export function canExecuteStep(step, state) {
-  const stepDef = MODULE1_STEPS.find((s) => s.code === step);
-  if (!stepDef) return { allowed: false, reason: "Unknown step", reasonFr: "Étape inconnue", reasonEn: "Unknown step" };
-  if (stepDef.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
+  const effectiveSteps = getEffectiveM1Steps(state);
+  const stepDef = effectiveSteps.find((s) => s.code === step) ?? MODULE1_STEPS.find((s) => s.code === step);
+  const isKnownCorrective = SCN003_CORRECTIVE_STEPS.some((s) => s.code === step);
+  if (!stepDef && step !== "ADJ" && !isKnownCorrective) {
+    return { allowed: false, reason: "Unknown step", reasonFr: "Étape inconnue", reasonEn: "Unknown step" };
+  }
+  if (stepDef?.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
     const prereqDef = MODULE1_STEPS.find((s) => s.code === stepDef.prerequisite);
     return {
       allowed: false,
@@ -213,6 +217,10 @@ export function canExecuteStep(step, state) {
         reasonEn: "No posted Sales Order (SO) found — create a SO before picking."
       };
     }
+    const scn003Shortage = detectScn003AtpShortage(state);
+    if (scn003Shortage?.active) {
+      return scn003ShortageBlockResult(scn003Shortage);
+    }
   }
   if (step === "GI") {
     const hasPicking = state.completedSteps.includes("PICKING_M1");
@@ -235,6 +243,127 @@ export function canExecuteStep(step, state) {
         reasonEn: `Picking must have been posted to a DISPATCH bin (${EXPEDITION_BINS.join(", ")}) before Goods Issue.`
       };
     }
+    const scn003ShortageGi = detectScn003AtpShortage(state);
+    if (scn003ShortageGi?.active) {
+      return scn003ShortageBlockResult(scn003ShortageGi);
+    }
+  }
+  if (step === "PO" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
+    const shortage = detectScn003AtpShortage(state);
+    if (shortage?.active && !state.completedSteps.includes("PO_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective PO required — use PO_CORRECTIVE step",
+        reasonFr: "PO corrective requise — utilisez l'étape PO corrective (ME21N) depuis Mission Control",
+        reasonEn: "Corrective PO required — use the corrective PO (ME21N) step from Mission Control."
+      };
+    }
+  }
+  if (step === "GR" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
+    const shortage = detectScn003AtpShortage(state);
+    if (shortage?.active && !state.completedSteps.includes("GR_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective GR required — use GR_CORRECTIVE step",
+        reasonFr: "GR corrective requise — utilisez l'étape GR corrective (MIGO) depuis Mission Control",
+        reasonEn: "Corrective GR required — use the corrective GR (MIGO) step from Mission Control."
+      };
+    }
+  }
+  if (step === "PUTAWAY_M1" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
+    const shortage = detectScn003AtpShortage(state);
+    if (shortage?.active && !state.completedSteps.includes("PUTAWAY_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective putaway required — use PUTAWAY_CORRECTIVE step",
+        reasonFr: "Rangement corrective requis — utilisez l'étape PUTAWAY corrective (LT0A) depuis Mission Control",
+        reasonEn: "Corrective putaway required — use the corrective PUTAWAY (LT0A) step from Mission Control."
+      };
+    }
+  }
+  if (step === "PO_CORRECTIVE") {
+    if (!state.completedSteps.includes("SO")) {
+      return {
+        allowed: false,
+        reason: "SO must be completed before corrective PO",
+        reasonFr: "La SO doit être complétée avant la PO corrective",
+        reasonEn: "SO must be completed before the corrective PO."
+      };
+    }
+    const shortage = detectScn003AtpShortage(state);
+    if (!shortage?.active) {
+      return {
+        allowed: false,
+        reason: "No ATP shortage — corrective PO not required",
+        reasonFr: "Pas de pénurie ATP — PO corrective non requise",
+        reasonEn: "No ATP shortage — corrective PO not required."
+      };
+    }
+    if (state.completedSteps.includes("PO_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective PO already completed",
+        reasonFr: "PO corrective déjà complétée",
+        reasonEn: "Corrective PO already completed."
+      };
+    }
+    return { allowed: true };
+  }
+  if (step === "GR_CORRECTIVE") {
+    if (!state.completedSteps.includes("PO_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective PO must be completed first",
+        reasonFr: "La PO corrective doit être complétée en premier",
+        reasonEn: "Corrective PO must be completed first."
+      };
+    }
+    const shortage = detectScn003AtpShortage(state);
+    if (!shortage?.active) {
+      return {
+        allowed: false,
+        reason: "No ATP shortage — corrective GR not required",
+        reasonFr: "Pas de pénurie ATP — GR corrective non requise",
+        reasonEn: "No ATP shortage — corrective GR not required."
+      };
+    }
+    if (state.completedSteps.includes("GR_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective GR already completed",
+        reasonFr: "GR corrective déjà complétée",
+        reasonEn: "Corrective GR already completed."
+      };
+    }
+    return { allowed: true };
+  }
+  if (step === "PUTAWAY_CORRECTIVE") {
+    if (!state.completedSteps.includes("GR_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective GR must be completed first",
+        reasonFr: "La GR corrective doit être complétée en premier",
+        reasonEn: "Corrective GR must be completed first."
+      };
+    }
+    const shortage = detectScn003AtpShortage(state);
+    if (!shortage?.active) {
+      return {
+        allowed: false,
+        reason: "No ATP shortage — corrective putaway not required",
+        reasonFr: "Pas de pénurie ATP — rangement corrective non requis",
+        reasonEn: "No ATP shortage — corrective putaway not required."
+      };
+    }
+    if (state.completedSteps.includes("PUTAWAY_CORRECTIVE")) {
+      return {
+        allowed: false,
+        reason: "Corrective putaway already completed",
+        reasonFr: "Rangement corrective déjà complété",
+        reasonEn: "Corrective putaway already completed."
+      };
+    }
+    return { allowed: true };
   }
   if (step === "COMPLIANCE") {
     // SCN-004/005: ADJ required before opening compliance when variance is unresolved.
@@ -427,6 +556,19 @@ export function validateAdjustment(varianceQty, adjustmentQty) {
       reason: `Adjustment qty (${adjustmentQty}) must equal variance qty (${varianceQty})`,
       reasonFr: `La quantité d'ajustement (${adjustmentQty}) doit correspondre à l'écart (${varianceQty})`,
       reasonEn: `Adjustment quantity (${adjustmentQty}) must match the variance quantity (${varianceQty}).`
+    };
+  }
+  return { allowed: true };
+}
+
+/** ADJ / MI07 — inventory variance qty may be positive (surplus) or negative (write-off); zero is invalid. */
+export function validateAdjQuantity(adjustmentQty: number) {
+  if (typeof adjustmentQty !== "number" || Number.isNaN(adjustmentQty) || adjustmentQty === 0) {
+    return {
+      allowed: false,
+      reason: "Inventory adjustment qty must be non-zero (positive or negative)",
+      reasonFr: "Saisissez un écart d'inventaire positif ou négatif. La valeur 0 n'est pas acceptée.",
+      reasonEn: "Enter a positive or negative inventory variance. Zero is not accepted.",
     };
   }
   return { allowed: true };
@@ -1779,21 +1921,104 @@ const ADJ_STEP = {
   moduleId: 1
 };
 
+/** SCN-003 corrective replenishment steps — inserted after SO when ATP shortage detected. */
+export const SCN003_CORRECTIVE_STEPS = [
+  { code: "PO_CORRECTIVE", labelFr: "PO corrective (ME21N)", labelEn: "Corrective PO (ME21N)", order: 5.1, prerequisite: "SO", moduleId: 1 },
+  { code: "GR_CORRECTIVE", labelFr: "GR corrective (MIGO)", labelEn: "Corrective GR (MIGO)", order: 5.2, prerequisite: "PO_CORRECTIVE", moduleId: 1 },
+  { code: "PUTAWAY_CORRECTIVE", labelFr: "Rangement corrective (LT0A)", labelEn: "Corrective Putaway (LT0A)", order: 5.3, prerequisite: "GR_CORRECTIVE", moduleId: 1 },
+];
+
+export type Scn003AtpShortage = {
+  active: boolean;
+  sku: string;
+  stockAvailable: number;
+  soDemand: number;
+  deficit: number;
+};
+
+export function isScn003Scenario(state) {
+  return state?.scnCode === "SCN-003" || state?.scenarioId === 3;
+}
+
+export function getStockageAvailableForSku(inventory, sku) {
+  let total = 0;
+  for (const bin of STOCKAGE_BINS) {
+    total += inventory[`${sku}::${bin}`] ?? 0;
+  }
+  return total;
+}
+
+export function getPostedSoDemand(state) {
+  const soTxs = (state.transactions ?? []).filter((t) => t.docType === "SO" && t.posted);
+  if (soTxs.length === 0) return null;
+  const so = soTxs[soTxs.length - 1];
+  return { sku: so.sku, qty: Number(so.qty) };
+}
+
+export function detectScn003AtpShortage(state) {
+  if (!isScn003Scenario(state)) return null;
+  const soDemand = getPostedSoDemand(state);
+  if (!soDemand) return null;
+  const stockAvailable = getStockageAvailableForSku(state.inventory ?? {}, soDemand.sku);
+  if (stockAvailable >= soDemand.qty) return null;
+  return {
+    active: true,
+    sku: soDemand.sku,
+    stockAvailable,
+    soDemand: soDemand.qty,
+    deficit: soDemand.qty - stockAvailable,
+  };
+}
+
+export function getScn003AtpShortageMessage(shortage, lang = "fr") {
+  if (lang === "en") {
+    return `Insufficient stock detected: ${shortage.stockAvailable} units available in STOCKAGE for an order of ${shortage.soDemand} units. Create a corrective PO for ${shortage.deficit} units, post the GR, then put away stock before Picking/GI.`;
+  }
+  return `Stock insuffisant détecté: ${shortage.stockAvailable} unités disponibles en STOCKAGE pour une commande de ${shortage.soDemand} unités. Créez une PO corrective de ${shortage.deficit} unités, postez la GR, puis rangez le stock avant le Picking/GI.`;
+}
+
+function scn003ShortageBlockResult(shortage) {
+  const msgFr = getScn003AtpShortageMessage(shortage, "fr");
+  const msgEn = getScn003AtpShortageMessage(shortage, "en");
+  return {
+    allowed: false,
+    reason: msgEn,
+    reasonFr: msgFr,
+    reasonEn: msgEn,
+  };
+}
+
+/** Resolve which step code to mark complete when a base M1 mutation is submitted during SCN-003 corrective flow. */
+export function resolveScn003CorrectiveStepCode(state, baseStepCode) {
+  const next = getNextRequiredStep(state.completedSteps, 1, state);
+  if (!next) return baseStepCode;
+  if (baseStepCode === "PO" && next.code === "PO_CORRECTIVE") return "PO_CORRECTIVE";
+  if (baseStepCode === "GR" && next.code === "GR_CORRECTIVE") return "GR_CORRECTIVE";
+  if (baseStepCode === "PUTAWAY_M1" && next.code === "PUTAWAY_CORRECTIVE") return "PUTAWAY_CORRECTIVE";
+  return baseStepCode;
+}
+
 // ─── Helper: build the effective M1 step list based on run state ──────────────
 export function getEffectiveM1Steps(state) {
+  let steps = [...MODULE1_STEPS];
+
+  const shortage = detectScn003AtpShortage(state);
+  if (shortage?.active) {
+    const soIdx = steps.findIndex((s) => s.code === "SO");
+    if (soIdx >= 0) {
+      steps.splice(soIdx + 1, 0, ...SCN003_CORRECTIVE_STEPS);
+    }
+  }
+
   const hasUnresolvedVariance =
     state &&
     Array.isArray(state.cycleCounts) &&
     state.cycleCounts.some((c) => c.variance !== 0 && !c.resolved);
-  if (!hasUnresolvedVariance) {
-    // No variance: standard 9-step flow, ADJ absent
-    return MODULE1_STEPS;
+  if (hasUnresolvedVariance) {
+    const complianceIdx = steps.findIndex((s) => s.code === "COMPLIANCE");
+    steps.splice(complianceIdx, 0, ADJ_STEP);
   }
-  // Variance detected: insert ADJ between CC (order 8) and COMPLIANCE (order 9)
-  const withAdj = [...MODULE1_STEPS];
-  const complianceIdx = withAdj.findIndex((s) => s.code === "COMPLIANCE");
-  withAdj.splice(complianceIdx, 0, ADJ_STEP);
-  return withAdj;
+  return steps;
 }
 
 export type M2FifoLotEntry = {
