@@ -858,7 +858,8 @@ export default function StepForm() {
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
   const isM5KpiStep = step?.toLowerCase() === "m5_kpi";
-  const isAdjStep = step?.toLowerCase() === "adj";
+  /** ADJ / MI07 — signed inventory variance; must not inherit positive-qty min from other steps. */
+  const isAdjStep = cfg.code === "ADJ" || step?.toLowerCase() === "adj";
   const { data: m5KpiLedger } = trpc.m5.kpiLedger.useQuery(
     { runId: parseInt(runId) },
     { enabled: isM5KpiStep && !!runId },
@@ -1902,9 +1903,11 @@ export default function StepForm() {
                     {t("Quantité", "Quantity")} <span className="text-destructive">*</span>
                   </label>
                   <input
+                    key={`qty-${step ?? "unknown"}`}
                     {...register("qty")}
                     type="number"
-                    {...(isAdjStep ? {} : { min: 1 })}
+                    step={isAdjStep ? "any" : undefined}
+                    min={isAdjStep ? undefined : 1}
                     readOnly={isGrRegularization}
                     placeholder={isAdjStep ? "Ex: -15 ou +15" : "Ex: 50"}
                     className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`}
