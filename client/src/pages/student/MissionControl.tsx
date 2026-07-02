@@ -410,6 +410,11 @@ export default function MissionControl() {
                     "Replenishment required before Picking/GI — corrective PO → corrective GR → corrective putaway.",
                   )}
                 </p>
+                {nextStepCode && ["PO_CORRECTIVE", "GR_CORRECTIVE", "PUTAWAY_CORRECTIVE"].includes(nextStepCode) && (
+                  <p className="text-[10px] font-bold text-amber-900 dark:text-amber-100 mt-2 uppercase">
+                    {t("Prochaine action", "Next action")}: {nextStepDef?.labelFr || nextStepCode} ({nextStepCode})
+                  </p>
+                )}
               </div>
             )}
 

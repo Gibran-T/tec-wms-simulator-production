@@ -1282,9 +1282,12 @@ export default function StepForm() {
   }
 
   const nextStep = (runData?.nextStep as any)?.code;
+  const atpShortage = (runData as { atpShortage?: { active: boolean } | null })?.atpShortage;
+  const isBlockedByScn003Shortage =
+    !!atpShortage?.active && (cfg.code === "PICKING_M1" || cfg.code === "GI");
   const isCurrentStep = nextStep === cfg.code;
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
-  const isLocked = !isDemo && !isCurrentStep && !isCompleted;
+  const isLocked = isBlockedByScn003Shortage || (!isDemo && !isCurrentStep && !isCompleted);
   const inventory: Record<string, number> = runData?.inventory ?? {};
   const selectedSku = watch("sku") ?? "";
   const selectedBin = watch("bin") ?? "";
@@ -1473,7 +1476,16 @@ export default function StepForm() {
               <Lock size={16} className="flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-xs font-semibold mb-0.5">{t("Étape actuellement verrouillée", "Step currently locked")}</p>
-                <p className="text-xs">{t("Complétez l'étape précédente avant d'accéder à cette transaction.", "Complete the previous step before accessing this transaction.")}</p>
+                <p className="text-xs">
+                  {isBlockedByScn003Shortage
+                    ? (runData as { atpShortage?: { stockAvailable: number; soDemand: number; deficit: number } })?.atpShortage
+                      ? t(
+                          `Stock insuffisant détecté: ${(runData as any).atpShortage.stockAvailable} unités disponibles en STOCKAGE pour une commande de ${(runData as any).atpShortage.soDemand} unités. Créez une PO corrective de ${(runData as any).atpShortage.deficit} unités, postez la GR, puis rangez le stock avant le Picking/GI.`,
+                          `Insufficient stock detected: ${(runData as any).atpShortage.stockAvailable} units available in STOCKAGE for an order of ${(runData as any).atpShortage.soDemand} units. Create a corrective PO for ${(runData as any).atpShortage.deficit} units, post the GR, then put away stock before Picking/GI.`,
+                        )
+                      : t("Réapprovisionnement obligatoire avant Picking/GI.", "Replenishment required before Picking/GI.")
+                    : t("Complétez l'étape précédente avant d'accéder à cette transaction.", "Complete the previous step before accessing this transaction.")}
+                </p>
               </div>
             </div>
             <button onClick={() => navigate(`/student/run/${runId}`)}

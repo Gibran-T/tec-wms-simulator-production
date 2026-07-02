@@ -7,6 +7,8 @@ import {
   getNextRequiredStep,
   getNextRequiredStepAllModules,
   getStockageAvailableForSku,
+  isScn003CorrectiveReplenishmentRequired,
+  isScn003Scenario,
   type RunState,
 } from "./rulesEngine";
 
@@ -15,7 +17,12 @@ function makeState(
   transactions: RunState["transactions"] = [],
   inventory: Record<string, number> = {},
   cycleCounts: RunState["cycleCounts"] = [],
-  scenarioMeta: { scenarioId?: number; scnCode?: string } = {}
+  scenarioMeta: {
+    scenarioId?: number;
+    scnCode?: string | null;
+    scenarioName?: string | null;
+    scenarioInitialStateJson?: Record<string, unknown> | null;
+  } = {}
 ): RunState {
   return {
     completedSteps: completedSteps as RunState["completedSteps"],
@@ -24,8 +31,18 @@ function makeState(
     cycleCounts,
     scenarioId: scenarioMeta.scenarioId ?? null,
     scnCode: scenarioMeta.scnCode ?? null,
+    scenarioName: scenarioMeta.scenarioName ?? null,
+    scenarioInitialStateJson: scenarioMeta.scenarioInitialStateJson ?? null,
   };
 }
+
+const scn003Seed = {
+  preloadedTransactions: [
+    { docType: "PO", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "PO-2025-002" },
+    { docType: "GR", sku: "SKU-003", bin: "REC-01", qty: 50, posted: true, docRef: "GR-2025-002" },
+  ],
+  context: "50 unités SKU-003 au quai REC-01 (PO/GR postées) — SO demandera 80 unités après rangement.",
+};
 
 describe("M1 SCN-002 ghost GR resolution", () => {
   const scn002Txs = [
@@ -252,6 +269,12 @@ describe("M1 SCN-003 initial stock at REC-01", () => {
 
 describe("M1 SCN-003 ATP shortage / corrective replenishment flow", () => {
   const scn003Meta = { scenarioId: 3, scnCode: "SCN-003" };
+  const scn003MetaDuplicateId = {
+    scenarioId: 8,
+    scnCode: null,
+    scenarioName: "Scénario 3 — Stock insuffisant",
+    scenarioInitialStateJson: scn003Seed,
+  };
 
   const afterPutawayInventory = { "SKU-003::B-01-R1-L2": 50 };
 
@@ -316,7 +339,48 @@ describe("M1 SCN-003 ATP shortage / corrective replenishment flow", () => {
     expect(getNextRequiredStep(completed, 1, state)?.code).toBe("PUTAWAY_CORRECTIVE");
   });
 
-  it("after corrective replenishment +30, PICKING_M1 becomes available", () => {
+  it("detects SCN-003 from seed signature when scnCode is absent (duplicate DB id)", () => {
+    const state = makeState([], [], {}, [], scn003MetaDuplicateId);
+    expect(isScn003Scenario(state)).toBe(true);
+  });
+
+  it("after PUTAWAY_M1 + SO 80 with duplicate scenario id routes to PO_CORRECTIVE", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003MetaDuplicateId);
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PO_CORRECTIVE");
+  });
+
+  it("blocks PICKING_M1 even when pick qty fits bin but SO demand exceeds STOCKAGE total", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(isScn003CorrectiveReplenishmentRequired(state)).toBe(true);
+    expect(canExecuteStep("PICKING_M1", state).allowed).toBe(false);
+  });
+
+  it("STOCKAGE remains 50 and shortage persists until corrective replenishment", () => {
+    const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], afterSoTxs, afterPutawayInventory, [], scn003Meta);
+    expect(getStockageAvailableForSku(afterPutawayInventory, "SKU-003")).toBe(50);
+    expect(detectScn003AtpShortage(state)?.deficit).toBe(30);
+  });
+
+  it("after partial pick to EXPEDITION, GI remains blocked and STOCKAGE shortage message reflects 0", () => {
+    const pickedInventory = { "SKU-003::B-01-R1-L2": 0, "SKU-003::EXP-01": 50 };
+    const state = makeState(
+      ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1"],
+      [
+        ...afterSoTxs,
+        { id: 5, runId: 1, docType: "PICKING", sku: "SKU-003", bin: "B-01-R1-L2", qty: "-50", posted: true, docRef: "PK-001", moveType: null, comment: null, createdAt: new Date() },
+        { id: 6, runId: 1, docType: "PICKING_M1", sku: "SKU-003", bin: "EXP-01", qty: "50", posted: true, docRef: "PK-001", moveType: null, comment: null, createdAt: new Date() },
+      ] as RunState["transactions"],
+      pickedInventory,
+      [],
+      scn003Meta
+    );
+    expect(getStockageAvailableForSku(pickedInventory, "SKU-003")).toBe(0);
+    expect(canExecuteStep("GI", state).allowed).toBe(false);
+    expect(canExecuteStep("GI", state).reasonFr).toContain("0");
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("PO_CORRECTIVE");
+  });
+
+  it("after corrective +30 and picking 80, GI is allowed", () => {
     const replenishedInventory = { "SKU-003::B-01-R1-L2": 80 };
     const replenishedTxs = [
       ...afterSoTxs,
@@ -331,6 +395,22 @@ describe("M1 SCN-003 ATP shortage / corrective replenishment flow", () => {
     expect(getStockageAvailableForSku(replenishedInventory, "SKU-003")).toBe(80);
     expect(getNextRequiredStep(completed, 1, state)?.code).toBe("PICKING_M1");
     expect(canExecuteStep("PICKING_M1", state).allowed).toBe(true);
+  });
+
+  it("after corrective +30 and picking 80 to EXPEDITION, GI is allowed", () => {
+    const replenishedInventory = { "SKU-003::B-01-R1-L2": 0, "SKU-003::EXP-01": 80 };
+    const replenishedTxs = [
+      ...afterSoTxs,
+      { id: 5, runId: 1, docType: "PO", sku: "SKU-003", bin: "REC-01", qty: "30", posted: true, docRef: "PO-CORR", moveType: null, comment: null, createdAt: new Date() },
+      { id: 6, runId: 1, docType: "GR", sku: "SKU-003", bin: "REC-01", qty: "30", posted: true, docRef: "GR-CORR", moveType: null, comment: null, createdAt: new Date() },
+      { id: 7, runId: 1, docType: "PUTAWAY_M1", sku: "SKU-003", bin: "B-01-R1-L2", qty: "30", posted: true, docRef: "PA-CORR", moveType: null, comment: null, createdAt: new Date() },
+      { id: 8, runId: 1, docType: "PICKING", sku: "SKU-003", bin: "B-01-R1-L2", qty: "-80", posted: true, docRef: "PK-FINAL", moveType: null, comment: null, createdAt: new Date() },
+      { id: 9, runId: 1, docType: "PICKING_M1", sku: "SKU-003", bin: "EXP-01", qty: "80", posted: true, docRef: "PK-FINAL", moveType: null, comment: null, createdAt: new Date() },
+    ] as RunState["transactions"];
+    const completed = ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PO_CORRECTIVE", "GR_CORRECTIVE", "PUTAWAY_CORRECTIVE", "PICKING_M1"];
+    const state = makeState(completed, replenishedTxs, replenishedInventory, [], scn003Meta);
+    expect(isScn003CorrectiveReplenishmentRequired(state)).toBe(false);
+    expect(canExecuteStep("GI", state).allowed).toBe(true);
   });
 
   it("does not affect other scenarios (SCN-001)", () => {

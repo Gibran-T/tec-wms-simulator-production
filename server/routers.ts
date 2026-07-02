@@ -149,6 +149,7 @@ import {
   detectScn003AtpShortage,
   resolveScn003CorrectiveStepCode,
   getScn003AtpShortageMessage,
+  isScn003CorrectiveReplenishmentRequired,
   getEffectiveM5Steps,
   getM5ContractFromSeed,
   getM5KpiDataFromSeed,
@@ -290,6 +291,8 @@ async function buildRunState(runId: number) {
     completedSteps,
     scenarioId: run?.scenarioId ?? null,
     scnCode: scenario ? resolveScenarioScnCode(scenario) : null,
+    scenarioName: scenario?.name ?? null,
+    scenarioInitialStateJson: (scenario?.initialStateJson as Record<string, unknown> | null) ?? null,
     transactions: txs.map((t) => ({
       docType: t.docType,
       sku: t.sku,
@@ -1691,8 +1694,13 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const validation = canExecuteStep("GI", state);
         if (!validation.allowed) {
-          if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+          const scn003ShortageBlock = isScn003CorrectiveReplenishmentRequired(state);
+          if (!run.isDemo || scn003ShortageBlock) {
+            if (!scn003ShortageBlock) {
+              await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            } else {
+              await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            }
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }
@@ -1741,8 +1749,13 @@ export const appRouter = router({
         const state = await buildRunState(input.runId);
         const validation = canExecuteStep("PICKING_M1", state);
         if (!validation.allowed) {
-          if (!run.isDemo) {
-            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+          const scn003ShortageBlock = isScn003CorrectiveReplenishmentRequired(state);
+          if (!run.isDemo || scn003ShortageBlock) {
+            if (!scn003ShortageBlock) {
+              await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            } else {
+              await addScoringEvent({ runId: input.runId, eventType: "NEGATIVE_STOCK_ATTEMPT", pointsDelta: -5, message: validation.reasonFr ?? "" });
+            }
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(validation, ctx.req) });
           }
         }

@@ -217,9 +217,9 @@ export function canExecuteStep(step, state) {
         reasonEn: "No posted Sales Order (SO) found — create a SO before picking."
       };
     }
-    const scn003Shortage = detectScn003AtpShortage(state);
-    if (scn003Shortage?.active) {
-      return scn003ShortageBlockResult(scn003Shortage);
+    if (isScn003CorrectiveReplenishmentRequired(state)) {
+      const shortage = detectScn003AtpShortage(state);
+      if (shortage) return scn003ShortageBlockResult(shortage);
     }
   }
   if (step === "GI") {
@@ -243,14 +243,13 @@ export function canExecuteStep(step, state) {
         reasonEn: `Picking must have been posted to a DISPATCH bin (${EXPEDITION_BINS.join(", ")}) before Goods Issue.`
       };
     }
-    const scn003ShortageGi = detectScn003AtpShortage(state);
-    if (scn003ShortageGi?.active) {
-      return scn003ShortageBlockResult(scn003ShortageGi);
+    if (isScn003CorrectiveReplenishmentRequired(state)) {
+      const shortage = detectScn003AtpShortage(state);
+      if (shortage) return scn003ShortageBlockResult(shortage);
     }
   }
   if (step === "PO" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
-    const shortage = detectScn003AtpShortage(state);
-    if (shortage?.active && !state.completedSteps.includes("PO_CORRECTIVE")) {
+    if (isScn003CorrectiveReplenishmentRequired(state) && !state.completedSteps.includes("PO_CORRECTIVE")) {
       return {
         allowed: false,
         reason: "Corrective PO required — use PO_CORRECTIVE step",
@@ -260,8 +259,7 @@ export function canExecuteStep(step, state) {
     }
   }
   if (step === "GR" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
-    const shortage = detectScn003AtpShortage(state);
-    if (shortage?.active && !state.completedSteps.includes("GR_CORRECTIVE")) {
+    if (isScn003CorrectiveReplenishmentRequired(state) && !state.completedSteps.includes("GR_CORRECTIVE")) {
       return {
         allowed: false,
         reason: "Corrective GR required — use GR_CORRECTIVE step",
@@ -271,8 +269,7 @@ export function canExecuteStep(step, state) {
     }
   }
   if (step === "PUTAWAY_M1" && isScn003Scenario(state) && state.completedSteps.includes("SO")) {
-    const shortage = detectScn003AtpShortage(state);
-    if (shortage?.active && !state.completedSteps.includes("PUTAWAY_CORRECTIVE")) {
+    if (isScn003CorrectiveReplenishmentRequired(state) && !state.completedSteps.includes("PUTAWAY_CORRECTIVE")) {
       return {
         allowed: false,
         reason: "Corrective putaway required — use PUTAWAY_CORRECTIVE step",
@@ -290,8 +287,7 @@ export function canExecuteStep(step, state) {
         reasonEn: "SO must be completed before the corrective PO."
       };
     }
-    const shortage = detectScn003AtpShortage(state);
-    if (!shortage?.active) {
+    if (!isScn003CorrectiveReplenishmentRequired(state)) {
       return {
         allowed: false,
         reason: "No ATP shortage — corrective PO not required",
@@ -318,8 +314,7 @@ export function canExecuteStep(step, state) {
         reasonEn: "Corrective PO must be completed first."
       };
     }
-    const shortage = detectScn003AtpShortage(state);
-    if (!shortage?.active) {
+    if (!isScn003CorrectiveReplenishmentRequired(state)) {
       return {
         allowed: false,
         reason: "No ATP shortage — corrective GR not required",
@@ -346,8 +341,7 @@ export function canExecuteStep(step, state) {
         reasonEn: "Corrective GR must be completed first."
       };
     }
-    const shortage = detectScn003AtpShortage(state);
-    if (!shortage?.active) {
+    if (!isScn003CorrectiveReplenishmentRequired(state)) {
       return {
         allowed: false,
         reason: "No ATP shortage — corrective putaway not required",
@@ -1208,6 +1202,14 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
 
   for (const step of steps) {
     if (!completedSteps.includes(step.code)) {
+      if (
+        moduleId === 1 &&
+        (step.code === "PICKING_M1" || step.code === "GI") &&
+        isScn003CorrectiveReplenishmentRequired(state)
+      ) {
+        const corrective = firstIncompleteScn003CorrectiveStep(state);
+        if (corrective) return corrective;
+      }
       return step;
     }
   }
@@ -1937,7 +1939,60 @@ export type Scn003AtpShortage = {
 };
 
 export function isScn003Scenario(state) {
-  return state?.scnCode === "SCN-003" || state?.scenarioId === 3;
+  if (!state) return false;
+  if (state.scnCode === "SCN-003") return true;
+  if (state.scenarioId === 3) return true;
+
+  const name = String(state.scenarioName ?? "");
+  if (/stock\s+insuffisant/i.test(name)) return true;
+  if (/sc[eé]nario\s*3\b/i.test(name) && /stock|insuffisant|backorder|r[eé]appro/i.test(name)) return true;
+
+  const seed = state.scenarioInitialStateJson;
+  const preload = seed?.preloadedTransactions;
+  if (Array.isArray(preload)) {
+    const hasPo50 = preload.some(
+      (t) => t.docType === "PO" && t.sku === "SKU-003" && Number(t.qty) === 50 && t.bin === "REC-01" && t.posted
+    );
+    const hasGr50 = preload.some(
+      (t) => t.docType === "GR" && t.sku === "SKU-003" && Number(t.qty) === 50 && t.bin === "REC-01" && t.posted
+    );
+    if (hasPo50 && hasGr50) return true;
+  }
+  const ctx = seed?.context;
+  if (typeof ctx === "string" && /SO demandera 80|80\s*unit[eé]s/i.test(ctx)) return true;
+
+  return false;
+}
+
+/** True when SCN-003 SO is posted and total STOCKAGE for the SO SKU is below SO quantity. */
+export function isScn003CorrectiveReplenishmentRequired(state) {
+  if (!isScn003Scenario(state)) return false;
+  if (!state.completedSteps?.includes("SO")) return false;
+  const soDemand = getPostedSoDemand(state);
+  if (!soDemand) return false;
+
+  const stockInStockage = getStockageAvailableForSku(state.inventory ?? {}, soDemand.sku);
+  if (stockInStockage >= soDemand.qty) return false;
+
+  const correctiveComplete =
+    state.completedSteps.includes("PO_CORRECTIVE") &&
+    state.completedSteps.includes("GR_CORRECTIVE") &&
+    state.completedSteps.includes("PUTAWAY_CORRECTIVE");
+
+  // After lawful corrective replenishment + picking, stock leaves STOCKAGE for EXPEDITION — do not re-gate GI.
+  if (correctiveComplete && state.completedSteps.includes("PICKING_M1")) {
+    return false;
+  }
+
+  return true;
+}
+
+function firstIncompleteScn003CorrectiveStep(state) {
+  const completed = state?.completedSteps ?? [];
+  for (const step of SCN003_CORRECTIVE_STEPS) {
+    if (!completed.includes(step.code)) return step;
+  }
+  return null;
 }
 
 export function getStockageAvailableForSku(inventory, sku) {
@@ -1956,11 +2011,9 @@ export function getPostedSoDemand(state) {
 }
 
 export function detectScn003AtpShortage(state) {
-  if (!isScn003Scenario(state)) return null;
-  const soDemand = getPostedSoDemand(state);
-  if (!soDemand) return null;
+  if (!isScn003CorrectiveReplenishmentRequired(state)) return null;
+  const soDemand = getPostedSoDemand(state)!;
   const stockAvailable = getStockageAvailableForSku(state.inventory ?? {}, soDemand.sku);
-  if (stockAvailable >= soDemand.qty) return null;
   return {
     active: true,
     sku: soDemand.sku,
@@ -2002,8 +2055,7 @@ export function resolveScn003CorrectiveStepCode(state, baseStepCode) {
 export function getEffectiveM1Steps(state) {
   let steps = [...MODULE1_STEPS];
 
-  const shortage = detectScn003AtpShortage(state);
-  if (shortage?.active) {
+  if (isScn003CorrectiveReplenishmentRequired(state)) {
     const soIdx = steps.findIndex((s) => s.code === "SO");
     if (soIdx >= 0) {
       steps.splice(soIdx + 1, 0, ...SCN003_CORRECTIVE_STEPS);
