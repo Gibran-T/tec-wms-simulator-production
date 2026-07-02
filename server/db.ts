@@ -196,6 +196,12 @@ export async function checkAndApplyPreAuthorization(
 }
 
 // ─── Cohorts ──────────────────────────────────────────────────────────────────
+export async function getAllCohorts() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(cohorts).orderBy(asc(cohorts.id));
+}
+
 export async function getCohortsByTeacher(teacherId: number) {
   const db = await getDb();
   if (!db) return [];

@@ -19,6 +19,7 @@ import {
   getAllSkus,
   getAllBins,
   getAssignmentsForStudent,
+  getAllCohorts,
   getCohortsByTeacher,
   getCycleCountsByRun,
   getModuleProgressByUser,
@@ -637,7 +638,9 @@ export const appRouter = router({
 
   // ─── Cohorts ───────────────────────────────────────────────────────────────
   cohorts: router({
-    list: teacherProcedure.query(({ ctx }) => getCohortsByTeacher(ctx.user.id)),
+    list: teacherProcedure.query(({ ctx }) =>
+      ctx.user.role === "admin" ? getAllCohorts() : getCohortsByTeacher(ctx.user.id),
+    ),
     create: teacherProcedure
       .input(z.object({ name: z.string().min(1), description: z.string().optional() }))
       .mutation(({ ctx, input }) => createCohort(input.name, input.description ?? null, ctx.user.id)),
