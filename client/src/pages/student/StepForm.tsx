@@ -858,6 +858,7 @@ export default function StepForm() {
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
   const isM5KpiStep = step?.toLowerCase() === "m5_kpi";
+  const isAdjStep = step?.toLowerCase() === "adj";
   const { data: m5KpiLedger } = trpc.m5.kpiLedger.useQuery(
     { runId: parseInt(runId) },
     { enabled: isM5KpiStep && !!runId },
@@ -1091,9 +1092,22 @@ export default function StepForm() {
       toast.error(t("Veuillez saisir un numéro de document avant de valider.", "Please enter a document number before validating."));
       return;
     }
-    if (cfg.fields.includes("qty") && (!values.qty || Number(values.qty) <= 0)) {
-      toast.error(t("Veuillez saisir une quantité valide (> 0) avant de valider.", "Please enter a valid quantity (> 0) before validating."));
-      return;
+    if (cfg.fields.includes("qty")) {
+      const parsedQty = values.qty !== undefined && values.qty !== "" ? Number(values.qty) : NaN;
+      if (isAdjStep) {
+        if (Number.isNaN(parsedQty) || parsedQty === 0) {
+          toast.error(
+            t(
+              "Saisissez un écart d'inventaire positif ou négatif. La valeur 0 n'est pas acceptée.",
+              "Enter a positive or negative inventory variance. Zero is not accepted.",
+            ),
+          );
+          return;
+        }
+      } else if (!values.qty || parsedQty <= 0) {
+        toast.error(t("Veuillez saisir une quantité valide (> 0) avant de valider.", "Please enter a valid quantity (> 0) before validating."));
+        return;
+      }
     }
     if (cfg.fields.includes("studentAnswer") && (!values.studentAnswer || values.studentAnswer.trim().length < 5)) {
       toast.error(t("Veuillez saisir une réponse d'au moins 5 caractères.", "Please enter an answer of at least 5 characters."));
@@ -1887,7 +1901,14 @@ export default function StepForm() {
                   <label className="fiori-field-label">
                     {t("Quantité", "Quantity")} <span className="text-destructive">*</span>
                   </label>
-                  <input {...register("qty")} type="number" min={1} readOnly={isGrRegularization} placeholder="Ex: 50" className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`} />
+                  <input
+                    {...register("qty")}
+                    type="number"
+                    {...(isAdjStep ? {} : { min: 1 })}
+                    readOnly={isGrRegularization}
+                    placeholder={isAdjStep ? "Ex: -15 ou +15" : "Ex: 50"}
+                    className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`}
+                  />
                   {(["gi","so"].includes(step?.toLowerCase() ?? "")) && availableStock !== null && (
                     <p className="text-xs mt-1 text-amber-600 dark:text-amber-400">
                       {t(`Ne peut pas dépasser le stock disponible (${availableStock})`, `Cannot exceed available stock (${availableStock})`)}
