@@ -137,6 +137,7 @@ import {
   getReplenishmentParamsFromSeed,
   validateAdjustment,
   validateAdjQuantity,
+  validateM1AdjPosting,
   validateCycleCountEntriesComplete,
   validateCycleCountListComplete,
   validateCycleCountReconComplete,
@@ -306,6 +307,8 @@ async function buildRunState(runId: number) {
       bin: c.bin,
       variance: Number(c.variance),
       resolved: c.resolved,
+      systemQty: Number(c.systemQty),
+      physicalQty: Number(c.physicalQty),
     })),
     inventoryCounts: inventoryCounts.map((c) => ({
       sku: c.sku,
@@ -1802,9 +1805,10 @@ export const appRouter = router({
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
-        const qtyCheck = validateAdjQuantity(input.qty);
-        if (!qtyCheck.allowed) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(qtyCheck, ctx.req) });
+        const state = await buildRunState(input.runId);
+        const adjCheck = validateM1AdjPosting(state, input);
+        if (!adjCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(adjCheck, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         // Auto-resolve all pending cycle count variances for this run after ADJ is posted

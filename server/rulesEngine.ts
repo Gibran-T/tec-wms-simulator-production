@@ -567,6 +567,80 @@ export function validateAdjQuantity(adjustmentQty: number) {
   }
   return { allowed: true };
 }
+
+/** M1 ADJ / MI07 — must reconcile an unresolved Cycle Count variance without creating negative stock. */
+export function validateM1AdjPosting(
+  state: {
+    inventory: Record<string, number>;
+    cycleCounts: Array<{
+      sku: string;
+      bin: string;
+      variance: number;
+      resolved: boolean;
+      systemQty?: number;
+      physicalQty?: number;
+    }>;
+  },
+  input: { sku: string; bin: string; qty: number },
+) {
+  const qtyCheck = validateAdjQuantity(input.qty);
+  if (!qtyCheck.allowed) return qtyCheck;
+
+  const pending = state.cycleCounts.filter(
+    (c) => c.sku === input.sku && c.variance !== 0 && !c.resolved,
+  );
+  if (pending.length === 0) {
+    return {
+      allowed: false,
+      reason: "No unresolved cycle count variance for this SKU",
+      reasonFr: "Aucun écart de comptage non résolu pour ce SKU — effectuez d'abord un Cycle Count (MI01).",
+      reasonEn: "No unresolved cycle count variance for this SKU — perform a Cycle Count (MI01) first.",
+    };
+  }
+
+  const cc = pending.find((c) => c.bin === input.bin) ?? pending[0];
+  if (cc.bin !== input.bin) {
+    return {
+      allowed: false,
+      reason: `ADJ must be posted at cycle count bin ${cc.bin}, not ${input.bin}`,
+      reasonFr: `L'ajustement MI07 doit être posté sur l'emplacement du comptage (${cc.bin}), pas ${input.bin}.`,
+      reasonEn: `MI07 adjustment must be posted at the cycle count bin (${cc.bin}), not ${input.bin}.`,
+    };
+  }
+
+  const matchCheck = validateAdjustment(cc.variance, input.qty);
+  if (!matchCheck.allowed) return matchCheck;
+
+  const key = `${input.sku}::${input.bin}`;
+  const currentStock = state.inventory[key] ?? 0;
+  const projectedStock = currentStock + input.qty;
+  const physicalQty =
+    cc.physicalQty != null
+      ? cc.physicalQty
+      : cc.systemQty != null
+        ? cc.systemQty + cc.variance
+        : projectedStock;
+
+  if (projectedStock < 0) {
+    return {
+      allowed: false,
+      reason: `Adjustment would create negative stock (${projectedStock}) at ${input.bin}`,
+      reasonFr: `Cet ajustement créerait un stock négatif (${projectedStock}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
+      reasonEn: `This adjustment would create negative stock (${projectedStock}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
+    };
+  }
+
+  if (Math.abs(projectedStock - physicalQty) > 0.01) {
+    return {
+      allowed: false,
+      reason: `Adjustment must bring stock to physical count (${physicalQty}), not ${projectedStock}`,
+      reasonFr: `L'ajustement doit ramener le stock à la quantité physique comptée (${physicalQty}), pas ${projectedStock}.`,
+      reasonEn: `Adjustment must bring stock to the counted physical quantity (${physicalQty}), not ${projectedStock}.`,
+    };
+  }
+
+  return { allowed: true };
+}
 export function computeReplenishmentSuggestion(input) {
   const { sku, systemQty, minQty, maxQty, safetyStock } = input;
   const isCritical = systemQty < safetyStock;
@@ -1181,6 +1255,15 @@ export function checkCompliance(state) {
   if (unresolved.length > 0) {
     issues.push(`${unresolved.length} unresolved inventory variance(s)`);
     issuesFr.push(`${unresolved.length} écart(s) d'inventaire non résolu(s) — ADJ requis`);
+  }
+  for (const cc of state.cycleCounts) {
+    if (cc.variance === 0 || !cc.resolved || cc.physicalQty == null) continue;
+    const key = `${cc.sku}::${cc.bin}`;
+    const actual = state.inventory[key] ?? 0;
+    if (Math.abs(actual - cc.physicalQty) > 0.01) {
+      issues.push(`${cc.sku} at ${cc.bin}: inventory (${actual}) does not match corrected physical count (${cc.physicalQty})`);
+      issuesFr.push(`${cc.sku} à ${cc.bin} : le stock (${actual}) ne correspond pas à la quantité physique corrigée (${cc.physicalQty})`);
+    }
   }
   return { compliant: issues.length === 0, issues, issuesFr };
 }
