@@ -1,7 +1,8 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
-import { Download, Monitor, RefreshCw, FlaskConical, ShieldCheck, BarChart2, RotateCcw } from "lucide-react";
-import { useState } from "react";
+import { Download, Monitor, RefreshCw, FlaskConical, ShieldCheck, BarChart2, RotateCcw, Users } from "lucide-react";
+import { useState, useMemo } from "react";
+import { skipToken } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
@@ -12,6 +13,9 @@ export default function MonitorDashboard() {
   const { t } = useLanguage();
   const cohortInput = useTeacherCohortInput();
   const { data: runs, isLoading, refetch } = trpc.monitor.allRuns.useQuery(cohortInput);
+  const { data: rosterStudents = [] } = trpc.students.list.useQuery(
+    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: true },
+  );
   const [filterMode, setFilterMode] = useState<FilterMode>("evaluation");
   const [resettingRunId, setResettingRunId] = useState<number | null>(null);
   const [confirmResetId, setConfirmResetId] = useState<number | null>(null);
@@ -45,6 +49,10 @@ export default function MonitorDashboard() {
 
   const evalRuns = runs?.filter((r: any) => !r.run?.isDemo) ?? [];
   const demoRuns = runs?.filter((r: any) => r.run?.isDemo) ?? [];
+  const studentsWithoutSessions = useMemo(() => {
+    const evalUserIds = new Set(evalRuns.map((r: any) => r.run?.userId ?? r.user?.id));
+    return rosterStudents.filter((s) => !evalUserIds.has(s.id));
+  }, [evalRuns, rosterStudents]);
   const displayedRuns =
     filterMode === "evaluation" ? evalRuns :
     filterMode === "demonstration" ? demoRuns :
@@ -201,6 +209,31 @@ export default function MonitorDashboard() {
               "These sessions do not affect student scores, compliance or rankings. They are for informational purposes only."
             )}
           </p>
+        </div>
+      )}
+
+      {studentsWithoutSessions.length > 0 && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-4 py-3 mb-4">
+          <div className="flex items-start gap-2">
+            <Users size={14} className="text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                {t(
+                  `${studentsWithoutSessions.length} étudiant(s) inscrit(s) sans session d'évaluation`,
+                  `${studentsWithoutSessions.length} enrolled student(s) with no evaluation session`,
+                )}
+              </p>
+              <p className="text-[11px] text-amber-800 dark:text-amber-300 mt-1">
+                {studentsWithoutSessions.map((s) => s.name ?? s.email).join(" · ")}
+              </p>
+              <p className="text-[10px] text-amber-700/80 dark:text-amber-400 mt-1">
+                {t(
+                  "Ces étudiants apparaissent dans la liste Étudiants et Analytics, mais n'ont pas encore démarré de simulation.",
+                  "These students appear in Students and Analytics, but have not started a simulation yet.",
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

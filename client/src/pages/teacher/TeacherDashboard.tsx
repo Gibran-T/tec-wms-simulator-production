@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
+import { skipToken } from "@tanstack/react-query";
 import { SLIDE_COUNT_BY_MODULE } from "@/data/slideCounts";
 import { getModuleScenarioPassThreshold } from "@/data/moduleThresholds";
 
@@ -56,9 +57,11 @@ export default function TeacherDashboard() {
   const cohortInput = useTeacherCohortInput();
 
   const { data: scenarios } = trpc.scenarios.list.useQuery();
-  const { data: cohorts } = trpc.cohorts.list.useQuery();
   const { data: assignments } = trpc.assignments.all.useQuery(cohortInput);
   const { data: monitor } = trpc.monitor.allRuns.useQuery(cohortInput);
+  const { data: enrolledStudents = [] } = trpc.students.list.useQuery(
+    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: true },
+  );
   const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery(cohortInput);
   const { data: goldRoster } = trpc.profiles.goldRoster.useQuery(cohortInput);
   const utils = trpc.useUtils();
@@ -102,6 +105,15 @@ export default function TeacherDashboard() {
 
   const assignmentsCount = assignments?.length ?? 0;
   const activeEvalCount = allEvalForStats.filter((r: any) => r.run?.status === "in_progress").length;
+  const evalStudentIds = new Set(
+    allEvalForStats.map((r: any) => r.run?.userId).filter((id: number | undefined) => id != null),
+  );
+  const activeEvalStudentCount = enrolledStudents.filter((s: { id: number }) => evalStudentIds.has(s.id)).length;
+  const notStartedStudentCount = Math.max(0, enrolledStudents.length - activeEvalStudentCount);
+  const rosterBreakdown = t(
+    `${activeEvalStudentCount} en évaluation · ${notStartedStudentCount} pas commencé`,
+    `${activeEvalStudentCount} in evaluation · ${notStartedStudentCount} not started`,
+  );
 
   const cards = [
     {
@@ -113,10 +125,11 @@ export default function TeacherDashboard() {
     },
     {
       icon: Users,
-      label: t("Cohortes", "Cohorts"),
-      value: cohorts?.length ?? 0,
-      href: "/teacher/cohorts", color: "text-[#107e3e]", bg: "bg-[#d4edda]",
-      cta: cohorts?.length === 0 ? t("Créer une cohorte →", "Create a cohort →") : null,
+      label: t("Étudiants inscrits", "Enrolled students"),
+      value: enrolledStudents.length,
+      sub: enrolledStudents.length > 0 ? rosterBreakdown : undefined,
+      href: "/teacher/students", color: "text-[#107e3e]", bg: "bg-[#d4edda]",
+      cta: enrolledStudents.length === 0 ? t("Ajouter un étudiant →", "Add a student →") : null,
     },
     {
       icon: ClipboardList,
@@ -169,6 +182,9 @@ export default function TeacherDashboard() {
             </div>
             <p className="text-2xl font-bold text-foreground">{card.value}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
+            {"sub" in card && card.sub && (
+              <p className="text-[10px] text-muted-foreground mt-1">{card.sub}</p>
+            )}
             {card.cta && (
               <p className="text-[10px] text-[#0070f2] font-semibold mt-1.5 flex items-center gap-1 group-hover:underline">
                 <Plus size={9} />{card.cta}

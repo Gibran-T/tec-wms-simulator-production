@@ -171,6 +171,7 @@ import {
 } from "./rulesEngine";
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
+import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
 import { computeModulePassResult } from "@shared/moduleThresholds";
@@ -2283,8 +2284,21 @@ export const appRouter = router({
 
       const evalEnriched = enriched.filter(r => !r.isDemo);
 
+      const rosterStudents =
+        input.cohortId != null
+          ? await listStudents({ cohortId: input.cohortId })
+          : [];
+
       // ── Global KPIs ─────────────────────────────────────────────────────
-      const totalStudents = new Set(evalEnriched.map(r => r.userId)).size;
+      const activeEvalStudentIds = evalEnriched.map((r) => r.userId);
+      const rosterKpis =
+        input.cohortId != null
+          ? computeRosterKpis(rosterStudents.length, activeEvalStudentIds)
+          : computeRosterKpis(
+              new Set(activeEvalStudentIds).size,
+              activeEvalStudentIds,
+            );
+      const totalStudents = rosterKpis.activeEvalStudents;
       const totalRuns = evalEnriched.length;
       const completedRuns = evalEnriched.filter(r => r.status === "completed").length;
       const completionRate = totalRuns > 0 ? Math.round((completedRuns / totalRuns) * 100) : 0;
@@ -2300,15 +2314,33 @@ export const appRouter = router({
         if (!byStudent.has(r.userId)) byStudent.set(r.userId, { userId: r.userId, userName: r.userName, runs: [] });
         byStudent.get(r.userId)!.runs.push(r);
       }
-      const studentRanking = Array.from(byStudent.values()).map(s => {
+      const runBasedRanking = Array.from(byStudent.values()).map(s => {
         const scores = s.runs.filter(r => r.score !== null).map(r => r.score as number);
         const bestScore = scores.length > 0 ? Math.max(...scores) : 0;
         const avgStudentScore = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
         const totalCompleted = s.runs.filter(r => r.status === "completed").length;
         const totalPenalties = s.runs.reduce((a, r) => a + r.penaltyCount, 0);
         const avgProgress = s.runs.length > 0 ? Math.round(s.runs.reduce((a, r) => a + r.progressPct, 0) / s.runs.length) : 0;
-        return { userId: s.userId, userName: s.userName, bestScore, avgScore: avgStudentScore, totalRuns: s.runs.length, totalCompleted, totalPenalties, avgProgress };
+        return {
+          userId: s.userId,
+          userName: s.userName,
+          bestScore,
+          avgScore: avgStudentScore,
+          totalRuns: s.runs.length,
+          totalCompleted,
+          totalPenalties,
+          avgProgress,
+          hasRuns: true,
+        };
       }).sort((a, b) => b.bestScore - a.bestScore);
+
+      const studentRanking =
+        input.cohortId != null
+          ? mergeRosterIntoStudentRanking(
+              rosterStudents.map((s) => ({ id: s.id, name: s.name })),
+              runBasedRanking,
+            )
+          : runBasedRanking;
 
       // ── Step completion rates (for heatmap / bar chart) ──────────────────
       const stepCodes = MODULE1_STEPS.map(s => s.code);
@@ -2387,7 +2419,20 @@ export const appRouter = router({
       }));
 
       return {
-        kpis: { totalStudents, totalRuns, completedRuns, completionRate, avgScore, passRate, complianceRate, avgProgress, demoCount: demoRuns.length },
+        kpis: {
+          totalStudents,
+          enrolledStudents: rosterKpis.enrolledStudents,
+          activeEvalStudents: rosterKpis.activeEvalStudents,
+          notStartedStudents: rosterKpis.notStartedStudents,
+          totalRuns,
+          completedRuns,
+          completionRate,
+          avgScore,
+          passRate,
+          complianceRate,
+          avgProgress,
+          demoCount: demoRuns.length,
+        },
         studentRanking,
         stepCompletionRates,
         errorFrequency: errorFrequencyArr,
@@ -2417,10 +2462,20 @@ export const appRouter = router({
         const allRuns = await getAllRunsForMonitor(studentUserIds);
         const evalRuns = allRuns.filter((r) => !r.run.isDemo);
 
-        // Build unique student list
+        const rosterStudents =
+          input.cohortId != null
+            ? await listStudents({ cohortId: input.cohortId })
+            : [];
+
+        // Build unique student list (roster + any run-only legacy rows)
         const studentMap = new Map<number, string>();
+        for (const s of rosterStudents) {
+          studentMap.set(s.id, s.name ?? `User#${s.id}`);
+        }
         for (const r of evalRuns) {
-          studentMap.set(r.run.userId, r.user.name ?? `User#${r.run.userId}`);
+          if (!studentMap.has(r.run.userId)) {
+            studentMap.set(r.run.userId, r.user.name ?? `User#${r.run.userId}`);
+          }
         }
         const students = Array.from(studentMap.entries())
           .map(([id, name]) => ({ id, name }))

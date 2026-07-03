@@ -424,12 +424,15 @@ export default function AnalyticsDashboard() {
     color: PIE_COLORS[i],
   }));
 
-  const studentBarData = studentRanking.slice(0, 12).map(s => ({
-    name: (s.userName.split(" ")[0] ?? s.userName).substring(0, 10),
-    fullName: s.userName,
-    [t("Meilleur score", "Best Score")]: s.bestScore,
-    [t("Score moyen",   "Avg Score")]:   s.avgScore,
-  }));
+  const studentBarData = studentRanking
+    .filter((s) => s.hasRuns !== false && s.totalRuns > 0)
+    .slice(0, 12)
+    .map(s => ({
+      name: (s.userName.split(" ")[0] ?? s.userName).substring(0, 10),
+      fullName: s.userName,
+      [t("Meilleur score", "Best Score")]: s.bestScore,
+      [t("Score moyen",   "Avg Score")]:   s.avgScore,
+    }));
 
   const stepBarData = stepCompletionRates.map(s => ({
     name: s.code.replace("_M1", ""),
@@ -518,10 +521,22 @@ export default function AnalyticsDashboard() {
           <div className="col-span-2">
             <KpiCard
               icon={Users}
-              label={t("Étudiants actifs", "Active Students")}
-              value={kpis?.totalStudents ?? 0}
-              sub={t("en évaluation officielle", "in official evaluation")}
+              label={t("Étudiants inscrits", "Enrolled Students")}
+              value={kpis?.enrolledStudents ?? kpis?.totalStudents ?? 0}
+              sub={t(
+                `${kpis?.activeEvalStudents ?? 0} en évaluation · ${kpis?.notStartedStudents ?? 0} pas commencé`,
+                `${kpis?.activeEvalStudents ?? 0} in evaluation · ${kpis?.notStartedStudents ?? 0} not started`,
+              )}
               color={C.primary}
+            />
+          </div>
+          <div className="col-span-2">
+            <KpiCard
+              icon={Activity}
+              label={t("Étudiants actifs (éval.)", "Active Eval Students")}
+              value={kpis?.activeEvalStudents ?? kpis?.totalStudents ?? 0}
+              sub={t("au moins une session d'évaluation", "at least one evaluation session")}
+              color={C.teal}
             />
           </div>
           <div className="col-span-2">
@@ -881,7 +896,8 @@ export default function AnalyticsDashboard() {
                     </thead>
                     <tbody>
                       {studentRanking.map((s, i) => {
-                        const passed = s.bestScore >= 60;
+                        const passed = s.hasRuns !== false && s.bestScore >= 60;
+                        const notStarted = s.hasRuns === false || s.totalRuns === 0;
                         const rank = i + 1;
                         return (
                           <tr
@@ -897,30 +913,44 @@ export default function AnalyticsDashboard() {
                               <span className="font-medium text-foreground text-xs truncate max-w-[120px] block">{s.userName}</span>
                             </td>
                             <td className="py-2 px-2 text-center">
-                              <span className={`font-bold text-sm ${s.bestScore >= 80 ? "text-emerald-500" : s.bestScore >= 60 ? "text-amber-500" : "text-rose-500"}`}>
-                                {s.bestScore}
-                              </span>
+                              {notStarted ? (
+                                <span className="text-muted-foreground text-xs">—</span>
+                              ) : (
+                                <span className={`font-bold text-sm ${s.bestScore >= 80 ? "text-emerald-500" : s.bestScore >= 60 ? "text-amber-500" : "text-rose-500"}`}>
+                                  {s.bestScore}
+                                </span>
+                              )}
                             </td>
                             <td className="py-2 px-2 text-center">
-                              <span className="text-muted-foreground text-xs font-mono">{s.avgScore}</span>
+                              <span className="text-muted-foreground text-xs font-mono">{notStarted ? "—" : s.avgScore}</span>
                             </td>
                             <td className="py-2 px-2 text-center">
-                              <span className="text-muted-foreground text-xs">{s.totalRuns}</span>
+                              <span className="text-muted-foreground text-xs">{notStarted ? "—" : s.totalRuns}</span>
                             </td>
                             <td className="py-2 px-2 text-center">
-                              <span className="text-muted-foreground text-xs">{s.totalCompleted}</span>
+                              <span className="text-muted-foreground text-xs">{notStarted ? "—" : s.totalCompleted}</span>
                             </td>
                             <td className="py-2 px-2 text-center">
-                              <span className={`text-xs font-mono font-bold ${s.totalPenalties > 5 ? "text-rose-500" : s.totalPenalties > 2 ? "text-amber-500" : "text-emerald-500"}`}>
-                                {s.totalPenalties}
+                              <span className={`text-xs font-mono font-bold ${notStarted ? "text-muted-foreground" : s.totalPenalties > 5 ? "text-rose-500" : s.totalPenalties > 2 ? "text-amber-500" : "text-emerald-500"}`}>
+                                {notStarted ? "—" : s.totalPenalties}
                               </span>
                             </td>
                             <td className="py-2 px-2 text-center">
                               <Badge
                                 variant="secondary"
-                                className={`text-xs border ${passed ? "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800" : "bg-rose-500/10 text-rose-600 border-rose-200 dark:border-rose-800"}`}
+                                className={`text-xs border ${
+                                  notStarted
+                                    ? "bg-slate-500/10 text-slate-600 border-slate-200 dark:border-slate-700"
+                                    : passed
+                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-800"
+                                      : "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-800"
+                                }`}
                               >
-                                {passed ? t("Réussi ✓", "Passed ✓") : t("En cours", "In Progress")}
+                                {notStarted
+                                  ? t("Pas commencé", "Not started")
+                                  : passed
+                                    ? t("Réussi ✓", "Passed ✓")
+                                    : t("En cours", "In Progress")}
                               </Badge>
                             </td>
                           </tr>
