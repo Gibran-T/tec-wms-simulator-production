@@ -15,6 +15,8 @@ import type { SlideContent } from "@/data/modules";
 import { MODULE_SLIDE_THEME } from "@/data/moduleTheme";
 import { resolveSlideVisual, type SlideVisualVariant } from "@/data/slideVisualMap";
 import SlideVisualPanel from "@/components/slides/SlideVisualPanel";
+import VlsM1SlideCanvas from "@/components/slides/vls/VlsM1SlideCanvas";
+import { getVlsSectionLabel, isVlsPilotModule } from "@/data/vlsSlideStandard";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   BookOpen, GraduationCap, Clock, Tag, Lightbulb,
@@ -172,7 +174,10 @@ export default function SlideViewer() {
   const body = lang === "FR" ? slide.bodyFr : slide.bodyEn;
   const notes = lang === "FR" ? slide.notesFr : slide.notesEn;
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
-  const typeLabel = typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
+  const typeLabel = slide.vlsSection && isVlsPilotModule(mod.id)
+    ? getVlsSectionLabel(slide.vlsSection, lang)
+    : typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
+  const useVlsLayout = Boolean(slide.vlsSection && isVlsPilotModule(mod.id));
   const progress = ((slideIndex + 1) / totalSlides) * 100;
   const moduleTheme = MODULE_SLIDE_THEME[mod.id] ?? MODULE_SLIDE_THEME[1];
   const accent = moduleTheme.accent;
@@ -281,7 +286,9 @@ export default function SlideViewer() {
               <div className="flex-1 overflow-y-auto py-2">
                 {mod.slides.map((s, i) => {
                   const sTitle = lang === "FR" ? s.titleFr : s.titleEn;
-                  const sType = typeLabels[s.type]?.[lang.toLowerCase() as "fr" | "en"] ?? s.type;
+                  const sType = s.vlsSection && isVlsPilotModule(mod.id)
+                    ? getVlsSectionLabel(s.vlsSection, lang)
+                    : typeLabels[s.type]?.[lang.toLowerCase() as "fr" | "en"] ?? s.type;
                   return (
                     <button
                       key={s.id}
@@ -346,7 +353,25 @@ export default function SlideViewer() {
                 )}
               </div>
 
-              {/* Visual + text — premium 3/2 layout */}
+              {/* Visual + text — VLS pilot (M1) or premium 3/2 layout */}
+              {useVlsLayout && slide.vlsSection ? (
+                <div className="mb-5">
+                  <VlsM1SlideCanvas
+                    slide={slide}
+                    section={slide.vlsSection}
+                    lang={lang}
+                    accent={accent}
+                    title={title}
+                    subtitle={subtitle}
+                    body={body}
+                    visualType={visualType}
+                    visualVariant={visualVariant}
+                    moduleId={mod.id}
+                    renderLine={(line, i) => <SlideLine key={i} line={line} />}
+                    t={t}
+                  />
+                </div>
+              ) : (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
                 <div className="lg:col-span-3">
                   <SlideVisualPanel
@@ -388,6 +413,7 @@ export default function SlideViewer() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Highlight badge */}
               {slide.highlight && (
