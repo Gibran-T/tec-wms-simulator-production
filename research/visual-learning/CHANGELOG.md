@@ -7,6 +7,21 @@ VLS versioning is independent of application RC releases unless explicitly linke
 
 ---
 
+## [1.1.0] — 2026-07-03
+
+### Added
+
+- Canonical module master visuals: `MASTER_M1.png` … `MASTER_M5.png` under `research/visual-learning/modules/M{n}/`
+- Promoted production copies: `TEC_WMS_VLS_M1.png` … `TEC_WMS_VLS_M5.png` under `client/public/visual-learning/modules/`
+
+### Notes
+
+- M1 source was JPEG; converted to PNG (1024×576) to meet Style Guide PNG requirement
+- M2–M5: 836×470/471 PNG (16:9 family)
+- Application integration not started (by design)
+
+---
+
 ## [1.0.0] — 2026-07-03
 
 ### Added
@@ -23,8 +38,8 @@ VLS versioning is independent of application RC releases unless explicitly linke
 ### Status
 
 - **Architecture:** Ready
-- **Module masters:** Awaiting manual placement by pedagogy owner
-- **Production assets:** Empty — promotion pending approval
+- **Module masters:** Placeholder paths documented
+- **Production assets:** Placeholder paths documented
 - **Application integration:** Not started (by design)
 
 ---
