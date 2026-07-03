@@ -1,9 +1,9 @@
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
-  Presentation, ClipboardList, MonitorPlay, BarChart2, CheckSquare, Award,
+  Presentation, ClipboardList, MonitorPlay, BarChart2, CheckSquare, CircleCheckBig,
 } from "lucide-react";
 
-export type JourneyStep = "slides" | "mission" | "scenario" | "dashboard" | "quiz" | "certification";
+export type JourneyStep = "slides" | "mission" | "scenario" | "dashboard" | "quiz" | "completed";
 
 const STEPS: { id: JourneyStep; icon: React.ElementType; labelFr: string; labelEn: string }[] = [
   { id: "slides", icon: Presentation, labelFr: "Slides", labelEn: "Slides" },
@@ -11,7 +11,7 @@ const STEPS: { id: JourneyStep; icon: React.ElementType; labelFr: string; labelE
   { id: "scenario", icon: MonitorPlay, labelFr: "Scénario", labelEn: "Scenario" },
   { id: "dashboard", icon: BarChart2, labelFr: "Analyse", labelEn: "Analysis" },
   { id: "quiz", icon: CheckSquare, labelFr: "Quiz", labelEn: "Quiz" },
-  { id: "certification", icon: Award, labelFr: "Certification", labelEn: "Certification" },
+  { id: "completed", icon: CircleCheckBig, labelFr: "Module complété", labelEn: "Module complete" },
 ];
 
 interface TecLogJourneyStripProps {

@@ -9,13 +9,13 @@ export function getModuleCertContext(moduleId: number): { fr: string; en: string
   switch (moduleId) {
     case 1:
       return {
-        fr: "Module 1 — Quiz M1 (60 %) + scénarios ≥ 60/100 pour certification Silver TEC.LOG.",
-        en: "Module 1 — M1 quiz (60%) + scenarios ≥ 60/100 for TEC.LOG Silver certification.",
+        fr: "Module 1 — Quiz M1 (60 %) + scénarios ≥ 60/100 avec conformité.",
+        en: "Module 1 — M1 quiz (60%) + scenarios ≥ 60/100 with compliance.",
       };
     case 2:
       return {
-        fr: "Module 2 — Scénarios ≥ 60/100 en évaluation. Compte pour progression certification entrepôt.",
-        en: "Module 2 — Scenarios ≥ 60/100 in evaluation. Counts toward warehouse certification progress.",
+        fr: "Module 2 — Scénarios ≥ 60/100 en évaluation. Quiz M2 pour valider les acquis.",
+        en: "Module 2 — Scenarios ≥ 60/100 in evaluation. M2 quiz to validate learning.",
       };
     case 3:
       return {
@@ -29,8 +29,8 @@ export function getModuleCertContext(moduleId: number): { fr: string; en: string
       };
     case 5:
       return {
-        fr: "Module 5 — Seuil scénario 70/100. Capstone intégré — progression vers certification Gold.",
-        en: "Module 5 — Scenario threshold 70/100. Integrated capstone — progress toward Gold certification.",
+        fr: "Module 5 — Seuil scénario 70/100. Capstone intégré — clôture du parcours M1–M5.",
+        en: "Module 5 — Scenario threshold 70/100. Integrated capstone — M1–M5 pathway closure.",
       };
     default:
       return null;

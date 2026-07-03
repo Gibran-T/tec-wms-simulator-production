@@ -343,8 +343,8 @@ const STEP_CONFIG: Record<string, {
       realSAPEn: "In SAP, FIFO compliance reports are generated via MB51 (material movement list) and LT23 (transfer order list).",
       dependencyFr: "La conformité M2 dépend de la réussite des étapes FIFO_PICK et STOCK_ACCURACY. Toutes les variances doivent être documentées.",
       dependencyEn: "M2 compliance depends on successful FIFO_PICK and STOCK_ACCURACY steps. All variances must be documented.",
-      realErrorFr: "Une non-conformité FIFO lors d'un audit ISO peut entraîner une suspension de certification et des pénalités contractuelles.",
-      realErrorEn: "A FIFO non-compliance during an ISO audit can lead to certification suspension and contractual penalties.",
+      realErrorFr: "Une non-conformité FIFO lors d'un audit ISO peut entraîner des sanctions réglementaires et des pénalités contractuelles.",
+      realErrorEn: "A FIFO non-compliance during an ISO audit can lead to regulatory sanctions and contractual penalties.",
     }
   },
 
@@ -591,8 +591,8 @@ const STEP_CONFIG: Record<string, {
       realSAPEn: "In SAP, MI07 validates inventory variance and updates accounting stock traceably.",
       dependencyFr: "M5_ADJ dépend d'un M5_CYCLE_COUNT avec variance non nulle. Réappro, KPI et décision sont bloqués tant que l'ajustement n'est pas posté.",
       dependencyEn: "M5_ADJ depends on M5_CYCLE_COUNT with non-zero variance. Replenish, KPI and decision are blocked until adjustment is posted.",
-      realErrorFr: "Piloter avec un écart ouvert fausse les KPI et invalide la certification.",
-      realErrorEn: "Steering with an open variance skews KPIs and invalidates certification.",
+      realErrorFr: "Piloter avec un écart ouvert fausse les KPI et compromet la fiabilité opérationnelle.",
+      realErrorEn: "Steering with an open variance skews KPIs and undermines operational reliability.",
     }
   },
   m5_replenish: {
@@ -653,8 +653,8 @@ const STEP_CONFIG: Record<string, {
     objectiveEn: "M5 Integrated Simulation — Final step: Validate complete compliance of the integrated simulation. All steps must be completed successfully.",
     fields: [],
     pedagogicalDeep: {
-      whyFr: "La validation finale M5 est la certification de compétence TEC.LOG. Elle confirme que l'étudiant maîtrise l'ensemble du cycle logistique WMS/ERP.",
-      whyEn: "M5 final validation is the TEC.LOG competency certification. It confirms that the student masters the complete WMS/ERP logistics cycle.",
+      whyFr: "La validation finale M5 confirme que l'étudiant maîtrise l'ensemble du cycle logistique WMS/ERP en conditions intégrées.",
+      whyEn: "M5 final validation confirms that the student masters the complete WMS/ERP logistics cycle under integrated conditions.",
       realSAPFr: "Dans SAP, la validation finale correspond à la clôture de période (MMPV) et au rapport de conformité annuel. Elle déclenche les processus de reporting réglementaire.",
       realSAPEn: "In SAP, final validation corresponds to period closing (MMPV) and the annual compliance report. It triggers regulatory reporting processes.",
       dependencyFr: "La validation M5 dépend de la réussite de toutes les étapes précédentes. C'est la démonstration que l'étudiant peut gérer un cycle logistique complet de façon autonome.",

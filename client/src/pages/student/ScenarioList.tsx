@@ -311,13 +311,13 @@ export default function ScenarioList() {
             <OperationalFlowDisplay steps={currentModuleConfig.steps} />
           </div>
 
-          {/* Quiz recommendation (non-blocking — certification support only) */}
+          {/* Quiz recommendation */}
           {!quizPassed && user?.role === "student" && (
             <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-md flex items-center gap-3">
               <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 shrink-0" />
               <div>
                 <p className="text-sm font-medium text-blue-800 dark:text-blue-200">{t("Quiz recommandé", "Recommended quiz")}</p>
-                <p className="text-xs text-blue-700 dark:text-blue-300">{t("Renforcez vos acquis avant ou après les scénarios. Le quiz reste requis pour la certification Silver M1.", "Reinforce your learning before or after scenarios. The quiz is still required for M1 Silver certification.")}</p>
+                <p className="text-xs text-blue-700 dark:text-blue-300">{t("Renforcez vos acquis avant ou après les scénarios. Le quiz M1 valide vos connaissances du module.", "Reinforce your learning before or after scenarios. The M1 quiz validates your module knowledge.")}</p>
               </div>
               <button
                 onClick={() => navigate(`/student/quiz/${selectedModule}`)}

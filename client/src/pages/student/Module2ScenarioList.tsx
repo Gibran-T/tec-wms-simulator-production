@@ -70,8 +70,8 @@ export default function Module2ScenarioList() {
           <AlertDescription className="text-amber-800">
             <strong>{t("Prérequis recommandé", "Recommended prerequisite")} :</strong>{" "}
             {t(
-              "Le Module 1 devrait être complété avant M2. Accès ouvert pour la session de classe — la progression certification reste informative.",
-              "Module 1 should be completed before M2. Access open for class session — certification progression remains informational."
+              "Le Module 1 devrait être complété avant M2. Accès ouvert pour la session de classe — suivez votre progression module par module.",
+              "Module 1 should be completed before M2. Access open for class session — track your progress module by module."
             )}
           </AlertDescription>
         </Alert>

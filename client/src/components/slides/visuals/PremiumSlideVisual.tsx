@@ -6,7 +6,6 @@ import {
   KpiGrid,
   ScnList,
   DocCard,
-  CertBadge,
   MiniGauge,
   IntegrationStack,
   FioriTileGrid,
@@ -37,7 +36,7 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
     case "1-1":
       return (
         <VisualFrame title="TEC.LOG · Portal pédagogique" subtitle="Collège de la Concorde" accent={accent}>
-          <FioriTileGrid accent={accent} labels={["ERP/WMS", "Flux PO→GI", "SAP Fiori", "Mini-WMS", "SCN Lab", "Certification"]} />
+          <FioriTileGrid accent={accent} labels={["ERP/WMS", "Flux PO→GI", "SAP Fiori", "Mini-WMS", "SCN Lab", "Quiz M1"]} />
           <p className="text-center text-[10px] text-muted-foreground mt-4">Module 1 · Fondements chaîne logistique · 10 slides VLS</p>
         </VisualFrame>
       );
@@ -110,8 +109,8 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "1-10":
       return (
-        <VisualFrame title="Certification Silver" subtitle="Parcours M1 complet" accent={accent}>
-          <CertBadge tier="silver" lines={["Quiz M1 ≥ 60%", "SCN-001 → SCN-005", "Checklist conformité", "Badge numérique · à venir"]} />
+        <VisualFrame title="Module M1 complété" subtitle="Validation des connaissances" accent={accent}>
+          <FlowVertical steps={["Quiz M1", "Module M1 complété"]} accent={accent} />
         </VisualFrame>
       );
     case "2-1":
@@ -337,8 +336,8 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "5-5":
       return (
-        <VisualFrame title="Certification Gold" subtitle="Parcours intégré M1–M5" accent={accent}>
-          <CertBadge tier="gold" lines={["Capstone opérationnel complet", "Débloquable via SCN-017", "Critères M1–M5 validés", "Badge QR après validation Gold"]} />
+        <VisualFrame title="Parcours complété" subtitle="Formation terminée" accent={accent}>
+          <FlowVertical steps={["Quiz M5", "Parcours complété"]} accent={accent} />
         </VisualFrame>
       );
     default:
@@ -372,8 +371,8 @@ function renderFallback(props: PremiumVisualProps) {
       );
     case "CERT":
       return (
-        <VisualFrame title="Certification" accent={accent}>
-          <CertBadge tier={variant === "gold" ? "gold" : "silver"} lines={["TEC.LOG Program"]} />
+        <VisualFrame title="Module complété" accent={accent}>
+          <FlowVertical steps={["Quiz validé", "Scénarios complétés", "Conformité", "Module terminé"]} accent={accent} />
         </VisualFrame>
       );
     default:

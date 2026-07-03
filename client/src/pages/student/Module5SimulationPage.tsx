@@ -176,9 +176,9 @@ export default function Module5SimulationPage() {
               Module 4
             </Button>
           </Link>
-          <Link href="/student/certifications">
+          <Link href="/student/quiz/5">
             <Button variant="outline" size="sm" className="gap-2">
-              {t("Certifications", "Certifications")}
+              {t("Quiz M5", "M5 Quiz")}
               <ArrowRight className="w-3 h-3" />
             </Button>
           </Link>

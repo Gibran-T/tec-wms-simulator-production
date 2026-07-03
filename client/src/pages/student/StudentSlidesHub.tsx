@@ -49,10 +49,10 @@ const MODULE_META = [
     id: 5,
     titleFr: "Module 5 — Simulation intégrée",
     titleEn: "Module 5 — Integrated Simulation",
-    descFr: "Capstone M1–M5 : crise logistique, audit final et certification TEC.LOG.",
-    descEn: "M1–M5 capstone: logistics crisis, final audit and TEC.LOG certification.",
-    topics: ["Simulation · Crise", "Audit final", "Certification"],
-    topicsEn: ["Simulation · Crisis", "Final audit", "Certification"],
+    descFr: "Capstone M1–M5 : crise logistique, audit final et décision stratégique intégrée.",
+    descEn: "M1–M5 capstone: logistics crisis, final audit and integrated strategic decision.",
+    topics: ["Simulation · Crise", "Audit final", "Module complété"],
+    topicsEn: ["Simulation · Crisis", "Final audit", "Module complete"],
   },
 ];
 

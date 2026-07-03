@@ -27,7 +27,7 @@ export const SLIDE_VISUAL_MAP: Record<number, Record<number, { type: SlideVisual
     7: { type: "WH", variant: "default" },
     8: { type: "FLOW", variant: "default" },
     9: { type: "FIORI", variant: "m1-scenarios" },
-    10: { type: "CERT", variant: "silver" },
+    10: { type: "FIORI", variant: "default" },
   },
   2: {
     1: { type: "WH", variant: "m2-zones" },
@@ -61,7 +61,7 @@ export const SLIDE_VISUAL_MAP: Record<number, Record<number, { type: SlideVisual
     2: { type: "FLOW", variant: "m5-ops" },
     3: { type: "WH", variant: "default" },
     4: { type: "KPI", variant: "m4-dashboard" },
-    5: { type: "CERT", variant: "gold" },
+    5: { type: "FLOW", variant: "m5-ops" },
   },
 };
 
@@ -74,8 +74,8 @@ export function resolveSlideVisual(
   const mapped = SLIDE_VISUAL_MAP[moduleId]?.[slideId];
   if (mapped) return { type: mapped.type, variant: mapped.variant ?? "default" };
 
-  if (tags?.includes("certification")) {
-    return { type: "CERT", variant: moduleId === 5 ? "gold" : "silver" };
+  if (tags?.includes("module-complete") || tags?.includes("certification")) {
+    return { type: "FIORI", variant: "default" };
   }
   if (slideType === "kpi") return { type: "KPI", variant: "default" };
   if (slideType === "process") return { type: "FLOW", variant: "default" };

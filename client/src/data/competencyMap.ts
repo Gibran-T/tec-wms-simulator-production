@@ -8,7 +8,7 @@ export interface CompetencyEntry {
   progression: { fr: string; en: string };
   erpMaturity: number;
   wmsMaturity: number;
-  certificationNote?: { fr: string; en: string };
+  assessmentNote?: { fr: string; en: string };
 }
 
 export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
@@ -19,7 +19,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Comprendre", en: "Understand" },
     progression: { fr: "Fondation M1", en: "M1 Foundation" },
     erpMaturity: 2, wmsMaturity: 2,
-    certificationNote: { fr: "Requis pour certification Silver (M1)", en: "Required for Silver certification (M1)" },
+    assessmentNote: { fr: "Scénario M1 — seuil 60/100 en évaluation", en: "M1 scenario — 60/100 evaluation threshold" },
   },
   "SCN-002": {
     scnCode: "SCN-002", moduleId: 1,
@@ -60,7 +60,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Appliquer", en: "Apply" },
     progression: { fr: "Intermédiaire M2", en: "M2 Intermediate" },
     erpMaturity: 2, wmsMaturity: 3,
-    certificationNote: { fr: "Scénario M2 — seuil 60/100 en évaluation", en: "M2 scenario — 60/100 evaluation threshold" },
+    assessmentNote: { fr: "Scénario M2 — seuil 60/100 en évaluation", en: "M2 scenario — 60/100 evaluation threshold" },
   },
   "SCN-007": {
     scnCode: "SCN-007", moduleId: 2,
@@ -69,7 +69,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Appliquer", en: "Apply" },
     progression: { fr: "Intermédiaire M2", en: "M2 Intermediate" },
     erpMaturity: 3, wmsMaturity: 3,
-    certificationNote: { fr: "Gestion capacité M2 — compte pour progression certification entrepôt", en: "M2 capacity management — counts toward warehouse certification" },
+    assessmentNote: { fr: "Gestion capacité M2 — progression module M2", en: "M2 capacity management — Module M2 progression" },
   },
   "SCN-008": {
     scnCode: "SCN-008", moduleId: 2,
@@ -78,7 +78,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Analyser", en: "Analyze" },
     progression: { fr: "Intermédiaire M2", en: "M2 Intermediate" },
     erpMaturity: 3, wmsMaturity: 3,
-    certificationNote: { fr: "Conformité FIFO M2 — seuil 60/100", en: "M2 FIFO compliance — 60/100 threshold" },
+    assessmentNote: { fr: "Conformité FIFO M2 — seuil 60/100", en: "M2 FIFO compliance — 60/100 threshold" },
   },
   "SCN-009": {
     scnCode: "SCN-009", moduleId: 3,
@@ -87,7 +87,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Appliquer", en: "Apply" },
     progression: { fr: "Avancé M3", en: "M3 Advanced" },
     erpMaturity: 3, wmsMaturity: 4,
-    certificationNote: { fr: "Module 3 — seuil scénario 70/100", en: "Module 3 — scenario threshold 70/100" },
+    assessmentNote: { fr: "Module 3 — seuil scénario 70/100", en: "Module 3 — scenario threshold 70/100" },
   },
   "SCN-010": {
     scnCode: "SCN-010", moduleId: 3,
@@ -96,7 +96,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Analyser", en: "Analyze" },
     progression: { fr: "Avancé M3", en: "M3 Advanced" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Gestion écarts M3 — justification obligatoire en évaluation", en: "M3 variance management — justification required in evaluation" },
+    assessmentNote: { fr: "Gestion écarts M3 — justification obligatoire en évaluation", en: "M3 variance management — justification required in evaluation" },
   },
   "SCN-011": {
     scnCode: "SCN-011", moduleId: 3,
@@ -105,7 +105,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Avancé M3", en: "M3 Advanced" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Planification réappro M3 — calcul Min/Max Q = Max − stock évalué", en: "M3 replenishment — Min/Max Q = Max − stock calculation assessed" },
+    assessmentNote: { fr: "Planification réappro M3 — calcul Min/Max Q = Max − stock évalué", en: "M3 replenishment — Min/Max Q = Max − stock calculation assessed" },
   },
   "SCN-012": {
     scnCode: "SCN-012", moduleId: 4,
@@ -114,7 +114,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Analyser", en: "Analyze" },
     progression: { fr: "Expert M4", en: "M4 Expert" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Module 4 — seuil 70/100, analyse KPI rotation", en: "Module 4 — 70/100 threshold, turnover KPI analysis" },
+    assessmentNote: { fr: "Module 4 — seuil 70/100, analyse KPI rotation", en: "Module 4 — 70/100 threshold, turnover KPI analysis" },
   },
   "SCN-013": {
     scnCode: "SCN-013", moduleId: 4,
@@ -123,7 +123,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Expert M4", en: "M4 Expert" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Diagnostic service M4 — corrélation erreurs/KPI", en: "M4 service diagnosis — error/KPI correlation" },
+    assessmentNote: { fr: "Diagnostic service M4 — corrélation erreurs/KPI", en: "M4 service diagnosis — error/KPI correlation" },
   },
   "SCN-014": {
     scnCode: "SCN-014", moduleId: 4,
@@ -132,7 +132,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Expert M4", en: "M4 Expert" },
     erpMaturity: 5, wmsMaturity: 5,
-    certificationNote: { fr: "Capstone M4 — décision stratégique multi-KPI, seuil 70/100", en: "M4 capstone — multi-KPI strategic decision, 70/100 threshold" },
+    assessmentNote: { fr: "Capstone M4 — décision stratégique multi-KPI, seuil 70/100", en: "M4 capstone — multi-KPI strategic decision, 70/100 threshold" },
   },
   "SCN-015": {
     scnCode: "SCN-015", moduleId: 5,
@@ -141,7 +141,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Maître M5", en: "M5 Master" },
     erpMaturity: 4, wmsMaturity: 4,
-    certificationNote: { fr: "Progression vers certification Gold", en: "Progress toward Gold certification" },
+    assessmentNote: { fr: "Capstone M5 — clôture du parcours modules", en: "M5 capstone — module pathway closure" },
   },
   "SCN-016": {
     scnCode: "SCN-016", moduleId: 5,
@@ -150,7 +150,7 @@ export const COMPETENCY_MAP: Record<string, CompetencyEntry> = {
     bloomLevel: { fr: "Évaluer", en: "Evaluate" },
     progression: { fr: "Maître M5", en: "M5 Master" },
     erpMaturity: 5, wmsMaturity: 5,
-    certificationNote: { fr: "M5 corrective action — résoudre variance avant KPI", en: "M5 corrective action — resolve variance before KPI" },
+    assessmentNote: { fr: "M5 corrective action — résoudre variance avant KPI", en: "M5 corrective action — resolve variance before KPI" },
   },
   "SCN-017": {
     scnCode: "SCN-017", moduleId: 5,

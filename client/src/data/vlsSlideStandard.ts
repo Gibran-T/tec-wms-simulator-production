@@ -5,8 +5,9 @@ export type VlsSectionId =
   | "observation-hotspots"
   | "concepts"
   | "simulation-scn"
-  | "certification"
+  | "module-completed"
   /** Legacy section IDs — retained for renderer fallbacks */
+  | "certification"
   | "observation"
   | "objectives"
   | "hotspots"
@@ -21,7 +22,7 @@ export const VLS_SECTION_ORDER: VlsSectionId[] = [
   "observation-hotspots",
   "concepts",
   "simulation-scn",
-  "certification",
+  "module-completed",
 ];
 
 export const VLS_SECTION_LABELS: Record<VlsSectionId, { fr: string; en: string }> = {
@@ -29,7 +30,8 @@ export const VLS_SECTION_LABELS: Record<VlsSectionId, { fr: string; en: string }
   "observation-hotspots": { fr: "Observation guidée · hotspots", en: "Guided Observation · hotspots" },
   concepts: { fr: "Transaction SAP", en: "SAP Transaction" },
   "simulation-scn": { fr: "Simulateur · cartographie SCN", en: "Simulator · SCN mapping" },
-  certification: { fr: "Quiz · checkpoint · certification", en: "Quiz · checkpoint · certification" },
+  "module-completed": { fr: "Module complété", en: "Module completed" },
+  certification: { fr: "Module complété", en: "Module completed" },
   observation: { fr: "Observation guidée", en: "Guided Observation" },
   objectives: { fr: "Objectifs du module", en: "Module Objectives" },
   hotspots: { fr: "Zones opérationnelles", en: "Operational Zones" },

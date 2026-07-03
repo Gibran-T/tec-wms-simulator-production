@@ -323,7 +323,7 @@ export default function MissionControl() {
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                     {run.status === "completed"
-                      ? t("Consultez votre rapport de mission pour valider la progression du module et la certification.", "Review your mission report to confirm module progress and certification.")
+                      ? t("Consultez votre rapport de mission pour valider la progression du module.", "Review your mission report to confirm module progress.")
                       : nextStepCode && (isM3 ? m3ActionHint : pedagogy)
                         ? (isM3 ? m3ActionHint : pickLang(pedagogy!.expectedActionHint, language))
                         : nextStepCode

@@ -657,11 +657,10 @@ function PanelE({
       </div>
 
       <div>
-        <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Certification / module", "Certification / module")}</p>
+        <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Progression module", "Module progress")}</p>
         {moduleId === 1 && (
           <ul className="text-[10px] space-y-1 text-slate-600 dark:text-slate-400">
             <li>{t("Quiz M1", "M1 Quiz")}: {quizBest?.passed ? t("Réussi ✓", "Passed ✓") : t("En attente", "Pending")}</li>
-            <li>{t("Silver TEC.LOG", "TEC.LOG Silver")}: {profile?.silverCertified ? t("Obtenue ✓", "Obtained ✓") : t("En cours", "In progress")}</li>
           </ul>
         )}
         {modProgress?.passed && (
@@ -670,8 +669,8 @@ function PanelE({
         {moduleCert && (
           <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1">{isFr ? moduleCert.fr : moduleCert.en}</p>
         )}
-        {competency?.certificationNote && (
-          <p className="text-[10px] italic text-primary mt-1">{isFr ? competency.certificationNote.fr : competency.certificationNote.en}</p>
+        {competency?.assessmentNote && (
+          <p className="text-[10px] italic text-primary mt-1">{isFr ? competency.assessmentNote.fr : competency.assessmentNote.en}</p>
         )}
         <p className="text-[10px] font-mono text-slate-500 mt-1">
           {t("Seuil évaluation scénario", "Scenario evaluation threshold")}: <span className="font-bold text-primary">{scoreThreshold}/100</span>
