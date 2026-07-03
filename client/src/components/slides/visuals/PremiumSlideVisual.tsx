@@ -38,7 +38,7 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       return (
         <VisualFrame title="TEC.LOG · Portal pédagogique" subtitle="Collège de la Concorde" accent={accent}>
           <FioriTileGrid accent={accent} labels={["ERP/WMS", "Flux PO→GI", "SAP Fiori", "Mini-WMS", "SCN Lab", "Certification"]} />
-          <p className="text-center text-[10px] text-muted-foreground mt-4">Module 1 · Fondements chaîne logistique · 10 slides</p>
+          <p className="text-center text-[10px] text-muted-foreground mt-4">Module 1 · Fondements chaîne logistique · 10 slides VLS</p>
         </VisualFrame>
       );
     case "1-2":
