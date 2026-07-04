@@ -383,6 +383,7 @@ const module2: ModuleData = {
   slides: [
     {
       id: 1,
+      vlsSection: "hero",
       titleFr: "Disposition de l'entrepôt — Zones et localisation",
       titleEn: "Warehouse Layout — Zones & Localization",
       type: "process",
@@ -411,11 +412,13 @@ const module2: ModuleData = {
       notesFr: "Montrez la disposition complète de l'entrepôt. Pointez chaque zone et expliquez son rôle. Insistez sur le fait que chaque zone est optimisée pour une fonction spécifique.",
       notesEn: "Show the complete warehouse layout. Point to each zone and explain its role. Emphasize that each zone is optimized for a specific function.",
       timingMin: 3,
-      imageUrl: "/manus-storage/pasted_file_vmN05I_image_f1d3486a.png",
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M2.png",
       scenarioMap: ["SCN-006", "SCN-007", "SCN-008"],
+      tags: ["vls", "intro"],
     },
     {
       id: 2,
+      vlsSection: "observation-hotspots",
       titleFr: "Réception et rangement — Flux opérationnel",
       titleEn: "Receiving & Putaway — Operational Flow",
       type: "process",
@@ -438,10 +441,12 @@ const module2: ModuleData = {
       notesFr: "Montrez le flux complet de réception à rangement. Expliquez que chaque étape doit être précise. Une erreur ici crée des problèmes en picking.",
       notesEn: "Show the complete receiving-to-putaway flow. Explain that each step must be precise. An error here creates picking problems.",
       timingMin: 2,
-      imageUrl: "/manus-storage/pasted_file_2Jijn5_image_5016aa68.png",
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M2.png",
+      tags: ["vls", "observation", "hotspots"],
     },
     {
       id: 3,
+      vlsSection: "concepts",
       titleFr: "Gestion des bins — Localisation et allocation",
       titleEn: "Bin Management — Location & Allocation",
       type: "concept",
@@ -468,6 +473,7 @@ const module2: ModuleData = {
     },
     {
       id: 4,
+      vlsSection: "concepts",
       titleFr: "Contrôle de la capacité — Optimisation de l'espace",
       titleEn: "Capacity Control — Space Optimization",
       type: "concept",
@@ -492,6 +498,7 @@ const module2: ModuleData = {
     },
     {
       id: 5,
+      vlsSection: "concepts",
       titleFr: "Stratégie FIFO — Gestion de la fraîcheur",
       titleEn: "FIFO Strategy — Freshness Management",
       type: "concept",
@@ -518,6 +525,7 @@ const module2: ModuleData = {
     },
     {
       id: 6,
+      vlsSection: "simulation",
       titleFr: "Consolidation TEC.WMS — Layout entrepôt",
       titleEn: "TEC.WMS Consolidation — Warehouse Layout",
       type: "exercise",
@@ -544,6 +552,7 @@ const module2: ModuleData = {
     },
     {
       id: 7,
+      vlsSection: "simulation-scn",
       titleFr: "Application aux scénarios — SCN-006 à SCN-008",
       titleEn: "Application to Scenarios — SCN-006 to SCN-008",
       type: "exercise",
@@ -590,6 +599,7 @@ const module3: ModuleData = {
   slides: [
     {
       id: 1,
+      vlsSection: "hero",
       titleFr: "Vue d'ensemble du contrôle d'inventaire",
       titleEn: "Inventory Control Overview",
       type: "process",
@@ -610,10 +620,12 @@ const module3: ModuleData = {
       notesFr: "Expliquez le dilemme du gestionnaire de stock: trop vs. trop peu. Montrez comment les stratégies d'inventaire résolvent ce problème.",
       notesEn: "Explain the stock manager's dilemma: too much vs. too little. Show how inventory strategies solve this problem.",
       timingMin: 2,
-      tags: ["inventory", "overview"],
+      tags: ["inventory", "overview", "vls"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M3.png",
     },
     {
       id: 2,
+      vlsSection: "observation-hotspots",
       titleFr: "Stratégie Min/Max/ROP — Graphique et calcul",
       titleEn: "Min/Max/ROP Strategy — Graph & Calculation",
       type: "concept",
@@ -636,10 +648,12 @@ const module3: ModuleData = {
       notesFr: "Montrez le graphique avec les trois seuils. Expliquez comment le système crée automatiquement une PO quand le stock atteint le ROP.",
       notesEn: "Show the graph with three thresholds. Explain how the system automatically creates a PO when stock reaches ROP.",
       timingMin: 2,
-      tags: ["min-max", "rop"],
+      tags: ["min-max", "rop", "vls", "observation"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M3.png",
     },
     {
       id: 3,
+      vlsSection: "concepts",
       titleFr: "Safety Stock — Protection contre la variabilité",
       titleEn: "Safety Stock — Protection Against Variability",
       type: "concept",
@@ -666,6 +680,7 @@ const module3: ModuleData = {
     },
     {
       id: 4,
+      vlsSection: "concepts",
       titleFr: "Cycle Count et gestion de la variance",
       titleEn: "Cycle Count & Variance Management",
       type: "process",
@@ -690,6 +705,7 @@ const module3: ModuleData = {
     },
     {
       id: 5,
+      vlsSection: "concepts",
       titleFr: "Décision de réapprovisionnement — Logique et critères",
       titleEn: "Replenishment Decision — Logic & Criteria",
       type: "concept",
@@ -716,6 +732,7 @@ const module3: ModuleData = {
     },
     {
       id: 6,
+      vlsSection: "simulation",
       titleFr: "Consolidation TEC.WMS — Réapprovisionnement",
       titleEn: "TEC.WMS Consolidation — Replenishment",
       type: "exercise",
@@ -742,6 +759,7 @@ const module3: ModuleData = {
     },
     {
       id: 7,
+      vlsSection: "simulation-scn",
       titleFr: "Application aux scénarios — SCN-009 à SCN-011",
       titleEn: "Application to Scenarios — SCN-009 to SCN-011",
       type: "exercise",
@@ -792,6 +810,7 @@ const module4: ModuleData = {
   slides: [
     {
       id: 1,
+      vlsSection: "hero",
       titleFr: "Tableau de bord KPI — Vue d'ensemble",
       titleEn: "KPI Dashboard — Overview",
       type: "kpi",
@@ -810,11 +829,12 @@ const module4: ModuleData = {
       notesFr: "Normalisez le moniteur vide — en M4 on lit le KPI tower, pas les transactions. Distribuez Annexe A (rotation 6×, OTIF 95 %, erreurs 4 %, lead time 3,5 j, capital 48 000 $).",
       notesEn: "Normalize the empty monitor — in M4 you read the KPI tower, not transactions. Distribute Annex A (6× turnover, 95% OTIF, 4% errors, 3.5-day lead time, $48k capital).",
       timingMin: 2,
-      tags: ["kpi", "dashboard"],
-      imageUrl: "/manus-storage/pasted_file_Z2WC5q_image_9d04c260.png",
+      tags: ["kpi", "dashboard", "vls"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M4.png",
     },
     {
       id: 2,
+      vlsSection: "observation-hotspots",
       titleFr: "Rotation des stocks — Lecture KPI",
       titleEn: "Inventory Turnover — KPI Reading",
       type: "concept",
@@ -834,10 +854,12 @@ const module4: ModuleData = {
       notesFr: "Calculez 2 400 ÷ 400 = 6× au tableau. Bande normale 4–12× : 6× = zone normale — ne pas dire « surstock ». L'OTIF est traité à la slide suivante (SCN-013).",
       notesEn: "Calculate 2,400 ÷ 400 = 6× on the board. Normal band 4–12×: 6× = normal zone — do not say « overstock ». OTIF is covered on the next slide (SCN-013).",
       timingMin: 2,
-      tags: ["rotation", "kpi"],
+      tags: ["rotation", "kpi", "vls", "observation"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M4.png",
     },
     {
       id: 3,
+      vlsSection: "concepts",
       titleFr: "OTIF & erreurs opérationnelles",
       titleEn: "OTIF & Operational Errors",
       type: "concept",
@@ -861,6 +883,7 @@ const module4: ModuleData = {
     },
     {
       id: 4,
+      vlsSection: "concepts",
       titleFr: "Productivité et coût — Efficacité opérationnelle",
       titleEn: "Productivity & Cost — Operational Efficiency",
       type: "concept",
@@ -887,6 +910,7 @@ const module4: ModuleData = {
     },
     {
       id: 5,
+      vlsSection: "concepts",
       titleFr: "Root Cause Analysis — Analyse des problèmes",
       titleEn: "Root Cause Analysis — Problem Analysis",
       type: "process",
@@ -909,6 +933,7 @@ const module4: ModuleData = {
     },
     {
       id: 6,
+      vlsSection: "simulation",
       titleFr: "Consolidation TEC.WMS — Tableaux de bord KPI",
       titleEn: "TEC.WMS Consolidation — KPI Dashboards",
       type: "exercise",
@@ -935,6 +960,7 @@ const module4: ModuleData = {
     },
     {
       id: 7,
+      vlsSection: "simulation-scn",
       titleFr: "Application aux scénarios — SCN-012 à SCN-014",
       titleEn: "Application to Scenarios — SCN-012 to SCN-014",
       type: "exercise",
@@ -991,6 +1017,7 @@ const module5: ModuleData = {
   slides: [
     {
       id: 1,
+      vlsSection: "hero",
       titleFr: "Opération intégrée de bout en bout",
       titleEn: "End-to-End Integrated Operation",
       type: "process",
@@ -1007,11 +1034,12 @@ const module5: ModuleData = {
       notesFr: "Montrez comment tous les modules s'interconnectent. Expliquez que M5 est le test final où tout doit fonctionner ensemble.",
       notesEn: "Show how all modules interconnect. Explain that M5 is the final test where everything must work together.",
       timingMin: 2,
-      tags: ["integration", "overview"],
-      imageUrl: "/manus-storage/pasted_file_EVRzZa_image_5fc32f78.png",
+      tags: ["integration", "overview", "vls"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M5.png",
     },
     {
       id: 2,
+      vlsSection: "observation-hotspots",
       titleFr: "Scénario 15 — Opération complexe multi-SKU",
       titleEn: "Scenario 15 — Complex Multi-SKU Operation",
       type: "exercise",
@@ -1031,9 +1059,12 @@ const module5: ModuleData = {
       notesEn: "Distribute ops script (Annex B). Students verify the monitor at each step.",
       timingMin: 2,
       scenarioMap: ["SCN-015"],
+      tags: ["vls", "observation", "hotspots"],
+      imageUrl: "/visual-learning/modules/TEC_WMS_VLS_M5.png",
     },
     {
       id: 3,
+      vlsSection: "simulation-scn",
       titleFr: "Scénario 16 — Gestion de crise et correction",
       titleEn: "Scenario 16 — Crisis Management & Correction",
       type: "exercise",
@@ -1056,6 +1087,7 @@ const module5: ModuleData = {
     },
     {
       id: 4,
+      vlsSection: "simulation-scn",
       titleFr: "Scénario 17 — Audit de conformité final",
       titleEn: "Scenario 17 — Final Compliance Audit",
       type: "exercise",
@@ -1078,6 +1110,7 @@ const module5: ModuleData = {
     },
     {
       id: 5,
+      vlsSection: "module-completed",
       titleFr: "Parcours complété",
       titleEn: "Learning Pathway Complete",
       type: "summary",

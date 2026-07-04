@@ -15,8 +15,8 @@ import type { SlideContent } from "@/data/modules";
 import { MODULE_SLIDE_THEME } from "@/data/moduleTheme";
 import { resolveSlideVisual, type SlideVisualVariant } from "@/data/slideVisualMap";
 import SlideVisualPanel from "@/components/slides/SlideVisualPanel";
-import VlsM1SlideCanvas from "@/components/slides/vls/VlsM1SlideCanvas";
-import { getVlsSectionLabel, isVlsPilotModule } from "@/data/vlsSlideStandard";
+import VlsSlideCanvas from "@/components/slides/vls/VlsSlideCanvas";
+import { getVlsSectionLabel, isVlsEnabledModule } from "@/data/vlsSlideStandard";
 import {
   ChevronLeft, ChevronRight, Home, Moon, Sun, Globe,
   BookOpen, GraduationCap, Clock, Tag, Lightbulb,
@@ -174,10 +174,10 @@ export default function SlideViewer() {
   const body = lang === "FR" ? slide.bodyFr : slide.bodyEn;
   const notes = lang === "FR" ? slide.notesFr : slide.notesEn;
   const modTitle = lang === "FR" ? mod.titleFr : mod.titleEn;
-  const typeLabel = slide.vlsSection && isVlsPilotModule(mod.id)
+  const typeLabel = slide.vlsSection && isVlsEnabledModule(mod.id)
     ? getVlsSectionLabel(slide.vlsSection, lang)
     : typeLabels[slide.type]?.[lang.toLowerCase() as "fr" | "en"] ?? slide.type;
-  const useVlsLayout = Boolean(slide.vlsSection && isVlsPilotModule(mod.id));
+  const useVlsLayout = Boolean(slide.vlsSection && isVlsEnabledModule(mod.id));
   const progress = ((slideIndex + 1) / totalSlides) * 100;
   const moduleTheme = MODULE_SLIDE_THEME[mod.id] ?? MODULE_SLIDE_THEME[1];
   const accent = moduleTheme.accent;
@@ -286,7 +286,7 @@ export default function SlideViewer() {
               <div className="flex-1 overflow-y-auto py-2">
                 {mod.slides.map((s, i) => {
                   const sTitle = lang === "FR" ? s.titleFr : s.titleEn;
-                  const sType = s.vlsSection && isVlsPilotModule(mod.id)
+                  const sType = s.vlsSection && isVlsEnabledModule(mod.id)
                     ? getVlsSectionLabel(s.vlsSection, lang)
                     : typeLabels[s.type]?.[lang.toLowerCase() as "fr" | "en"] ?? s.type;
                   return (
@@ -356,7 +356,7 @@ export default function SlideViewer() {
               {/* Visual + text — VLS pilot (M1) or premium 3/2 layout */}
               {useVlsLayout && slide.vlsSection ? (
                 <div className="mb-5">
-                  <VlsM1SlideCanvas
+                  <VlsSlideCanvas
                     slide={slide}
                     section={slide.vlsSection}
                     lang={lang}
