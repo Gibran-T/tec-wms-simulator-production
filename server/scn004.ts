@@ -174,22 +174,8 @@ export function recoverScn004RunState<
 
   if (resolvedCc?.physicalQty != null) {
     const key = `${SCN_004_SKU}::${targetBin}`;
-    const hasCorrectAdj = cleanedTxs.some(
-      (tx) =>
-        tx.docType === "ADJ" &&
-        tx.sku === SCN_004_SKU &&
-        tx.bin === targetBin &&
-        tx.posted,
-    );
-    const current = inventory[key] ?? 0;
     const target = resolvedCc.physicalQty;
-    const preAdjStock = SCN_004_PHYSICAL_QTY - SCN_004_VARIANCE;
-
-    if (!hasCorrectAdj && Math.abs(current - target) > 0.01) {
-      if (Math.abs(current - preAdjStock) < 0.01 || current > target) {
-        inventory[key] = target;
-      }
-    } else if (hasCorrectAdj && Math.abs(current - target) > 0.01) {
+    if (Math.abs((inventory[key] ?? 0) - target) > 0.01) {
       inventory[key] = target;
     }
   }

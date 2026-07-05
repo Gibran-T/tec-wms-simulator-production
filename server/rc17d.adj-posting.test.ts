@@ -178,6 +178,26 @@ describe("RC17-D — recoverScn004RunState (broken run 132 pattern)", () => {
     { docType: "ADJ", sku: "SKU-006", bin: "EXP-01", qty: -15, posted: true },
   ];
 
+  it("recovers when storage bin stock was never posted (inventory 0)", () => {
+    const recovered = recoverScn004RunState({
+      scnCode: "SCN-004",
+      transactions: [
+        { docType: "ADJ", sku: "SKU-006", bin: "EXP-01", qty: -15, posted: true },
+      ],
+      cycleCounts: [{
+        sku: "SKU-006",
+        bin: "REC-02",
+        variance: -15,
+        resolved: true,
+        systemQty: 200,
+        physicalQty: 185,
+      }],
+      inventory: { "SKU-006::EXP-01": -15 },
+    });
+    expect(recovered.inventory["SKU-006::B-02-R1-L1"]).toBe(185);
+    expect(recovered.inventory["SKU-006::EXP-01"] ?? 0).toBe(0);
+  });
+
   it("recovers from ADJ-AUTO at EXP-01 and wrong CC bin REC-02", () => {
     const rawInv = invAfter(brokenTxs);
     expect(rawInv["SKU-006::EXP-01"]).toBe(-15);
