@@ -69,9 +69,9 @@ describe("RC17-C — ADJ to COMPLIANCE flow after valid -15 adjustment", () => {
     id: 1,
     runId: 132,
     sku: "SKU-006",
-    bin: "B-01-R1-L2",
-    systemQty: "15",
-    physicalQty: "0",
+    bin: "B-02-R1-L1",
+    systemQty: "200",
+    physicalQty: "185",
     variance: "-15",
     resolved: false,
     createdAt: new Date(),
@@ -81,14 +81,14 @@ describe("RC17-C — ADJ to COMPLIANCE flow after valid -15 adjustment", () => {
     const state = makeState(
       ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC"],
       [],
-      { "SKU-006::B-01-R1-L2": 0 },
+      { "SKU-006::B-02-R1-L1": 200 },
       [unresolvedCycleCount],
     );
     expect(canExecuteStep("COMPLIANCE", state).allowed).toBe(false);
     expect(checkCompliance(state).compliant).toBe(false);
   });
 
-  it("COMPLIANCE allowed after ADJ with -15 resolves variance", () => {
+  it("COMPLIANCE allowed after ADJ with -15 resolves variance to 185", () => {
     const state = makeState(
       ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC", "ADJ"],
       [
@@ -97,7 +97,7 @@ describe("RC17-C — ADJ to COMPLIANCE flow after valid -15 adjustment", () => {
           runId: 132,
           docType: "ADJ",
           sku: "SKU-006",
-          bin: "B-01-R1-L2",
+          bin: "B-02-R1-L1",
           qty: "-15",
           posted: true,
           docRef: "ADJ-AUTO",
@@ -106,7 +106,7 @@ describe("RC17-C — ADJ to COMPLIANCE flow after valid -15 adjustment", () => {
           createdAt: new Date(),
         },
       ],
-      { "SKU-006::B-01-R1-L2": 0 },
+      { "SKU-006::B-02-R1-L1": 185 },
       [{ ...unresolvedCycleCount, resolved: true }],
     );
     expect(validateAdjQuantity(-15).allowed).toBe(true);

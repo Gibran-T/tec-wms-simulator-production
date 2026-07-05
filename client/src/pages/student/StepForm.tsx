@@ -990,6 +990,28 @@ export default function StepForm() {
     if (isDemo) setKpiLedgerConfirmed(true);
   }, [isM5KpiStep, m5KpiLedger, setValue, isDemo]);
 
+  useEffect(() => {
+    if (scnCode !== "SCN-004") return;
+    const stepLower = step?.toLowerCase() ?? "";
+    if (stepLower === "putaway" || stepLower === "putaway_m1") {
+      setValue("sku", "SKU-006");
+      setValue("fromBin", "REC-01");
+      setValue("toBin", "B-02-R1-L1");
+      setValue("qty", "200");
+    }
+    if (stepLower === "cc") {
+      setValue("sku", "SKU-006");
+      setValue("bin", "B-02-R1-L1");
+      setValue("physicalQty", "185");
+    }
+    if (stepLower === "adj") {
+      setValue("sku", "SKU-006");
+      setValue("bin", "B-02-R1-L1");
+      setValue("qty", "-15");
+      setValue("docRef", "ADJ-AUTO");
+    }
+  }, [scnCode, step, setValue]);
+
   function handleSuccess(data: any) {
     // Reset all form fields (dropdowns, inputs) after successful submission
     reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });

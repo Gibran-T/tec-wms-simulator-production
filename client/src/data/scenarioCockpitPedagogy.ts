@@ -50,7 +50,7 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
     situation: { fr: "200 unités reçues ; un écart inventaire apparaîtra au comptage.", en: "200 units received; inventory variance will appear at count." },
     evidenceToObserve: { fr: "Stock système après expédition ; préparez le cycle count sur SKU-006.", en: "System stock after shipment; prepare cycle count on SKU-006." },
     operationalProblem: { fr: "Écart physique −15 à documenter et corriger.", en: "Physical variance −15 to document and correct." },
-    expectedActionHint: { fr: "Complétez le flux expédition, puis saisissez la quantité physique réelle au comptage.", en: "Complete shipping flow, then enter actual physical quantity at count." },
+    expectedActionHint: { fr: "Rangez REC-01 → B-02-R1-L1, complétez le flux expédition, puis comptez SKU-006 à B-02-R1-L1 (quantité physique 185).", en: "Put away REC-01 → B-02-R1-L1, complete shipping flow, then count SKU-006 at B-02-R1-L1 (physical qty 185)." },
     transactionMonitorHint: { fr: "Tracez PO → GR → putaway → SO → GI avant le comptage.", en: "Trace PO → GR → putaway → SO → GI before counting." },
     complianceHint: { fr: "Écart non résolu = conformité bloquée.", en: "Unresolved variance = compliance blocked." },
     learningTakeaway: { fr: "L'inventaire cyclique réconcilie le physique et le système.", en: "Cycle counting reconciles physical and system." },

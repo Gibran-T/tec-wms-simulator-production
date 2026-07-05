@@ -589,6 +589,27 @@ export function validateM1AdjPosting(
   const pending = state.cycleCounts.filter(
     (c) => c.sku === input.sku && c.variance !== 0 && !c.resolved,
   );
+
+  if (EXPEDITION_BINS.includes(input.bin)) {
+    const ccBin = pending.find((c) => c.sku === input.sku)?.bin ?? pending[0]?.bin;
+    return {
+      allowed: false,
+      reason: `Adjustment cannot be posted at expedition bin ${input.bin}`,
+      reasonFr: `L'ajustement MI07 ne peut pas être posté en zone EXPÉDITION (${input.bin}). Postez sur ${ccBin ?? "l'emplacement du comptage"}.`,
+      reasonEn: `MI07 adjustment cannot be posted at expedition bin (${input.bin}). Post at the cycle count bin.`,
+    };
+  }
+
+  if (RECEPTION_BINS.includes(input.bin) && !pending.some((c) => c.bin === input.bin)) {
+    const ccBin = pending[0]?.bin;
+    return {
+      allowed: false,
+      reason: `Adjustment cannot be posted at reception bin ${input.bin}`,
+      reasonFr: `L'ajustement MI07 ne peut pas être posté en zone RÉCEPTION (${input.bin}). Postez sur ${ccBin ?? "l'emplacement du comptage"}.`,
+      reasonEn: `MI07 adjustment cannot be posted at reception bin (${input.bin}). Post at the cycle count bin.`,
+    };
+  }
+
   if (pending.length === 0) {
     return {
       allowed: false,

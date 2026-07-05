@@ -277,24 +277,16 @@ async function buildRunState(runId: number) {
     getInventoryAdjustmentsByRun(runId),
   ]);
 
-  const inventory = calculateInventory(
-    txs.map((t) => ({
-      docType: t.docType,
-      sku: t.sku,
-      bin: t.bin,
-      qty: Number(t.qty),
-      posted: t.posted,
-    }))
-  );
-
   const completedSteps = prog.filter((p) => p.completed).map((p) => p.stepCode as any);
+  const scnCode = scenario ? resolveScenarioScnCode(scenario) : null;
+  const scenarioInitialStateJson = (scenario?.initialStateJson as Record<string, unknown> | null) ?? null;
 
-  return {
+  const baseState = {
     completedSteps,
     scenarioId: run?.scenarioId ?? null,
-    scnCode: scenario ? resolveScenarioScnCode(scenario) : null,
+    scnCode,
     scenarioName: scenario?.name ?? null,
-    scenarioInitialStateJson: (scenario?.initialStateJson as Record<string, unknown> | null) ?? null,
+    scenarioInitialStateJson,
     transactions: txs.map((t) => ({
       docType: t.docType,
       sku: t.sku,
@@ -326,8 +318,19 @@ async function buildRunState(runId: number) {
     m5InitialStateJson: scenario?.moduleId === 5
       ? (scenario.initialStateJson as M5InitialStateJson | undefined)
       : undefined,
-    inventory,
+    inventory: calculateInventory(
+      txs.map((t) => ({
+        docType: t.docType,
+        sku: t.sku,
+        bin: t.bin,
+        qty: Number(t.qty),
+        posted: t.posted,
+      })),
+    ),
   };
+
+  const { recoverScn004RunState } = await import("./scn004");
+  return recoverScn004RunState(baseState);
 }
 
 export const appRouter = router({
@@ -1807,11 +1810,18 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const state = await buildRunState(input.runId);
-        const adjCheck = validateM1AdjPosting(state, input);
+
+        const pendingCc = state.cycleCounts.filter(
+          (c) => c.sku === input.sku && c.variance !== 0 && !c.resolved,
+        );
+        const ccBin = pendingCc.find((c) => c.bin === input.bin)?.bin ?? pendingCc[0]?.bin;
+        const adjInput = ccBin ? { ...input, bin: ccBin } : input;
+
+        const adjCheck = validateM1AdjPosting(state, adjInput);
         if (!adjCheck.allowed) {
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(adjCheck, ctx.req) });
         }
-        await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: input.sku, bin: input.bin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
+        await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "701", sku: adjInput.sku, bin: adjInput.bin, qty: String(adjInput.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         // Auto-resolve all pending cycle count variances for this run after ADJ is posted
         await resolveAllCycleCountsByRun(input.runId);
         // Mark ADJ step complete
@@ -1902,10 +1912,16 @@ export const appRouter = router({
           physicalQty: z.number().min(0),
         })
       )
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+        if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const state = await buildRunState(input.runId);
+        const { validateM1CycleCountForScn004 } = await import("./scn004");
+        const ccBinCheck = validateM1CycleCountForScn004(state, input);
+        if (!ccBinCheck.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(ccBinCheck, ctx.req) });
+        }
         const key = `${input.sku}::${input.bin}`;
         const systemQty = state.inventory[key] ?? 0;
         const variance = input.physicalQty - systemQty;

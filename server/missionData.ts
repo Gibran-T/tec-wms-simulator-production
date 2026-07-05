@@ -152,7 +152,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
     scenarioId: 4,
     scnCode: "SCN-004",
     objective: "Réconciliation d'inventaire suite à un écart physique/système.",
-    context: "200 unités SKU-006 reçues. Après expédition partielle, le comptage physique révélera un écart de −15 unités.",
+    context: "200 unités SKU-006 reçues au quai REC-01. Après rangement vers B-02-R1-L1 et flux expédition, le comptage physique révélera un écart de −15 (quantité physique 185).",
     role: "Auditeur d'Inventaire",
     module: "Contrôle d'Intégrité",
     controlPoints: [
@@ -172,6 +172,7 @@ export const M1_MISSIONS: Record<number, MissionData> = {
       sku: "SKU-006",
       quantity: 200,
       suggestedBin: "B-02-R1-L1",
+      targetBin: "B-02-R1-L1",
     },
     successCriteria: ["Écart −15 résolu via ADJ", "Conformité verte"],
     failureConditions: ["CC sans ADJ", "Variance non résolue à compliance"],
