@@ -18,6 +18,9 @@ import {
   findCompletedRunForScenario,
   resolveScenarioScnCode,
 } from "@/lib/scenarioCatalog";
+import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { CAREER_CHAPTER_LABELS, DEPARTMENT_LABELS, getScenarioBinding } from "@shared/enterprise/scenarioBinding";
+import PriorityBadge from "@/components/enterprise/PriorityBadge";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
 const MODULE_CONFIG = [
@@ -265,10 +268,16 @@ export default function ScenarioList() {
     );
   }
 
+  const enterpriseEnabled = isEnterpriseExperienceEnabled();
+  const careerChapter = CAREER_CHAPTER_LABELS[selectedModule];
+
   return (
     <FioriShell
-      title={t("Mes Scénarios", "My Scenarios")}
-      breadcrumbs={[{ label: t("Accueil", "Home"), href: "/" }, { label: t("Scénarios", "Scenarios") }]}
+      title={enterpriseEnabled ? t("Tableau de missions", "Mission Board") : t("Mes Scénarios", "My Scenarios")}
+      breadcrumbs={[
+        { label: t("Accueil", "Home"), href: "/" },
+        { label: enterpriseEnabled ? t("Missions", "Missions") : t("Scénarios", "Scenarios") },
+      ]}
     >
       <div className="max-w-4xl mx-auto space-y-5">
 
@@ -282,6 +291,11 @@ export default function ScenarioList() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">{language === "FR" ? mod.titleFr : mod.titleEn}</h2>
+              {enterpriseEnabled && careerChapter && (
+                <p className="text-xs font-semibold text-primary uppercase tracking-wide mt-0.5">
+                  {language === "FR" ? careerChapter.fr : careerChapter.en}
+                </p>
+              )}
               <p className="text-sm text-muted-foreground">{language === "FR" ? mod.descFr : mod.descEn}</p>
             </div>
           </div>
@@ -289,7 +303,7 @@ export default function ScenarioList() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
               <p className="text-2xl font-bold text-primary">{totalScenarios}</p>
-              <p className="text-xs text-muted-foreground">{t("Scénarios", "Scenarios")}</p>
+              <p className="text-xs text-muted-foreground">{enterpriseEnabled ? t("Missions", "Missions") : t("Scénarios", "Scenarios")}</p>
             </div>
             <div className="flex flex-col items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 rounded-md">
               <p className="text-2xl font-bold text-green-600">{completedScenarios}</p>
@@ -370,9 +384,14 @@ export default function ScenarioList() {
           )}
         </div>
 
-        {/* ── Scenario List ────────────────────────────────────────────────── */} 
+        {/* ── Mission Board ────────────────────────────────────────────────── */}
         <div className="space-y-4">
-          <h3 className="text-lg font-bold text-foreground">{t("Scénarios du Module", "Module Scenarios")}</h3>
+          <h3 className="text-lg font-bold text-foreground">
+            {enterpriseEnabled
+              ? t("Missions ouvertes — Module", "Open assignments — Module")
+              : t("Scénarios du Module", "Module Scenarios")}{" "}
+            {selectedModule}
+          </h3>
           {moduleScenarios.length === 0 && !isLoading ? (
             <p className="text-muted-foreground italic">{t("Aucun scénario disponible pour ce module.", "No scenarios available for this module.")}</p>
           ) : (
@@ -381,18 +400,34 @@ export default function ScenarioList() {
                 const scnCode = resolveScenarioScnCode(scenario);
                 const completedRun = getCompletedRun(scenario);
                 const activeRun = completedRun ? undefined : getActiveRun(scenario);
+                const binding = scnCode && enterpriseEnabled ? getScenarioBinding(scnCode) : undefined;
+                const boardCardClass = enterpriseEnabled
+                  ? `tec-mission-board-card tec-mission-board-card--m${selectedModule}`
+                  : "";
 
                 return (
                   <div
                     key={scnCode ?? scenario.id}
-                    className="bg-card border rounded-lg p-4 flex flex-col justify-between hover:shadow-lg transition-shadow"
+                    className={`bg-card border rounded-lg p-4 flex flex-col justify-between hover:shadow-lg transition-shadow ${boardCardClass}`}
                   >
                     <div>
                       <div className="flex items-center justify-between mb-2 gap-2">
                         <div className="min-w-0">
                           {scnCode && (
-                            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-1">
-                              {scnCode}
+                            <span className="inline-flex items-center gap-2 flex-wrap">
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded mb-1">
+                                {scnCode}
+                              </span>
+                              {binding && (
+                                <>
+                                  <PriorityBadge priority={binding.priority} language={language} className="mb-1" />
+                                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 mb-1">
+                                    {language === "FR"
+                                      ? DEPARTMENT_LABELS[binding.department].fr
+                                      : DEPARTMENT_LABELS[binding.department].en}
+                                  </span>
+                                </>
+                              )}
                             </span>
                           )}
                           <h4 className="font-semibold text-foreground truncate">{scenario.name}</h4>
@@ -424,7 +459,7 @@ export default function ScenarioList() {
                         )}
                         {completedRun && completedRun.score != null && (
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                            <BarChart2 size={12} className="mr-1" /> {t("Score:", "Score:")} {completedRun.score}/100
+                            <BarChart2 size={12} className="mr-1" /> {enterpriseEnabled ? t("Résultat:", "Outcome:") : t("Score:", "Score:")} {completedRun.score}/100
                           </span>
                         )}
                       </div>

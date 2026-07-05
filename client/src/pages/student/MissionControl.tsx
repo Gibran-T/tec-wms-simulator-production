@@ -18,6 +18,10 @@ import {
 import FioriShell from "@/components/FioriShell";
 import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import MissionSheet from "@/components/MissionSheet";
+import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
+import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { isAiMentorUiEnabled } from "@/lib/aiMentor";
+import MentorHelpDrawer from "@/components/mentor/MentorHelpDrawer";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
 import { getMissionForScenario, resolveScnCode } from "../../../../server/missionData";
@@ -54,6 +58,8 @@ export default function MissionControl() {
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [showMission, setShowMission] = useState(false);
+  const [mentorOpen, setMentorOpen] = useState(false);
+  const [mentorEntryPoint, setMentorEntryPoint] = useState<"mission_control" | "oil_panel_f">("mission_control");
   
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
   const runIdNum = parseInt(runId);
@@ -237,6 +243,16 @@ export default function MissionControl() {
         <TecLogJourneyStrip activeStep="scenario" className="mb-1" />
 
         {/* ── Top Command Bar ── */}
+        {isEnterpriseExperienceEnabled() && mission?.enterprise ? (
+          <EnterpriseHeader
+            scnCode={mission.scnCode}
+            department={mission.enterprise.department}
+            priority={mission.enterprise.priority}
+            moduleId={moduleId}
+            language={language}
+            t={t}
+          />
+        ) : (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-4 rounded-none border-b-4 border-primary">
           <div className="flex items-center gap-4">
             <div className="bg-primary/20 p-2 border border-primary/40">
@@ -265,6 +281,46 @@ export default function MissionControl() {
             )}
           </div>
         </div>
+        )}
+
+        {isEnterpriseExperienceEnabled() && mission?.enterprise && (
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-4 py-2">
+            <div className="min-w-0 space-y-0.5">
+              <p className="text-[10px] font-mono text-slate-500">
+                SESSION: {runId.padStart(6, "0")} · {scenario?.name}
+              </p>
+              <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">
+                {t("Rôle professionnel", "Professional role")}: {mission.role}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowMission(true)}
+                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 text-xs font-bold transition-all hover:bg-primary/90"
+              >
+                <ClipboardList size={16} />
+                {t("FICHE DE MISSION", "MISSION SHEET")}
+              </button>
+              {isDemo && (
+                <div className="flex items-center gap-2 bg-indigo-100 dark:bg-indigo-950 border border-indigo-300 dark:border-indigo-700 px-3 py-1.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                  <FlaskConical size={14} />
+                  {t("DÉMO", "DEMO")}
+                </div>
+              )}
+              {isAiMentorUiEnabled() && (
+                <MentorHelpDrawer
+                  runId={runIdNum}
+                  isDemo={!!isDemo}
+                  runStatus={run.status}
+                  entryPoint={mentorEntryPoint}
+                  open={mentorOpen}
+                  onOpenChange={setMentorOpen}
+                  onTriggerClick={() => setMentorEntryPoint("mission_control")}
+                />
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Operational Intelligence Layer (Phase B) ── */}
         <OperationalIntelligenceLayer
@@ -289,6 +345,10 @@ export default function MissionControl() {
           m5KpiLedger={m5KpiLedger}
           kpiInterpretations={kpiInterpretations}
           m4KpiSnapshot={m4KpiSnapshot}
+          onMentorOpen={() => {
+            setMentorEntryPoint("oil_panel_f");
+            setMentorOpen(true);
+          }}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -717,6 +777,9 @@ export default function MissionControl() {
         scenario={scenario ?? null}
         open={showMission}
         onOpenChange={setShowMission}
+        isDemo={!!isDemo}
+        runId={runIdNum}
+        activeStepCode={(nextStep as { code?: string } | null)?.code ?? null}
       />
     </FioriShell>
   );

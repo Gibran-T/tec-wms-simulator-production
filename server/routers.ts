@@ -177,6 +177,7 @@ import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
 import { computeModulePassResult } from "@shared/moduleThresholds";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
+import { mentorRouter } from "./aiMentor/router";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
@@ -336,6 +337,7 @@ async function buildRunState(runId: number) {
 
 export const appRouter = router({
   system: systemRouter,
+  mentor: mentorRouter,
 
   // ─── Auth ──────────────────────────────────────────────────────────────────
   auth: router({
@@ -3636,6 +3638,49 @@ export const appRouter = router({
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_M5_COMPLETED", pointsDelta: 20, message: "Validation finale M5 complétée" });
         await completeRun(input.runId);
         return { success: true };
+      }),
+  }),
+
+  // ─── Enterprise Context Engine (RC21 Wave 3) ─────────────────────────────────
+  enterpriseContext: router({
+    assemble: protectedProcedure
+      .input(
+        z.object({
+          runId: z.number().optional(),
+          scnCode: z.string().optional(),
+          scenarioId: z.number().optional(),
+        })
+      )
+      .query(async ({ ctx, input }) => {
+        if (!input.runId && !input.scnCode && !input.scenarioId) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "runId, scnCode, or scenarioId required",
+          });
+        }
+
+        let targetUserId = ctx.user.id;
+
+        if (input.runId) {
+          const run = await getRunById(input.runId);
+          if (!run) throw new TRPCError({ code: "NOT_FOUND", message: "Run not found" });
+          if (
+            run.userId !== ctx.user.id &&
+            ctx.user.role !== "teacher" &&
+            ctx.user.role !== "admin"
+          ) {
+            throw new TRPCError({ code: "FORBIDDEN" });
+          }
+          targetUserId = run.userId;
+        }
+
+        const { assembleEnterpriseContext } = await import("./enterpriseContext");
+        return assembleEnterpriseContext({
+          userId: targetUserId,
+          runId: input.runId,
+          scnCode: input.scnCode,
+          scenarioId: input.scenarioId,
+        });
       }),
   }),
 

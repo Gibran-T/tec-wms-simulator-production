@@ -1,6 +1,8 @@
 import { useLocation } from "wouter";
 import { BookOpen, Layers, TrendingUp, BarChart2, FileText } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { CAREER_CHAPTER_LABELS } from "@shared/enterprise/scenarioBinding";
 
 export const MODULE_NAV_ITEMS = [
   {
@@ -58,12 +60,21 @@ interface ModulePathwayNavProps {
 export default function ModulePathwayNav({ activeModuleId, className = "" }: ModulePathwayNavProps) {
   const [, navigate] = useLocation();
   const { t, language } = useLanguage();
+  const enterpriseEnabled = isEnterpriseExperienceEnabled();
+  const activeChapter = CAREER_CHAPTER_LABELS[activeModuleId];
 
   return (
     <div className={`space-y-2 ${className}`}>
       <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-        {t("Parcours TEC.LOG — Modules 1 à 5", "TEC.LOG Pathway — Modules 1 to 5")}
+        {enterpriseEnabled
+          ? t("Parcours professionnel TEC.LOG — Chapitres 1 à 5", "TEC.LOG professional journey — Chapters 1 to 5")
+          : t("Parcours TEC.LOG — Modules 1 à 5", "TEC.LOG Pathway — Modules 1 to 5")}
       </p>
+      {enterpriseEnabled && activeChapter && (
+        <p className="text-xs font-semibold text-primary">
+          {language === "FR" ? activeChapter.fr : activeChapter.en}
+        </p>
+      )}
       <div className="flex flex-wrap gap-2">
         {MODULE_NAV_ITEMS.map((mod) => {
           const Icon = mod.icon;

@@ -7,11 +7,18 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
 import LearningFeedbackLayer from "@/components/learning-feedback/LearningFeedbackLayer";
 import { isM4EvidenceScn, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
-import { resolveScnCode } from "../../../../server/missionData";
+import { resolveScnCode, getMissionForScenario } from "../../../../server/missionData";
 import type { LearningFeedbackPayload } from "@shared/learningFeedbackTypes";
 import { getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
+import { buildEnterpriseDebrief } from "@shared/enterprise/debrief";
+import EnterpriseDebriefPanel from "@/components/enterprise/EnterpriseDebriefPanel";
+import MentorHelpDrawer from "@/components/mentor/MentorHelpDrawer";
+import { isAiMentorUiEnabled } from "@/lib/aiMentor";
 import { M5TransactionTimelineReport } from "@/components/m5/M5TransactionTimeline";
 import { M5ZoneFlowBarReport } from "@/components/m5/M5ZoneFlowBar";
+import ErpExplorerCard from "@/components/enterprise/ErpExplorerCard";
+import { buildProcessContext } from "@shared/enterprise/buildProcessContext";
+import { isEnterpriseDebriefEnabled, isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
@@ -343,6 +350,30 @@ export default function RunReport() {
   const resolvedModuleId = moduleId ?? scenario?.moduleId ?? 1;
   const passThreshold = getModuleScenarioPassThreshold(resolvedModuleId);
   const isPerfect = safeScore >= 100;
+  const enterpriseEnabled = isEnterpriseExperienceEnabled();
+  const mission = getMissionForScenario(scenario ?? null);
+  const processContext =
+    enterpriseEnabled && scnCode ? buildProcessContext(scnCode, null) : null;
+  const processCards = processContext?.cards ?? [];
+  const totalSteps = safeDetail?.totalSteps ?? safeDetail?.stepBreakdown?.length ?? (completedSteps as string[]).length;
+  const stepsCompleted = safeDetail?.stepsCompleted ?? (completedSteps as string[]).length;
+  const enterpriseDebrief =
+    isEnterpriseDebriefEnabled() && enterpriseEnabled && mission?.enterprise && run.status === "completed"
+      ? buildEnterpriseDebrief({
+          moduleId: resolvedModuleId,
+          scnCode: scnCode ?? mission.scnCode,
+          missionTitle: mission.enterprise.mission ?? mission.objective,
+          businessProblem: mission.context,
+          expectedOutcome: mission.enterprise.expectedBusinessOutcome ?? mission.expectedOutcome,
+          supervisor: mission.enterprise.supervisor,
+          score: safeScore,
+          passThreshold,
+          compliant: safeCompliance.compliant,
+          isDemo,
+          stepsCompleted,
+          totalSteps,
+        })
+      : null;
 
   return (
     <FioriShell
@@ -412,12 +443,18 @@ export default function RunReport() {
             </p>
           )}
           {!isDemo && (
-            <p className="text-white/70 text-xs uppercase tracking-wider mb-1">{t("Score final", "Final Score")}</p>
+            <p className="text-white/70 text-xs uppercase tracking-wider mb-1">
+              {enterpriseEnabled
+                ? t("Résultat de mission", "Mission outcome")
+                : t("Score final", "Final Score")}
+            </p>
           )}
           <p className="text-white font-bold text-5xl mb-1">{safeScore}<span className="text-2xl">/100</span></p>
           <p className="text-white/80 text-sm">
             {isDemo
               ? `${t("Score pédagogique", "Pedagogical score")} — ${safeDetail?.scoreLabel ?? ""} — ${safeCompliance.compliant ? t("Conforme", "Compliant") : t("Non conforme", "Non-compliant")}`
+              : enterpriseEnabled
+              ? `${t("Résultat opérationnel", "Operational result")} ${safeScore}/100 — ${safeCompliance.compliant ? t("Conformité validée", "Compliance validated") : t("Conformité à revoir", "Compliance review needed")}`
               : isPerfect ? `🏆 ${t("Simulation parfaite — Félicitations !", "Perfect simulation — Congratulations!")}`
               : safeCompliance.compliant ? `✅ ${t("Module complété avec succès", "Module completed successfully")}`
               : `⚠ ${t("Module complété — Non conforme", "Module completed — Non-compliant")}`}
@@ -427,6 +464,21 @@ export default function RunReport() {
           {/* Certification CTAs removed — RC17-E: credentials live only in /student/certifications */}
 
         </div>
+
+        {enterpriseDebrief && (
+          <EnterpriseDebriefPanel debrief={enterpriseDebrief} language={language} t={t} />
+        )}
+
+        {enterpriseEnabled && isAiMentorUiEnabled() && run.status === "completed" && (
+          <div className="flex justify-end">
+            <MentorHelpDrawer
+              runId={parsedRunId}
+              isDemo={isDemo}
+              runStatus={run.status}
+              entryPoint="debrief"
+            />
+          </div>
+        )}
 
         {/* Scores détaillés par étape */}
         {safeDetail && (
@@ -632,6 +684,15 @@ export default function RunReport() {
           {showLearningFeedback && safeDetail.learningFeedback && (
             <LearningFeedbackLayer
               payload={safeDetail.learningFeedback}
+              language={language}
+              t={t}
+            />
+          )}
+
+          {processCards.length > 0 && (
+            <ErpExplorerCard
+              cards={processCards}
+              activeProcessId={processContext?.activeProcessId}
               language={language}
               t={t}
             />

@@ -1,5 +1,8 @@
 import { resolveScenarioScnCode } from "./canonicalScenarios";
+import { enrichMissionWithEnterprise, type MissionWithEnterprise } from "../shared/enterprise/enrichMission";
 import { EXTENDED_MISSIONS } from "./missionDataExtended";
+
+export type { MissionWithEnterprise } from "../shared/enterprise/enrichMission";
 
 export interface MissionData {
   scenarioId: number;
@@ -236,7 +239,9 @@ export function resolveScnCode(
 /** Mission briefing for any scenario SCN-001–017 (display only). */
 export function getMissionForScenario(
   scenario: { id: number; name?: string | null; moduleId?: number; descriptionFr?: string | null; descriptionEn?: string | null; difficulty?: string | null } | null | undefined
-): MissionData | null {
+): MissionWithEnterprise | null {
+  if (!scenario) return null;
+
   const moduleId =
     scenario.moduleId ??
     (scenario.id && scenario.id >= 6 && scenario.id <= 17
@@ -260,10 +265,10 @@ export function getMissionForScenario(
 
   const extended = EXTENDED_MISSIONS[scn];
   if (extended) {
-    return {
+    return enrichMissionWithEnterprise({
       ...extended,
       context: extended.context || scenario.descriptionFr || "",
-    };
+    });
   }
   return null;
 }
@@ -271,14 +276,15 @@ export function getMissionForScenario(
 /** Resolve M1 mission sheet by DB scenario id or name (Scénario N). */
 export function getM1Mission(
   scenario: { id: number; name?: string | null; moduleId?: number } | null | undefined
-): MissionData | null {
+): MissionWithEnterprise | null {
   if (!scenario || scenario.moduleId !== 1) return null;
   const direct = M1_MISSIONS[scenario.id];
-  if (direct) return direct;
+  if (direct) return enrichMissionWithEnterprise(direct);
   const match = scenario.name?.match(/Scénario\s*(\d+)/i);
   if (match) {
     const n = parseInt(match[1], 10);
-    return M1_MISSIONS[n] ?? null;
+    const mission = M1_MISSIONS[n];
+    return mission ? enrichMissionWithEnterprise(mission) : null;
   }
   return null;
 }

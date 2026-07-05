@@ -1,0 +1,61 @@
+/* TEC Enterprise Design System (TEDS) — Architecture Foundation v1.0 · Manifesto Part VII */
+
+:root {
+  --tec-m1: #3b82f6;
+  --tec-m2: #2563eb;
+  --tec-m3: #059669;
+  --tec-m4: #d97706;
+  --tec-m5: #7b1fa2;
+  --tec-navy: #1e293b;
+  --tec-slate: #64748b;
+  --tec-surface: #f8fafc;
+  --tec-border: #e2e8f0;
+  --tec-success: #16a34a;
+  --tec-warning: #d97706;
+  --tec-critical: #dc2626;
+}
+
+.tec-enterprise-header {
+  background: var(--tec-navy);
+  color: #fff;
+  border-bottom: 3px solid var(--tec-m1);
+}
+
+.tec-enterprise-header--m1 { border-bottom-color: var(--tec-m1); }
+.tec-enterprise-header--m2 { border-bottom-color: var(--tec-m2); }
+.tec-enterprise-header--m3 { border-bottom-color: var(--tec-m3); }
+.tec-enterprise-header--m4 { border-bottom-color: var(--tec-m4); }
+.tec-enterprise-header--m5 { border-bottom-color: var(--tec-m5); }
+
+.tec-briefing-panel {
+  background: var(--tec-surface);
+  border: 1px solid var(--tec-border);
+}
+
+.tec-supervisor-callout {
+  border-left: 4px solid var(--tec-warning);
+  background: #fffbeb;
+}
+
+.dark .tec-briefing-panel {
+  background: rgb(15 23 42 / 0.5);
+  border-color: rgb(51 65 85);
+}
+
+.dark .tec-supervisor-callout {
+  background: rgb(120 53 15 / 0.15);
+}
+
+.tec-priority-normal { background: #e2e8f0; color: #334155; }
+.tec-priority-elevee { background: #fef3c7; color: #92400e; }
+.tec-priority-critique { background: #fee2e2; color: #991b1b; }
+.tec-priority-pointe { background: #f3e8ff; color: #6b21a8; }
+
+.tec-mission-board-card {
+  border-left: 4px solid var(--tec-m1);
+}
+
+.tec-mission-board-card--m2 { border-left-color: var(--tec-m2); }
+.tec-mission-board-card--m3 { border-left-color: var(--tec-m3); }
+.tec-mission-board-card--m4 { border-left-color: var(--tec-m4); }
+.tec-mission-board-card--m5 { border-left-color: var(--tec-m5); }

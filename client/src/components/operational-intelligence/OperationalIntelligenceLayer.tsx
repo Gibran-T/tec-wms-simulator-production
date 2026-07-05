@@ -5,8 +5,9 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { trpc } from "@/lib/trpc";
-import type { MissionData } from "../../../../server/missionData";
+import type { MissionData, MissionWithEnterprise } from "../../../../server/missionData";
 import { resolveScnCode } from "../../../../server/missionData";
+import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
 import { COMPETENCY_MAP } from "@/data/competencyMap";
 import { getStepErpHint } from "@/data/stepErpMap";
 import { M4_KPI_CONTROL_TOWER, ANNEXE_A_KPI_GUIDE } from "@/data/m4KpiControlTower";
@@ -22,6 +23,8 @@ import { getEvalScoreThreshold, getModuleCertContext } from "@/data/moduleThresh
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
+import MentorChip from "@/components/mentor/MentorChip";
+import { isAiMentorUiEnabled } from "@/lib/aiMentor";
 import M4EvidenceLayer from "@/components/operational-intelligence/m4/M4EvidenceLayer";
 import { isM4EvidenceScn, type M4KpiInterpretationRow, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
 import M5DynamicKpiTower from "@/components/m5/M5DynamicKpiTower";
@@ -74,6 +77,8 @@ export interface IntelligenceRunState {
       varianceResolved: boolean;
     };
   };
+  /** OIL Panel F — AI Mentor entry point (Manifesto §6.7) */
+  onMentorOpen?: () => void;
 }
 
 function PanelShell({
@@ -118,6 +123,48 @@ function PanelA({ mission, scenario, t, language }: { mission: MissionData | nul
     );
   }
   const scn = mission.scnCode ?? resolveScnCode(scenario);
+  const ent = (mission as MissionWithEnterprise).enterprise;
+  if (isEnterpriseExperienceEnabled() && ent) {
+    const businessContext = language === "FR" ? ent.businessContext?.fr : ent.businessContext?.en;
+    return (
+      <div className="space-y-3 text-xs">
+        {scn && <p className="font-mono text-[10px] text-primary font-bold">{scn}</p>}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Mission", "Mission")}</p>
+          <p className="text-sm font-semibold text-foreground">{ent.mission ?? mission.objective}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Situation", "Situation")}</p>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-slate-300 pl-3">
+            {ent.situation ?? mission.context}
+          </p>
+        </div>
+        {businessContext && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Contexte d'affaires", "Business context")}</p>
+            <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{businessContext}</p>
+          </div>
+        )}
+        <div>
+          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Rôle professionnel", "Professional role")}</p>
+          <p className="text-slate-700 dark:text-slate-300">{mission.role}</p>
+        </div>
+        {(ent.kpis?.length ?? 0) > 0 && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Indicateurs", "Indicators")}</p>
+            <ul className="space-y-1">
+              {ent.kpis!.map((kpi, i) => (
+                <li key={i} className="text-slate-700 dark:text-slate-300">• {kpi}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <p className="text-[10px] text-slate-500 italic">
+          {t("Référence d'exécution — consultez la Fiche Mission.", "Execution reference — see Mission Sheet.")}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="space-y-3 text-xs">
       {scn && (
@@ -695,7 +742,7 @@ function PanelE({
 }
 
 function PanelF({
-  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language, scnCode,
+  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language, scnCode, onMentorOpen,
 }: {
   mission: MissionData | null;
   stepLabels: { key: string; labelFr: string; labelEn: string }[];
@@ -706,6 +753,7 @@ function PanelF({
   t: (fr: string, en: string) => string;
   language: string;
   scnCode?: string | null;
+  onMentorOpen?: () => void;
 }) {
   const flowSteps = stepLabels.map((s) => language === "FR" ? s.labelFr : s.labelEn);
   const currentLabel = stepLabels.find((s) => s.key === nextStepCode);
@@ -713,6 +761,11 @@ function PanelF({
 
   return (
     <div className="space-y-3 text-xs">
+      {isAiMentorUiEnabled() && (
+        <div className="flex justify-end">
+          <MentorChip available={isDemo || !nextStepCode} onOpen={onMentorOpen} />
+        </div>
+      )}
       <OperationalFlowDisplay steps={flowSteps} currentStep={currentDisplay} />
 
       <div className="flex flex-wrap gap-1.5 mt-2">
@@ -850,6 +903,7 @@ export default function OperationalIntelligenceLayer(props: IntelligenceRunState
             t={t}
             language={language}
             scnCode={scnCode}
+            onMentorOpen={props.onMentorOpen}
           />
         </PanelShell>
       </div>
