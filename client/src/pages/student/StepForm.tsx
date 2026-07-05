@@ -1012,6 +1012,44 @@ export default function StepForm() {
     }
   }, [scnCode, step, setValue]);
 
+  useEffect(() => {
+    if (scnCode !== "SCN-005" || !runData) return;
+    const stepLower = step?.toLowerCase() ?? "";
+    const seed = runData.scenario?.initialStateJson as {
+      putawayTargets?: Array<{ sku: string; fromBin: string; toBin: string; qty: number }>;
+      cycleCountTarget?: { sku: string; bin: string; variance: number };
+    } | null | undefined;
+    const targets = seed?.putawayTargets ?? [
+      { sku: "SKU-004", fromBin: "REC-01", toBin: "B-01-R1-L1", qty: 30 },
+      { sku: "SKU-005", fromBin: "REC-02", toBin: "B-01-R1-L2", qty: 60 },
+    ];
+    const inventory = (runData.inventory ?? {}) as Record<string, number>;
+    const pendingPutaway = targets.find((t) => (inventory[`${t.sku}::${t.fromBin}`] ?? 0) > 0);
+
+    if ((stepLower === "putaway" || stepLower === "putaway_m1") && pendingPutaway) {
+      setValue("sku", pendingPutaway.sku);
+      setValue("fromBin", pendingPutaway.fromBin);
+      setValue("toBin", pendingPutaway.toBin);
+      setValue("qty", String(pendingPutaway.qty));
+    }
+    if (stepLower === "cc") {
+      const ccTarget = seed?.cycleCountTarget ?? { sku: "SKU-005", bin: "B-01-R1-L2", variance: -8 };
+      const systemQty = inventory[`${ccTarget.sku}::${ccTarget.bin}`] ?? 0;
+      setValue("sku", ccTarget.sku);
+      setValue("bin", ccTarget.bin);
+      if (systemQty > 0) {
+        setValue("physicalQty", String(Math.max(0, systemQty + ccTarget.variance)));
+      }
+    }
+    if (stepLower === "adj") {
+      const ccTarget = seed?.cycleCountTarget ?? { sku: "SKU-005", bin: "B-01-R1-L2", variance: -8 };
+      setValue("sku", ccTarget.sku);
+      setValue("bin", ccTarget.bin);
+      setValue("qty", String(ccTarget.variance));
+      setValue("docRef", "ADJ-AUTO");
+    }
+  }, [scnCode, step, setValue, runData]);
+
   function handleSuccess(data: any) {
     // Reset all form fields (dropdowns, inputs) after successful submission
     reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });

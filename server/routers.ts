@@ -330,7 +330,8 @@ async function buildRunState(runId: number) {
   };
 
   const { recoverScn004RunState } = await import("./scn004");
-  return recoverScn004RunState(baseState);
+  const { recoverScn005RunState } = await import("./scn005");
+  return recoverScn005RunState(recoverScn004RunState(baseState));
 }
 
 export const appRouter = router({
@@ -1630,18 +1631,38 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
           }
         }
+        const { validateScn005PutawayInput, isScn005DualPutawayComplete, isScn005Scenario, getScn005PendingPutaways } = await import("./scn005");
+        const scn005PutawayCheck = validateScn005PutawayInput(state, input);
+        if (!scn005PutawayCheck.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: scn005PutawayCheck.reasonFr });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn005PutawayCheck, ctx.req) });
+          }
+        }
         // Record movement: debit fromBin (REC-01 → 0), credit toBin (STOCKAGE)
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: `Rangement sortie ${input.fromBin}` });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: `Rangement ${input.fromBin} → ${input.toBin}${input.comment ? " | " + input.comment : ""}` });
-        await markStepComplete(input.runId, stepCode);
-        if (stepCode === "PUTAWAY_M1") {
-          await markStepComplete(input.runId, "STOCK");
+        const updatedState = await buildRunState(input.runId);
+        const isScn005 = isScn005Scenario(state);
+        const dualPutawayDone = !isScn005 || isScn005DualPutawayComplete(updatedState);
+        // SCN-005: defer PUTAWAY_M1/STOCK completion until both SKU lines are put away
+        if (dualPutawayDone) {
+          await markStepComplete(input.runId, stepCode);
+          if (stepCode === "PUTAWAY_M1") {
+            await markStepComplete(input.runId, "STOCK");
+          }
+          await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
         }
-        await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+        const remainingPutaways = isScn005 ? getScn005PendingPutaways(updatedState) : [];
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)
           ? [!validation.allowed ? pickReason(validation, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
-        return { success: true, demoWarning: demoWarn };
+        return {
+          success: true,
+          demoWarning: demoWarn,
+          complete: remainingPutaways.length === 0,
+          remainingSkus: remainingPutaways.map((p) => p.sku),
+        };
       }),
 
     // Submit SO
@@ -1918,9 +1939,14 @@ export const appRouter = router({
         if (run.userId !== ctx.user.id) throw new TRPCError({ code: "FORBIDDEN" });
         const state = await buildRunState(input.runId);
         const { validateM1CycleCountForScn004 } = await import("./scn004");
+        const { validateM1CycleCountForScn005 } = await import("./scn005");
         const ccBinCheck = validateM1CycleCountForScn004(state, input);
         if (!ccBinCheck.allowed) {
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(ccBinCheck, ctx.req) });
+        }
+        const ccBinCheck005 = validateM1CycleCountForScn005(state, input);
+        if (!ccBinCheck005.allowed) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(ccBinCheck005, ctx.req) });
         }
         const key = `${input.sku}::${input.bin}`;
         const systemQty = state.inventory[key] ?? 0;

@@ -185,6 +185,11 @@ async function seed() {
           { docType: "GR", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "GR-2025-005" },
         ],
         context: "GR-2025-004 non postée (SKU-004) + 60 u. SKU-005 au quai REC-02 — écart inventaire SKU-005 (−8) au comptage.",
+        putawayTargets: [
+          { sku: "SKU-004", fromBin: "REC-01", toBin: "B-01-R1-L1", qty: 30 },
+          { sku: "SKU-005", fromBin: "REC-02", toBin: "B-01-R1-L2", qty: 60 },
+        ],
+        cycleCountTarget: { sku: "SKU-005", bin: "B-01-R1-L2", variance: -8 },
       },
       createdBy: 1,
     },

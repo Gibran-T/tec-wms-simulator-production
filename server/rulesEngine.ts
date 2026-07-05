@@ -1,3 +1,9 @@
+import {
+  getScn005PendingPutaways,
+  isScn005Scenario,
+  scn005PutawayBlockMessage,
+} from "./scn005";
+
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
 export const ZONE_PICKING = "PICKING";
@@ -184,6 +190,15 @@ export function canExecuteStep(step, state) {
         reasonFr: `La GR doit avoir été postée vers un emplacement RÉCEPTION (${RECEPTION_BINS.join(", ")}) avant le rangement`,
         reasonEn: `GR must have been posted to a RECEPTION bin (${RECEPTION_BINS.join(", ")}) before putaway.`
       };
+    }
+  }
+  if (step === "STOCK" || step === "SO" || step === "PICKING_M1" || step === "GI") {
+    if (isScn005Scenario(state)) {
+      const pendingPutaway = getScn005PendingPutaways(state);
+      if (pendingPutaway.length > 0) {
+        const msg = scn005PutawayBlockMessage(pendingPutaway);
+        return { allowed: false, reason: msg.reasonEn, reasonFr: msg.reasonFr, reasonEn: msg.reasonEn };
+      }
     }
   }
   if (step === "STOCK") {
@@ -1286,6 +1301,14 @@ export function checkCompliance(state) {
       issuesFr.push(`${cc.sku} à ${cc.bin} : le stock (${actual}) ne correspond pas à la quantité physique corrigée (${cc.physicalQty})`);
     }
   }
+  if (isScn005Scenario(state)) {
+    const pendingPutaway = getScn005PendingPutaways(state);
+    if (pendingPutaway.length > 0) {
+      const skus = pendingPutaway.map((p) => p.sku).join(", ");
+      issues.push(`Reception stock not put away: ${skus}`);
+      issuesFr.push(`Stock encore au quai — rangement PUTAWAY requis pour : ${skus}`);
+    }
+  }
   return { compliant: issues.length === 0, issues, issuesFr };
 }
 export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
@@ -1301,6 +1324,14 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
     const ghostGrPending = state.transactions.some((t) => t.docType === "GR" && !t.posted);
     if (ghostGrPending) {
       return steps.find((s) => s.code === "GR") ?? null;
+    }
+  }
+
+  // SCN-005: dual putaway — block SO/PICKING until both SKUs leave reception
+  if (moduleId === 1 && state && isScn005Scenario(state)) {
+    const pendingPutaway = getScn005PendingPutaways(state);
+    if (pendingPutaway.length > 0) {
+      return steps.find((s) => s.code === "PUTAWAY_M1") ?? null;
     }
   }
 
