@@ -6,11 +6,12 @@ import {
   BookOpen, Users, BarChart2, ClipboardList, Monitor,
   FlaskConical, ShieldCheck, Layers, TrendingUp, FileText,
   MonitorPlay, Presentation, Plus, ArrowRight, Clock,
-  TrendingDown, Minus,
+  TrendingDown, Minus, Bot,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
+import { useCohort } from "@/contexts/CohortContext";
 import { skipToken } from "@tanstack/react-query";
 import { SLIDE_COUNT_BY_MODULE } from "@/data/slideCounts";
 import { getModuleScenarioPassThreshold } from "@/data/moduleThresholds";
@@ -55,6 +56,15 @@ export default function TeacherDashboard() {
   const { t, language } = useLanguage();
 
   const cohortInput = useTeacherCohortInput();
+  const { selectedCohortId, selectedCohort } = useCohort();
+  const utils = trpc.useUtils();
+
+  const { data: mentorCohortSetting } = trpc.mentor.getCohortSetting.useQuery(
+    selectedCohortId != null ? { cohortId: selectedCohortId } : skipToken,
+  );
+  const setMentorCohortDisabled = trpc.mentor.setCohortAiDisabled.useMutation({
+    onSuccess: () => void utils.mentor.getCohortSetting.invalidate(),
+  });
 
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: assignments } = trpc.assignments.all.useQuery(cohortInput);
@@ -64,7 +74,6 @@ export default function TeacherDashboard() {
   );
   const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery(cohortInput);
   const { data: goldRoster } = trpc.profiles.goldRoster.useQuery(cohortInput);
-  const utils = trpc.useUtils();
   const validateM3 = trpc.warehouse.validateTeacherModule.useMutation({
     onSuccess: () => void utils.warehouse.allModuleProgress.invalidate(),
   });
@@ -193,6 +202,35 @@ export default function TeacherDashboard() {
           </button>
         ))}
       </div>
+
+      {selectedCohortId != null && (
+        <div className="mb-6 flex items-center justify-between rounded-md border border-border bg-card px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Bot size={16} className="text-primary" />
+            <div>
+              <p className="text-xs font-bold">{t("Mentor IA — cohorte", "AI Mentor — cohort")}</p>
+              <p className="text-[10px] text-muted-foreground">
+                {selectedCohort?.name ?? t("Cohorte sélectionnée", "Selected cohort")}
+              </p>
+            </div>
+          </div>
+          <label className="flex items-center gap-2 text-xs cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mentorCohortSetting?.disabled ?? false}
+              disabled={setMentorCohortDisabled.isPending}
+              onChange={(e) =>
+                setMentorCohortDisabled.mutate({
+                  cohortId: selectedCohortId,
+                  disabled: e.target.checked,
+                })
+              }
+              data-testid="cohort-ai-mentor-disable"
+            />
+            {t("Désactiver le mentor IA", "Disable AI mentor")}
+          </label>
+        </div>
+      )}
 
       {/* ── Module Progress Cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">

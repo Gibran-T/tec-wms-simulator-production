@@ -1,6 +1,12 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { resolveMentorMode, isMentorAvailable } from "./aiMentor/modeRouter";
 import { applyPreCallGuardrails, classifyUserIntent } from "./aiMentor/guardrails";
+import { assemblePromptPreview } from "./aiMentor/promptAssembly";
+import {
+  getCohortAiMentorDisabled,
+  resetCohortMentorSettings,
+  setCohortAiMentorDisabled,
+} from "./aiMentor/cohortSettings";
 import { resolvePersonaForScenario } from "../shared/aiMentor/personaMap";
 import { applyProhibitedContextFilter } from "./enterpriseContext/prohibitedFilter";
 import { buildScenarioContext } from "./enterpriseContext/scenarioContext";
@@ -120,6 +126,61 @@ describe("AI Mentor — guardrails", () => {
 describe("AI Mentor — prohibited context integration", () => {
   it("passes clean enterprise context payloads", () => {
     expect(() => applyProhibitedContextFilter(samplePayload())).not.toThrow();
+  });
+});
+
+describe("AI Mentor — prompt assembly", () => {
+  it("assembles learning mode preview for SCN-009", () => {
+    const preview = assemblePromptPreview({
+      context: samplePayload(),
+      mode: "learning",
+      personaId: "INVENTORY_ADVISOR",
+      language: "en",
+    });
+    expect(preview.blocked).toBe(false);
+    expect(preview.personaId).toBe("INVENTORY_ADVISOR");
+    expect(preview.systemPrompt).toContain("Sophie Lachance");
+    expect(preview.systemPrompt).toContain("Learning mode");
+    expect(preview.contextSummary).toContain("SCN-009");
+    expect(preview.contextSummary).toContain("CC_RECON");
+  });
+
+  it("marks blocked certification previews", () => {
+    const preview = assemblePromptPreview({
+      context: samplePayload(),
+      mode: "certification",
+      personaId: "INVENTORY_ADVISOR",
+      language: "en",
+      blocked: true,
+      blockReason: "locked during evaluation",
+    });
+    expect(preview.blocked).toBe(true);
+    expect(preview.blockReason).toBe("locked during evaluation");
+  });
+
+  it("avoids transaction execution language in system prompt", () => {
+    const preview = assemblePromptPreview({
+      context: samplePayload(),
+      mode: "learning",
+      personaId: "FLOOR_MENTOR",
+      language: "en",
+    });
+    expect(preview.systemPrompt.toLowerCase()).not.toMatch(/click migo|poster migo/);
+    expect(preview.systemPrompt).toContain("not a solver");
+  });
+});
+
+describe("AI Mentor — cohort disable", () => {
+  beforeEach(() => {
+    resetCohortMentorSettings();
+  });
+
+  it("disables mentor for a cohort id", () => {
+    expect(getCohortAiMentorDisabled(42)).toBe(false);
+    setCohortAiMentorDisabled(42, true);
+    expect(getCohortAiMentorDisabled(42)).toBe(true);
+    setCohortAiMentorDisabled(42, false);
+    expect(getCohortAiMentorDisabled(42)).toBe(false);
   });
 });
 

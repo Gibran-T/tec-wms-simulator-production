@@ -10,6 +10,8 @@ import {
   REFUSAL_COHORT_DISABLED,
 } from "../../shared/aiMentor/refusalTemplates";
 import { assembleEnterpriseContext } from "../enterpriseContext";
+import { getProfileByUserId } from "../db";
+import { isCohortAiMentorDisabled } from "./cohortSettings";
 import { getMentorAuditTrail, logMentorInteraction } from "./auditLog";
 import { applyPreCallGuardrails, scanResponseForLeaks } from "./guardrails";
 import { getModeBlockReason, isMentorAvailable, resolveMentorMode } from "./modeRouter";
@@ -44,7 +46,9 @@ type MentorRunContext = {
 };
 
 export async function getMentorAvailability(ctx: MentorRunContext): Promise<MentorAvailability> {
-  const aiEnabled = isAiMentorGloballyEnabled();
+  const profile = await getProfileByUserId(ctx.userId);
+  const cohortDisabled = profile?.cohortId != null && isCohortAiMentorDisabled(profile.cohortId);
+  const aiEnabled = isAiMentorGloballyEnabled() && !cohortDisabled;
   const mode = resolveMentorMode({
     isDemo: ctx.isDemo,
     runStatus: ctx.runStatus,
@@ -62,7 +66,9 @@ export async function getMentorAvailability(ctx: MentorRunContext): Promise<Ment
   const hintsUsed = hintCounters.get(sessionKey(ctx.runId, stepCode)) ?? 0;
 
   let reason: string | undefined;
-  if (!aiEnabled) {
+  if (cohortDisabled) {
+    reason = ctx.language === "fr" ? REFUSAL_COHORT_DISABLED.fr : REFUSAL_COHORT_DISABLED.en;
+  } else if (!isAiMentorGloballyEnabled()) {
     reason = ctx.language === "fr" ? REFUSAL_COHORT_DISABLED.fr : REFUSAL_COHORT_DISABLED.en;
   } else if (!available) {
     reason = getModeBlockReason(mode, ctx.language)

@@ -1,14 +1,25 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { router, protectedProcedure } from "../_core/trpc";
+import { assertTeacherOwnsCohort } from "../cohortScope";
 import { getRunById, getScenarioById } from "../db";
 import { resolveScenarioScnCode } from "../canonicalScenarios";
+import {
+  getCohortAiMentorDisabled,
+  setCohortAiMentorDisabled,
+} from "./cohortSettings";
 import {
   getMentorAvailability,
   handleMentorChat,
   getAuditTrailForRun,
   previewMentorPrompt,
 } from "./mentorService";
+
+function teacherOnly(user: { role: string }) {
+  if (user.role !== "teacher" && user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN" });
+  }
+}
 
 function assertRunAccess(
   run: { userId: number },
@@ -118,5 +129,30 @@ export const mentorRouter = router({
       const run = await getRunById(input.runId);
       if (!run) throw new TRPCError({ code: "NOT_FOUND" });
       return getAuditTrailForRun(input.runId);
+    }),
+
+  getCohortSetting: protectedProcedure
+    .input(z.object({ cohortId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      teacherOnly(ctx.user);
+      await assertTeacherOwnsCohort(
+        ctx.user.id,
+        input.cohortId,
+        ctx.user.role === "admin",
+      );
+      return { disabled: getCohortAiMentorDisabled(input.cohortId) };
+    }),
+
+  setCohortAiDisabled: protectedProcedure
+    .input(z.object({ cohortId: z.number(), disabled: z.boolean() }))
+    .mutation(async ({ ctx, input }) => {
+      teacherOnly(ctx.user);
+      await assertTeacherOwnsCohort(
+        ctx.user.id,
+        input.cohortId,
+        ctx.user.role === "admin",
+      );
+      setCohortAiMentorDisabled(input.cohortId, input.disabled);
+      return { disabled: input.disabled };
     }),
 });
