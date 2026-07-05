@@ -649,7 +649,9 @@ export function validateM1AdjPosting(
 
   const key = `${input.sku}::${input.bin}`;
   const currentStock = state.inventory[key] ?? 0;
-  const projectedStock = currentStock + input.qty;
+  const ledgerProjected = currentStock + input.qty;
+  const bookStock = cc.systemQty ?? currentStock;
+  const projectedStock = bookStock + input.qty;
   const physicalQty =
     cc.physicalQty != null
       ? cc.physicalQty
@@ -657,12 +659,12 @@ export function validateM1AdjPosting(
         ? cc.systemQty + cc.variance
         : projectedStock;
 
-  if (projectedStock < 0) {
+  if (ledgerProjected < 0) {
     return {
       allowed: false,
-      reason: `Adjustment would create negative stock (${projectedStock}) at ${input.bin}`,
-      reasonFr: `Cet ajustement créerait un stock négatif (${projectedStock}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
-      reasonEn: `This adjustment would create negative stock (${projectedStock}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
+      reason: `Adjustment would create negative stock (${ledgerProjected}) at ${input.bin}`,
+      reasonFr: `Cet ajustement créerait un stock négatif (${ledgerProjected}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
+      reasonEn: `This adjustment would create negative stock (${ledgerProjected}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
     };
   }
 

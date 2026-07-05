@@ -32,14 +32,73 @@ export type Scn004CycleCount = {
   physicalQty?: number;
 };
 
+export type Scn004CycleCountTarget = {
+  sku: string;
+  bin: string;
+  physicalQty: number;
+  variance: number;
+  systemQty?: number;
+};
+
 export function isScn004(scnCode: string | null | undefined): boolean {
   return scnCode === "SCN-004";
 }
 
 export function getScn004TargetBin(initialState?: Record<string, unknown> | null): string {
-  const fromSeed = initialState?.cycleCountTarget as { bin?: string } | undefined;
-  if (fromSeed?.bin && typeof fromSeed.bin === "string") return fromSeed.bin;
-  return SCN_004_TARGET_BIN;
+  return getScn004CycleCountTarget(initialState).bin;
+}
+
+/** Pedagogical CC contract — system 200 / physical 185 / variance −15 at B-02-R1-L1. */
+export function getScn004CycleCountTarget(
+  initialState?: Record<string, unknown> | null,
+): Scn004CycleCountTarget {
+  const fromSeed = initialState?.cycleCountTarget as Scn004CycleCountTarget | undefined;
+  if (
+    fromSeed?.sku &&
+    fromSeed?.bin &&
+    typeof fromSeed.physicalQty === "number" &&
+    typeof fromSeed.variance === "number"
+  ) {
+    return {
+      ...fromSeed,
+      systemQty: fromSeed.systemQty ?? fromSeed.physicalQty - fromSeed.variance,
+    };
+  }
+  return {
+    sku: SCN_004_SKU,
+    bin: SCN_004_TARGET_BIN,
+    physicalQty: SCN_004_PHYSICAL_QTY,
+    variance: SCN_004_VARIANCE,
+    systemQty: SCN_004_PHYSICAL_QTY - SCN_004_VARIANCE,
+  };
+}
+
+/**
+ * Resolve M1 cycle count quantities for SCN-004.
+ * When the CC target matches, inject pedagogical systemQty (200) even if live inventory is 185 after GI.
+ */
+export function resolveScn004CycleCount(
+  initialState: Record<string, unknown> | null | undefined,
+  input: { sku: string; bin: string; physicalQty: number },
+  inventorySystemQty: number,
+): { systemQty: number; physicalQty: number; variance: number; injected: boolean } {
+  const target = getScn004CycleCountTarget(initialState);
+  if (input.sku !== target.sku || input.bin !== target.bin) {
+    return {
+      systemQty: inventorySystemQty,
+      physicalQty: input.physicalQty,
+      variance: input.physicalQty - inventorySystemQty,
+      injected: false,
+    };
+  }
+  const systemQty = target.systemQty ?? target.physicalQty - target.variance;
+  const physicalQty = target.physicalQty;
+  return {
+    systemQty,
+    physicalQty,
+    variance: physicalQty - systemQty,
+    injected: true,
+  };
 }
 
 export function isBadScn004AdjAtExpedition(tx: Scn004Tx): boolean {

@@ -1951,20 +1951,26 @@ export const appRouter = router({
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(ccBinCheck005, ctx.req) });
         }
         const key = `${input.sku}::${input.bin}`;
-        const systemQty = state.inventory[key] ?? 0;
-        const variance = input.physicalQty - systemQty;
+        const inventorySystemQty = state.inventory[key] ?? 0;
+        const { resolveScn004CycleCount } = await import("./scn004");
+        const resolved = resolveScn004CycleCount(
+          state.scenarioInitialStateJson,
+          input,
+          inventorySystemQty,
+        );
+        const { systemQty, physicalQty, variance } = resolved;
         await addCycleCount({
           runId: input.runId,
           sku: input.sku,
           bin: input.bin,
           systemQty: String(systemQty),
-          physicalQty: String(input.physicalQty),
+          physicalQty: String(physicalQty),
           variance: String(variance),
         });
         await markStepComplete(input.runId, "CC");
         const ruleCC = getScoringRule("CC_COMPLETED");
         await addScoringEventOnce({ runId: input.runId, eventType: "CC_COMPLETED", pointsDelta: ruleCC!.points, message: ruleCC!.descriptionFr });
-        return { success: true, variance };
+        return { success: true, variance, systemQty, physicalQty, injected: resolved.injected };
       }),
 
     resolve: protectedProcedure
