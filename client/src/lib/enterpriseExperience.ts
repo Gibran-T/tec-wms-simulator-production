@@ -8,3 +8,8 @@ export function isEnterpriseExperienceEnabled(): boolean {
 export function isEnterpriseDebriefEnabled(): boolean {
   return import.meta.env.VITE_ENABLE_ENTERPRISE_DEBRIEF === "true";
 }
+
+/** RC21-B.1 — EOAS presentation layer (Today's Priorities + Assignment Queue). Default OFF. */
+export function isEnterpriseAssignmentsEnabled(): boolean {
+  return import.meta.env.VITE_ENABLE_ENTERPRISE_ASSIGNMENTS === "true";
+}

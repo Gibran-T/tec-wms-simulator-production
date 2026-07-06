@@ -4,6 +4,7 @@ import {
   buildCompetencies,
   deriveEmployeeId,
   resolveActiveModuleId,
+  resolveDepartmentForModule,
 } from "./employeeProfile";
 
 describe("RC20-A.2 — employee profile derivation", () => {
@@ -126,5 +127,41 @@ describe("RC20-A.2 — employee profile derivation", () => {
     });
 
     expect(profile.completedMissions).toHaveLength(0);
+  });
+});
+
+describe("RC21-B.3 — department derivation", () => {
+  it("derives department from scenarioBinding when assignment SCN exists", () => {
+    const dept = resolveDepartmentForModule(1, "SCN-002");
+    expect(dept.code).toBe("QA");
+  });
+
+  it("falls back to MODULE_HOME_DEPARTMENT when no assignment SCN", () => {
+    expect(resolveDepartmentForModule(1, null).code).toBe("WH");
+    expect(resolveDepartmentForModule(3, undefined).code).toBe("INV");
+    expect(resolveDepartmentForModule(5, null).code).toBe("MGT");
+  });
+
+  it("assembles profile department from active assignment SCN binding", () => {
+    const profile = assembleEmployeeProfile({
+      userId: 1,
+      displayName: "Test Student",
+      moduleProgress: [{ moduleId: 1, passed: false }],
+      runs: [
+        {
+          runId: 50,
+          scenarioId: 2,
+          moduleId: 1,
+          scnCode: "SCN-002",
+          missionTitle: "Ghost GR",
+          status: "in_progress",
+          isDemo: false,
+          completedAt: null,
+          score: null,
+        },
+      ],
+    });
+    expect(profile.department.code).toBe("QA");
+    expect(profile.currentAssignment.scnCode).toBe("SCN-002");
   });
 });

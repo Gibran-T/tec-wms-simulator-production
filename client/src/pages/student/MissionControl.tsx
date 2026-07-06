@@ -21,6 +21,7 @@ import MissionSheet from "@/components/MissionSheet";
 import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
 import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
 import { isMissionLifecycleEnabled } from "@/lib/missionLifecycle";
+import { shouldShowMorningBriefing, isMorningBriefingEnabled } from "@/lib/morningBriefing";
 import { resolveMissionLifecyclePhase } from "@shared/enterprise/missionLifecycle";
 import MissionLifecycleHub from "@/components/enterprise/MissionLifecycleHub";
 import { isAiMentorUiEnabled } from "@/lib/aiMentor";
@@ -143,15 +144,49 @@ export default function MissionControl() {
       : null;
 
   useEffect(() => {
+    if (!data || isLoading) return;
+    const scenarioRef = data.scenario
+      ? { ...data.scenario, moduleId: data.scenario.moduleId ?? data.moduleId }
+      : null;
+    if (
+      shouldShowMorningBriefing(
+        runIdNum,
+        scenarioRef,
+        data.run?.status,
+        (data.completedSteps as string[] | undefined)?.length ?? 0,
+      )
+    ) {
+      navigate(`/student/run/${runIdNum}/briefing`, { replace: true });
+    }
+  }, [data, isLoading, runIdNum, navigate]);
+
+  useEffect(() => {
     if (
       lifecycleEnabled &&
       missionLifecyclePhase === "briefing" &&
-      !briefingAutoOpened.current
+      !briefingAutoOpened.current &&
+      !isMorningBriefingEnabled() &&
+      !shouldShowMorningBriefing(
+        runIdNum,
+        lifecycleScenario
+          ? { ...lifecycleScenario, moduleId: lifecycleScenario.moduleId ?? lifecycleModuleId }
+          : null,
+        lifecycleRunStatus,
+        lifecycleCompletedCount,
+      )
     ) {
       briefingAutoOpened.current = true;
       setShowMission(true);
     }
-  }, [lifecycleEnabled, missionLifecyclePhase]);
+  }, [
+    lifecycleEnabled,
+    missionLifecyclePhase,
+    runIdNum,
+    lifecycleScenario,
+    lifecycleModuleId,
+    lifecycleRunStatus,
+    lifecycleCompletedCount,
+  ]);
 
   if (isLoading) {
     return (

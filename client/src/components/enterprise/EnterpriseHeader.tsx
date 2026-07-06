@@ -1,7 +1,9 @@
 import { Building2 } from "lucide-react";
 import type { DepartmentCode, PriorityLevel } from "@shared/enterpriseBriefing";
 import { DEPARTMENT_LABELS } from "@shared/enterprise/scenarioBinding";
+import { getDepartmentCssClass } from "@shared/enterprise/departmentNavigation";
 import PriorityBadge from "./PriorityBadge";
+import DepartmentBadge from "./DepartmentBadge";
 
 interface EnterpriseHeaderProps {
   scnCode: string;
@@ -11,6 +13,10 @@ interface EnterpriseHeaderProps {
   language: "FR" | "EN";
   t: (fr: string, en: string) => string;
   compact?: boolean;
+  /** RC21-B.3 — department accent border (TEDS CSS vars) instead of module accent */
+  accentMode?: "module" | "department";
+  /** Optional footer override; defaults to TEC.LOG assignment copy */
+  footerNote?: string;
 }
 
 export default function EnterpriseHeader({
@@ -21,12 +27,19 @@ export default function EnterpriseHeader({
   language,
   t,
   compact = false,
+  accentMode = "module",
+  footerNote,
 }: EnterpriseHeaderProps) {
   const deptLabel = DEPARTMENT_LABELS[department];
   const moduleClass = `tec-enterprise-header--m${Math.min(5, Math.max(1, moduleId))}`;
+  const deptClass = getDepartmentCssClass(department);
+  const accentClass =
+    accentMode === "department"
+      ? `tec-enterprise-header--dept ${deptClass}`
+      : moduleClass;
 
   return (
-    <div className={`tec-enterprise-header ${moduleClass} ${compact ? "px-4 py-2" : "px-6 py-4"}`}>
+    <div className={`tec-enterprise-header ${accentClass} ${compact ? "px-4 py-2" : "px-6 py-4"}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <div className="bg-white/10 p-2 shrink-0">
@@ -42,18 +55,21 @@ export default function EnterpriseHeader({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 px-2 py-1">
-            {language === "FR" ? deptLabel.fr : deptLabel.en}
-          </span>
+          <DepartmentBadge
+            department={department}
+            label={language === "FR" ? deptLabel.fr : deptLabel.en}
+            className={`${deptClass} !bg-white/10 !text-white !border-white/20`}
+          />
           <PriorityBadge priority={priority} language={language} />
         </div>
       </div>
       {!compact && (
         <p className="text-[10px] text-slate-400 mt-2 italic">
-          {t(
-            "Collège de la Concorde · Programme TEC.LOG · Affectation professionnelle",
-            "Collège de la Concorde · TEC.LOG Programme · Professional assignment"
-          )}
+          {footerNote ??
+            t(
+              "Collège de la Concorde · Programme TEC.LOG · Affectation professionnelle",
+              "Collège de la Concorde · TEC.LOG Programme · Professional assignment"
+            )}
         </p>
       )}
     </div>

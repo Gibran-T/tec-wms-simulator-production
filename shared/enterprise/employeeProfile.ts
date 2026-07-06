@@ -7,7 +7,9 @@ import {
   getScenarioBinding,
 } from "./scenarioBinding";
 
-/** Module home department — Living Company Blueprint §XII */
+/** Module home department — Living Company Blueprint §XII.
+ *  FALLBACK ONLY: used when no assignment SCN is active.
+ *  Primary department identity always comes from scenarioBinding when scnCode is present. */
 export const MODULE_HOME_DEPARTMENT: Record<number, DepartmentCode> = {
   1: "WH",
   2: "WH",
@@ -119,6 +121,9 @@ export function resolveActiveModuleId(moduleProgress: ModuleProgressSnapshot[]):
   return 5;
 }
 
+/** Resolve employee department identity.
+ *  1. When scnCode is present → scenarioBinding.department (canonical)
+ *  2. When no assignment SCN → MODULE_HOME_DEPARTMENT[moduleId] (fallback only) */
 export function resolveDepartmentForModule(
   moduleId: number,
   scnCode?: string | null

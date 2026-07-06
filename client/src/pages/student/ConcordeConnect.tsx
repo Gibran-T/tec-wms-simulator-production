@@ -3,6 +3,8 @@ import { useLocation } from "wouter";
 import FioriShell from "@/components/FioriShell";
 import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
 import MissionBoard from "@/components/enterprise/MissionBoard";
+import AssignmentQueue from "@/components/enterprise/AssignmentQueue";
+import TodayPriorities from "@/components/enterprise/TodayPriorities";
 import EmployeeIdentityCard from "@/components/enterprise/EmployeeIdentityCard";
 import ModulePathwayNav from "@/components/ModulePathwayNav";
 import ModeSelectionScreen from "./ModeSelectionScreen";
@@ -11,6 +13,8 @@ import { useEmployeeProfile } from "@/hooks/useEmployeeProfile";
 import { trpc } from "@/lib/trpc";
 import { filterCanonicalScenariosForModule, resolveScenarioScnCode } from "@/lib/scenarioCatalog";
 import { isConcordeConnectEnabled } from "@/lib/concordeConnect";
+import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
+import { isEnterpriseAssignmentsEnabled } from "@/lib/enterpriseExperience";
 import { getScenarioBinding } from "@shared/enterprise/scenarioBinding";
 import { Loader2 } from "lucide-react";
 
@@ -21,6 +25,10 @@ export default function ConcordeConnect() {
   useEffect(() => {
     if (!isConcordeConnectEnabled()) {
       navigate("/student/scenarios", { replace: true });
+      return;
+    }
+    if (isDepartmentHomeEnabled()) {
+      navigate("/student/department", { replace: true });
     }
   }, [navigate]);
   const { data: profile, isLoading: profileLoading } = useEmployeeProfile();
@@ -54,6 +62,7 @@ export default function ConcordeConnect() {
         scenarioId={pendingScenario.id}
         scenarioName={pendingScenario.name}
         scenarioDifficulty={pendingScenario.difficulty}
+        moduleId={activeModuleId}
         onCancel={() => setPendingScenario(null)}
       />
     );
@@ -64,9 +73,15 @@ export default function ConcordeConnect() {
     headerBinding?.scnCode ??
     "SCN-001";
 
+  const assignmentsEnabled = isEnterpriseAssignmentsEnabled();
+
   return (
     <FioriShell
-      title={t("Concorde Connect", "Concorde Connect")}
+      title={
+        assignmentsEnabled
+          ? t("Concorde Connect — Tableau de bord", "Concorde Connect — Company dashboard")
+          : t("Concorde Connect", "Concorde Connect")
+      }
       breadcrumbs={[
         { label: t("Concorde Logistics", "Concorde Logistics"), href: "/student/connect" },
         { label: t("Portail employé", "Employee portal") },
@@ -92,20 +107,49 @@ export default function ConcordeConnect() {
               />
             )}
 
-            <EmployeeIdentityCard profile={profile} language={language} t={t} layout="connect" />
+            <EmployeeIdentityCard
+              profile={profile}
+              language={language}
+              t={t}
+              layout="connect"
+              hideInlineAssignment={assignmentsEnabled}
+            />
 
             <ModulePathwayNav activeModuleId={activeModuleId} />
 
-            <MissionBoard
-              moduleId={activeModuleId}
-              moduleScenarios={moduleScenarios}
-              rawModuleScenarios={rawModuleScenarios}
-              myRuns={myRuns}
-              isLoading={scenariosLoading}
-              enterpriseStyled
-              title={t("Tableau de missions — affectations ouvertes", "Mission board — open assignments")}
-              onStartScenario={setPendingScenario}
-            />
+            {assignmentsEnabled ? (
+              <>
+                <TodayPriorities
+                  profile={profile}
+                  moduleId={activeModuleId}
+                  moduleScenarios={moduleScenarios}
+                  rawModuleScenarios={rawModuleScenarios}
+                  myRuns={myRuns}
+                  language={language}
+                  t={t}
+                />
+                <AssignmentQueue
+                  moduleId={activeModuleId}
+                  moduleScenarios={moduleScenarios}
+                  rawModuleScenarios={rawModuleScenarios}
+                  myRuns={myRuns}
+                  isLoading={scenariosLoading}
+                  groupBy="department"
+                  onStartScenario={setPendingScenario}
+                />
+              </>
+            ) : (
+              <MissionBoard
+                moduleId={activeModuleId}
+                moduleScenarios={moduleScenarios}
+                rawModuleScenarios={rawModuleScenarios}
+                myRuns={myRuns}
+                isLoading={scenariosLoading}
+                enterpriseStyled
+                title={t("Tableau de missions — affectations ouvertes", "Mission board — open assignments")}
+                onStartScenario={setPendingScenario}
+              />
+            )}
           </>
         ) : (
           <p className="text-center text-muted-foreground py-12">

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { resolvePostRunStartPath } from "@/lib/morningBriefing";
 
 export default function Module5ModeSelectionPage() {
   const params = useParams<{ scenarioId: string }>();
@@ -30,7 +31,11 @@ export default function Module5ModeSelectionPage() {
 
   const startRun = trpc.runs.start.useMutation({
     onSuccess: (data) => {
-      navigate(`/student/run/${data.runId}`);
+      navigate(
+        scenario
+          ? resolvePostRunStartPath(data.runId, { id: scenario.id, moduleId: 5, name: scenario.name })
+          : `/student/run/${data.runId}`,
+      );
     },
     onError: (err) => {
       toast.error(err.message ?? t("Erreur lors du démarrage", "Error starting simulation"));

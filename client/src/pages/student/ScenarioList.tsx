@@ -17,7 +17,10 @@ import {
   findActiveRunForScenario,
   findCompletedRunForScenario,
 } from "@/lib/scenarioCatalog";
-import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { isEnterpriseExperienceEnabled, isEnterpriseAssignmentsEnabled } from "@/lib/enterpriseExperience";
+import AssignmentQueue from "@/components/enterprise/AssignmentQueue";
+import TodayPriorities from "@/components/enterprise/TodayPriorities";
+import { useEmployeeProfile } from "@/hooks/useEmployeeProfile";
 import { CAREER_CHAPTER_LABELS } from "@shared/enterprise/scenarioBinding";
 
 // ── Module metadata ──────────────────────────────────────────────────────────
@@ -191,6 +194,7 @@ export default function ScenarioList() {
     { enabled: !!selectedModule }
   );
   const quizPassed = quizBestAttempt?.passed === true;
+  const { data: employeeProfile } = useEmployeeProfile();
 
   const mod = MODULE_CONFIG.find((m) => m.id === selectedModule)!;
   const ModIcon = mod.icon;
@@ -246,17 +250,25 @@ export default function ScenarioList() {
         scenarioId={pendingScenario.id}
         scenarioName={pendingScenario.name}
         scenarioDifficulty={pendingScenario.difficulty}
+        moduleId={selectedModule}
         onCancel={() => setPendingScenario(null)}
       />
     );
   }
 
   const enterpriseEnabled = isEnterpriseExperienceEnabled();
+  const assignmentsEnabled = isEnterpriseAssignmentsEnabled() && enterpriseEnabled;
   const careerChapter = CAREER_CHAPTER_LABELS[selectedModule];
 
   return (
     <FioriShell
-      title={enterpriseEnabled ? t("Tableau de missions", "Mission Board") : t("Mes Scénarios", "My Scenarios")}
+      title={
+        assignmentsEnabled
+          ? t("File d'affectations — Concorde Logistics", "Assignment queue — Concorde Logistics")
+          : enterpriseEnabled
+            ? t("Tableau de missions", "Mission Board")
+            : t("Mes Scénarios", "My Scenarios")
+      }
       breadcrumbs={[
         { label: t("Accueil", "Home"), href: "/" },
         { label: enterpriseEnabled ? t("Missions", "Missions") : t("Scénarios", "Scenarios") },
@@ -367,15 +379,38 @@ export default function ScenarioList() {
           )}
         </div>
 
-        <MissionBoard
-          moduleId={selectedModule}
-          moduleScenarios={moduleScenarios}
-          rawModuleScenarios={rawModuleScenarios}
-          myRuns={myRuns}
-          isLoading={isLoading}
-          enterpriseStyled={enterpriseEnabled}
-          onStartScenario={setPendingScenario}
-        />
+        {assignmentsEnabled && employeeProfile ? (
+          <>
+            <TodayPriorities
+              profile={employeeProfile}
+              moduleId={selectedModule}
+              moduleScenarios={moduleScenarios}
+              rawModuleScenarios={rawModuleScenarios}
+              myRuns={myRuns}
+              language={language}
+              t={t}
+            />
+            <AssignmentQueue
+              moduleId={selectedModule}
+              moduleScenarios={moduleScenarios}
+              rawModuleScenarios={rawModuleScenarios}
+              myRuns={myRuns}
+              isLoading={isLoading}
+              groupBy="department"
+              onStartScenario={setPendingScenario}
+            />
+          </>
+        ) : (
+          <MissionBoard
+            moduleId={selectedModule}
+            moduleScenarios={moduleScenarios}
+            rawModuleScenarios={rawModuleScenarios}
+            myRuns={myRuns}
+            isLoading={isLoading}
+            enterpriseStyled={enterpriseEnabled}
+            onStartScenario={setPendingScenario}
+          />
+        )}
 
         {/* ── Glossary ───────────────────────────────────────────────────────── */}
         <div className="mt-8">

@@ -10,9 +10,12 @@ import { LanguageProvider } from "./contexts/LanguageContext";
 import { CohortProvider } from "./contexts/CohortContext";
 import Home from "./pages/Home";
 import MissionControl from "./pages/student/MissionControl";
+import MorningBriefing from "./pages/student/MorningBriefing";
 import ScenarioList from "./pages/student/ScenarioList";
 import ConcordeConnect from "./pages/student/ConcordeConnect";
+import DepartmentHome from "./pages/student/DepartmentHome";
 import { isConcordeConnectEnabled } from "./lib/concordeConnect";
+import { isDepartmentHomeEnabled } from "./lib/departmentHome";
 import StepForm from "./pages/student/StepForm";
 import RunReport from "./pages/student/RunReport";
 import Module2ScenarioList from "./pages/student/Module2ScenarioList";
@@ -63,10 +66,12 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       {/* Student routes */}
-      <Route path="/student" component={() => { window.location.replace(isConcordeConnectEnabled() ? "/student/connect" : "/student/scenarios"); return null; }} />
+      <Route path="/student" component={() => { window.location.replace(isConcordeConnectEnabled() ? (isDepartmentHomeEnabled() ? "/student/department" : "/student/connect") : "/student/scenarios"); return null; }} />
       <Route path="/student/connect" component={ConcordeConnect} />
+      <Route path="/student/department" component={DepartmentHome} />
       <Route path="/student/scenarios" component={ScenarioList} />
       <Route path="/student/profile" component={EmployeeProfilePage} />
+      <Route path="/student/run/:runId/briefing" component={MorningBriefing} />
       <Route path="/student/run/:runId" component={MissionControl} />
       <Route path="/student/run/:runId/step/:step" component={StepForm} />
       <Route path="/student/run/:runId/report" component={RunReport} />

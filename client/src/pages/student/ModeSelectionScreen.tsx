@@ -6,15 +6,17 @@ import { useState } from "react";
 import { BookOpen, GraduationCap, FlaskConical, ShieldCheck, Zap, AlertTriangle, Play } from "lucide-react";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { resolvePostRunStartPath } from "@/lib/morningBriefing";
 
 interface ModeSelectionScreenProps {
   scenarioId: number;
   scenarioName: string;
   scenarioDifficulty?: string;
+  moduleId?: number;
   onCancel: () => void;
 }
 
-export default function ModeSelectionScreen({ scenarioId, scenarioName, scenarioDifficulty, onCancel }: ModeSelectionScreenProps) {
+export default function ModeSelectionScreen({ scenarioId, scenarioName, scenarioDifficulty, moduleId, onCancel }: ModeSelectionScreenProps) {
   const { user } = useAuth();
   const { language } = useLanguage();
   const t = (fr: string, en: string) => language === "FR" ? fr : en;
@@ -24,7 +26,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
 
   const startRun = trpc.runs.start.useMutation({
     onSuccess: (data) => {
-      navigate(`/student/run/${data.runId}`);
+      navigate(resolvePostRunStartPath(data.runId, { id: scenarioId, moduleId, name: scenarioName }));
     },
     onError: (err) => {
       toast.error(err.message ?? t("Erreur lors du démarrage", "Error starting simulation"));

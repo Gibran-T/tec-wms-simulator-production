@@ -1,4 +1,5 @@
 import { isEnterpriseExperienceEnabled } from "./enterpriseExperience";
+import { getDepartmentEntryPath, isDepartmentHomeEnabled } from "./departmentHome";
 
 /** RC20-A — Concorde Connect feature gate (Employee Profile + entry portal) */
 export function isConcordeConnectEnabled(): boolean {
@@ -10,5 +11,8 @@ export function isConcordeConnectEnabled(): boolean {
 
 /** Post-login student home when Concorde Connect is active */
 export function getStudentEntryPath(): string {
-  return isConcordeConnectEnabled() ? "/student/connect" : "/student/scenarios";
+  if (!isConcordeConnectEnabled()) return "/student/scenarios";
+  return isDepartmentHomeEnabled() ? getDepartmentEntryPath() : "/student/connect";
 }
+
+export { isDepartmentHomeEnabled, getDepartmentEntryPath };

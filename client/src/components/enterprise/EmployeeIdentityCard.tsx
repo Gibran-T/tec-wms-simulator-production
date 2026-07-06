@@ -9,6 +9,8 @@ interface EmployeeIdentityCardProps {
   t: (fr: string, en: string) => string;
   /** RC20-A.1 — full portal layout with supervisor and current assignment */
   layout?: "compact" | "connect";
+  /** RC21-B.1 — hide inline assignment when TodayPriorities shows CurrentAssignmentCard */
+  hideInlineAssignment?: boolean;
 }
 
 export default function EmployeeIdentityCard({
@@ -16,6 +18,7 @@ export default function EmployeeIdentityCard({
   language,
   t,
   layout = "compact",
+  hideInlineAssignment = false,
 }: EmployeeIdentityCardProps) {
   const lang = language === "FR" ? "fr" : "en";
   const chapterLabel = profile.careerChapter.label[lang];
@@ -69,6 +72,7 @@ export default function EmployeeIdentityCard({
             </div>
           </div>
 
+          {!hideInlineAssignment && (
           <div className="p-4 border rounded-md bg-primary/5 border-primary/20">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-2">
               {t("Affectation en cours", "Current assignment")}
@@ -104,6 +108,7 @@ export default function EmployeeIdentityCard({
               </p>
             )}
           </div>
+          )}
         </div>
 
         <div className="space-y-3">

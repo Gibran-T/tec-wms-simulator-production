@@ -14,6 +14,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCohort } from "@/contexts/CohortContext";
 import { isConcordeConnectEnabled, getStudentEntryPath } from "@/lib/concordeConnect";
+import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/KgVchfh3nwnwCSCPgkNzAq/concorde-logo_73f38483.png";
 const APP_VERSION = "v1.0";
@@ -78,7 +79,11 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
   const PROGRAMME_CODE = t("Programme 1 — TEC.LOG", "Program 1 — TEC.LOG");
 
   const connectEnabled = isConcordeConnectEnabled();
+  const departmentHomeEnabled = isDepartmentHomeEnabled();
   const studentHome = getStudentEntryPath();
+  const connectNavLabel = departmentHomeEnabled
+    ? t("Accueil département", "Department home")
+    : t("Concorde Connect", "Concorde Connect");
 
   const navItems = isTeacher
     ? [
@@ -89,12 +94,12 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         { href: "/teacher/students", label: t("Étudiants", "Students"), icon: UserCog },
         { href: "/teacher/monitor", label: t("Monitoring", "Monitoring"), icon: BarChart2 },
         { href: "/teacher/analytics", label: t("Analytics", "Analytics"), icon: TrendingUp },
-        { href: studentHome, label: connectEnabled ? t("Concorde Connect", "Concorde Connect") : t("Simulateur", "Simulator"), icon: MonitorPlay },
+        { href: studentHome, label: connectEnabled ? connectNavLabel : t("Simulateur", "Simulator"), icon: MonitorPlay },
       ]
     : [
         {
           href: studentHome,
-          label: connectEnabled ? t("Concorde Connect", "Concorde Connect") : t("Mes Scénarios", "My Scenarios"),
+          label: connectEnabled ? connectNavLabel : t("Mes Scénarios", "My Scenarios"),
           icon: connectEnabled ? MonitorPlay : BookOpen,
         },
         ...(concordeConnectEnabled

@@ -6,6 +6,18 @@
   --tec-m3: #059669;
   --tec-m4: #d97706;
   --tec-m5: #7b1fa2;
+  /* RC21-B.3 — Department accent colors */
+  --tec-dept-wh: #2563eb;
+  --tec-dept-rec: #0d9488;
+  --tec-dept-shp: #4f46e5;
+  --tec-dept-inv: #059669;
+  --tec-dept-proc: #d97706;
+  --tec-dept-plan: #0891b2;
+  --tec-dept-cs: #7c3aed;
+  --tec-dept-fin: #475569;
+  --tec-dept-qa: #e11d48;
+  --tec-dept-ops: #ea580c;
+  --tec-dept-mgt: #7b1fa2;
   --tec-navy: #1e293b;
   --tec-slate: #64748b;
   --tec-surface: #f8fafc;
@@ -59,6 +71,48 @@
 .tec-mission-board-card--m3 { border-left-color: var(--tec-m3); }
 .tec-mission-board-card--m4 { border-left-color: var(--tec-m4); }
 .tec-mission-board-card--m5 { border-left-color: var(--tec-m5); }
+
+/* RC21-B.1 — EOAS assignment cards */
+.tec-assignment-card {
+  border-left-width: 4px;
+}
+
+.tec-today-priorities .tec-briefing-panel {
+  border-left: 4px solid var(--tec-warning);
+}
+
+/* RC21-B.3 — Department color system */
+.tec-dept--wh { --tec-dept-accent: var(--tec-dept-wh); }
+.tec-dept--rec { --tec-dept-accent: var(--tec-dept-rec); }
+.tec-dept--shp { --tec-dept-accent: var(--tec-dept-shp); }
+.tec-dept--inv { --tec-dept-accent: var(--tec-dept-inv); }
+.tec-dept--proc { --tec-dept-accent: var(--tec-dept-proc); }
+.tec-dept--plan { --tec-dept-accent: var(--tec-dept-plan); }
+.tec-dept--cs { --tec-dept-accent: var(--tec-dept-cs); }
+.tec-dept--fin { --tec-dept-accent: var(--tec-dept-fin); }
+.tec-dept--qa { --tec-dept-accent: var(--tec-dept-qa); }
+.tec-dept--ops { --tec-dept-accent: var(--tec-dept-ops); }
+.tec-dept--mgt { --tec-dept-accent: var(--tec-dept-mgt); }
+
+.tec-enterprise-header--dept {
+  border-bottom: 3px solid var(--tec-dept-accent, var(--tec-dept-wh));
+}
+
+.tec-department-badge {
+  display: inline-block;
+  background: color-mix(in srgb, var(--tec-dept-accent, var(--tec-dept-wh)) 15%, white);
+  color: var(--tec-dept-accent, var(--tec-dept-wh));
+  border: 1px solid color-mix(in srgb, var(--tec-dept-accent, var(--tec-dept-wh)) 30%, transparent);
+}
+
+.dark .tec-department-badge {
+  background: color-mix(in srgb, var(--tec-dept-accent, var(--tec-dept-wh)) 20%, transparent);
+  color: color-mix(in srgb, var(--tec-dept-accent, var(--tec-dept-wh)) 80%, white);
+}
+
+.tec-org-strip--dept {
+  border-left: 4px solid var(--tec-dept-accent, var(--tec-dept-wh));
+}
 
 /* RC20-A.3 — Mission Lifecycle (BRIEFING → LIVE → CLOSURE) */
 .tec-mission-lifecycle-strip {
