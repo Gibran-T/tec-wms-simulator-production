@@ -122,6 +122,7 @@
 
 .tec-current-assignment-embedded {
   min-height: 0;
+  border-left: 4px solid var(--tec-m2);
 }
 
 .tec-dept--wh { --tec-dept-accent: var(--tec-dept-wh); }

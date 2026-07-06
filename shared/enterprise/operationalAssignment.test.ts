@@ -3,6 +3,7 @@ import {
   buildAssignmentMeta,
   comparePriority,
   groupByDepartment,
+  groupByPriority,
   isUrgentPriority,
   resolveMissionTitle,
 } from "./operationalAssignment";
@@ -39,5 +40,16 @@ describe("RC21-B.1 — operationalAssignment", () => {
     ]);
     expect(groups).toHaveLength(2);
     expect(groups.find((g) => g.department === "WH")?.items).toHaveLength(2);
+  });
+
+  it("groups items by priority with urgency order", () => {
+    const groups = groupByPriority([
+      { priority: "normal" as const, id: 1 },
+      { priority: "critique" as const, id: 2 },
+      { priority: "elevee" as const, id: 3 },
+    ]);
+    expect(groups.map((g) => g.priority)).toEqual(["critique", "elevee", "normal"]);
+    expect(groups[0]?.items).toHaveLength(1);
+    expect(groups[0]?.items[0]?.id).toBe(2);
   });
 });

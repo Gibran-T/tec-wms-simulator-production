@@ -63,7 +63,7 @@ export default function CurrentAssignmentCard({
       }[assignment.status];
 
   const panelClass = embedded
-    ? "tec-current-assignment-embedded pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3"
+    ? "tec-current-assignment-embedded tec-briefing-panel p-3 space-y-2.5 min-h-0"
     : "tec-briefing-panel p-5 space-y-3";
 
   return (

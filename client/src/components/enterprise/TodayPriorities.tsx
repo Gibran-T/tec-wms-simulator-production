@@ -164,7 +164,7 @@ export default function TodayPriorities({
                     <div className="flex items-center gap-2 shrink-0">
                       <DepartmentBadge department={item.departmentCode} label={item.department} />
                       <PriorityBadge priority={item.priority} language={language} />
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary sm:opacity-80 group-hover:opacity-100">
                         {item.activeRunId ? (
                           <>
                             <Play size={12} />
