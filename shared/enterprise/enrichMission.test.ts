@@ -47,4 +47,25 @@ describe("Architecture Foundation v1.0 — enterprise enrichment", () => {
     const unknown = { ...baseMission, scnCode: "SCN-999" };
     expect(enrichMissionWithEnterprise(unknown)).toEqual(unknown);
   });
+
+  it("RC21-C.1A — buildDocuments surfaces operational contract fields", () => {
+    const mission: MissionData = {
+      ...baseMission,
+      scnCode: "SCN-006",
+      technicalSpecs: {
+        sku: "SKU-001",
+        quantity: 150,
+        poRef: "PO-M2-001",
+        grRef: "GR-M2-001",
+        lotNumber: "LOT-2025-001",
+        sourceBin: "REC-01",
+        targetBin: "B-01-R1-L1",
+      },
+    };
+    const docs = enrichMissionWithEnterprise(mission).enterprise?.documentsAvailable ?? [];
+    const fr = docs.map((d) => d.fr).join(" ");
+    expect(fr).toContain("PO-M2-001");
+    expect(fr).toContain("GR-M2-001");
+    expect(fr).toContain("LOT-2025-001");
+  });
 });
