@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useParams, useLocation } from "wouter";
@@ -20,6 +20,9 @@ import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import MissionSheet from "@/components/MissionSheet";
 import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
 import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { isMissionLifecycleEnabled } from "@/lib/missionLifecycle";
+import { resolveMissionLifecyclePhase } from "@shared/enterprise/missionLifecycle";
+import MissionLifecycleHub from "@/components/enterprise/MissionLifecycleHub";
 import { isAiMentorUiEnabled } from "@/lib/aiMentor";
 import MentorHelpDrawer from "@/components/mentor/MentorHelpDrawer";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
@@ -60,6 +63,7 @@ export default function MissionControl() {
   const [showMission, setShowMission] = useState(false);
   const [mentorOpen, setMentorOpen] = useState(false);
   const [mentorEntryPoint, setMentorEntryPoint] = useState<"mission_control" | "oil_panel_f">("mission_control");
+  const briefingAutoOpened = useRef(false);
   
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
   const runIdNum = parseInt(runId);
@@ -117,6 +121,37 @@ export default function MissionControl() {
     if (fromState.length > 0) return fromState;
     return allTransactions.filter((tx) => !tx.posted);
   }, [unpostedFromState, allTransactions]);
+
+  const enterpriseEnabled = isEnterpriseExperienceEnabled();
+  const lifecycleFlagOn = isMissionLifecycleEnabled() && enterpriseEnabled;
+  const lifecycleRunStatus = data?.run?.status;
+  const lifecycleCompletedCount = (data?.completedSteps as string[] | undefined)?.length ?? 0;
+  const lifecycleScenario = data?.scenario;
+  const lifecycleModuleId = data?.moduleId;
+  const lifecycleMission = getMissionForScenario(
+    lifecycleScenario
+      ? { ...lifecycleScenario, moduleId: lifecycleScenario.moduleId ?? lifecycleModuleId }
+      : null,
+  );
+  const lifecycleEnabled = lifecycleFlagOn && !!lifecycleMission?.enterprise;
+  const missionLifecyclePhase =
+    lifecycleEnabled && lifecycleRunStatus != null
+      ? resolveMissionLifecyclePhase({
+          runStatus: lifecycleRunStatus,
+          completedStepsCount: lifecycleCompletedCount,
+        })
+      : null;
+
+  useEffect(() => {
+    if (
+      lifecycleEnabled &&
+      missionLifecyclePhase === "briefing" &&
+      !briefingAutoOpened.current
+    ) {
+      briefingAutoOpened.current = true;
+      setShowMission(true);
+    }
+  }, [lifecycleEnabled, missionLifecyclePhase]);
 
   if (isLoading) {
     return (
@@ -234,6 +269,14 @@ export default function MissionControl() {
     return { text: language === "FR" ? l.fr : l.en, cls: l.cls };
   };
 
+  const missionLifecyclePhaseResolved =
+    lifecycleEnabled && run.status != null
+      ? resolveMissionLifecyclePhase({
+          runStatus: run.status,
+          completedStepsCount: (completedSteps as string[]).length,
+        })
+      : null;
+
   return (
     <FioriShell
       title={`COCKPIT OPÉRATIONNEL — ${scenario?.name}`}
@@ -242,8 +285,19 @@ export default function MissionControl() {
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
         <TecLogJourneyStrip activeStep="scenario" className="mb-1" />
 
+        {lifecycleEnabled && missionLifecyclePhaseResolved && (
+          <MissionLifecycleHub
+            phase={missionLifecyclePhaseResolved}
+            language={language}
+            t={t}
+            progressPct={progressPct}
+            onOpenMissionSheet={() => setShowMission(true)}
+            onOpenRunReport={() => navigate(`/student/run/${runId}/report`)}
+          />
+        )}
+
         {/* ── Top Command Bar ── */}
-        {isEnterpriseExperienceEnabled() && mission?.enterprise ? (
+        {enterpriseEnabled && mission?.enterprise ? (
           <EnterpriseHeader
             scnCode={mission.scnCode}
             department={mission.enterprise.department}
@@ -283,7 +337,7 @@ export default function MissionControl() {
         </div>
         )}
 
-        {isEnterpriseExperienceEnabled() && mission?.enterprise && (
+        {enterpriseEnabled && mission?.enterprise && (
           <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-4 py-2">
             <div className="min-w-0 space-y-0.5">
               <p className="text-[10px] font-mono text-slate-500">
@@ -780,6 +834,7 @@ export default function MissionControl() {
         isDemo={!!isDemo}
         runId={runIdNum}
         activeStepCode={(nextStep as { code?: string } | null)?.code ?? null}
+        lifecyclePhase={missionLifecyclePhaseResolved ?? undefined}
       />
     </FioriShell>
   );

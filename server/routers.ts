@@ -3647,6 +3647,17 @@ export const appRouter = router({
       }),
   }),
 
+  // ─── Employee Profile (RC20-A.2 — read-path derivation) ─────────────────────
+  employeeProfile: router({
+    assemble: protectedProcedure.query(async ({ ctx }) => {
+      const { assembleEmployeeProfileForUser } = await import("./employeeProfile");
+      return assembleEmployeeProfileForUser({
+        userId: ctx.user.id,
+        displayName: ctx.user.name?.trim() || ctx.user.email || `Practicant #${ctx.user.id}`,
+      });
+    }),
+  }),
+
   // ─── Enterprise Context Engine (RC21 Wave 3) ─────────────────────────────────
   enterpriseContext: router({
     assemble: protectedProcedure

@@ -19,6 +19,8 @@ import { M5ZoneFlowBarReport } from "@/components/m5/M5ZoneFlowBar";
 import ErpExplorerCard from "@/components/enterprise/ErpExplorerCard";
 import { buildProcessContext } from "@shared/enterprise/buildProcessContext";
 import { isEnterpriseDebriefEnabled, isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
+import { isMissionLifecycleEnabled } from "@/lib/missionLifecycle";
+import MissionLifecyclePhaseStrip from "@/components/enterprise/MissionLifecyclePhaseStrip";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
@@ -374,6 +376,11 @@ export default function RunReport() {
           totalSteps,
         })
       : null;
+  const lifecycleClosureEnabled =
+    isMissionLifecycleEnabled() &&
+    enterpriseEnabled &&
+    !!mission?.enterprise &&
+    run.status === "completed";
 
   return (
     <FioriShell
@@ -464,6 +471,10 @@ export default function RunReport() {
           {/* Certification CTAs removed — RC17-E: credentials live only in /student/certifications */}
 
         </div>
+
+        {lifecycleClosureEnabled && (
+          <MissionLifecyclePhaseStrip activePhase="closure" language={language} compact />
+        )}
 
         {enterpriseDebrief && (
           <EnterpriseDebriefPanel debrief={enterpriseDebrief} language={language} t={t} />

@@ -24,6 +24,8 @@ import BusinessContextPanel from "@/components/enterprise/BusinessContextPanel";
 import ErpExplorerCard from "@/components/enterprise/ErpExplorerCard";
 import FacilityContextStrip from "@/components/enterprise/FacilityContextStrip";
 import { buildProcessContext } from "@shared/enterprise/buildProcessContext";
+import type { MissionLifecyclePhase } from "@shared/enterprise/missionLifecycle";
+import MissionLifecycleSheetBanner from "@/components/enterprise/MissionLifecycleSheetBanner";
 
 interface MissionSheetProps {
   mission: MissionWithEnterprise | null;
@@ -40,6 +42,8 @@ interface MissionSheetProps {
   isDemo?: boolean;
   runId?: number;
   activeStepCode?: string | null;
+  /** RC20-A.3 — phase chrome only; mission content unchanged */
+  lifecyclePhase?: MissionLifecyclePhase;
 }
 
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
@@ -447,7 +451,16 @@ function LegacyMissionContent({
   );
 }
 
-export default function MissionSheet({ mission, scenario, open, onOpenChange, isDemo = false, runId, activeStepCode }: MissionSheetProps) {
+export default function MissionSheet({
+  mission,
+  scenario,
+  open,
+  onOpenChange,
+  isDemo = false,
+  runId,
+  activeStepCode,
+  lifecyclePhase,
+}: MissionSheetProps) {
   const { t, language } = useLanguage();
   const enterpriseEnabled = isEnterpriseExperienceEnabled();
   const useEnterpriseLayout = enterpriseEnabled && mission?.enterprise;
@@ -490,6 +503,9 @@ export default function MissionSheet({ mission, scenario, open, onOpenChange, is
             <DialogHeader className="sr-only">
               <DialogTitle>{t("Fiche de Mission Opérationnelle", "Operational Mission Sheet")}</DialogTitle>
             </DialogHeader>
+            {lifecyclePhase && (
+              <MissionLifecycleSheetBanner phase={lifecyclePhase} language={language} />
+            )}
             <EnterpriseMissionContent
               mission={mission}
               isDemo={isDemo}

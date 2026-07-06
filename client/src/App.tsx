@@ -11,6 +11,8 @@ import { CohortProvider } from "./contexts/CohortContext";
 import Home from "./pages/Home";
 import MissionControl from "./pages/student/MissionControl";
 import ScenarioList from "./pages/student/ScenarioList";
+import ConcordeConnect from "./pages/student/ConcordeConnect";
+import { isConcordeConnectEnabled } from "./lib/concordeConnect";
 import StepForm from "./pages/student/StepForm";
 import RunReport from "./pages/student/RunReport";
 import Module2ScenarioList from "./pages/student/Module2ScenarioList";
@@ -43,6 +45,7 @@ import GoldCertificatePreview from "./pages/student/GoldCertificatePreview";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CertificateVerifyPage from "./pages/verify/CertificateVerifyPage";
+import EmployeeProfilePage from "./pages/student/EmployeeProfilePage";
 
 /** Legacy path used by ScenarioList before Mission Control migration. */
 function RunReportRedirect() {
@@ -60,8 +63,10 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       {/* Student routes */}
-      <Route path="/student" component={() => { window.location.replace("/student/scenarios"); return null; }} />
+      <Route path="/student" component={() => { window.location.replace(isConcordeConnectEnabled() ? "/student/connect" : "/student/scenarios"); return null; }} />
+      <Route path="/student/connect" component={ConcordeConnect} />
       <Route path="/student/scenarios" component={ScenarioList} />
+      <Route path="/student/profile" component={EmployeeProfilePage} />
       <Route path="/student/run/:runId" component={MissionControl} />
       <Route path="/student/run/:runId/step/:step" component={StepForm} />
       <Route path="/student/run/:runId/report" component={RunReport} />

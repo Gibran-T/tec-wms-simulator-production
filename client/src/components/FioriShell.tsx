@@ -13,6 +13,7 @@ import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useCohort } from "@/contexts/CohortContext";
+import { isConcordeConnectEnabled, getStudentEntryPath } from "@/lib/concordeConnect";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/KgVchfh3nwnwCSCPgkNzAq/concorde-logo_73f38483.png";
 const APP_VERSION = "v1.0";
@@ -68,12 +69,16 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
 
   const isTeacher = user?.role === "teacher" || user?.role === "admin";
   const isAdmin = user?.role === "admin";
+  const concordeConnectEnabled = isConcordeConnectEnabled();
 
   const COURSE_NAME = t(
     "Gestion intégrée des stocks et performance logistique",
     "Integrated Stock Management & Logistics Performance"
   );
   const PROGRAMME_CODE = t("Programme 1 — TEC.LOG", "Program 1 — TEC.LOG");
+
+  const connectEnabled = isConcordeConnectEnabled();
+  const studentHome = getStudentEntryPath();
 
   const navItems = isTeacher
     ? [
@@ -84,10 +89,17 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         { href: "/teacher/students", label: t("Étudiants", "Students"), icon: UserCog },
         { href: "/teacher/monitor", label: t("Monitoring", "Monitoring"), icon: BarChart2 },
         { href: "/teacher/analytics", label: t("Analytics", "Analytics"), icon: TrendingUp },
-        { href: "/student/scenarios", label: t("Simulateur", "Simulator"), icon: MonitorPlay },
+        { href: studentHome, label: connectEnabled ? t("Concorde Connect", "Concorde Connect") : t("Simulateur", "Simulator"), icon: MonitorPlay },
       ]
     : [
-        { href: "/student/scenarios", label: t("Mes Scénarios", "My Scenarios"), icon: BookOpen },
+        {
+          href: studentHome,
+          label: connectEnabled ? t("Concorde Connect", "Concorde Connect") : t("Mes Scénarios", "My Scenarios"),
+          icon: connectEnabled ? MonitorPlay : BookOpen,
+        },
+        ...(concordeConnectEnabled
+          ? [{ href: "/student/profile", label: t("Profil professionnel", "Professional profile"), icon: UserCircle }]
+          : []),
         { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
         { href: "/student/glossary", label: t("Glossaire", "Glossary"), icon: BookMarked },
         { href: "/student/certifications", label: t("Mes Certifications", "My Certifications"), icon: ShieldCheck },
@@ -296,7 +308,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
                       )}
                     </button>
                     <button
-                      onClick={() => { setUserMenuOpen(false); navigate("/student/scenarios"); }}
+                      onClick={() => { setUserMenuOpen(false); navigate(studentHome); }}
                       className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
                         location.startsWith("/student")
                           ? theme === "dark" ? "bg-white/10 text-white" : "bg-green-50 text-green-700"
@@ -331,7 +343,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
 
                 {/* Profile */}
                 <button
-                  onClick={() => { setUserMenuOpen(false); navigate("/student/profile"); }}
+                  onClick={() => { setUserMenuOpen(false); navigate(connectEnabled ? "/student/connect" : "/student/profile"); }}
                   className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs transition-colors ${
                     theme === "dark" ? "text-gray-300 hover:bg-white/10 hover:text-white" : "text-gray-700 hover:bg-gray-50"
                   }`}

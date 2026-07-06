@@ -59,3 +59,93 @@
 .tec-mission-board-card--m3 { border-left-color: var(--tec-m3); }
 .tec-mission-board-card--m4 { border-left-color: var(--tec-m4); }
 .tec-mission-board-card--m5 { border-left-color: var(--tec-m5); }
+
+/* RC20-A.3 — Mission Lifecycle (BRIEFING → LIVE → CLOSURE) */
+.tec-mission-lifecycle-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--tec-border);
+  background: #fff;
+}
+
+.dark .tec-mission-lifecycle-strip {
+  background: rgb(15 23 42 / 0.6);
+  border-color: rgb(51 65 85);
+}
+
+.tec-mission-lifecycle-step {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-right: 1px solid var(--tec-border);
+  color: var(--tec-slate);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.dark .tec-mission-lifecycle-step {
+  border-right-color: rgb(51 65 85);
+}
+
+.tec-mission-lifecycle-step:last-child {
+  border-right: none;
+}
+
+.tec-mission-lifecycle-step--active {
+  background: var(--tec-navy);
+  color: #fff;
+}
+
+.tec-mission-lifecycle-step--complete {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.dark .tec-mission-lifecycle-step--complete {
+  background: rgb(6 78 59 / 0.25);
+  color: #6ee7b7;
+}
+
+.tec-mission-lifecycle-step__icon {
+  opacity: 0.85;
+}
+
+.tec-mission-lifecycle-sheet-banner {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--tec-border);
+}
+
+.tec-mission-lifecycle-sheet-banner--briefing {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.tec-mission-lifecycle-sheet-banner--live {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.tec-mission-lifecycle-sheet-banner--closure {
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.dark .tec-mission-lifecycle-sheet-banner--briefing {
+  background: rgb(30 58 138 / 0.2);
+  color: #93c5fd;
+}
+
+.dark .tec-mission-lifecycle-sheet-banner--live {
+  background: rgb(6 78 59 / 0.2);
+  color: #6ee7b7;
+}
+
+.dark .tec-mission-lifecycle-sheet-banner--closure {
+  background: rgb(21 128 61 / 0.15);
+  color: #86efac;
+}

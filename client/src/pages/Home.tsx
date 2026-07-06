@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { getStudentEntryPath } from "@/lib/concordeConnect";
 
 export default function Home() {
   const { user, loading } = useAuth();
@@ -30,7 +31,7 @@ export default function Home() {
   }
 
   if (user) {
-    window.location.href = (user.role === "admin" || user.role === "teacher") ? "/teacher" : "/student/scenarios";
+    window.location.href = (user.role === "admin" || user.role === "teacher") ? "/teacher" : getStudentEntryPath();
     return null;
   }
 

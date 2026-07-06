@@ -9,7 +9,8 @@ import {
 export { filterCanonicalScenariosForModule, resolveScenarioScnCode };
 
 type RunRow = {
-  run: { scenarioId: number; status: string; isDemo: boolean; score?: number | null };
+  run: { id?: number; scenarioId: number; status: string; isDemo: boolean; score?: number | null };
+  score?: number | null;
 };
 
 /** Active in-progress eval run for a canonical scenario (includes duplicate row ids). */

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, Eye, EyeOff, Globe, Moon, Sun, Layers, BookOpen, Award, Clock } from "lucide-react";
 import { getOAuthLoginUrl } from "@/const";
+import { getStudentEntryPath } from "@/lib/concordeConnect";
 
 export default function LocalLogin() {
   const [, navigate] = useLocation();
@@ -47,7 +48,7 @@ export default function LocalLogin() {
       if (data.role === "teacher" || data.role === "admin") {
         navigate("/teacher");
       } else {
-        navigate("/student/scenarios");
+        navigate(getStudentEntryPath());
       }
     },
     onError: (err) => setLoginError(err.message),
@@ -61,7 +62,7 @@ export default function LocalLogin() {
       if (regStudentNum.trim()) {
         await upsertProfileMutation.mutateAsync({ studentNumber: regStudentNum.trim() });
       }
-      navigate("/student/scenarios");
+      navigate(getStudentEntryPath());
     },
     onError: (err) => setRegError(err.message),
   });
