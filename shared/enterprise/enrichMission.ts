@@ -10,15 +10,43 @@ export type MissionWithEnterprise = MissionData & {
 
 function buildDocuments(mission: MissionData): { fr: string; en: string }[] {
   const docs: { fr: string; en: string }[] = [];
-  if (mission.technicalSpecs.expectedTransaction) {
+  const ts = mission.technicalSpecs;
+  if (ts.poRef) {
+    docs.push({ fr: `PO : ${ts.poRef}`, en: `PO: ${ts.poRef}` });
+  }
+  if (ts.grRef) {
+    docs.push({ fr: `GR : ${ts.grRef}`, en: `GR: ${ts.grRef}` });
+  }
+  if (ts.soRef) {
+    docs.push({ fr: `SO : ${ts.soRef}`, en: `SO: ${ts.soRef}` });
+  }
+  if (ts.lotNumber) {
+    docs.push({ fr: `Lot : ${ts.lotNumber}`, en: `Lot: ${ts.lotNumber}` });
+  }
+  if (ts.shipQuantity != null) {
+    docs.push({ fr: `Quantité expédition : ${ts.shipQuantity} u.`, en: `Ship quantity: ${ts.shipQuantity} u.` });
+  }
+  if (ts.correctivePoQuantity != null) {
     docs.push({
-      fr: `Transaction attendue : ${mission.technicalSpecs.expectedTransaction}`,
-      en: `Expected transaction: ${mission.technicalSpecs.expectedTransaction}`,
+      fr: `PO corrective : ${ts.correctivePoRef ?? "—"} · +${ts.correctivePoQuantity} u.`,
+      en: `Corrective PO: ${ts.correctivePoRef ?? "—"} · +${ts.correctivePoQuantity} u.`,
+    });
+  }
+  if (ts.replenishMin != null && ts.replenishMax != null) {
+    docs.push({
+      fr: `Réappro Min ${ts.replenishMin} / Max ${ts.replenishMax} / SS ${ts.replenishSafetyStock ?? "—"}`,
+      en: `Replenish Min ${ts.replenishMin} / Max ${ts.replenishMax} / SS ${ts.replenishSafetyStock ?? "—"}`,
+    });
+  }
+  if (ts.expectedTransaction) {
+    docs.push({
+      fr: `Transaction attendue : ${ts.expectedTransaction}`,
+      en: `Expected transaction: ${ts.expectedTransaction}`,
     });
   }
   docs.push({
-    fr: `Moniteur WMS · SKU ${mission.technicalSpecs.sku}`,
-    en: `WMS monitor · SKU ${mission.technicalSpecs.sku}`,
+    fr: `Moniteur WMS · SKU ${ts.sku}`,
+    en: `WMS monitor · SKU ${ts.sku}`,
   });
   if (mission.wmsFunction) {
     docs.push({ fr: `Fonction WMS : ${mission.wmsFunction}`, en: `WMS function: ${mission.wmsFunction}` });

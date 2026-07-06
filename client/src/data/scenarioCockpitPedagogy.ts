@@ -14,10 +14,19 @@ export interface CockpitPedagogy {
 export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   "SCN-001": {
     scnCode: "SCN-001",
-    situation: { fr: "Entrepôt vide — flux nominal de bout en bout.", en: "Empty warehouse — end-to-end nominal flow." },
-    evidenceToObserve: { fr: "Stocks vides au départ ; chaque transaction postée apparaît dans le moniteur.", en: "Empty stock at start; each posted transaction appears in the monitor." },
-    operationalProblem: { fr: "Construire le cycle complet sans anomalie.", en: "Build the complete cycle without anomalies." },
-    expectedActionHint: { fr: "Créez la PO, puis enchaînez GR → rangement → SO → expédition → inventaire → conformité.", en: "Create the PO, then chain GR → putaway → SO → shipping → count → compliance." },
+    situation: {
+      fr: "Entrepôt vide — flux nominal. Contrat : PO-2025-101 · GR-2025-101 · SO-2025-101 · SKU-001 · 100 u. · REC-01 → B-01-R1-L1 · expédition 80 u. EXP-01.",
+      en: "Empty warehouse — nominal flow. Contract: PO-2025-101 · GR-2025-101 · SO-2025-101 · SKU-001 · 100 u. · REC-01 → B-01-R1-L1 · ship 80 u. EXP-01.",
+    },
+    evidenceToObserve: {
+      fr: "Stocks vides au départ ; chaque document posté (PO-2025-101, GR-2025-101, SO-2025-101) apparaît dans le moniteur.",
+      en: "Empty stock at start; each posted document (PO-2025-101, GR-2025-101, SO-2025-101) appears in the monitor.",
+    },
+    operationalProblem: { fr: "Construire le cycle complet avec les références contractuelles.", en: "Build the complete cycle with contractual references." },
+    expectedActionHint: {
+      fr: "PO-2025-101 → GR-2025-101 → PUTAWAY B-01-R1-L1 → SO-2025-101 (80 u.) → GI EXP-01 (80 u.) → CC → conformité.",
+      en: "PO-2025-101 → GR-2025-101 → PUTAWAY B-01-R1-L1 → SO-2025-101 (80 u.) → GI EXP-01 (80 u.) → CC → compliance.",
+    },
     emptyStockNote: { fr: "Stock vide au départ : normal. Le stock n'apparaît qu'après réception postée (GR).", en: "Empty stock at start: expected. Stock appears only after posted receipt (GR)." },
     transactionMonitorHint: { fr: "Vérifiez que chaque document est POSTED avant l'étape suivante.", en: "Verify each document is POSTED before the next step." },
     complianceHint: { fr: "Conformité = aucune transaction en attente, pas de stock négatif, pas d'écart ouvert.", en: "Compliance = no pending transactions, no negative stock, no open variance." },
@@ -25,10 +34,19 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   },
   "SCN-002": {
     scnCode: "SCN-002",
-    situation: { fr: "PO validée mais stock absent au quai — GR fantôme.", en: "PO validated but no stock at dock — ghost GR." },
-    evidenceToObserve: { fr: "Moniteur : GR-2025-001 en PENDING ; REC-01 vide ou sans stock utilisable.", en: "Monitor: GR-2025-001 PENDING; REC-01 empty or without usable stock." },
-    operationalProblem: { fr: "Document créé mais non validé — le stock système n'est pas encore disponible.", en: "Document created but not validated — system stock not yet available." },
-    expectedActionHint: { fr: "Identifiez la GR non postée et validez-la avant tout rangement ou expédition.", en: "Identify the unposted GR and validate it before putaway or shipping." },
+    situation: {
+      fr: "PO-2025-001 POSTED · GR-2025-001 PENDING · SKU-001 · 100 u. REC-01. Post-résolution : SO-2025-101 · 80 u. · EXP-01.",
+      en: "PO-2025-001 POSTED · GR-2025-001 PENDING · SKU-001 · 100 u. REC-01. After fix: SO-2025-101 · 80 u. · EXP-01.",
+    },
+    evidenceToObserve: {
+      fr: "Moniteur : GR-2025-001 PENDING vs PO-2025-001 POSTED ; REC-01 vide jusqu'à post GR.",
+      en: "Monitor: GR-2025-001 PENDING vs PO-2025-001 POSTED; REC-01 empty until GR posted.",
+    },
+    operationalProblem: { fr: "GR-2025-001 non postée — stock indisponible.", en: "GR-2025-001 unposted — stock unavailable." },
+    expectedActionHint: {
+      fr: "Poster GR-2025-001 → PUTAWAY B-01-R1-L1 → SO-2025-101 (80 u.) → GI EXP-01.",
+      en: "Post GR-2025-001 → PUTAWAY B-01-R1-L1 → SO-2025-101 (80 u.) → GI EXP-01.",
+    },
     emptyStockNote: { fr: "REC-01 vide malgré la PO : l'anomalie est la GR non postée, pas un bug.", en: "REC-01 empty despite PO: the anomaly is the unposted GR, not a bug." },
     transactionMonitorHint: { fr: "Comparez PO (POSTED) vs GR (PENDING) — c'est la preuve de l'anomalie.", en: "Compare PO (POSTED) vs GR (PENDING) — that's the evidence." },
     complianceHint: { fr: "Tant qu'une GR reste PENDING, la conformité finale sera bloquée.", en: "While a GR remains PENDING, final compliance will be blocked." },
@@ -36,10 +54,19 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   },
   "SCN-003": {
     scnCode: "SCN-003",
-    situation: { fr: "50 u. SKU-003 au quai REC-01 — rangement STOCKAGE à faire avant expédition.", en: "50 u. SKU-003 at dock REC-01 — STOCKAGE putaway required before shipping." },
-    evidenceToObserve: { fr: "SKU-003 visible à REC-01 (pas encore en STOCKAGE) ; vérifiez quantité avant SO/GI.", en: "SKU-003 visible at REC-01 (not yet in STOCKAGE); check quantity before SO/GI." },
-    operationalProblem: { fr: "Risque de rupture ou stock négatif si expédition sans rangement puis réappro.", en: "Stockout or negative stock risk if shipping without putaway then replenishment." },
-    expectedActionHint: { fr: "Rangez REC-01 → STOCKAGE, puis planifiez SO ; réapprovisionnez si le stock STOCKAGE est insuffisant.", en: "Put away REC-01 → STOCKAGE, then plan SO; replenish if STOCKAGE is insufficient." },
+    situation: {
+      fr: "PO-2025-002 · GR-2025-002 : 50 u. SKU-003 REC-01. Contrat : putaway B-01-R1-L2 · SO-2025-101 80 u. · PO corrective PO-2025-003 +30 u.",
+      en: "PO-2025-002 · GR-2025-002: 50 u. SKU-003 REC-01. Contract: putaway B-01-R1-L2 · SO-2025-101 80 u. · corrective PO-2025-003 +30 u.",
+    },
+    evidenceToObserve: {
+      fr: "50 u. à REC-01 ; après putaway B-01-R1-L2, SO 80 u. exige +30 u. réappro.",
+      en: "50 u. at REC-01; after putaway B-01-R1-L2, SO 80 u. requires +30 u. replenishment.",
+    },
+    operationalProblem: { fr: "Déficit contractuel 30 u. (80 − 50) avant GI.", en: "Contract deficit 30 u. (80 − 50) before GI." },
+    expectedActionHint: {
+      fr: "PUTAWAY B-01-R1-L2 → SO-2025-101 (80 u.) → PO-2025-003 (+30 u.) + GR → GI 80 u.",
+      en: "PUTAWAY B-01-R1-L2 → SO-2025-101 (80 u.) → PO-2025-003 (+30 u.) + GR → GI 80 u.",
+    },
     emptyStockNote: { fr: "Stock au quai REC-01 — le rangement n'est pas encore fait ; ce n'est pas un bin de picking.", en: "Stock at dock REC-01 — putaway not done yet; this is not a picking bin." },
     transactionMonitorHint: { fr: "Suivez le mouvement REC-01 → STOCKAGE et les quantités disponibles.", en: "Track REC-01 → STOCKAGE movement and available quantities." },
     complianceHint: { fr: "La GI ne doit pas créer de stock négatif.", en: "GI must not create negative stock." },
@@ -67,20 +94,38 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   },
   "SCN-006": {
     scnCode: "SCN-006",
-    situation: { fr: "150 u. SKU-001 postées au quai REC-01.", en: "150 u. SKU-001 posted at dock REC-01." },
-    evidenceToObserve: { fr: "GR-M2-001 POSTED ; stock visible REC-01 ; putaway requis vers STOCKAGE.", en: "GR-M2-001 POSTED; stock visible REC-01; putaway required to STOCKAGE." },
-    operationalProblem: { fr: "Affecter un emplacement conforme capacité et zone.", en: "Assign a location meeting capacity and zone rules." },
-    expectedActionHint: { fr: "Validez la réception, puis exécutez le rangement structuré (PUTAWAY).", en: "Validate receipt, then execute structured putaway (PUTAWAY)." },
+    situation: {
+      fr: "PO-M2-001 · GR-M2-001 : 150 u. SKU-001 REC-01 · lot LOT-2025-001 · destination B-01-R1-L1.",
+      en: "PO-M2-001 · GR-M2-001: 150 u. SKU-001 REC-01 · lot LOT-2025-001 · destination B-01-R1-L1.",
+    },
+    evidenceToObserve: {
+      fr: "GR-M2-001 POSTED ; lot LOT-2025-001 requis au PUTAWAY M2.",
+      en: "GR-M2-001 POSTED; lot LOT-2025-001 required at M2 PUTAWAY.",
+    },
+    operationalProblem: { fr: "Putaway contractuel avec lot LOT-2025-001 vers B-01-R1-L1.", en: "Contract putaway with lot LOT-2025-001 to B-01-R1-L1." },
+    expectedActionHint: {
+      fr: "PUTAWAY : REC-01 → B-01-R1-L1 · 150 u. · lot LOT-2025-001.",
+      en: "PUTAWAY: REC-01 → B-01-R1-L1 · 150 u. · lot LOT-2025-001.",
+    },
     transactionMonitorHint: { fr: "PO-M2-001 et GR-M2-001 doivent être POSTED avant putaway.", en: "PO-M2-001 and GR-M2-001 must be POSTED before putaway." },
     complianceHint: { fr: "Conformité M2 après FIFO, précision stock et validation avancée.", en: "M2 compliance after FIFO, stock accuracy and advanced validation." },
     learningTakeaway: { fr: "Le putaway structure la traçabilité emplacement.", en: "Putaway structures location traceability." },
   },
   "SCN-007": {
     scnCode: "SCN-007",
-    situation: { fr: "600 u. SKU-002 reçues ; capacité bin B-01-R1-L1 = 500.", en: "600 u. SKU-002 received; bin B-01-R1-L1 capacity = 500." },
-    evidenceToObserve: { fr: "Quantité au quai vs capacité max du bin cible.", en: "Dock quantity vs target bin max capacity." },
-    operationalProblem: { fr: "Dépassement de capacité — répartition requise.", en: "Capacity overflow — split required." },
-    expectedActionHint: { fr: "Observez l'alerte capacité et répartissez sur plusieurs bins STOCKAGE.", en: "Watch capacity alert and split across STOCKAGE bins." },
+    situation: {
+      fr: "PO-M2-002 · GR-M2-002 : 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100).",
+      en: "PO-M2-002 · GR-M2-002: 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100).",
+    },
+    evidenceToObserve: {
+      fr: "Capacité B-01-R1-L1 = 500 u. ; lot LOT-2025-002 obligatoire au putaway.",
+      en: "B-01-R1-L1 capacity = 500 u.; lot LOT-2025-002 mandatory at putaway.",
+    },
+    operationalProblem: { fr: "Répartition contractuelle 500 + 100 u. sans overflow.", en: "Contract split 500 + 100 u. without overflow." },
+    expectedActionHint: {
+      fr: "PUTAWAY split : B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002.",
+      en: "PUTAWAY split: B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002.",
+    },
     transactionMonitorHint: { fr: "GR-M2-002 POSTED — 600 u. à placer sans overflow.", en: "GR-M2-002 POSTED — 600 u. to place without overflow." },
     complianceHint: { fr: "Aucun bin ne doit dépasser sa capacité max.", en: "No bin may exceed max capacity." },
     learningTakeaway: { fr: "La capacité d'emplacement évite la saturation des slots.", en: "Bin capacity prevents slot saturation." },
@@ -161,10 +206,19 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   },
   "SCN-015": {
     scnCode: "SCN-015",
-    situation: { fr: "Peak Week Jour 1 — cycle nominal SKU-001 · 50 u. · PO-M5-001.", en: "Peak Week Day 1 — nominal cycle SKU-001 · 50 u. · PO-M5-001." },
-    evidenceToObserve: { fr: "M5_RECEPTION → PUTAWAY → CC → REPLENISH → KPI snapshot → DECISION.", en: "M5_RECEPTION → PUTAWAY → CC → REPLENISH → KPI snapshot → DECISION." },
-    operationalProblem: { fr: "Enchaîner 7 étapes contractuelles sans incohérence.", en: "Chain 7 contract-bound steps without inconsistency." },
-    expectedActionHint: { fr: "SKU-001 · 50 u. · REC-01 → B-01-R1-L1 — complétez chaque étape.", en: "SKU-001 · 50 u. · REC-01 → B-01-R1-L1 — complete each step." },
+    situation: {
+      fr: "Contrat M5 : PO-M5-001 · SKU-001 · 50 u. · LOT-M5-A · REC-01 → B-01-R1-L1 · réappro Min 10 / Max 100 / SS 5.",
+      en: "M5 contract: PO-M5-001 · SKU-001 · 50 u. · LOT-M5-A · REC-01 → B-01-R1-L1 · replenish Min 10 / Max 100 / SS 5.",
+    },
+    evidenceToObserve: {
+      fr: "M5_RECEPTION → PUTAWAY (LOT-M5-A) → CC → REPLENISH (10/100/5) → KPI snapshot → DECISION.",
+      en: "M5_RECEPTION → PUTAWAY (LOT-M5-A) → CC → REPLENISH (10/100/5) → KPI snapshot → DECISION.",
+    },
+    operationalProblem: { fr: "7 étapes contractuelles — ne pas deviner lot ni paramètres réappro.", en: "7 contract steps — do not guess lot or replenish params." },
+    expectedActionHint: {
+      fr: "PO-M5-001 · 50 u. · LOT-M5-A · B-01-R1-L1 · réappro Min 10 Max 100 SS 5.",
+      en: "PO-M5-001 · 50 u. · LOT-M5-A · B-01-R1-L1 · replenish Min 10 Max 100 SS 5.",
+    },
     emptyStockNote: {
       fr: "Stock vide au départ — normal. La première preuve opérationnelle apparaît après la réception M5_RECEPTION.",
       en: "Empty stock at start — expected. First operational evidence appears after M5_RECEPTION.",
@@ -175,22 +229,40 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   },
   "SCN-016": {
     scnCode: "SCN-016",
-    situation: { fr: "Peak Week Jour 2 — variance −5 u. injectée @ B-01-R1-L1.", en: "Peak Week Day 2 — injected −5 u. variance @ B-01-R1-L1." },
-    evidenceToObserve: { fr: "Variance au M5_CYCLE_COUNT — M5_ADJ (MI07) requis avant réappro/KPI.", en: "Variance at M5_CYCLE_COUNT — M5_ADJ (MI07) required before replenish/KPI." },
-    operationalProblem: { fr: "Écart non corrigé bloque réappro, KPI et conformité.", en: "Uncorrected variance blocks replenish, KPI and compliance." },
-    expectedActionHint: { fr: "Détectez −5 u., postez M5_ADJ avec justification, puis poursuivez.", en: "Detect −5 u., post M5_ADJ with justification, then continue." },
+    situation: {
+      fr: "Contrat M5 base (PO-M5-001 · LOT-M5-A · réappro 10/100/5) + variance −5 u. @ B-01-R1-L1 (physique 45 vs système 50).",
+      en: "M5 base contract (PO-M5-001 · LOT-M5-A · replenish 10/100/5) + −5 u. variance @ B-01-R1-L1 (physical 45 vs system 50).",
+    },
+    evidenceToObserve: {
+      fr: "M5_CYCLE_COUNT : physique 45 u. · système 50 u. — M5_ADJ requis avant réappro/KPI.",
+      en: "M5_CYCLE_COUNT: physical 45 u. · system 50 u. — M5_ADJ required before replenish/KPI.",
+    },
+    operationalProblem: { fr: "Écart −5 contractuel — ADJ avant suite du flux.", en: "Contract −5 variance — ADJ before continuing flow." },
+    expectedActionHint: {
+      fr: "LOT-M5-A · ADJ −5 u. · puis REPLENISH Min 10 Max 100 SS 5.",
+      en: "LOT-M5-A · ADJ −5 u. · then REPLENISH Min 10 Max 100 SS 5.",
+    },
     transactionMonitorHint: { fr: "Vérifiez les mouvements avant et après l'ajustement inventaire.", en: "Verify movements before and after inventory adjustment." },
     complianceHint: { fr: "Ne clôturez pas avec écart ouvert.", en: "Do not close with open variance." },
     learningTakeaway: { fr: "Les exceptions inventaire doivent être traitées avant le pilotage.", en: "Inventory exceptions must be handled before steering." },
   },
   "SCN-017": {
     scnCode: "SCN-017",
-    situation: { fr: "Peak Week Jour 3 — capstone décisionnel avec KPI snapshot.", en: "Peak Week Day 3 — decision capstone with KPI snapshot." },
-    evidenceToObserve: { fr: "Snapshot M5_KPI obligatoire — décision cite ≥2 KPI chiffrés.", en: "M5_KPI snapshot required — decision cites ≥2 numeric KPIs." },
-    operationalProblem: { fr: "Formuler décision stratégique avec trade-off et horizon 90–180 j.", en: "Formulate strategic decision with trade-off and 90–180 day horizon." },
+    situation: {
+      fr: "Contrat ops M5 (PO-M5-001 · LOT-M5-A · 50 u. · réappro 10/100/5) puis décision stratégique basée sur snapshot M5_KPI runtime.",
+      en: "M5 ops contract (PO-M5-001 · LOT-M5-A · 50 u. · replenish 10/100/5) then strategic decision from M5_KPI runtime snapshot.",
+    },
+    evidenceToObserve: {
+      fr: "Snapshot M5_KPI dans le cockpit après cycle ops — source autoritaire pour M5_DECISION.",
+      en: "M5_KPI snapshot in cockpit after ops cycle — authoritative source for M5_DECISION.",
+    },
+    operationalProblem: {
+      fr: "Décision stratégique liée aux KPI runtime — pas aux valeurs statiques du briefing.",
+      en: "Strategic decision tied to runtime KPIs — not static briefing values.",
+    },
     expectedActionHint: {
-      fr: "Phase 1 : complétez le cycle ops (M5_RECEPTION en premier). Phase 2 : analysez M5_KPI. Phase 3 : rédigez M5_DECISION justifiée.",
-      en: "Phase 1: complete the ops cycle (M5_RECEPTION first). Phase 2: analyze M5_KPI. Phase 3: write justified M5_DECISION.",
+      fr: "Cycle ops (LOT-M5-A · 10/100/5) → lire M5_KPI runtime → M5_DECISION avec KPI cités.",
+      en: "Ops cycle (LOT-M5-A · 10/100/5) → read M5_KPI runtime → M5_DECISION citing KPIs.",
     },
     transactionMonitorHint: { fr: "Consultez les KPI agrégés — pas de nouvelle transaction requise.", en: "Review aggregated KPIs — no new transaction required." },
     emptyStockNote: {

@@ -24,6 +24,21 @@ export interface MissionData {
     suggestedBin?: string;
     expectedTransaction?: string;
     status?: string;
+    /** RC21-C.1A — operational contract datums (briefing display only) */
+    lotNumber?: string;
+    poRef?: string;
+    grRef?: string;
+    soRef?: string;
+    giRef?: string;
+    shipQuantity?: number | string;
+    giQuantity?: number | string;
+    correctivePoQuantity?: number | string;
+    correctivePoRef?: string;
+    expBin?: string;
+    warehouse?: string;
+    replenishMin?: number;
+    replenishMax?: number;
+    replenishSafetyStock?: number;
   };
   /** Operational Intelligence Layer — display only */
   successCriteria?: string[];
@@ -44,27 +59,40 @@ export const M1_MISSIONS: Record<number, MissionData> = {
     scenarioId: 1,
     scnCode: "SCN-001",
     objective: "Exécution d'un flux logistique nominal complet (End-to-End).",
-    context: "Concorde Logistics a reçu une commande standard. Vous devez assurer la réception, le rangement et l'expédition sans aucune anomalie système.",
+    context:
+      "Concorde Logistics a reçu une commande standard au CDC Montréal. Documents supervisés : PO-2025-101 · GR-2025-101 · SO-2025-101. Réception 100 u. SKU-001 au quai REC-01 ; rangement vers B-01-R1-L1 ; expédition 80 u. vers EXP-01.",
     role: "Gestionnaire de Stocks",
     module: "WMS / ERP Core",
     controlPoints: [
-      "Vérifier la disponibilité du bin de réception (REC-01).",
-      "Valider la correspondance entre le Bon de Commande (PO) et la Réception (GR).",
-      "Confirmer le rangement (Putaway) dans la zone de stockage.",
+      "Documents contractuels : PO-2025-101 · GR-2025-101 · SO-2025-101 (ne pas inventer d'autres références).",
+      "Réception : SKU-001 · 100 u. · quai REC-01 · entrepôt CDC Montréal.",
+      "Rangement PUTAWAY : REC-01 → B-01-R1-L1 (zone STOCKAGE).",
+      "Expédition : SO-2025-101 · 80 u. · prélèvement EXP-01 · GI 80 u.",
     ],
     studentActions: [
-      "Créer et poster une PO (ME21N) vers REC-01 pour SKU-001 (100 u.).",
-      "Créer et poster la GR (MIGO) vers REC-01 — le stock apparaît au quai.",
-      "Ranger REC-01 → emplacement STOCKAGE (LT0A / PUTAWAY).",
-      "Vérifier le stock (MB52), créer la SO, prélever vers EXP-01/02, poster la GI.",
-      "Effectuer le Cycle Count (MI01), puis valider la Conformité (MB52).",
+      "Créer et poster PO-2025-101 (ME21N) : SKU-001 · 100 u. · bin REC-01.",
+      "Créer et poster GR-2025-101 (MIGO) : SKU-001 · 100 u. · bin REC-01.",
+      "PUTAWAY (LT01) : REC-01 → B-01-R1-L1 · 100 u. SKU-001.",
+      "Créer SO-2025-101 : 80 u. SKU-001 — prélèvement depuis B-01-R1-L1 vers EXP-01.",
+      "Poster GI : 80 u. SKU-001 depuis EXP-01.",
+      "Cycle Count (MI01) sur B-01-R1-L1, puis Conformité (MB52).",
     ],
     expectedOutcome: "Flux complété avec conformité système au vert.",
-    supervisorNotes: "Séquence : PO → GR → Putaway → SO → Picking → GI → CC → Conformité.",
+    supervisorNotes:
+      "Séquence contractuelle : PO-2025-101 → GR-2025-101 → Putaway B-01-R1-L1 → SO-2025-101 (80 u.) → Picking EXP-01 → GI (80 u.) → CC → Conformité.",
     technicalSpecs: {
       sku: "SKU-001",
       quantity: 100,
       suggestedBin: "REC-01",
+      sourceBin: "REC-01",
+      targetBin: "B-01-R1-L1",
+      expBin: "EXP-01",
+      poRef: "PO-2025-101",
+      grRef: "GR-2025-101",
+      soRef: "SO-2025-101",
+      shipQuantity: 80,
+      giQuantity: 80,
+      warehouse: "CDC Montréal",
     },
     successCriteria: ["Conformité système au vert", "Score ≥ 60 en évaluation", "Toutes étapes complétées"],
     failureConditions: ["Transactions non postées", "Stock négatif", "Séquence hors ordre"],
@@ -81,26 +109,39 @@ export const M1_MISSIONS: Record<number, MissionData> = {
     scenarioId: 2,
     scnCode: "SCN-002",
     objective: "Détection et résolution d'une anomalie de réception (Ghost GR).",
-    context: "Le système affiche un Bon de Commande validé, mais le stock n'est pas apparu dans le bin de réception. Une GR (GR-2025-001) existe mais n'a pas été postée.",
+    context:
+      "PO-2025-001 (POSTED) et GR-2025-001 (PENDING) pour SKU-001 · 100 u. au quai REC-01. Après résolution de la GR fantôme : rangement B-01-R1-L1, puis expédition SO-2025-101 · 80 u. vers EXP-01.",
     role: "Contrôleur Qualité Logistique",
     module: "Gestion des Anomalies ERP",
     controlPoints: [
-      "Analyser le moniteur de transactions pour identifier les documents non postés.",
-      "Vérifier l'état du bin REC-01 dans le cockpit opérationnel.",
-      "Valider la transaction GR manquante pour débloquer le flux.",
+      "Documents préchargés : PO-2025-001 (POSTED) · GR-2025-001 (PENDING) · SKU-001 · 100 u. · REC-01.",
+      "Analyser le moniteur pour identifier GR-2025-001 non postée.",
+      "Poster GR-2025-001 avant tout rangement ou expédition.",
+      "Post-résolution : PUTAWAY REC-01 → B-01-R1-L1 · SO-2025-101 · 80 u. · GI depuis EXP-01.",
     ],
     studentActions: [
-      "Ouvrir le cockpit : repérer GR-2025-001 en statut PENDING dans le moniteur.",
-      "Aller à l'étape GR ou Conformité et cliquer « Poster (MIGO) » sur GR-2025-001.",
-      "Ne pas créer une nouvelle GR — cela laisserait la fantôme non postée.",
-      "Une fois postée, ranger (PUTAWAY), poursuivre SO → Picking → GI → CC → Conformité.",
+      "Repérer GR-2025-001 en statut PENDING dans le moniteur (PO-2025-001 déjà POSTED).",
+      "Poster GR-2025-001 (MIGO) : SKU-001 · 100 u. · REC-01 — ne pas créer une nouvelle GR.",
+      "PUTAWAY : REC-01 → B-01-R1-L1 · 100 u. SKU-001.",
+      "Créer SO-2025-101 : 80 u. SKU-001 — prélèvement B-01-R1-L1 → EXP-01.",
+      "Poster GI : 80 u. depuis EXP-01, puis CC → Conformité.",
     ],
-    expectedOutcome: "GR fantôme postée, stock visible en REC-01, conformité rétablie.",
-    supervisorNotes: "Réception fantôme = document créé mais non validé dans le WMS.",
+    expectedOutcome: "GR fantôme postée, stock visible en REC-01, expédition 80 u. complétée, conformité rétablie.",
+    supervisorNotes:
+      "Réception fantôme = GR-2025-001 créée mais non validée. Après post : SO-2025-101 · 80 u. · EXP-01.",
     technicalSpecs: {
       sku: "SKU-001",
       quantity: 100,
       suggestedBin: "REC-01",
+      sourceBin: "REC-01",
+      targetBin: "B-01-R1-L1",
+      expBin: "EXP-01",
+      poRef: "PO-2025-001",
+      grRef: "GR-2025-001",
+      soRef: "SO-2025-101",
+      shipQuantity: 80,
+      giQuantity: 80,
+      warehouse: "CDC Montréal",
     },
     successCriteria: ["GR-2025-001 postée", "Stock visible REC-01", "Conformité rétablie"],
     failureConditions: ["Nouvelle GR créée sans poster fantôme", "REC-01 vide après réception"],
@@ -118,27 +159,39 @@ export const M1_MISSIONS: Record<number, MissionData> = {
     scenarioId: 3,
     scnCode: "SCN-003",
     objective: "Gestion d'une rupture de stock et réapprovisionnement d'urgence.",
-    context: "50 unités de SKU-003 sont en zone RÉCEPTION (REC-01) après PO/GR postées — le rangement vers STOCKAGE reste à faire. Une commande client nécessitera plus de stock que disponible après rangement ; un réapprovisionnement d'urgence (PO corrective + GR) sera requis avant la GI.",
+    context:
+      "PO-2025-002 · GR-2025-002 postées : 50 u. SKU-003 au quai REC-01. Contrat opérationnel : rangement vers B-01-R1-L2 · SO-2025-101 pour 80 u. · déficit 30 u. · PO corrective PO-2025-003 (+30 u.) + GR avant GI.",
     role: "Responsable d'Opération",
     module: "Planification des Besoins",
     controlPoints: [
-      "Ranger le stock en attente (REC-01 → STOCKAGE).",
-      "Identifier le déficit avant expédition.",
-      "Réapprovisionner (PO + GR) avant de valider la GI.",
+      "Documents préchargés : PO-2025-002 · GR-2025-002 · SKU-003 · 50 u. · REC-01.",
+      "PUTAWAY contractuel : REC-01 → B-01-R1-L2 · 50 u.",
+      "SO contractuelle : SO-2025-101 · 80 u. (stock insuffisant après rangement — déficit 30 u.).",
+      "Réappro d'urgence : PO-2025-003 · +30 u. · GR corrective · rangement STOCKAGE avant GI.",
     ],
     studentActions: [
-      "Étape PUTAWAY : déplacer 50 u. SKU-003 de REC-01 vers un bin STOCKAGE (ex. B-01-R1-L2) — stock encore au quai, pas en picking.",
-      "Créer une SO pour une quantité supérieure au stock STOCKAGE (ex. 80 u.) — noter le blocage si stock insuffisant.",
-      "Créer une PO corrective + GR pour combler le déficit (ex. +30 u.), puis ranger en STOCKAGE.",
-      "Compléter Picking (depuis STOCKAGE) → GI → Cycle Count → Conformité.",
+      "PUTAWAY : REC-01 → B-01-R1-L2 · 50 u. SKU-003.",
+      "Créer SO-2025-101 : 80 u. SKU-003 — constater le déficit de 30 u. (80 − 50).",
+      "Créer PO-2025-003 corrective : +30 u. SKU-003 · GR associée · ranger en STOCKAGE.",
+      "Picking depuis B-01-R1-L2 → EXP-01 · GI 80 u. · Cycle Count → Conformité.",
     ],
-    expectedOutcome: "Commande client satisfaite après réapprovisionnement.",
-    supervisorNotes: "Ne pas valider la GI tant que le stock en STOCKAGE est insuffisant.",
+    expectedOutcome: "Commande SO-2025-101 (80 u.) satisfaite après réapprovisionnement de 30 u.",
+    supervisorNotes:
+      "Quantités contractuelles : 50 u. en stock après putaway · SO 80 u. · PO corrective +30 u. Ne pas valider la GI tant que 80 u. ne sont pas disponibles en STOCKAGE.",
     technicalSpecs: {
       sku: "SKU-003",
       quantity: 50,
       sourceBin: "REC-01",
-      targetBin: "STOCKAGE (ex. B-01-R1-L2)",
+      targetBin: "B-01-R1-L2",
+      poRef: "PO-2025-002",
+      grRef: "GR-2025-002",
+      soRef: "SO-2025-101",
+      shipQuantity: 80,
+      giQuantity: 80,
+      correctivePoQuantity: 30,
+      correctivePoRef: "PO-2025-003",
+      expBin: "EXP-01",
+      warehouse: "CDC Montréal",
     },
     successCriteria: ["SO satisfaite après réappro", "Pas de stock négatif", "GI validée"],
     failureConditions: ["GI avec stock insuffisant", "Pas de réapprovisionnement"],
