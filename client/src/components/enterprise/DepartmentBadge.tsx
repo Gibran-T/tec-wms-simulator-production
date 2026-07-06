@@ -23,7 +23,7 @@ export default function DepartmentBadge({
 
   return (
     <span
-      className={`tec-department-badge ${deptClass} font-bold uppercase tracking-wider ${sizeClass} ${className}`}
+      className={`tec-department-badge inline-flex items-center rounded ${deptClass} font-bold uppercase tracking-wider ${sizeClass} ${className}`}
     >
       {label}
     </span>

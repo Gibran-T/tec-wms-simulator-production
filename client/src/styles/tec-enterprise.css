@@ -81,7 +81,49 @@
   border-left: 4px solid var(--tec-warning);
 }
 
-/* RC21-B.3 — Department color system */
+/* RC21-C.1A — EOAS experience refinements */
+.tec-priority-badge {
+  border-radius: 0.25rem;
+}
+
+.tec-assignment-card.tec-dept--wh,
+.tec-assignment-card.tec-dept--rec,
+.tec-assignment-card.tec-dept--shp,
+.tec-assignment-card.tec-dept--inv,
+.tec-assignment-card.tec-dept--proc,
+.tec-assignment-card.tec-dept--plan,
+.tec-assignment-card.tec-dept--cs,
+.tec-assignment-card.tec-dept--fin,
+.tec-assignment-card.tec-dept--qa,
+.tec-assignment-card.tec-dept--ops,
+.tec-assignment-card.tec-dept--mgt {
+  border-left-color: var(--tec-dept-accent, var(--tec-m1));
+}
+
+.tec-assignment-card--critique {
+  box-shadow: inset 3px 0 0 0 var(--tec-critical);
+}
+
+.tec-assignment-card--elevee {
+  box-shadow: inset 3px 0 0 0 var(--tec-warning);
+}
+
+.tec-assignment-card--pointe {
+  box-shadow: inset 3px 0 0 0 #9333ea;
+}
+
+.tec-eoas-urgent-row {
+  cursor: pointer;
+}
+
+.tec-career-strip {
+  min-height: 0;
+}
+
+.tec-current-assignment-embedded {
+  min-height: 0;
+}
+
 .tec-dept--wh { --tec-dept-accent: var(--tec-dept-wh); }
 .tec-dept--rec { --tec-dept-accent: var(--tec-dept-rec); }
 .tec-dept--shp { --tec-dept-accent: var(--tec-dept-shp); }

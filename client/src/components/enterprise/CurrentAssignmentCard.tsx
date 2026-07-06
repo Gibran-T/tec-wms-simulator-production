@@ -1,7 +1,10 @@
 import { Link } from "wouter";
-import { ArrowRight, PlayCircle } from "lucide-react";
+import { ArrowRight, Play } from "lucide-react";
 import type { EmployeeProfileCurrentAssignment } from "@shared/enterprise/employeeProfile";
+import { getScenarioBinding, DEPARTMENT_LABELS } from "@shared/enterprise/scenarioBinding";
 import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
+import DepartmentBadge from "@/components/enterprise/DepartmentBadge";
+import PriorityBadge from "@/components/enterprise/PriorityBadge";
 
 interface CurrentAssignmentCardProps {
   assignment: EmployeeProfileCurrentAssignment;
@@ -9,6 +12,8 @@ interface CurrentAssignmentCardProps {
   t: (fr: string, en: string) => string;
   /** RC21-B.1 — mission title primary, SCN metadata secondary */
   assignmentPresentation?: boolean;
+  /** RC21-C.1A — nested inside Today's Priorities (no duplicate panel chrome) */
+  embedded?: boolean;
 }
 
 export default function CurrentAssignmentCard({
@@ -16,8 +21,10 @@ export default function CurrentAssignmentCard({
   language,
   t,
   assignmentPresentation = false,
+  embedded = false,
 }: CurrentAssignmentCardProps) {
   const chapterLabel = language === "FR" ? assignment.label.fr : assignment.label.en;
+  const binding = assignment.scnCode ? getScenarioBinding(assignment.scnCode) : undefined;
 
   const statusCopy = assignmentPresentation
     ? {
@@ -55,20 +62,24 @@ export default function CurrentAssignmentCard({
         },
       }[assignment.status];
 
+  const panelClass = embedded
+    ? "tec-current-assignment-embedded pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3"
+    : "tec-briefing-panel p-5 space-y-3";
+
   return (
-    <div className="tec-briefing-panel p-5 space-y-3">
+    <div className={panelClass}>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
           {assignmentPresentation
             ? t("Affectation opérationnelle", "Operational assignment")
             : t("Affectation actuelle", "Current assignment")}
         </p>
-        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 ${statusCopy.className}`}>
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${statusCopy.className}`}>
           {language === "FR" ? statusCopy.fr : statusCopy.en}
         </span>
       </div>
 
-      <p className="text-xs text-slate-500">{chapterLabel}</p>
+      {!embedded && <p className="text-xs text-slate-500">{chapterLabel}</p>}
 
       {assignment.scnCode ? (
         <>
@@ -79,14 +90,29 @@ export default function CurrentAssignmentCard({
                   {assignment.missionTitle}
                 </p>
               )}
-              <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mt-1">
-                {assignment.scnCode}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                  {assignment.scnCode}
+                </p>
+                {binding && (
+                  <>
+                    <DepartmentBadge
+                      department={binding.department}
+                      label={
+                        language === "FR"
+                          ? DEPARTMENT_LABELS[binding.department].fr
+                          : DEPARTMENT_LABELS[binding.department].en
+                      }
+                    />
+                    <PriorityBadge priority={binding.priority} language={language} />
+                  </>
+                )}
+              </div>
             </>
           ) : (
             <>
               <div className="flex items-center gap-2">
-                <PlayCircle size={16} className="text-primary shrink-0" />
+                <Play size={16} className="text-primary shrink-0" />
                 <span className="text-sm font-mono font-bold text-primary">{assignment.scnCode}</span>
               </div>
               {assignment.missionTitle && (
@@ -109,12 +135,13 @@ export default function CurrentAssignmentCard({
       {assignment.status === "active" && assignment.runId != null && (
         <Link
           href={`/student/run/${assignment.runId}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mt-1"
+          className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-4 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-md hover:bg-primary/90 transition-colors mt-1"
         >
+          <Play size={16} />
           {assignmentPresentation
             ? t("Reprendre l'affectation", "Resume assignment")
             : t("Reprendre la mission", "Resume mission")}
-          <ArrowRight size={12} />
+          <ArrowRight size={14} />
         </Link>
       )}
 

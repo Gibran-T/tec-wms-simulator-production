@@ -127,6 +127,7 @@ export default function ConcordeConnect() {
                   myRuns={myRuns}
                   language={language}
                   t={t}
+                  onStartScenario={setPendingScenario}
                 />
                 <AssignmentQueue
                   moduleId={activeModuleId}

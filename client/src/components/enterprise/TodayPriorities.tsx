@@ -1,12 +1,14 @@
 import { useMemo } from "react";
-import { AlertTriangle, CalendarClock } from "lucide-react";
+import { useLocation } from "wouter";
+import { AlertTriangle, CalendarClock, ChevronRight, Play } from "lucide-react";
 import type { EmployeeProfilePayload } from "@shared/enterprise/employeeProfile";
 import {
+  findActiveRunForScenario,
   findCompletedRunForScenario,
   resolveScenarioScnCode,
 } from "@/lib/scenarioCatalog";
 import type { ScenarioRef } from "../../../../server/canonicalScenarios";
-import type { PriorityLevel } from "@shared/enterpriseBriefing";
+import type { PriorityLevel, DepartmentCode } from "@shared/enterpriseBriefing";
 import {
   buildAssignmentMeta,
   comparePriority,
@@ -16,10 +18,13 @@ import {
 import { DEPARTMENT_LABELS } from "@shared/enterprise/scenarioBinding";
 import { getMissionForScenario } from "../../../../server/missionData";
 import PriorityBadge from "@/components/enterprise/PriorityBadge";
+import DepartmentBadge from "@/components/enterprise/DepartmentBadge";
 import CurrentAssignmentCard from "@/components/enterprise/CurrentAssignmentCard";
+import CareerChapterPanel from "@/components/enterprise/CareerChapterPanel";
 
 type TodayScenario = ScenarioRef & {
   name: string;
+  difficulty?: string | null;
   descriptionFr?: string | null;
   descriptionEn?: string | null;
 };
@@ -37,6 +42,7 @@ interface TodayPrioritiesProps {
   myRuns: EnrichedRunRow[] | undefined;
   language: "FR" | "EN";
   t: (fr: string, en: string) => string;
+  onStartScenario?: (scenario: { id: number; name: string; difficulty?: string }) => void;
 }
 
 function resolveTitle(scenario: TodayScenario, moduleId: number): string {
@@ -54,13 +60,19 @@ export default function TodayPriorities({
   myRuns,
   language,
   t,
+  onStartScenario,
 }: TodayPrioritiesProps) {
+  const [, navigate] = useLocation();
+
   const urgentOpen = useMemo(() => {
     const items: Array<{
+      scenario: TodayScenario;
       scnCode: string;
       missionTitle: string;
       department: string;
+      departmentCode: DepartmentCode;
       priority: PriorityLevel;
+      activeRunId: number | null;
     }> = [];
 
     for (const scenario of moduleScenarios) {
@@ -70,16 +82,32 @@ export default function TodayPriorities({
       if (completed) continue;
       const meta = buildAssignmentMeta(scnCode, resolveTitle(scenario, moduleId));
       if (!meta || !isUrgentPriority(meta.priority)) continue;
+      const activeRun = findActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
       items.push({
+        scenario,
         scnCode,
         missionTitle: meta.missionTitle,
         department: language === "FR" ? DEPARTMENT_LABELS[meta.department].fr : DEPARTMENT_LABELS[meta.department].en,
+        departmentCode: meta.department,
         priority: meta.priority,
+        activeRunId: activeRun?.run.id ?? null,
       });
     }
 
     return items.sort((a, b) => comparePriority(a.priority, b.priority));
   }, [moduleScenarios, rawModuleScenarios, myRuns, moduleId, language]);
+
+  const handleUrgentAction = (item: (typeof urgentOpen)[number]) => {
+    if (item.activeRunId) {
+      navigate(`/student/run/${item.activeRunId}`);
+      return;
+    }
+    onStartScenario?.({
+      id: item.scenario.id,
+      name: item.scenario.name,
+      difficulty: item.scenario.difficulty ?? undefined,
+    });
+  };
 
   return (
     <section className="tec-today-priorities space-y-4">
@@ -101,33 +129,56 @@ export default function TodayPriorities({
           </div>
         </div>
 
-        <CurrentAssignmentCard
-          assignment={profile.currentAssignment}
-          language={language}
-          t={t}
-          assignmentPresentation
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <CareerChapterPanel profile={profile} language={language} t={t} variant="compact" />
+          <CurrentAssignmentCard
+            assignment={profile.currentAssignment}
+            language={language}
+            t={t}
+            assignmentPresentation
+            embedded
+          />
+        </div>
 
         {urgentOpen.length > 0 ? (
           <div className="space-y-2">
             <p className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
               <AlertTriangle size={14} className="text-amber-600" />
               {t("Affectations urgentes en attente", "Urgent assignments pending")}
+              <span className="text-[10px] font-mono font-normal normal-case text-slate-400">
+                ({urgentOpen.length})
+              </span>
             </p>
             <ul className="space-y-2">
               {urgentOpen.slice(0, 5).map((item) => (
-                <li
-                  key={item.scnCode}
-                  className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md"
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground leading-snug">{item.missionTitle}</p>
-                    <p className="text-[10px] font-mono text-slate-400 mt-0.5">{item.scnCode}</p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[10px] font-bold uppercase text-slate-500">{item.department}</span>
-                    <PriorityBadge priority={item.priority} language={language} />
-                  </div>
+                <li key={item.scnCode}>
+                  <button
+                    type="button"
+                    onClick={() => handleUrgentAction(item)}
+                    className="tec-eoas-urgent-row w-full flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-md text-left hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors group"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-foreground leading-snug">{item.missionTitle}</p>
+                      <p className="text-[10px] font-mono text-slate-400 mt-0.5">{item.scnCode}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <DepartmentBadge department={item.departmentCode} label={item.department} />
+                      <PriorityBadge priority={item.priority} language={language} />
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                        {item.activeRunId ? (
+                          <>
+                            <Play size={12} />
+                            {t("Reprendre", "Resume")}
+                          </>
+                        ) : (
+                          <>
+                            {t("Accepter", "Accept")}
+                            <ChevronRight size={14} />
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </button>
                 </li>
               ))}
             </ul>

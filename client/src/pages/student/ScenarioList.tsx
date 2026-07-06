@@ -389,6 +389,7 @@ export default function ScenarioList() {
               myRuns={myRuns}
               language={language}
               t={t}
+              onStartScenario={setPendingScenario}
             />
             <AssignmentQueue
               moduleId={selectedModule}
