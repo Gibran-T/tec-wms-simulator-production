@@ -79,6 +79,8 @@ export interface IntelligenceRunState {
   };
   /** OIL Panel F — AI Mentor entry point (Manifesto §6.7) */
   onMentorOpen?: () => void;
+  /** RC21-C.1A — parent route already shows mission identity (hero + EnterpriseHeader) */
+  identitySuppressed?: boolean;
 }
 
 function PanelShell({
@@ -109,7 +111,19 @@ function PanelShell({
   );
 }
 
-function PanelA({ mission, scenario, t, language }: { mission: MissionData | null; scenario: IntelligenceRunState["scenario"]; t: (fr: string, en: string) => string; language: string }) {
+function PanelA({
+  mission,
+  scenario,
+  t,
+  language,
+  identitySuppressed = false,
+}: {
+  mission: MissionData | null;
+  scenario: IntelligenceRunState["scenario"];
+  t: (fr: string, en: string) => string;
+  language: string;
+  identitySuppressed?: boolean;
+}) {
   if (!mission) {
     return (
       <p className="text-xs text-muted-foreground italic">
@@ -128,11 +142,15 @@ function PanelA({ mission, scenario, t, language }: { mission: MissionData | nul
     const businessContext = language === "FR" ? ent.businessContext?.fr : ent.businessContext?.en;
     return (
       <div className="space-y-3 text-xs">
-        {scn && <p className="font-mono text-[10px] text-primary font-bold">{scn}</p>}
-        <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Mission", "Mission")}</p>
-          <p className="text-sm font-semibold text-foreground">{ent.mission ?? mission.objective}</p>
-        </div>
+        {!identitySuppressed && scn && (
+          <p className="font-mono text-[10px] text-primary font-bold">{scn}</p>
+        )}
+        {!identitySuppressed && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Mission", "Mission")}</p>
+            <p className="text-sm font-semibold text-foreground">{ent.mission ?? mission.objective}</p>
+          </div>
+        )}
         <div>
           <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Situation", "Situation")}</p>
           <p className="text-slate-600 dark:text-slate-400 leading-relaxed italic border-l-2 border-slate-300 pl-3">
@@ -145,10 +163,12 @@ function PanelA({ mission, scenario, t, language }: { mission: MissionData | nul
             <p className="text-slate-600 dark:text-slate-400 leading-relaxed">{businessContext}</p>
           </div>
         )}
-        <div>
-          <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Rôle professionnel", "Professional role")}</p>
-          <p className="text-slate-700 dark:text-slate-300">{mission.role}</p>
-        </div>
+        {!identitySuppressed && (
+          <div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Rôle professionnel", "Professional role")}</p>
+            <p className="text-slate-700 dark:text-slate-300">{mission.role}</p>
+          </div>
+        )}
         {(ent.kpis?.length ?? 0) > 0 && (
           <div>
             <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">{t("Indicateurs", "Indicators")}</p>
@@ -843,12 +863,20 @@ export default function OperationalIntelligenceLayer(props: IntelligenceRunState
         <h2 className="text-sm font-black uppercase tracking-wider text-foreground">
           {t("Couche d'Intelligence Opérationnelle", "Operational Intelligence Layer")}
         </h2>
-        {scnCode && <span className="text-[10px] font-mono text-primary font-bold">{scnCode}</span>}
+        {scnCode && !props.identitySuppressed && (
+          <span className="text-[10px] font-mono text-primary font-bold">{scnCode}</span>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <PanelShell id="A" title={t("A — Briefing opérationnel", "A — Operational Briefing")} icon={BookOpen} defaultOpen>
-          <PanelA mission={props.mission} scenario={props.scenario} t={t} language={language} />
+          <PanelA
+            mission={props.mission}
+            scenario={props.scenario}
+            t={t}
+            language={language}
+            identitySuppressed={props.identitySuppressed}
+          />
         </PanelShell>
 
         <PanelShell id="B" title={t("B — Tour de contrôle entrepôt", "B — Warehouse Control Tower")} icon={Radio} defaultOpen>

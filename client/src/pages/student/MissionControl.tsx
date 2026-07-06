@@ -19,6 +19,8 @@ import FioriShell from "@/components/FioriShell";
 import TecLogJourneyStrip from "@/components/TecLogJourneyStrip";
 import MissionSheet from "@/components/MissionSheet";
 import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
+import MissionHeroBlock from "@/components/enterprise/MissionHeroBlock";
+import { resolvePageMissionTitle } from "@/lib/missionDisplay";
 import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
 import { isMissionLifecycleEnabled } from "@/lib/missionLifecycle";
 import { shouldShowMorningBriefing, isMorningBriefingEnabled } from "@/lib/morningBriefing";
@@ -312,9 +314,21 @@ export default function MissionControl() {
         })
       : null;
 
+  const missionTitle = mission
+    ? resolvePageMissionTitle({
+        scnCode: mission.scnCode,
+        scenarioName: scenario?.name,
+        enterpriseMission: mission.enterprise?.mission,
+        objective: mission.objective,
+      })
+    : (scenario?.name ?? t("Cockpit opérationnel", "Operational cockpit"));
+
+  const enterpriseIdentityActive = enterpriseEnabled && !!mission?.enterprise;
+  const showMissionSheetCta = !lifecycleEnabled || !missionLifecyclePhaseResolved;
+
   return (
     <FioriShell
-      title={`COCKPIT OPÉRATIONNEL — ${scenario?.name}`}
+      title={t("COCKPIT OPÉRATIONNEL", "OPERATIONAL COCKPIT")}
       breadcrumbs={[{ label: t("Scénarios", "Scenarios"), href: "/student/scenarios" }, { label: "Mission Control" }]}
     >
       <div className="max-w-7xl mx-auto space-y-6 pb-12">
@@ -331,17 +345,65 @@ export default function MissionControl() {
           />
         )}
 
-        {/* ── Top Command Bar ── */}
-        {enterpriseEnabled && mission?.enterprise ? (
-          <EnterpriseHeader
-            scnCode={mission.scnCode}
-            department={mission.enterprise.department}
-            priority={mission.enterprise.priority}
-            moduleId={moduleId}
-            language={language}
-            t={t}
-          />
-        ) : (
+        {enterpriseIdentityActive && mission?.enterprise && (
+          <>
+            <EnterpriseHeader
+              scnCode={mission.scnCode}
+              department={mission.enterprise.department}
+              priority={mission.enterprise.priority}
+              moduleId={moduleId}
+              language={language}
+              t={t}
+            />
+
+            <MissionHeroBlock
+              missionTitle={missionTitle}
+              role={mission.role}
+              moduleLabel={mission.module}
+              supervisor={mission.enterprise.supervisor}
+              language={language}
+              t={t}
+              variant="page"
+              showSupervisor={false}
+            />
+
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-4 py-2">
+              <p className="text-[10px] font-mono text-slate-500 min-w-0 truncate">
+                SESSION: {runId.padStart(6, "0")} · {mission.scnCode}
+              </p>
+              <div className="flex items-center gap-3">
+                {showMissionSheetCta && (
+                  <button
+                    onClick={() => setShowMission(true)}
+                    className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 text-xs font-bold transition-all hover:bg-primary/90"
+                  >
+                    <ClipboardList size={16} />
+                    {t("FICHE DE MISSION", "MISSION SHEET")}
+                  </button>
+                )}
+                {isDemo && (
+                  <div className="flex items-center gap-2 bg-indigo-100 dark:bg-indigo-950 border border-indigo-300 dark:border-indigo-700 px-3 py-1.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                    <FlaskConical size={14} />
+                    {t("DÉMO", "DEMO")}
+                  </div>
+                )}
+                {isAiMentorUiEnabled() && (
+                  <MentorHelpDrawer
+                    runId={runIdNum}
+                    isDemo={!!isDemo}
+                    runStatus={run.status}
+                    entryPoint={mentorEntryPoint}
+                    open={mentorOpen}
+                    onOpenChange={setMentorOpen}
+                    onTriggerClick={() => setMentorEntryPoint("mission_control")}
+                  />
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
+        {!enterpriseIdentityActive && (
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-4 rounded-none border-b-4 border-primary">
           <div className="flex items-center gap-4">
             <div className="bg-primary/20 p-2 border border-primary/40">
@@ -372,45 +434,6 @@ export default function MissionControl() {
         </div>
         )}
 
-        {enterpriseEnabled && mission?.enterprise && (
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 px-4 py-2">
-            <div className="min-w-0 space-y-0.5">
-              <p className="text-[10px] font-mono text-slate-500">
-                SESSION: {runId.padStart(6, "0")} · {scenario?.name}
-              </p>
-              <p className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 truncate">
-                {t("Rôle professionnel", "Professional role")}: {mission.role}
-              </p>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowMission(true)}
-                className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 text-xs font-bold transition-all hover:bg-primary/90"
-              >
-                <ClipboardList size={16} />
-                {t("FICHE DE MISSION", "MISSION SHEET")}
-              </button>
-              {isDemo && (
-                <div className="flex items-center gap-2 bg-indigo-100 dark:bg-indigo-950 border border-indigo-300 dark:border-indigo-700 px-3 py-1.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
-                  <FlaskConical size={14} />
-                  {t("DÉMO", "DEMO")}
-                </div>
-              )}
-              {isAiMentorUiEnabled() && (
-                <MentorHelpDrawer
-                  runId={runIdNum}
-                  isDemo={!!isDemo}
-                  runStatus={run.status}
-                  entryPoint={mentorEntryPoint}
-                  open={mentorOpen}
-                  onOpenChange={setMentorOpen}
-                  onTriggerClick={() => setMentorEntryPoint("mission_control")}
-                />
-              )}
-            </div>
-          </div>
-        )}
-
         {/* ── Operational Intelligence Layer (Phase B) ── */}
         <OperationalIntelligenceLayer
           runId={runIdNum}
@@ -434,6 +457,7 @@ export default function MissionControl() {
           m5KpiLedger={m5KpiLedger}
           kpiInterpretations={kpiInterpretations}
           m4KpiSnapshot={m4KpiSnapshot}
+          identitySuppressed={enterpriseIdentityActive}
           onMentorOpen={() => {
             setMentorEntryPoint("oil_panel_f");
             setMentorOpen(true);
@@ -870,6 +894,8 @@ export default function MissionControl() {
         runId={runIdNum}
         activeStepCode={(nextStep as { code?: string } | null)?.code ?? null}
         lifecyclePhase={missionLifecyclePhaseResolved ?? undefined}
+        suppressHeader={enterpriseIdentityActive}
+        suppressHero={enterpriseIdentityActive}
       />
     </FioriShell>
   );

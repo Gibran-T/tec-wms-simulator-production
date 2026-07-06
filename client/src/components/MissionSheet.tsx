@@ -18,7 +18,8 @@ import { type MissionWithEnterprise } from "../../../server/missionData";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import { isEnterpriseExperienceEnabled } from "@/lib/enterpriseExperience";
 import EnterpriseHeader from "@/components/enterprise/EnterpriseHeader";
-import CharacterCard from "@/components/enterprise/CharacterCard";
+import MissionHeroBlock from "@/components/enterprise/MissionHeroBlock";
+import { resolvePageMissionTitle } from "@/lib/missionDisplay";
 import StakeholderStrip from "@/components/enterprise/StakeholderStrip";
 import BusinessContextPanel from "@/components/enterprise/BusinessContextPanel";
 import ErpExplorerCard from "@/components/enterprise/ErpExplorerCard";
@@ -44,6 +45,10 @@ interface MissionSheetProps {
   activeStepCode?: string | null;
   /** RC20-A.3 — phase chrome only; mission content unchanged */
   lifecyclePhase?: MissionLifecyclePhase;
+  /** RC21-C.1A — hide duplicate EnterpriseHeader when parent route already shows it */
+  suppressHeader?: boolean;
+  /** RC21-C.1A — hide duplicate hero when parent viewport already shows MissionHeroBlock */
+  suppressHero?: boolean;
 }
 
 function SectionTitle({ icon: Icon, children }: { icon: React.ElementType; children: React.ReactNode }) {
@@ -60,12 +65,16 @@ function EnterpriseMissionContent({
   language,
   t,
   activeStepCode,
+  suppressHeader = false,
+  suppressHero = false,
 }: {
   mission: MissionWithEnterprise;
   isDemo: boolean;
   language: "FR" | "EN";
   t: (fr: string, en: string) => string;
   activeStepCode?: string | null;
+  suppressHeader?: boolean;
+  suppressHero?: boolean;
 }) {
   const ent = mission.enterprise;
   const [executionExpanded, setExecutionExpanded] = useState(isDemo);
@@ -83,37 +92,39 @@ function EnterpriseMissionContent({
   const supervisorNotes =
     language === "FR" ? ent.supervisorNotesAttributed?.fr : ent.supervisorNotesAttributed?.en;
 
+  const missionTitle = resolvePageMissionTitle({
+    scnCode: mission.scnCode,
+    enterpriseMission: ent.mission,
+    objective: mission.objective,
+  });
+
   return (
     <>
-      <EnterpriseHeader
-        scnCode={mission.scnCode}
-        department={ent.department}
-        priority={ent.priority}
-        moduleId={moduleId}
-        language={language}
-        t={t}
-      />
+      {!suppressHeader && (
+        <EnterpriseHeader
+          scnCode={mission.scnCode}
+          department={ent.department}
+          priority={ent.priority}
+          moduleId={moduleId}
+          language={language}
+          t={t}
+        />
+      )}
 
       <div className="p-8 space-y-6 font-sans">
-        {/* Hero block */}
-        <div className="space-y-4 border-b border-slate-200 dark:border-slate-700 pb-6">
-          <div>
-            <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">
-              {t("Mission", "Mission")}
-            </p>
-            <p className="text-xl font-bold text-slate-900 dark:text-white leading-snug">
-              {ent.mission ?? mission.objective}
-            </p>
+        {!suppressHero && (
+          <div className="border-b border-slate-200 dark:border-slate-700 pb-6">
+            <MissionHeroBlock
+              missionTitle={missionTitle}
+              role={mission.role}
+              moduleLabel={mission.module}
+              supervisor={ent.supervisor}
+              language={language}
+              t={t}
+              variant="sheet"
+            />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="tec-briefing-panel p-4">
-              <p className="text-[10px] font-bold text-slate-500 uppercase">{t("Rôle professionnel", "Professional role")}</p>
-              <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">{mission.role}</p>
-              <p className="text-[10px] text-slate-500 mt-2 font-mono">{mission.module}</p>
-            </div>
-            {ent.supervisor && <CharacterCard character={ent.supervisor} language={language} />}
-          </div>
-        </div>
+        )}
 
         {/* Context panels */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -460,6 +471,8 @@ export default function MissionSheet({
   runId,
   activeStepCode,
   lifecyclePhase,
+  suppressHeader = false,
+  suppressHero = false,
 }: MissionSheetProps) {
   const { t, language } = useLanguage();
   const enterpriseEnabled = isEnterpriseExperienceEnabled();
@@ -512,6 +525,8 @@ export default function MissionSheet({
               language={language}
               t={t}
               activeStepCode={activeStepCode}
+              suppressHeader={suppressHeader}
+              suppressHero={suppressHero}
             />
           </>
         ) : (
