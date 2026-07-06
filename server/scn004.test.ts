@@ -98,6 +98,55 @@ describe("SCN-004 cycle count target injection", () => {
     expect(adjExp.allowed).toBe(false);
   });
 
+  it("ADJ −15 passes when ledger is 0 after full ship but CC book stock is 200 (run 178 pattern)", () => {
+    const fullShipTxs: Tx[] = [
+      { docType: "PO", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true },
+      { docType: "GR", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true },
+      { docType: "PUTAWAY_M1", sku: "SKU-006", bin: "REC-01", qty: -200, posted: true },
+      { docType: "PUTAWAY_M1", sku: "SKU-006", bin: "B-02-R1-L1", qty: 200, posted: true },
+      { docType: "SO", sku: "SKU-006", bin: "B-02-R1-L1", qty: 200, posted: true },
+      { docType: "PICKING", sku: "SKU-006", bin: "B-02-R1-L1", qty: -200, posted: true },
+      { docType: "PICKING_M1", sku: "SKU-006", bin: "EXP-02", qty: 200, posted: true },
+      { docType: "GI", sku: "SKU-006", bin: "EXP-02", qty: 200, posted: true },
+    ];
+    const inv = invAfter(fullShipTxs);
+    expect(inv["SKU-006::B-02-R1-L1"]).toBe(0);
+
+    const cc = resolveScn004CycleCount(
+      scn004Seed,
+      { sku: "SKU-006", bin: "B-02-R1-L1", physicalQty: 185 },
+      0,
+    );
+    const cycleCount = {
+      sku: "SKU-006",
+      bin: "B-02-R1-L1",
+      variance: cc.variance,
+      resolved: false,
+      systemQty: cc.systemQty,
+      physicalQty: cc.physicalQty,
+    };
+
+    const adjCheck = validateM1AdjPosting(
+      { inventory: inv, cycleCounts: [cycleCount] },
+      { sku: "SKU-006", bin: "B-02-R1-L1", qty: -15 },
+    );
+    expect(adjCheck.allowed).toBe(true);
+
+    const recovered = recoverScn004RunState({
+      scnCode: "SCN-004",
+      transactions: [
+        ...fullShipTxs,
+        { docType: "ADJ", sku: "SKU-006", bin: "B-02-R1-L1", qty: -15, posted: true },
+      ],
+      cycleCounts: [{ ...cycleCount, resolved: true }],
+      inventory: invAfter([
+        ...fullShipTxs,
+        { docType: "ADJ", sku: "SKU-006", bin: "B-02-R1-L1", qty: -15, posted: true },
+      ]),
+    });
+    expect(recovered.inventory["SKU-006::B-02-R1-L1"]).toBe(185);
+  });
+
   it("ADJ −15 at B-02-R1-L1 passes and compliance GREEN", () => {
     const inv = invAfter(freshRunTxs);
     const cc = resolveScn004CycleCount(

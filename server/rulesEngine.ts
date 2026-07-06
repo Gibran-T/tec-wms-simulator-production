@@ -659,21 +659,32 @@ export function validateM1AdjPosting(
         ? cc.systemQty + cc.variance
         : projectedStock;
 
-  if (ledgerProjected < 0) {
-    return {
-      allowed: false,
-      reason: `Adjustment would create negative stock (${ledgerProjected}) at ${input.bin}`,
-      reasonFr: `Cet ajustement créerait un stock négatif (${ledgerProjected}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
-      reasonEn: `This adjustment would create negative stock (${ledgerProjected}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
-    };
-  }
-
   if (Math.abs(projectedStock - physicalQty) > 0.01) {
     return {
       allowed: false,
       reason: `Adjustment must bring stock to physical count (${physicalQty}), not ${projectedStock}`,
       reasonFr: `L'ajustement doit ramener le stock à la quantité physique comptée (${physicalQty}), pas ${projectedStock}.`,
       reasonEn: `Adjustment must bring stock to the counted physical quantity (${physicalQty}), not ${projectedStock}.`,
+    };
+  }
+
+  // When CC recorded a book systemQty (e.g. SCN-004 pedagogical injection), reconcile
+  // against book stock — not the live ledger, which may already reflect picks/GI.
+  if (projectedStock < 0) {
+    return {
+      allowed: false,
+      reason: `Adjustment would create negative stock (${projectedStock}) at ${input.bin}`,
+      reasonFr: `Cet ajustement créerait un stock négatif (${projectedStock}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
+      reasonEn: `This adjustment would create negative stock (${projectedStock}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
+    };
+  }
+
+  if (ledgerProjected < 0 && cc.systemQty == null) {
+    return {
+      allowed: false,
+      reason: `Adjustment would create negative stock (${ledgerProjected}) at ${input.bin}`,
+      reasonFr: `Cet ajustement créerait un stock négatif (${ledgerProjected}) à ${input.bin}. Postez l'ajustement sur l'emplacement compté (${cc.bin}).`,
+      reasonEn: `This adjustment would create negative stock (${ledgerProjected}) at ${input.bin}. Post the adjustment at the counted bin (${cc.bin}).`,
     };
   }
 
