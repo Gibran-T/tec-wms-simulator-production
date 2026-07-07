@@ -118,8 +118,9 @@ describe("Gold certification — eligibility rules", () => {
   });
 
   it("demo runs excluded via isDemo filter in gold helpers", () => {
-    const goldPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "goldCertification.ts");
-    const source = readFileSync(goldPath, "utf8");
+    const dbPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "db.ts");
+    const source = readFileSync(dbPath, "utf8");
+    expect(source).toContain("getBestScoringNonDemoCompletedRunForScn");
     expect(source).toContain('eq(scenarioRuns.isDemo, false)');
   });
 
@@ -143,7 +144,8 @@ describe("Gold certification — eligibility rules", () => {
     const source = readFileSync(goldPath, "utf8");
     const fnMatch = source.match(/export async function checkGoldNoUnresolvedBlockers[\s\S]*?\n\}/);
     expect(fnMatch).toBeTruthy();
-    expect(fnMatch![0]).toMatch(/if \(!latestRun\) return false;/);
+    expect(fnMatch![0]).toMatch(/if \(!bestRun\) return false;/);
+    expect(fnMatch![0]).toContain("getBestScoringNonDemoCompletedRunForScn");
   });
 
   it("Gold eligibility requires silverCertified prerequisite", () => {

@@ -11,7 +11,7 @@ import {
   scenarioIdsForScn,
   type OfficialScnCode,
 } from "./canonicalScenarios";
-import { getDb, getModuleProgressRow, getScoringEventsByRun, upsertModuleCheckpointSnapshot } from "./db";
+import { getDb, getBestScoringNonDemoCompletedRunForScn, getModuleProgressRow, upsertModuleCheckpointSnapshot } from "./db";
 import { goldScnKeyFromCode } from "./goldCertification";
 import { calculateTotalScore } from "./scoringEngine";
 
@@ -180,42 +180,6 @@ async function getAllActiveScenarioRows() {
     .orderBy(asc(scenarios.id));
 }
 
-async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const runs = await db
-    .select()
-    .from(scenarioRuns)
-    .where(
-      and(
-        eq(scenarioRuns.userId, userId),
-        eq(scenarioRuns.scenarioId, scenarioId),
-        eq(scenarioRuns.status, "completed"),
-        eq(scenarioRuns.isDemo, false),
-      ),
-    )
-    .orderBy(desc(scenarioRuns.completedAt))
-    .limit(1);
-  return runs[0] ?? null;
-}
-
-async function getLatestNonDemoCompletedRunForScn(
-  userId: number,
-  scnCode: OfficialScnCode,
-  allRows: Awaited<ReturnType<typeof getAllActiveScenarioRows>>,
-) {
-  const ids = scenarioIdsForScn(scnCode, allRows);
-  let best: Awaited<ReturnType<typeof getLatestNonDemoCompletedRun>> = null;
-  for (const scenarioId of ids) {
-    const run = await getLatestNonDemoCompletedRun(userId, scenarioId);
-    if (!run) continue;
-    if (!best || (run.completedAt && best.completedAt && run.completedAt > best.completedAt)) {
-      best = run;
-    }
-  }
-  return best;
-}
-
 export async function getModuleScenarioCheckpointStatus(
   userId: number,
   moduleId: number,
@@ -227,16 +191,14 @@ export async function getModuleScenarioCheckpointStatus(
 
   for (const scnCode of scnCodes) {
     const key = goldScnKeyFromCode(scnCode);
-    const run = await getLatestNonDemoCompletedRunForScn(userId, scnCode, allRows);
+    const run = await getBestScoringNonDemoCompletedRunForScn(userId, scnCode, allRows);
     if (!run) {
       result[key] = { passed: false, score: null, runId: null };
       continue;
     }
-    const events = await getScoringEventsByRun(run.id);
-    const score = calculateTotalScore(events);
     result[key] = {
-      passed: score >= threshold,
-      score,
+      passed: run.score >= threshold,
+      score: run.score,
       runId: run.id,
     };
   }

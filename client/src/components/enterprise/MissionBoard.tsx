@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useLocation } from "wouter";
 import {
-  Play, MonitorPlay, CheckCircle, BarChart2, Clock, Target, FileText, ClipboardList,
+  Play, MonitorPlay, CheckCircle, BarChart2, Clock, Target, FileText, ClipboardList, RotateCcw,
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -90,6 +90,15 @@ interface ScenarioCardContext {
   missionTitle: string;
 }
 
+function resolveMissionPrimaryAction(
+  activeRun: EnrichedRunRow | undefined,
+  completedRun: EnrichedRunRow | undefined,
+): "start" | "continue" | "replay" {
+  if (activeRun) return "continue";
+  if (completedRun) return "replay";
+  return "start";
+}
+
 export default function MissionBoard({
   moduleId,
   moduleScenarios,
@@ -125,7 +134,7 @@ export default function MissionBoard({
       moduleScenarios.map((scenario) => {
         const scnCode = resolveScenarioScnCode(scenario);
         const completedRun = getCompletedRun(scenario);
-        const activeRun = completedRun ? undefined : getActiveRun(scenario);
+        const activeRun = getActiveRun(scenario);
         const missionTitle = resolveScenarioMissionTitle(scenario, moduleId);
         const assignmentMeta =
           scnCode && assignmentPresentation ? buildAssignmentMeta(scnCode, missionTitle) : undefined;
@@ -142,6 +151,7 @@ export default function MissionBoard({
     assignmentMeta,
     missionTitle,
   }: ScenarioCardContext) => {
+    const primaryAction = resolveMissionPrimaryAction(activeRun, completedRun);
     const binding = scnCode && enterpriseStyled ? getScenarioBinding(scnCode) : undefined;
     const boardCardClass = enterpriseStyled || assignmentPresentation
       ? `tec-mission-board-card tec-assignment-card tec-mission-board-card--m${moduleId}`
@@ -221,20 +231,36 @@ export default function MissionBoard({
           </div>
 
           <div className="mt-3 flex gap-2">
-            {activeRun ? (
+            {primaryAction === "continue" && activeRun ? (
               <button
                 onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
               >
-                <Play size={16} className="inline mr-2" /> {t("Poursuivre l'affectation", "Continue assignment")}
+                <Play size={16} className="inline mr-2" /> {t("Continuer la mission", "Continue mission")}
               </button>
-            ) : completedRun ? (
-              <button
-                onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
-                className="flex-1 px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
-              >
-                <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
-              </button>
+            ) : primaryAction === "replay" ? (
+              <>
+                <button
+                  onClick={() =>
+                    onStartScenario({
+                      id: scenario.id,
+                      name: scenario.name,
+                      difficulty: scenario.difficulty ?? undefined,
+                    })
+                  }
+                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+                >
+                  <RotateCcw size={16} className="inline mr-2" /> {t("Refaire la mission", "Replay mission")}
+                </button>
+                {completedRun && (
+                  <button
+                    onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
+                    className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
+                  >
+                    <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
+                  </button>
+                )}
+              </>
             ) : (
               <button
                 onClick={() =>
@@ -246,7 +272,7 @@ export default function MissionBoard({
                 }
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
               >
-                <ClipboardList size={16} className="inline mr-2" /> {t("Accepter l'affectation", "Accept assignment")}
+                <ClipboardList size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
               </button>
             )}
           </div>
@@ -321,12 +347,25 @@ export default function MissionBoard({
         </div>
 
         <div className="mt-4 flex gap-2">
-          {activeRun ? (
+          {primaryAction === "continue" && activeRun ? (
             <button
               onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
               className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
             >
-              <Play size={16} className="inline mr-2" /> {t("Continuer", "Continue")}
+              <Play size={16} className="inline mr-2" /> {t("Continuer la mission", "Continue mission")}
+            </button>
+          ) : primaryAction === "replay" ? (
+            <button
+              onClick={() =>
+                onStartScenario({
+                  id: scenario.id,
+                  name: scenario.name,
+                  difficulty: scenario.difficulty ?? undefined,
+                })
+              }
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+            >
+              <RotateCcw size={16} className="inline mr-2" /> {t("Refaire la mission", "Replay mission")}
             </button>
           ) : (
             <button
@@ -339,7 +378,7 @@ export default function MissionBoard({
               }
               className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
             >
-              <Play size={16} className="inline mr-2" /> {t("Démarrer", "Start")}
+              <Play size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
             </button>
           )}
           {completedRun && (

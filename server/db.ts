@@ -31,6 +31,7 @@ import {
   OFFICIAL_SCN_BY_MODULE,
   scenarioIdsForScn,
   type OfficialScnCode,
+  type ScenarioRef,
 } from "./canonicalScenarios";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -1322,7 +1323,79 @@ async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) 
   return runs[0] ?? null;
 }
 
-/** Per-SCN completion: latest non-demo run completed with score >= 60 (canonical SCN-001–005 only). */
+export type ScoredCompletedRun = Awaited<ReturnType<typeof getLatestNonDemoCompletedRun>> & { score: number };
+
+/** Best-scoring completed eval run — replays must not downgrade certification/progress. */
+export async function getBestScoringNonDemoCompletedRun(
+  userId: number,
+  scenarioId: number,
+): Promise<ScoredCompletedRun | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const runs = await db
+    .select()
+    .from(scenarioRuns)
+    .where(
+      and(
+        eq(scenarioRuns.userId, userId),
+        eq(scenarioRuns.scenarioId, scenarioId),
+        eq(scenarioRuns.status, "completed"),
+        eq(scenarioRuns.isDemo, false),
+      ),
+    )
+    .orderBy(desc(scenarioRuns.completedAt));
+
+  let best: ScoredCompletedRun | null = null;
+  for (const run of runs) {
+    const events = await getScoringEventsByRun(run.id);
+    const score = calculateTotalScore(events);
+    if (
+      !best ||
+      score > best.score ||
+      (score === best.score &&
+        run.completedAt &&
+        best.completedAt &&
+        run.completedAt > best.completedAt)
+    ) {
+      best = { ...run, score };
+    }
+  }
+  return best;
+}
+
+export async function getBestScoringNonDemoCompletedRunForScn<T extends ScenarioRef>(
+  userId: number,
+  scnCode: OfficialScnCode,
+  allRows: T[],
+): Promise<ScoredCompletedRun | null> {
+  const ids = scenarioIdsForScn(scnCode, allRows);
+  let best: ScoredCompletedRun | null = null;
+  for (const scenarioId of ids) {
+    const run = await getBestScoringNonDemoCompletedRun(userId, scenarioId);
+    if (!run) continue;
+    if (
+      !best ||
+      run.score > best.score ||
+      (run.score === best.score &&
+        run.completedAt &&
+        best.completedAt &&
+        run.completedAt > best.completedAt)
+    ) {
+      best = run;
+    }
+  }
+  return best;
+}
+
+async function getBestScoringNonDemoCompletedRunForM1Scn(
+  userId: number,
+  scnCode: OfficialScnCode,
+  m1Rows: Awaited<ReturnType<typeof getAllM1ScenarioRows>>,
+) {
+  return getBestScoringNonDemoCompletedRunForScn(userId, scnCode, m1Rows);
+}
+
+/** Per-SCN completion: best non-demo run completed with score >= 60 (canonical SCN-001–005 only). */
 export async function getM1ScenarioCompletionStatus(userId: number): Promise<M1ScenarioCompletionMap> {
   const result: M1ScenarioCompletionMap = {
     SCN001: false,
@@ -1334,11 +1407,9 @@ export async function getM1ScenarioCompletionStatus(userId: number): Promise<M1S
   const m1Rows = await getAllM1ScenarioRows();
   for (const key of M1_SCN_KEYS) {
     const scnCode = `SCN-${key.slice(3)}` as OfficialScnCode;
-    const run = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
+    const run = await getBestScoringNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
     if (!run) continue;
-    const events = await getScoringEventsByRun(run.id);
-    const score = calculateTotalScore(events);
-    result[key] = score >= M1_PASSING_SCORE;
+    result[key] = run.score >= M1_PASSING_SCORE;
   }
   return result;
 }
@@ -1375,12 +1446,12 @@ export async function checkM1ComplianceValidated(userId: number): Promise<boolea
   const m1Rows = await getAllM1ScenarioRows();
 
   for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
-    const latestRun = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
-    if (!latestRun) return false;
+    const bestRun = await getBestScoringNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
+    if (!bestRun) return false;
 
     const complianceStep = await db.select()
       .from(progress)
-      .where(and(eq(progress.runId, latestRun.id), eq(progress.stepCode, "COMPLIANCE"), eq(progress.completed, true)))
+      .where(and(eq(progress.runId, bestRun.id), eq(progress.stepCode, "COMPLIANCE"), eq(progress.completed, true)))
       .limit(1);
 
     if (complianceStep.length === 0) return false;
@@ -1396,18 +1467,18 @@ export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean
   const m1Rows = await getAllM1ScenarioRows();
 
   for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
-    const latestRun = await getLatestNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
-    if (!latestRun) return false;
+    const bestRun = await getBestScoringNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
+    if (!bestRun) return false;
 
     const unpostedTransactions = await db.select()
       .from(transactions)
-      .where(and(eq(transactions.runId, latestRun.id), eq(transactions.posted, false)));
+      .where(and(eq(transactions.runId, bestRun.id), eq(transactions.posted, false)));
 
     if (unpostedTransactions.length > 0) return false;
 
     const unresolvedCycleCounts = await db.select()
       .from(cycleCounts)
-      .where(and(eq(cycleCounts.runId, latestRun.id), eq(cycleCounts.resolved, false)));
+      .where(and(eq(cycleCounts.runId, bestRun.id), eq(cycleCounts.resolved, false)));
 
     if (unresolvedCycleCounts.length > 0) return false;
   }

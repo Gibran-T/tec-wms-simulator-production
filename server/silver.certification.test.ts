@@ -95,8 +95,8 @@ describe("Silver certification — eligibility rules", () => {
     expect(fnMatch).toBeTruthy();
     const fnBody = fnMatch![0];
     expect(fnBody).toContain("for (const scnCode of OFFICIAL_SCN_BY_MODULE[1])");
-    expect(fnBody).toMatch(/if \(!latestRun\) return false;/);
-    expect(fnBody).not.toMatch(/if \(!latestRun\) continue;/);
+    expect(fnBody).toMatch(/if \(!bestRun\) return false;/);
+    expect(fnBody).toContain("getBestScoringNonDemoCompletedRunForM1Scn");
   });
 });
 

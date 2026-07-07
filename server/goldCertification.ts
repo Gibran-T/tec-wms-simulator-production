@@ -30,6 +30,7 @@ import {
 } from "./canonicalScenarios";
 import {
   getDb,
+  getBestScoringNonDemoCompletedRunForScn,
   getInventoryAdjustmentsByRun,
   getInventoryCountsByRun,
   getKpiInterpretationsByRun,
@@ -177,42 +178,6 @@ async function getAllActiveScenarioRows() {
     .orderBy(asc(scenarios.id));
 }
 
-async function getLatestNonDemoCompletedRun(userId: number, scenarioId: number) {
-  const db = await getDb();
-  if (!db) return null;
-  const runs = await db
-    .select()
-    .from(scenarioRuns)
-    .where(
-      and(
-        eq(scenarioRuns.userId, userId),
-        eq(scenarioRuns.scenarioId, scenarioId),
-        eq(scenarioRuns.status, "completed"),
-        eq(scenarioRuns.isDemo, false),
-      ),
-    )
-    .orderBy(desc(scenarioRuns.completedAt))
-    .limit(1);
-  return runs[0] ?? null;
-}
-
-async function getLatestNonDemoCompletedRunForScn(
-  userId: number,
-  scnCode: OfficialScnCode,
-  allRows: Awaited<ReturnType<typeof getAllActiveScenarioRows>>,
-) {
-  const ids = scenarioIdsForScn(scnCode, allRows);
-  let best: Awaited<ReturnType<typeof getLatestNonDemoCompletedRun>> = null;
-  for (const scenarioId of ids) {
-    const run = await getLatestNonDemoCompletedRun(userId, scenarioId);
-    if (!run) continue;
-    if (!best || (run.completedAt && best.completedAt && run.completedAt > best.completedAt)) {
-      best = run;
-    }
-  }
-  return best;
-}
-
 async function buildRunStateForGold(runId: number) {
   const run = await getRunById(runId);
   const scenario = run ? await getScenarioById(run.scenarioId) : null;
@@ -285,11 +250,9 @@ export async function getGoldScenarioCompletionStatus(userId: number): Promise<G
 
   for (const scnCode of GOLD_PATH_SCNS) {
     const key = goldScnKeyFromCode(scnCode);
-    const run = await getLatestNonDemoCompletedRunForScn(userId, scnCode, allRows);
+    const run = await getBestScoringNonDemoCompletedRunForScn(userId, scnCode, allRows);
     if (!run) continue;
-    const events = await getScoringEventsByRun(run.id);
-    const score = calculateTotalScore(events);
-    result[key] = score >= getGoldScenarioPassThreshold(scnCode);
+    result[key] = run.score >= getGoldScenarioPassThreshold(scnCode);
   }
 
   return result;
@@ -304,15 +267,15 @@ export async function checkGoldComplianceValidated(userId: number): Promise<bool
     const moduleId = moduleIdFromScnCode(scnCode);
     if (!moduleId) return false;
     const complianceStep = COMPLIANCE_STEP_BY_MODULE[moduleId];
-    const latestRun = await getLatestNonDemoCompletedRunForScn(userId, scnCode, allRows);
-    if (!latestRun) return false;
+    const bestRun = await getBestScoringNonDemoCompletedRunForScn(userId, scnCode, allRows);
+    if (!bestRun) return false;
 
     const step = await db
       .select()
       .from(progress)
       .where(
         and(
-          eq(progress.runId, latestRun.id),
+          eq(progress.runId, bestRun.id),
           eq(progress.stepCode, complianceStep),
           eq(progress.completed, true),
         ),
@@ -331,20 +294,20 @@ export async function checkGoldNoUnresolvedBlockers(userId: number): Promise<boo
   const allRows = await getAllActiveScenarioRows();
 
   for (const scnCode of GOLD_PATH_SCNS) {
-    const latestRun = await getLatestNonDemoCompletedRunForScn(userId, scnCode, allRows);
-    if (!latestRun) return false;
+    const bestRun = await getBestScoringNonDemoCompletedRunForScn(userId, scnCode, allRows);
+    if (!bestRun) return false;
 
     const unpostedTransactions = await db
       .select()
       .from(transactions)
-      .where(and(eq(transactions.runId, latestRun.id), eq(transactions.posted, false)));
+      .where(and(eq(transactions.runId, bestRun.id), eq(transactions.posted, false)));
 
     if (unpostedTransactions.length > 0) return false;
 
     const unresolvedCycleCounts = await db
       .select()
       .from(cycleCounts)
-      .where(and(eq(cycleCounts.runId, latestRun.id), eq(cycleCounts.resolved, false)));
+      .where(and(eq(cycleCounts.runId, bestRun.id), eq(cycleCounts.resolved, false)));
 
     if (unresolvedCycleCounts.length > 0) return false;
   }
@@ -438,9 +401,9 @@ export async function checkGoldModuleCompliance(userId: number): Promise<boolean
   ];
 
   for (const scnCode of m345Scns) {
-    const latestRun = await getLatestNonDemoCompletedRunForScn(userId, scnCode, allRows);
-    if (!latestRun) return false;
-    const ok = await checkModuleComplianceForRun(scnCode, latestRun.id);
+    const bestRun = await getBestScoringNonDemoCompletedRunForScn(userId, scnCode, allRows);
+    if (!bestRun) return false;
+    const ok = await checkModuleComplianceForRun(scnCode, bestRun.id);
     if (!ok) return false;
   }
 
@@ -449,7 +412,7 @@ export async function checkGoldModuleCompliance(userId: number): Promise<boolean
 
 export async function checkScn016VarianceGate(userId: number): Promise<boolean> {
   const allRows = await getAllActiveScenarioRows();
-  const run = await getLatestNonDemoCompletedRunForScn(userId, "SCN-016", allRows);
+  const run = await getBestScoringNonDemoCompletedRunForScn(userId, "SCN-016", allRows);
   if (!run) return false;
 
   const state = await buildRunStateForGold(run.id);
@@ -480,12 +443,10 @@ export async function checkScn017CapstoneGates(userId: number): Promise<{
   decisionLinked: boolean;
 }> {
   const allRows = await getAllActiveScenarioRows();
-  const run = await getLatestNonDemoCompletedRunForScn(userId, "SCN-017", allRows);
+  const run = await getBestScoringNonDemoCompletedRunForScn(userId, "SCN-017", allRows);
   if (!run) return { capstoneScore: false, decisionLinked: false };
 
-  const events = await getScoringEventsByRun(run.id);
-  const score = calculateTotalScore(events);
-  const capstoneScore = score >= GOLD_CAPSTONE_THRESHOLD;
+  const capstoneScore = run.score >= GOLD_CAPSTONE_THRESHOLD;
 
   const snapshotRow = await getKpiSnapshotByRun(run.id);
   const state = await buildRunStateForGold(run.id);
