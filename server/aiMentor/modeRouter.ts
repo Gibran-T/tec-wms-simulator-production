@@ -1,4 +1,5 @@
-import type { MentorMode } from "../../shared/aiMentor/types";
+import type { MentorMode, MentorPersonaId } from "../../shared/aiMentor/types";
+import { getEnterpriseEmployeeForLanguage } from "../../shared/aiMentor/enterpriseEmployee";
 
 export type ModeResolutionInput = {
   isDemo: boolean;
@@ -33,12 +34,13 @@ export function isMentorAvailable(mode: MentorMode): boolean {
 export function getModeBlockReason(mode: MentorMode, language: "fr" | "en"): string | undefined {
   if (mode !== "certification") return undefined;
   return language === "fr"
-    ? "Le collègue opérationnel est indisponible pour votre cohorte ou cette session."
-    : "The operational colleague is unavailable for your cohort or this session.";
+    ? "Aucun responsable Concorde Logistics n'est disponible pour cette session."
+    : "No Concorde Logistics supervisor is available for this session.";
 }
 
-export function getOperationalColleagueAvailabilityNote(language: "fr" | "en"): string {
-  return language === "fr"
-    ? "Collègue opérationnel disponible — il peut vous aider à raisonner, mais ne peut pas exécuter la mission à votre place."
-    : "Operational colleague available — they can help you reason, but cannot execute the mission for you.";
+export function getOperationalColleagueAvailabilityNote(
+  personaId: MentorPersonaId,
+  language: "fr" | "en",
+): string {
+  return getEnterpriseEmployeeForLanguage(personaId, language).availabilityNote;
 }

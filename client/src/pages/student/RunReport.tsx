@@ -486,6 +486,8 @@ export default function RunReport() {
               runId={parsedRunId}
               isDemo={isDemo}
               runStatus={run.status}
+              moduleId={resolvedModuleId}
+              scnCode={scnCode}
               entryPoint="debrief"
             />
           </div>

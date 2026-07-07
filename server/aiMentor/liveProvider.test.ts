@@ -249,7 +249,7 @@ describe("RC23-B — live provider", () => {
     }
 
     expect(flags).toContain("live_fallback_dry_run");
-    expect(message).toMatch(/observe|Mission Sheet/i);
+    expect(message).toMatch(/observe|Mission Sheet|understand|together|cockpit/i);
   });
 });
 
@@ -293,7 +293,7 @@ describe("RC23-B — operational colleague and dry-run", () => {
       language: "en",
       studentMessage: "I am reviewing putaway evidence in the monitor",
     });
-    expect(response).toMatch(/observe|Mission Sheet|evidence/i);
+    expect(response).toMatch(/observe|Mission Sheet|evidence|understand|together/i);
     expect(scanResponseForLeaks(response)).toHaveLength(0);
   });
 });

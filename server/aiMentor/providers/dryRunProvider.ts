@@ -1,37 +1,7 @@
 import type { EnterpriseContextPayload } from "../../../shared/enterpriseContext/types";
 import type { MentorMode, MentorPersonaId } from "../../../shared/aiMentor/types";
+import { getEnterpriseEmployeeForLanguage } from "../../../shared/aiMentor/enterpriseEmployee";
 import { applyPreCallGuardrails } from "../guardrails";
-
-const PERSONA_GREETING: Record<MentorPersonaId, { fr: string; en: string }> = {
-  FLOOR_MENTOR: {
-    fr: "Marc-André Tremblay ici.",
-    en: "Marc-André Tremblay here.",
-  },
-  INVENTORY_ADVISOR: {
-    fr: "Sophie Lachance, planificatrice.",
-    en: "Sophie Lachance, demand planner.",
-  },
-  PERFORMANCE_COACH: {
-    fr: "Élise Beaumont, directrice des opérations.",
-    en: "Élise Beaumont, operations director.",
-  },
-  CRISIS_ADVISOR: {
-    fr: "Élise Beaumont — contexte de crise.",
-    en: "Élise Beaumont — crisis context.",
-  },
-  ERP_COACH: {
-    fr: "Collègue opérationnel Concorde Logistics.",
-    en: "Concorde Logistics operational colleague.",
-  },
-  QUALITY_GUIDE: {
-    fr: "David Okonkwo, spécialiste qualité.",
-    en: "David Okonkwo, quality specialist.",
-  },
-  PROCUREMENT_GUIDE: {
-    fr: "Jean-Philippe Morin, acheteur senior.",
-    en: "Jean-Philippe Morin, senior buyer.",
-  },
-};
 
 const MODE_PROMPTS: Record<
   Exclude<MentorMode, "certification">,
@@ -39,27 +9,27 @@ const MODE_PROMPTS: Record<
 > = {
   learning: {
     fr: (ctx) =>
-      `${ctx.greeting} Avant de conseiller, dites-moi ce que vous observez dans le moniteur ou le cockpit pour l'étape « ${ctx.stepLabel} ». Quelle preuve documentaire consultez-vous dans la Fiche Mission?`,
+      `${ctx.opening} Avant de décider, dites-moi ce que vous observez dans notre moniteur ou cockpit pour « ${ctx.stepLabel} ». Quelle preuve consultez-vous dans la Fiche Mission?`,
     en: (ctx) =>
-      `${ctx.greeting} Before I advise, tell me what you observe in the monitor or cockpit for step "${ctx.stepLabel}". What documentary evidence are you consulting in the Mission Sheet?`,
+      `${ctx.opening} Before deciding, tell me what you observe in our monitor or cockpit for "${ctx.stepLabel}". What evidence are you reviewing in the Mission Sheet?`,
   },
   professional: {
     fr: (ctx) =>
-      `${ctx.greeting} En mode professionnel, je ne donne pas la réponse directe. Quelle décision envisagez-vous pour « ${ctx.stepLabel} », et sur quelle preuve du moniteur ou du cockpit vous appuyez-vous?`,
+      `${ctx.opening} Je ne peux pas prendre la décision à votre place. Qu'envisagez-vous pour « ${ctx.stepLabel} », et quelle preuve de notre cockpit vous oriente?`,
     en: (ctx) =>
-      `${ctx.greeting} In professional mode, I won't give the direct answer. What decision are you considering for "${ctx.stepLabel}", and what monitor or cockpit evidence supports it?`,
+      `${ctx.opening} I cannot make the decision for you. What are you considering for "${ctx.stepLabel}", and what evidence from our cockpit guides you?`,
   },
   operational_colleague: {
     fr: (ctx) =>
-      `${ctx.greeting} Je peux t'aider à raisonner, pas exécuter la mission. Pour « ${ctx.stepLabel} », qu'observes-tu dans le cockpit et la Fiche Mission?`,
+      `${ctx.opening} Voyons ensemble ce que vous observez dans notre cockpit pour « ${ctx.stepLabel} ». Avant de décider, regardons les éléments disponibles dans la Fiche Mission.`,
     en: (ctx) =>
-      `${ctx.greeting} I can help you reason, not execute the mission. For "${ctx.stepLabel}", what do you observe in the cockpit and Mission Sheet?`,
+      `${ctx.opening} Let's review what you observe in our cockpit for "${ctx.stepLabel}". Before deciding, look at what's available in the Mission Sheet.`,
   },
   reflection: {
     fr: (ctx) =>
-      `${ctx.greeting} Mission terminée — réfléchissons. Quel résultat métier avez-vous obtenu pour Concorde Logistics? Quels compromis avez-vous dû faire à l'étape « ${ctx.stepLabel} »?`,
+      `${ctx.opening} Mission terminée — réfléchissons à notre résultat chez Concorde Logistics. Quels compromis avez-vous dû faire à « ${ctx.stepLabel} »?`,
     en: (ctx) =>
-      `${ctx.greeting} Mission complete — let's reflect. What business result did you achieve for Concorde Logistics? What trade-offs did you face at step "${ctx.stepLabel}"?`,
+      `${ctx.opening} Mission complete — let's reflect on our result at Concorde Logistics. What trade-offs did you face at "${ctx.stepLabel}"?`,
   },
 };
 
@@ -72,28 +42,35 @@ const CONCEPTUAL_RESPONSES: Array<{
   {
     conceptPattern: /putaway|rangement/i,
     questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
-    fr: "Dans un entrepôt réel, pourquoi crois-tu qu'une marchandise ne doit pas rester au quai après réception? Pense à la traçabilité, à la capacité du quai et à la disponibilité du stock.",
-    en: "In a real warehouse, why do you think goods should not stay on the dock after receipt? Consider traceability, dock capacity, and stock availability.",
+    fr: "Dans notre entrepôt, pourquoi crois-tu qu'une marchandise ne doit pas rester au quai après réception? Pense à notre traçabilité, à la capacité du quai et à la disponibilité du stock.",
+    en: "In our warehouse, why do you think goods should not stay on the dock after receipt? Consider our traceability, dock capacity, and stock availability.",
   },
   {
     conceptPattern: /\bLT01\b/i,
     questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
-    fr: "LT01 sert à créer un mouvement de rangement en WM. Dans une opération réelle, cela permet de déplacer la marchandise du quai vers un emplacement de stockage traçable.",
-    en: "LT01 creates a putaway movement in WM. In real operations, it moves goods from the dock to a traceable storage location.",
+    fr: "LT01 sert à créer un mouvement de rangement en WM. Dans nos opérations, cela permet de déplacer la marchandise du quai vers un emplacement de stockage traçable.",
+    en: "LT01 creates a putaway movement in WM. In our operations, it moves goods from the dock to a traceable storage location.",
   },
   {
     conceptPattern: /\bMIGO\b|\bGR\b|goods receipt|réception/i,
     questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
-    fr: "La réception matière confirme l'arrivée physique et lance la traçabilité stock. Quelle preuve de réception vois-tu déjà dans le cockpit?",
-    en: "Goods receipt confirms physical arrival and starts stock traceability. What receipt evidence do you already see in the cockpit?",
+    fr: "La réception matière confirme l'arrivée physique et lance notre traçabilité stock. Quelle preuve de réception vois-tu déjà dans le cockpit?",
+    en: "Goods receipt confirms physical arrival and starts our stock traceability. What receipt evidence do you already see in the cockpit?",
   },
 ];
 
 type ResponseContext = {
-  greeting: string;
+  opening: string;
   stepLabel: string;
   scnCode: string;
 };
+
+function buildEmployeeOpening(personaId: MentorPersonaId, language: "fr" | "en"): string {
+  const employee = getEnterpriseEmployeeForLanguage(personaId, language);
+  return language === "fr"
+    ? `Je comprends votre question. ${employee.name}, ${employee.title}.`
+    : `I understand your question. ${employee.name}, ${employee.title}.`;
+}
 
 export function generateDryRunResponse(input: {
   context: EnterpriseContextPayload;
@@ -103,10 +80,12 @@ export function generateDryRunResponse(input: {
   studentMessage: string;
 }): string {
   const { context, mode, personaId, language, studentMessage } = input;
+  const employee = getEnterpriseEmployeeForLanguage(personaId, language);
+
   if (mode === "certification") {
     return language === "fr"
-      ? "Le collègue opérationnel est indisponible pour cette session."
-      : "The operational colleague is unavailable for this session.";
+      ? `${employee.firstName} n'est pas disponible pour le moment.`
+      : `${employee.firstName} is not available right now.`;
   }
 
   const guardrail = applyPreCallGuardrails({
@@ -131,9 +110,8 @@ export function generateDryRunResponse(input: {
       ? stepData.activeStepLabel?.fr ?? stepData.activeStepCode ?? "cette étape"
       : stepData.activeStepLabel?.en ?? stepData.activeStepCode ?? "this step";
 
-  const greeting = PERSONA_GREETING[personaId][language];
   const ctx: ResponseContext = {
-    greeting,
+    opening: buildEmployeeOpening(personaId, language),
     stepLabel,
     scnCode: context.scnCode ?? "SCN",
   };

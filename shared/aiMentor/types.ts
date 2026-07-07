@@ -1,7 +1,6 @@
-/** AI Mentor types — Manifesto Part VI / RC22 (no OpenAI integration) */
+/** Internal mentor types — RC22+ (student UI uses enterpriseEmployee layer) */
 
-export type MentorMode =
-  | "learning"
+export type MentorMode =  | "learning"
   | "professional"
   | "operational_colleague"
   | "certification"
@@ -20,11 +19,22 @@ export type MentorEntryPoint = "mission_control" | "oil_panel_f" | "debrief";
 
 export type MentorSurface = "monitor" | "cockpit" | "fiche" | "oil";
 
+export interface EnterpriseEmployeeContact {
+  name: string;
+  firstName: string;
+  title: string;
+  department: string;
+  avatarInitials: string;
+  consultButtonLabel: string;
+  availabilityNote: string;
+}
+
 export interface MentorAvailability {
   available: boolean;
   mode: MentorMode;
   reason?: string;
   personaId: MentorPersonaId;
+  employee: EnterpriseEmployeeContact;
   hintsRemaining?: number;
   integrationReady: boolean;
 }

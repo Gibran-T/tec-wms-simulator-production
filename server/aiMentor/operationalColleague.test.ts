@@ -82,8 +82,9 @@ describe("RC23-D — operational colleague mode routing", () => {
 
   it("does not expose mentor lock message for operational_colleague", () => {
     expect(getModeBlockReason("operational_colleague", "fr")).toBeUndefined();
-    expect(getOperationalColleagueAvailabilityNote("fr")).toContain("Collègue opérationnel disponible");
-    expect(getOperationalColleagueAvailabilityNote("fr")).not.toMatch(/verrouillé|locked/i);
+    const note = getOperationalColleagueAvailabilityNote("FLOOR_MENTOR", "fr");
+    expect(note).toContain("Marc-André");
+    expect(note).not.toMatch(/verrouillé|locked|collègue opérationnel|operational colleague|AI|OpenAI/i);
   });
 });
 
@@ -165,7 +166,7 @@ describe("RC23-D — operational colleague dry-run", () => {
       language: "en",
       studentMessage: "I am reviewing putaway evidence in the monitor",
     });
-    expect(response).toMatch(/reason|observe|Mission Sheet|cockpit/i);
+    expect(response).toMatch(/reason|observe|Mission Sheet|cockpit|understand|together/i);
     expect(scanResponseForLeaks(response)).toHaveLength(0);
   });
 });
@@ -179,7 +180,7 @@ describe("RC23-D — operational colleague prompt assembly", () => {
       language: "fr",
     });
     expect(preview.blocked).toBe(false);
-    expect(preview.systemPrompt).toMatch(/collègue opérationnel|Collègue opérationnel/i);
+    expect(preview.systemPrompt).toMatch(/employé Concorde Logistics|Concorde Logistics employee/i);
     expect(preview.systemPrompt).toMatch(/ne donnes pas de réponses|do not give answers/i);
   });
 });

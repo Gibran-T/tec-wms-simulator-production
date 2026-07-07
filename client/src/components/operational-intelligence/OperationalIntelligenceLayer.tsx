@@ -24,6 +24,7 @@ import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import OperationalFlowDisplay from "@/components/OperationalFlowDisplay";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 import MentorChip from "@/components/mentor/MentorChip";
+import { resolvePersonaForScenario } from "@shared/aiMentor/personaMap";
 import { isAiMentorUiEnabled } from "@/lib/aiMentor";
 import M4EvidenceLayer from "@/components/operational-intelligence/m4/M4EvidenceLayer";
 import { isM4EvidenceScn, type M4KpiInterpretationRow, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
@@ -762,7 +763,7 @@ function PanelE({
 }
 
 function PanelF({
-  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language, scnCode, onMentorOpen,
+  mission, stepLabels, completedSteps, nextStepCode, isDemo, getStepStatus, t, language, scnCode, moduleId, onMentorOpen,
 }: {
   mission: MissionData | null;
   stepLabels: { key: string; labelFr: string; labelEn: string }[];
@@ -773,8 +774,10 @@ function PanelF({
   t: (fr: string, en: string) => string;
   language: string;
   scnCode?: string | null;
+  moduleId: number;
   onMentorOpen?: () => void;
 }) {
+  const mentorPersonaId = resolvePersonaForScenario(scnCode, moduleId);
   const flowSteps = stepLabels.map((s) => language === "FR" ? s.labelFr : s.labelEn);
   const currentLabel = stepLabels.find((s) => s.key === nextStepCode);
   const currentDisplay = currentLabel ? (language === "FR" ? currentLabel.labelFr : currentLabel.labelEn) : undefined;
@@ -783,7 +786,7 @@ function PanelF({
     <div className="space-y-3 text-xs">
       {isAiMentorUiEnabled() && (
         <div className="flex justify-end">
-          <MentorChip available={isDemo || !nextStepCode} onOpen={onMentorOpen} />
+          <MentorChip available={isDemo || !nextStepCode} onOpen={onMentorOpen} personaId={mentorPersonaId} />
         </div>
       )}
       <OperationalFlowDisplay steps={flowSteps} currentStep={currentDisplay} />
@@ -931,6 +934,7 @@ export default function OperationalIntelligenceLayer(props: IntelligenceRunState
             t={t}
             language={language}
             scnCode={scnCode}
+            moduleId={props.moduleId}
             onMentorOpen={props.onMentorOpen}
           />
         </PanelShell>

@@ -41,10 +41,10 @@ export function resolvePersonaForScenario(
 
 export const PERSONA_DISPLAY_NAMES: Record<MentorPersonaId, { fr: string; en: string }> = {
   FLOOR_MENTOR: { fr: "Marc-André Tremblay", en: "Marc-André Tremblay" },
-  INVENTORY_ADVISOR: { fr: "Sophie Lachance", en: "Sophie Lachance" },
+  INVENTORY_ADVISOR: { fr: "Sophie Bouchard", en: "Sophie Bouchard" },
   PERFORMANCE_COACH: { fr: "Élise Beaumont", en: "Élise Beaumont" },
   CRISIS_ADVISOR: { fr: "Élise Beaumont", en: "Élise Beaumont" },
-  ERP_COACH: { fr: "Coach ERP", en: "Coach ERP" },
+  ERP_COACH: { fr: "Marc-André Tremblay", en: "Marc-André Tremblay" },
   QUALITY_GUIDE: { fr: "David Okonkwo", en: "David Okonkwo" },
   PROCUREMENT_GUIDE: { fr: "Jean-Philippe Morin", en: "Jean-Philippe Morin" },
 };
@@ -58,10 +58,10 @@ export function getPersonaDisplayName(
 
 export const PERSONA_CHARACTER_MAP: Record<MentorPersonaId, string> = {
   FLOOR_MENTOR: "marc-andre-tremblay",
-  INVENTORY_ADVISOR: "sophie-lachance",
+  INVENTORY_ADVISOR: "sophie-bouchard",
   PERFORMANCE_COACH: "elise-beaumont",
   CRISIS_ADVISOR: "elise-beaumont",
-  ERP_COACH: "coach-erp",
+  ERP_COACH: "marc-andre-tremblay",
   QUALITY_GUIDE: "david-okonkwo",
   PROCUREMENT_GUIDE: "jean-philippe-morin",
 };

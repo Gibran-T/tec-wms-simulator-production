@@ -392,6 +392,8 @@ export default function MissionControl() {
                     runId={runIdNum}
                     isDemo={!!isDemo}
                     runStatus={run.status}
+                    moduleId={moduleId}
+                    scnCode={scnCode}
                     entryPoint={mentorEntryPoint}
                     open={mentorOpen}
                     onOpenChange={setMentorOpen}

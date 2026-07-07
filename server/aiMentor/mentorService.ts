@@ -9,6 +9,7 @@ import {
   REFUSAL_CERTIFICATION,
   REFUSAL_COHORT_DISABLED,
 } from "../../shared/aiMentor/refusalTemplates";
+import { getEnterpriseEmployeeForLanguage } from "../../shared/aiMentor/enterpriseEmployee";
 import { assembleEnterpriseContext } from "../enterpriseContext";
 import { getProfileByUserId } from "../db";
 import { isCohortAiMentorDisabled } from "./cohortSettings";
@@ -82,6 +83,7 @@ export async function getMentorAvailability(ctx: MentorRunContext): Promise<Ment
     mode,
     reason,
     personaId,
+    employee: getEnterpriseEmployeeForLanguage(personaId, ctx.language),
     hintsRemaining: mode === "professional" ? Math.max(0, PROFESSIONAL_HINT_CAP - hintsUsed) : undefined,
     integrationReady: isAiMentorIntegrationReady(),
   };

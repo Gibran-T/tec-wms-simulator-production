@@ -6,7 +6,7 @@ import {
   BookOpen, Users, BarChart2, ClipboardList, Monitor,
   FlaskConical, ShieldCheck, Layers, TrendingUp, FileText,
   MonitorPlay, Presentation, Plus, ArrowRight, Clock,
-  TrendingDown, Minus, Bot,
+  TrendingDown, Minus,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -206,9 +206,9 @@ export default function TeacherDashboard() {
       {selectedCohortId != null && (
         <div className="mb-6 flex items-center justify-between rounded-md border border-border bg-card px-4 py-3">
           <div className="flex items-center gap-2">
-            <Bot size={16} className="text-primary" />
+            <Users size={16} className="text-primary" />
             <div>
-              <p className="text-xs font-bold">{t("Mentor IA — cohorte", "AI Mentor — cohort")}</p>
+              <p className="text-xs font-bold">{t("Consultation Concorde — cohorte", "Concorde consultation — cohort")}</p>
               <p className="text-[10px] text-muted-foreground">
                 {selectedCohort?.name ?? t("Cohorte sélectionnée", "Selected cohort")}
               </p>
@@ -227,7 +227,7 @@ export default function TeacherDashboard() {
               }
               data-testid="cohort-ai-mentor-disable"
             />
-            {t("Désactiver le mentor IA", "Disable AI mentor")}
+            {t("Désactiver la consultation interne", "Disable internal consultation")}
           </label>
         </div>
       )}

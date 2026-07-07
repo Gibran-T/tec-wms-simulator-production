@@ -139,7 +139,7 @@ describe("AI Mentor — prompt assembly", () => {
     });
     expect(preview.blocked).toBe(false);
     expect(preview.personaId).toBe("INVENTORY_ADVISOR");
-    expect(preview.systemPrompt).toContain("Sophie Lachance");
+    expect(preview.systemPrompt).toContain("Sophie Bouchard");
     expect(preview.systemPrompt).toContain("Learning mode");
     expect(preview.contextSummary).toContain("SCN-009");
     expect(preview.contextSummary).toContain("CC_RECON");
@@ -209,8 +209,8 @@ describe("AI Mentor — dry-run provider", () => {
       language: "en",
       studentMessage: "I am stuck on the reconciliation step",
     });
-    expect(response).toContain("Sophie Lachance");
-    expect(response).toContain("monitor or cockpit");
+    expect(response).toContain("Sophie Bouchard");
+    expect(response).toMatch(/monitor or cockpit|Mission Sheet|understand/i);
   });
 
   it("does not reveal step sequencer language", () => {

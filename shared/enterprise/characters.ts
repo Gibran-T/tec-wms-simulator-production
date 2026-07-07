@@ -38,6 +38,15 @@ export const ENTERPRISE_CHARACTERS: Record<string, CharacterRef> = {
     signaturePhraseFr: "Chaque unité en rack a un coût. Chaque rupture a un prix.",
     signaturePhraseEn: "Every unit on the rack has a cost. Every stockout has a price.",
   },
+  "sophie-bouchard": {
+    id: "sophie-bouchard",
+    name: "Sophie Bouchard",
+    titleFr: "Responsable inventaire",
+    titleEn: "Inventory Manager",
+    department: "INV",
+    signaturePhraseFr: "Notre inventaire doit être fiable avant d'être rapide.",
+    signaturePhraseEn: "Our inventory must be reliable before it is fast.",
+  },
   "david-okonkwo": {
     id: "david-okonkwo",
     name: "David Okonkwo",

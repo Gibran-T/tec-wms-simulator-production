@@ -41,18 +41,18 @@ export const REFUSAL_HINT_BUDGET = {
 };
 
 export const REFUSAL_CERTIFICATION = {
-  fr: "Le mentor IA est verrouillé pendant l'évaluation certifiante — jugement professionnel indépendant requis. Le mentor sera disponible après le débrief.",
-  en: "The AI mentor is locked during certification evaluation — independent professional judgment is required. The mentor will be available after debrief.",
+  fr: "Aucun responsable Concorde Logistics n'est disponible pendant cette session — jugement professionnel indépendant requis. Un débrief sera disponible après la mission.",
+  en: "No Concorde Logistics supervisor is available during this session — independent professional judgment is required. A debrief will be available after the mission.",
 };
 
 export const REFUSAL_COHORT_DISABLED = {
-  fr: "Le mentor IA est désactivé pour votre cohorte. Consultez la Fiche Mission et le panneau OIL F.",
-  en: "The AI mentor is disabled for your cohort. Consult the Mission Sheet and OIL Panel F.",
+  fr: "La consultation interne est désactivée pour votre cohorte. Consultez la Fiche Mission et le panneau OIL F.",
+  en: "Internal consultation is disabled for your cohort. Consult the Mission Sheet and OIL Panel F.",
 };
 
 export const REFUSAL_NOT_INTEGRATED = {
-  fr: "Le mentor IA sera bientôt disponible. En attendant, utilisez la Fiche Mission, le moniteur et le panneau OIL.",
-  en: "The AI mentor will be available soon. Meanwhile, use the Mission Sheet, monitor, and OIL panel.",
+  fr: "Votre responsable Concorde Logistics sera bientôt disponible. En attendant, utilisez la Fiche Mission, le moniteur et le panneau OIL.",
+  en: "Your Concorde Logistics supervisor will be available soon. Meanwhile, use the Mission Sheet, monitor, and OIL panel.",
 };
 
 export const REFUSAL_UI_BYPASS = {
