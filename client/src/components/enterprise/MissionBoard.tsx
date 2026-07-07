@@ -117,8 +117,8 @@ export default function MissionBoard({
     (assignmentPresentation
       ? t("File d'affectations opérationnelles", "Operational assignment queue")
       : enterpriseStyled
-        ? t("Missions ouvertes — Module", "Open assignments — Module")
-        : t("Scénarios du Module", "Module Scenarios"));
+        ? t("Missions ouvertes", "Open assignments")
+        : t("Affectations du chapitre", "Chapter assignments"));
 
   const scenarioCards: ScenarioCardContext[] = useMemo(
     () =>
@@ -417,7 +417,7 @@ export default function MissionBoard({
       )}
       {moduleScenarios.length === 0 && !isLoading ? (
         <p className="text-muted-foreground italic">
-          {t("Aucun scénario disponible pour ce module.", "No scenarios available for this module.")}
+          {t("Aucune affectation disponible pour ce chapitre.", "No assignments available for this chapter.")}
         </p>
       ) : groupedContent ? (
         <div className="space-y-8">{groupedContent}</div>

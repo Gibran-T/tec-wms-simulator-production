@@ -40,10 +40,11 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
 
   return (
     <FioriShell
-      title={t("Sélection du mode de simulation", "Simulation Mode Selection")}
+      title={t("Prise de service — mode d'exécution", "Shift briefing — execution mode")}
       breadcrumbs={[
-        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
-        { label: t("Mode de simulation", "Simulation Mode") },
+        { label: t("Concorde Logistics", "Concorde Logistics"), href: "/student/department" },
+        { label: t("Missions", "Missions"), href: moduleId && moduleId > 1 ? `/student/module${moduleId}` : "/student/scenarios" },
+        { label: t("Prise de service", "Shift briefing") },
       ]}
     >
       <div className="max-w-2xl mx-auto">
@@ -55,7 +56,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
             </div>
             <div>
               <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold">
-                {t("Scénario sélectionné", "Selected Scenario")}
+                {t("Affectation sélectionnée", "Selected assignment")}
               </p>
               <h2 className="text-[#0f2a44] font-bold text-base">{scenarioName}</h2>
               {scenarioDifficulty && (
@@ -68,7 +69,7 @@ export default function ModeSelectionScreen({ scenarioId, scenarioName, scenario
         {/* Mode Selection */}
         <div className="mb-5">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-            {t("Mode de simulation :", "Simulation Mode:")}
+            {t("Mode d'exécution :", "Execution mode:")}
           </p>
 
           <div className="space-y-3">

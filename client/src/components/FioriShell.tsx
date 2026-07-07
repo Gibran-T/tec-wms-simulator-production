@@ -99,7 +99,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
     : [
         {
           href: studentHome,
-          label: connectEnabled ? connectNavLabel : t("Mes Scénarios", "My Scenarios"),
+          label: connectEnabled ? connectNavLabel : t("Missions", "Missions"),
           icon: connectEnabled ? MonitorPlay : BookOpen,
         },
         ...(concordeConnectEnabled

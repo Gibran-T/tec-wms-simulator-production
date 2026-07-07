@@ -1,45 +1,21 @@
-import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { AlertTriangle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Package, CheckCircle2, AlertTriangle, ArrowRight, Layers, Eye, Presentation } from "lucide-react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useLanguage } from "@/contexts/LanguageContext";
-import ModulePathwayNav from "@/components/ModulePathwayNav";
-import FioriShell from "@/components/FioriShell";
-import { filterCanonicalScenariosForModule, resolveScenarioScnCode } from "@/lib/scenarioCatalog";
-
-const DIFFICULTY_LABEL: Record<string, string> = {
-  facile: "Facile",
-  moyen: "Moyen",
-  difficile: "Difficile",
-};
-
-const DIFFICULTY_COLOR: Record<string, string> = {
-  facile: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  moyen: "bg-amber-100 text-amber-800 border-amber-200",
-  difficile: "bg-red-100 text-red-800 border-red-200",
-};
+import EnterpriseModuleHub from "@/components/enterprise/EnterpriseModuleHub";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { MODULE_PROGRESSION_COPY } from "@/data/moduleProgressionCopy";
 
 export default function Module2ScenarioList() {
   const { user } = useAuth();
-  const [, navigate] = useLocation();
-  const { t } = useLanguage();
+  const { language } = useLanguage();
   const isAdminOrTeacher = user?.role === "admin" || user?.role === "teacher";
   const { data: access, isLoading: accessLoading } = trpc.warehouse.checkAccess.useQuery();
-  const { data: scenarios, isLoading: scenariosLoading } = trpc.scenarios.list.useQuery();
-  const { data: myRuns } = trpc.runs.myRuns.useQuery();
 
-  const module2Scenarios = filterCanonicalScenariosForModule(2, scenarios ?? []);
-  type RunRow = NonNullable<typeof myRuns>[number];
+  const showPrerequisiteNote = !access?.unlocked && !isAdminOrTeacher;
+  const progression = MODULE_PROGRESSION_COPY[2];
 
-  const getRunForScenario = (scenarioId: number): RunRow | undefined =>
-    (myRuns ?? []).filter((r) => r.run.scenarioId === scenarioId && !r.run.isDemo).sort((a, b) => b.run.id - a.run.id)[0];
-
-  if (accessLoading || scenariosLoading) {
+  if (accessLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center space-y-3">
@@ -50,154 +26,21 @@ export default function Module2ScenarioList() {
     );
   }
 
-  const showPrerequisiteNote = !access?.unlocked && !isAdminOrTeacher;
-
   return (
-    <FioriShell
-      title={t("Mes Scénarios — Module 2", "My Scenarios — Module 2")}
-      breadcrumbs={[
-        { label: t("Accueil", "Home"), href: "/" },
-        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
-        { label: "M2" },
-      ]}
-    >
-    <div className="max-w-4xl mx-auto py-4 px-4 space-y-8">
-      <ModulePathwayNav activeModuleId={2} />
-
-      {showPrerequisiteNote && (
-        <Alert className="border-amber-200 bg-amber-50 text-left">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-800">
-            <strong>{t("Prérequis recommandé", "Recommended prerequisite")} :</strong>{" "}
-            {t(
-              "Le Module 1 devrait être complété avant M2. Accès ouvert pour la session de classe — suivez votre progression module par module.",
-              "Module 1 should be completed before M2. Access open for class session — track your progress module by module."
-            )}
-          </AlertDescription>
-        </Alert>
-      )}
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
-            <Layers className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Module 2 — {t("Exécution d'entrepôt et gestion des emplacements", "Warehouse Execution & Location Management")}</h1>
-                <p className="text-sm text-muted-foreground">{t("Rangement structuré · Capacité bin · FIFO · Précision inventaire", "Structured putaway · Bin capacity · FIFO · Inventory accuracy")}</p>
-              </div>
-              <button
-                onClick={() => navigate("/student/slides/2")}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold text-white shrink-0 hover:opacity-90 transition-opacity"
-                style={{ background: "#0f2a44" }}
-              >
-                <Presentation size={14} />
-                {t("Slides M2", "Slides M2")}
-              </button>
-            </div>
-          </div>
-        </div>
-        {!showPrerequisiteNote && (
-          <Alert className="border-blue-200 bg-blue-50">
-            <CheckCircle2 className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
-              <strong>{t("Module 1 réussi", "Module 1 completed")}</strong> — {t("Vous pouvez pratiquer l'exécution opérationnelle avancée (SCN-006 à SCN-008).", "You can practice advanced warehouse execution (SCN-006 to SCN-008).")}
+    <EnterpriseModuleHub
+      moduleId={2}
+      showPromotionBanner={!showPrerequisiteNote}
+      prerequisiteAlert={
+        showPrerequisiteNote ? (
+          <Alert className="border-amber-200 bg-amber-50 text-left">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              <strong>{language === "FR" ? "Prérequis recommandé" : "Recommended prerequisite"} :</strong>{" "}
+              {language === "FR" ? progression.prerequisiteNote.fr : progression.prerequisiteNote.en}
             </AlertDescription>
           </Alert>
-        )}
-      </div>
-
-      {/* Learning Objectives */}
-      <Card className="border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold">Objectifs pédagogiques</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { icon: Package, label: "Putaway LT01", desc: "Rangement structuré depuis le quai de réception" },
-              { icon: CheckCircle2, label: "Capacité bin", desc: "Validation des limites de capacité par emplacement" },
-              { icon: AlertTriangle, label: "Règle FIFO", desc: "Respect de l'ordre premier entré, premier sorti" },
-              { icon: Layers, label: "Précision inventaire", desc: "Contrôle de cohérence stock système vs physique" },
-            ].map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="flex items-start gap-3 p-3 rounded-lg bg-slate-50">
-                <Icon className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-                <div>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Scenarios */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Scénarios disponibles</h2>
-        {module2Scenarios.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              Aucun scénario Module 2 disponible. Contactez votre enseignant.
-            </CardContent>
-          </Card>
-        ) : (
-          module2Scenarios.map((scenario) => {
-            const scnCode = resolveScenarioScnCode(scenario);
-            const lastRun = getRunForScenario(scenario.id);
-            const hasCompleted = lastRun?.run.status === "completed";
-            return (
-              <Card key={scnCode ?? scenario.id} className="border-slate-200 hover:border-blue-300 transition-colors">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      {scnCode && (
-                        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[10px] font-bold" variant="outline">
-                          {scnCode}
-                        </Badge>
-                      )}
-                      <CardTitle className="text-base font-semibold">{scenario.name}</CardTitle>
-                      <CardDescription className="text-sm">{scenario.descriptionFr}</CardDescription>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <Badge className={`text-xs border ${DIFFICULTY_COLOR[scenario.difficulty ?? "facile"] ?? ""}`} variant="outline">
-                        {DIFFICULTY_LABEL[scenario.difficulty ?? "facile"] ?? scenario.difficulty}
-                      </Badge>
-                      {hasCompleted ? (
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs" variant="outline">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Complété
-                        </Badge>
-                      ) : null}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>Module 2 · Exécution d'entrepôt</span>
-                      {lastRun && (
-                        <span>
-                          Dernière tentative : score disponible dans le rapport
-                        </span>
-                      )}
-                    </div>
-                    <Link href={`/student/module2/scenario/${scenario.id}/mode`}>
-                      <Button size="sm" className="gap-2 bg-blue-600 hover:bg-blue-700">
-                        {lastRun ? "Recommencer" : "Démarrer"}
-                        <ArrowRight className="w-3 h-3" />
-                      </Button>
-                    </Link>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-      </div>
-    </div>
-    </FioriShell>
+        ) : undefined
+      }
+    />
   );
 }
