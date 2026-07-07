@@ -15,7 +15,7 @@ import { getDb, getModuleProgressRow, getScoringEventsByRun, upsertModuleCheckpo
 import { goldScnKeyFromCode } from "./goldCertification";
 import { calculateTotalScore } from "./scoringEngine";
 
-export const CHECKPOINT_MODULE_IDS = [2, 3, 4, 5] as const;
+export const CHECKPOINT_MODULE_IDS = [1, 2, 3, 4, 5] as const;
 export const CHECKPOINT_ENGINE_VERSION = "ckpt-v1";
 
 export type CheckpointModuleId = (typeof CHECKPOINT_MODULE_IDS)[number];

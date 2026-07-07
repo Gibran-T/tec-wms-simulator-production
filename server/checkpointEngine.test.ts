@@ -46,13 +46,14 @@ function buildStatus(
 }
 
 describe("Checkpoint engine — module scope", () => {
-  it("CHECKPOINT_MODULE_IDS covers M2–M5 only", () => {
-    expect(CHECKPOINT_MODULE_IDS).toEqual([2, 3, 4, 5]);
-    expect(isCheckpointModule(1)).toBe(false);
+  it("CHECKPOINT_MODULE_IDS covers M1–M5", () => {
+    expect(CHECKPOINT_MODULE_IDS).toEqual([1, 2, 3, 4, 5]);
+    expect(isCheckpointModule(1)).toBe(true);
     expect(isCheckpointModule(2)).toBe(true);
   });
 
   it("scnKeysForModule maps official SCN codes", () => {
+    expect(scnKeysForModule(1)).toEqual(["SCN001", "SCN002", "SCN003", "SCN004", "SCN005"]);
     expect(m2Keys()).toEqual(["SCN006", "SCN007", "SCN008"]);
     expect(m5Keys()).toEqual(["SCN015", "SCN016", "SCN017"]);
   });
@@ -219,9 +220,10 @@ describe("Checkpoint engine — CK-ISO / thresholds", () => {
   });
 
   it("CK-ISO-02: demo runs are excluded at query layer (threshold alignment)", () => {
-    for (const moduleId of [2, 3, 4, 5]) {
-      expect(OFFICIAL_SCN_BY_MODULE[moduleId]).toHaveLength(3);
-      expect(getModuleScenarioPassThreshold(moduleId)).toBe(moduleId === 2 ? 60 : 70);
+    for (const moduleId of [1, 2, 3, 4, 5]) {
+      const expectedLen = moduleId === 1 ? 5 : 3;
+      expect(OFFICIAL_SCN_BY_MODULE[moduleId]).toHaveLength(expectedLen);
+      expect(getModuleScenarioPassThreshold(moduleId)).toBe(moduleId <= 2 ? 60 : 70);
     }
   });
 
@@ -279,5 +281,20 @@ describe("Checkpoint engine — CK-TRG helpers", () => {
     const fixed = sanitizeCheckpointSnapshot(broken);
     expect(fixed.passed).toBe(false);
     expect(fixed.completedAt).toBeNull();
+  });
+
+  it("CK-M1-01: M1 snapshot reaches 100% when all five SCNs pass", () => {
+    const keys = scnKeysForModule(1);
+    const status = buildStatus(keys, {
+      SCN001: scnStatus(true, 100),
+      SCN002: scnStatus(true, 100),
+      SCN003: scnStatus(true, 100),
+      SCN004: scnStatus(true, 100),
+      SCN005: scnStatus(true, 100),
+    });
+    const snap = buildModuleCheckpointSnapshot(1, status, keys, false);
+    expect(snap.completedScenarios).toBe(5);
+    expect(snap.progressPct).toBe(100);
+    expect(snap.passed).toBe(true);
   });
 });
