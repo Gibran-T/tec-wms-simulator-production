@@ -1,39 +1,40 @@
 import type { MentorPromptPreview } from "../../../shared/aiMentor/types";
-import { invokeLLM, type Message } from "../../_core/llm";
+import { getOpenAiApiKey, getOpenAiModel } from "../mentorEnv";
+import { createOpenAiChatCompletion } from "./openaiClient";
 
 /**
- * Live OpenAI provider — only invoked when ENABLE_AI_MENTOR_LIVE=true and OPENAI_API_KEY is set.
+ * Live OpenAI provider — native api.openai.com only (RC23-B).
+ * Invoked when ENABLE_AI_MENTOR_LIVE=true and OPENAI_API_KEY is set.
  * Do not enable in production without explicit approval.
  */
 export async function generateLiveResponse(input: {
   preview: MentorPromptPreview;
   studentMessage: string;
+  liveContextSummary: string;
 }): Promise<string> {
-  const messages: Message[] = [
-    { role: "system", content: input.preview.systemPrompt },
-    {
-      role: "user",
-      content: [
-        "Context:",
-        input.preview.contextSummary,
-        "",
-        "Student message:",
-        input.studentMessage,
-      ].join("\n"),
-    },
-  ];
+  const apiKey = getOpenAiApiKey();
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not configured");
+  }
 
-  const result = await invokeLLM({ messages, maxTokens: 512 });
-  const text = result.choices[0]?.message?.content;
-  if (typeof text === "string" && text.trim()) {
-    return text.trim();
-  }
-  if (Array.isArray(text)) {
-    const joined = text
-      .filter((p): p is { type: "text"; text: string } => typeof p === "object" && p.type === "text")
-      .map((p) => p.text)
-      .join("");
-    if (joined.trim()) return joined.trim();
-  }
-  throw new Error("Live mentor provider returned empty response");
+  const result = await createOpenAiChatCompletion({
+    apiKey,
+    model: getOpenAiModel(),
+    maxTokens: 512,
+    messages: [
+      { role: "system", content: input.preview.systemPrompt },
+      {
+        role: "user",
+        content: [
+          "Context (redacted — no operational answers):",
+          input.liveContextSummary,
+          "",
+          "Student message:",
+          input.studentMessage.trim(),
+        ].join("\n"),
+      },
+    ],
+  });
+
+  return result.text;
 }

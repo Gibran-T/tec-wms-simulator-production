@@ -7,12 +7,17 @@ import {
 } from "../../shared/aiMentor/refusalTemplates";
 
 const DIRECT_ANSWER_PATTERNS = [
-  /what is the (adj|quantity|answer|number)/i,
-  /quelle est la (quantité|réponse|valeur)/i,
+  /what is the (adj|quantity|answer|number|bin|lot|kpi)/i,
+  /quelle est la (quantité|réponse|valeur|lot|bin)/i,
   /give me the answer/i,
   /donne[- ]moi la réponse/i,
   /how many units/i,
   /combien d'unités/i,
+  /what (quantity|bin|lot|kpi)/i,
+  /which bin/i,
+  /quel bin/i,
+  /target kpi/i,
+  /objectif kpi/i,
 ];
 
 const UI_BYPASS_PATTERNS = [
@@ -29,6 +34,32 @@ const TRANSACTION_EXECUTION_PATTERNS = [
   /poster migo/i,
   /post gr/i,
   /click migo/i,
+  /post gi/i,
+  /execute migo/i,
+  /you must post/i,
+  /vous devez poster/i,
+];
+
+const OPERATIONAL_VALUE_LEAK_PATTERNS = [
+  /\bLOT[- ]?\d{4}[- ]?[A-Z0-9-]+\b/i,
+  /\b(?:PO|SO|GR|GI)-(?:M\d|\d{4})-[A-Z0-9-]+\b/i,
+  /\bB-\d{2}-R\d-L\d\b/i,
+  /\b(?:REC|EXP|STO|SHP)-\d{2}\b/i,
+  /\b\d+(?:[.,]\d+)?\s*u\.?\b/i,
+];
+
+const KPI_TARGET_LEAK_PATTERNS = [
+  /\btarget\s*(?:kpi|service level|fill rate)/i,
+  /\bobjectif\s*(?:kpi|service|taux)/i,
+  /\b\d+(?:[.,]\d+)?%\s*(?:error|service|fill)/i,
+];
+
+const COMPLIANCE_SOLUTION_PATTERNS = [
+  /compliance answer/i,
+  /pass compliance by/i,
+  /réponse conformité/i,
+  /pour être conforme,? (?:entre|saisis|poste)/i,
+  /to pass compliance,? (?:enter|post)/i,
 ];
 
 export type GuardrailResult = {
@@ -90,6 +121,18 @@ export function scanResponseForLeaks(response: string): string[] {
   }
   if (/step \d|étape \d|next you must|ensuite tu dois/i.test(response)) {
     flags.push("leak:step_sequencer");
+  }
+  if (OPERATIONAL_VALUE_LEAK_PATTERNS.some((p) => p.test(response))) {
+    flags.push("leak:operational_value");
+  }
+  if (KPI_TARGET_LEAK_PATTERNS.some((p) => p.test(response))) {
+    flags.push("leak:kpi_target");
+  }
+  if (COMPLIANCE_SOLUTION_PATTERNS.some((p) => p.test(response))) {
+    flags.push("leak:compliance_solution");
+  }
+  if (/replenish(min|max)|Min\s+\d+\s*\/\s*Max\s+\d+/i.test(response)) {
+    flags.push("leak:replenish_policy");
   }
   return flags;
 }

@@ -17,6 +17,8 @@ import { applyPreCallGuardrails, scanResponseForLeaks } from "./guardrails";
 import { getModeBlockReason, isMentorAvailable, resolveMentorMode } from "./modeRouter";
 import { assemblePromptPreview } from "./promptAssembly";
 import { selectPersona } from "./personas";
+import { buildLiveSafeContextSummary } from "./livePromptContext";
+import { isAiMentorIntegrationReady as isOpenAiMentorReady } from "./mentorEnv";
 import { generateDryRunResponse } from "./providers/dryRunProvider";
 import { generateLiveResponse } from "./providers/liveProvider";
 
@@ -31,7 +33,7 @@ export function isAiMentorGloballyEnabled(): boolean {
 }
 
 export function isAiMentorIntegrationReady(): boolean {
-  return process.env.ENABLE_AI_MENTOR_LIVE === "true" && !!process.env.OPENAI_API_KEY;
+  return isOpenAiMentorReady();
 }
 
 type MentorRunContext = {
@@ -180,7 +182,12 @@ export async function handleMentorChat(
 
   if (isAiMentorIntegrationReady()) {
     try {
-      responseMessage = await generateLiveResponse({ preview, studentMessage: ctx.message });
+      const liveContextSummary = buildLiveSafeContextSummary(context);
+      responseMessage = await generateLiveResponse({
+        preview,
+        studentMessage: ctx.message,
+        liveContextSummary,
+      });
       guardrailFlags = scanResponseForLeaks(responseMessage);
       if (guardrailFlags.length > 0) {
         responseMessage =
