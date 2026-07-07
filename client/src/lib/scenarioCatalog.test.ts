@@ -64,6 +64,8 @@ describe("scenarioCatalog — unlimited replay helpers", () => {
     expect(resolveMissionPrimaryAction(active, findCompletedRunForScenario(moduleRows[0], moduleRows, runs))).toBe(
       "continue",
     );
+    // Report CTA uses completedRun whenever it exists — independent of active replay.
+    expect(findCompletedRunForScenario(moduleRows[0], moduleRows, runs)?.run.id).toBe(20);
   });
 
   it("M1 legacy duplicate row in_progress does not block canonical SCN-003 replay UI", () => {

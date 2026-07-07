@@ -257,7 +257,7 @@ export default function MissionBoard({
                 <ClipboardList size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
               </button>
             )}
-            {completedRun && !activeRun && (
+            {completedRun && (
               <button
                 onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
                 className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
@@ -371,12 +371,12 @@ export default function MissionBoard({
               <Play size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
             </button>
           )}
-          {completedRun && !activeRun && (
+          {completedRun && (
             <button
               onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
               className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
             >
-              <FileText size={16} className="inline mr-2" /> {t("Rapport", "Report")}
+              <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
             </button>
           )}
         </div>
