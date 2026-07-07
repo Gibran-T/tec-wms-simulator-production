@@ -385,9 +385,29 @@ export async function getAllAssignments(opts?: {
 }
 
 // ─── Scenario Runs ────────────────────────────────────────────────────────────
+/** Abandon stale eval runs so only one in-progress attempt exists per scenario. */
+export async function abandonStaleInProgressRuns(userId: number, scenarioId: number) {
+  const db = await getDb();
+  if (!db) return;
+  await db
+    .update(scenarioRuns)
+    .set({ status: "abandoned", completedAt: new Date() })
+    .where(
+      and(
+        eq(scenarioRuns.userId, userId),
+        eq(scenarioRuns.scenarioId, scenarioId),
+        eq(scenarioRuns.status, "in_progress"),
+        eq(scenarioRuns.isDemo, false),
+      ),
+    );
+}
+
 export async function startRun(userId: number, scenarioId: number, isDemo = false): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
+  if (!isDemo) {
+    await abandonStaleInProgressRuns(userId, scenarioId);
+  }
   const [row] = await db
     .insert(scenarioRuns)
     .values({ userId, scenarioId, status: "in_progress", isDemo })

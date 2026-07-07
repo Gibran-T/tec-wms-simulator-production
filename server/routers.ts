@@ -1024,6 +1024,26 @@ export const appRouter = router({
               for (const stepCode of autoSteps) {
                 await markStepComplete(runId, stepCode);
               }
+              // M1: pre-seeded PO/GR credits step completion + scoring (SCN-003/004 preload pattern)
+              if (!isDemo && moduleId === 1) {
+                const m1AutoEventMap: Record<string, string> = {
+                  PO: "PO_COMPLETED",
+                  GR: "GR_COMPLETED",
+                };
+                for (const stepCode of autoSteps) {
+                  const eventType = m1AutoEventMap[stepCode];
+                  if (!eventType) continue;
+                  const rule = getScoringRule(eventType);
+                  if (rule) {
+                    await addScoringEventOnce({
+                      runId,
+                      eventType,
+                      pointsDelta: rule.points,
+                      message: rule.descriptionFr,
+                    });
+                  }
+                }
+              }
               // SCN-008: pre-seeded STOCKAGE credits PUTAWAY step + scoring (MS-G9 declared bypass)
               if (!isDemo && moduleId === 2 && autoSteps.includes("PUTAWAY")) {
                 const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
