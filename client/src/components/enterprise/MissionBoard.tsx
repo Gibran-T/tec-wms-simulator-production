@@ -5,8 +5,9 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
-  findActiveRunForScenario,
   findCompletedRunForScenario,
+  resolveDisplayActiveRunForScenario,
+  resolveMissionPrimaryAction,
   resolveScenarioScnCode,
 } from "@/lib/scenarioCatalog";
 import type { ScenarioRef } from "../../../../server/canonicalScenarios";
@@ -90,15 +91,6 @@ interface ScenarioCardContext {
   missionTitle: string;
 }
 
-function resolveMissionPrimaryAction(
-  activeRun: EnrichedRunRow | undefined,
-  completedRun: EnrichedRunRow | undefined,
-): "start" | "continue" | "replay" {
-  if (activeRun) return "continue";
-  if (completedRun) return "replay";
-  return "start";
-}
-
 export default function MissionBoard({
   moduleId,
   moduleScenarios,
@@ -116,7 +108,7 @@ export default function MissionBoard({
   const { t, language } = useLanguage();
 
   const getActiveRun = (scenario: MissionBoardScenario) =>
-    findActiveRunForScenario(scenario, rawModuleScenarios, myRuns) as EnrichedRunRow | undefined;
+    resolveDisplayActiveRunForScenario(scenario, rawModuleScenarios, myRuns) as EnrichedRunRow | undefined;
 
   const getCompletedRun = (scenario: MissionBoardScenario) =>
     findCompletedRunForScenario(scenario, rawModuleScenarios, myRuns) as EnrichedRunRow | undefined;
@@ -188,7 +180,7 @@ export default function MissionBoard({
                   <MonitorPlay size={11} className="mr-1" /> {t("En cours", "In Progress")}
                 </span>
               )}
-              {completedRun && (
+              {completedRun && !activeRun && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                   <CheckCircle size={11} className="mr-1" /> {t("Terminé", "Completed")}
                 </span>
@@ -239,28 +231,18 @@ export default function MissionBoard({
                 <Play size={16} className="inline mr-2" /> {t("Continuer la mission", "Continue mission")}
               </button>
             ) : primaryAction === "replay" ? (
-              <>
-                <button
-                  onClick={() =>
-                    onStartScenario({
-                      id: scenario.id,
-                      name: scenario.name,
-                      difficulty: scenario.difficulty ?? undefined,
-                    })
-                  }
-                  className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  <RotateCcw size={16} className="inline mr-2" /> {t("Refaire la mission", "Replay mission")}
-                </button>
-                {completedRun && (
-                  <button
-                    onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
-                    className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
-                  >
-                    <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
-                  </button>
-                )}
-              </>
+              <button
+                onClick={() =>
+                  onStartScenario({
+                    id: scenario.id,
+                    name: scenario.name,
+                    difficulty: scenario.difficulty ?? undefined,
+                  })
+                }
+                className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
+              >
+                <RotateCcw size={16} className="inline mr-2" /> {t("Refaire la mission", "Replay mission")}
+              </button>
             ) : (
               <button
                 onClick={() =>
@@ -273,6 +255,14 @@ export default function MissionBoard({
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
               >
                 <ClipboardList size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
+              </button>
+            )}
+            {completedRun && !activeRun && (
+              <button
+                onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
+                className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
+              >
+                <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
               </button>
             )}
           </div>
@@ -331,7 +321,7 @@ export default function MissionBoard({
                 <MonitorPlay size={12} className="mr-1" /> {t("En cours", "In Progress")}
               </span>
             )}
-            {completedRun && (
+            {completedRun && !activeRun && (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
               </span>
@@ -381,7 +371,7 @@ export default function MissionBoard({
               <Play size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
             </button>
           )}
-          {completedRun && (
+          {completedRun && !activeRun && (
             <button
               onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
               className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"

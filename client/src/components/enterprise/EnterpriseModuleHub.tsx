@@ -14,8 +14,8 @@ import ModulePathwayNav from "@/components/ModulePathwayNav";
 import MissionBoard from "@/components/enterprise/MissionBoard";
 import {
   filterCanonicalScenariosForModule,
-  findActiveRunForScenario,
   findCompletedRunForScenario,
+  resolveDisplayActiveRunForScenario,
 } from "@/lib/scenarioCatalog";
 import { isEnterpriseExperienceEnabled, isEnterpriseAssignmentsEnabled } from "@/lib/enterpriseExperience";
 import AssignmentQueue from "@/components/enterprise/AssignmentQueue";
@@ -88,7 +88,7 @@ export default function EnterpriseModuleHub({
   );
 
   const getActiveRun = (scenario: (typeof moduleScenarios)[number]) =>
-    findActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
+    resolveDisplayActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
 
   const getCompletedRun = (scenario: (typeof moduleScenarios)[number]) =>
     findCompletedRunForScenario(scenario, rawModuleScenarios, myRuns);

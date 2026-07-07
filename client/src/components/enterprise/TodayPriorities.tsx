@@ -3,8 +3,8 @@ import { useLocation } from "wouter";
 import { AlertTriangle, CalendarClock, ChevronRight, Play } from "lucide-react";
 import type { EmployeeProfilePayload } from "@shared/enterprise/employeeProfile";
 import {
-  findActiveRunForScenario,
   findCompletedRunForScenario,
+  resolveDisplayActiveRunForScenario,
   resolveScenarioScnCode,
 } from "@/lib/scenarioCatalog";
 import type { ScenarioRef } from "../../../../server/canonicalScenarios";
@@ -82,7 +82,7 @@ export default function TodayPriorities({
       if (completed) continue;
       const meta = buildAssignmentMeta(scnCode, resolveTitle(scenario, moduleId));
       if (!meta || !isUrgentPriority(meta.priority)) continue;
-      const activeRun = findActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
+      const activeRun = resolveDisplayActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
       items.push({
         scenario,
         scnCode,
