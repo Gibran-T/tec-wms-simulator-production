@@ -64,9 +64,9 @@ describe("AI Mentor — mode router", () => {
     expect(isMentorAvailable("learning")).toBe(true);
   });
 
-  it("locks certification during active evaluation", () => {
-    expect(resolveMentorMode({ isDemo: false, runStatus: "in_progress" })).toBe("certification");
-    expect(isMentorAvailable("certification")).toBe(false);
+  it("maps student evaluation in-progress to operational_colleague", () => {
+    expect(resolveMentorMode({ isDemo: false, runStatus: "in_progress" })).toBe("operational_colleague");
+    expect(isMentorAvailable("operational_colleague")).toBe(true);
   });
 
   it("maps completed runs to reflection when requested", () => {

@@ -279,10 +279,10 @@ describe("RC23-B — guardrail leak scan", () => {
   });
 });
 
-describe("RC23-B — certification lock and dry-run", () => {
-  it("locks certification during active evaluation", () => {
-    expect(resolveMentorMode({ isDemo: false, runStatus: "in_progress" })).toBe("certification");
-    expect(isMentorAvailable("certification")).toBe(false);
+describe("RC23-B — operational colleague and dry-run", () => {
+  it("enables operational colleague during active evaluation", () => {
+    expect(resolveMentorMode({ isDemo: false, runStatus: "in_progress" })).toBe("operational_colleague");
+    expect(isMentorAvailable("operational_colleague")).toBe(true);
   });
 
   it("dry-run remains Socratic in learning mode", () => {

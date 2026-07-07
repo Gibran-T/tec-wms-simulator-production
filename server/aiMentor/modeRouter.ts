@@ -18,7 +18,7 @@ export function resolveMentorMode(input: ModeResolutionInput): MentorMode {
     return "learning";
   }
   if (input.runStatus === "in_progress") {
-    return "certification";
+    return "operational_colleague";
   }
   if (input.runStatus === "completed") {
     return "reflection";
@@ -33,6 +33,12 @@ export function isMentorAvailable(mode: MentorMode): boolean {
 export function getModeBlockReason(mode: MentorMode, language: "fr" | "en"): string | undefined {
   if (mode !== "certification") return undefined;
   return language === "fr"
-    ? "Mentor verrouillé pendant l'évaluation certifiante."
-    : "Mentor locked during certification evaluation.";
+    ? "Le collègue opérationnel est indisponible pour votre cohorte ou cette session."
+    : "The operational colleague is unavailable for your cohort or this session.";
+}
+
+export function getOperationalColleagueAvailabilityNote(language: "fr" | "en"): string {
+  return language === "fr"
+    ? "Collègue opérationnel disponible — il peut vous aider à raisonner, mais ne peut pas exécuter la mission à votre place."
+    : "Operational colleague available — they can help you reason, but cannot execute the mission for you.";
 }

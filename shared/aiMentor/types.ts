@@ -1,6 +1,11 @@
 /** AI Mentor types — Manifesto Part VI / RC22 (no OpenAI integration) */
 
-export type MentorMode = "learning" | "professional" | "certification" | "reflection";
+export type MentorMode =
+  | "learning"
+  | "professional"
+  | "operational_colleague"
+  | "certification"
+  | "reflection";
 
 export type MentorPersonaId =
   | "FLOOR_MENTOR"

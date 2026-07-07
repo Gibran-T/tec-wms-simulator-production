@@ -1,8 +1,14 @@
 import type { MentorMode } from "../../shared/aiMentor/types";
 import { PROFESSIONAL_HINT_CAP } from "../../shared/aiMentor/types";
 import {
+  REFUSAL_BIN_REQUEST,
+  REFUSAL_COMPLETE_FOR_ME,
   REFUSAL_DIRECT_ANSWER,
   REFUSAL_HINT_BUDGET,
+  REFUSAL_LOT_REQUEST,
+  REFUSAL_OPERATIONAL_COLLEAGUE,
+  REFUSAL_QUANTITY_REQUEST,
+  REFUSAL_TRANSACTION_SEQUENCE,
   REFUSAL_UI_BYPASS,
 } from "../../shared/aiMentor/refusalTemplates";
 
@@ -18,6 +24,49 @@ const DIRECT_ANSWER_PATTERNS = [
   /quel bin/i,
   /target kpi/i,
   /objectif kpi/i,
+  /what should i enter/i,
+  /que dois[- ]je (?:saisir|entrer)/i,
+  /which option/i,
+  /quelle option/i,
+  /complete this for me/i,
+  /complète(?:r)?(?:\s|-)?(?:la| cette)? mission/i,
+  /choose \w+/i,
+  /choisis \w+/i,
+  /enter \d+/i,
+  /entre \d+/i,
+];
+
+const LOT_REQUEST_PATTERNS = [
+  /quel lot/i,
+  /which lot/i,
+  /what lot/i,
+  /numéro de lot/i,
+  /lot number/i,
+];
+
+const BIN_REQUEST_PATTERNS = [
+  /quel(?:le)? emplacement/i,
+  /which bin/i,
+  /what bin/i,
+  /quel bin/i,
+];
+
+const QUANTITY_REQUEST_PATTERNS = [
+  /quelle quantité/i,
+  /what quantity/i,
+  /how many (?:units|u\.?)/i,
+  /combien (?:d'unités|d unités|de pièces)/i,
+];
+
+const TRANSACTION_SEQUENCE_PATTERNS = [
+  /prochaine transaction/i,
+  /next transaction/i,
+  /what transaction/i,
+  /quelle transaction/i,
+  /transaction sequence/i,
+  /séquence d'exécution/i,
+  /step sequence/i,
+  /séquence des étapes/i,
 ];
 
 const UI_BYPASS_PATTERNS = [
@@ -25,8 +74,6 @@ const UI_BYPASS_PATTERNS = [
   /cliquer/i,
   /which button/i,
   /quel bouton/i,
-  /step sequence/i,
-  /séquence des étapes/i,
   /migo|me21n|lt0a/i,
 ];
 
@@ -72,8 +119,37 @@ export type GuardrailResult = {
 export function classifyUserIntent(message: string): string[] {
   const flags: string[] = [];
   if (DIRECT_ANSWER_PATTERNS.some((p) => p.test(message))) flags.push("intent:answer_request");
+  if (LOT_REQUEST_PATTERNS.some((p) => p.test(message))) flags.push("intent:lot_request");
+  if (BIN_REQUEST_PATTERNS.some((p) => p.test(message))) flags.push("intent:bin_request");
+  if (QUANTITY_REQUEST_PATTERNS.some((p) => p.test(message))) flags.push("intent:quantity_request");
+  if (TRANSACTION_SEQUENCE_PATTERNS.some((p) => p.test(message))) flags.push("intent:transaction_sequence");
   if (UI_BYPASS_PATTERNS.some((p) => p.test(message))) flags.push("intent:ui_bypass");
+  if (/complete this for me|complète(?:r)?(?:\s|-)?(?:la| cette)? mission/i.test(message)) {
+    flags.push("intent:complete_for_me");
+  }
   return flags;
+}
+
+function colleagueRefusal(
+  flags: string[],
+  language: "fr" | "en",
+): string {
+  if (flags.includes("intent:lot_request")) {
+    return language === "fr" ? REFUSAL_LOT_REQUEST.fr : REFUSAL_LOT_REQUEST.en;
+  }
+  if (flags.includes("intent:bin_request")) {
+    return language === "fr" ? REFUSAL_BIN_REQUEST.fr : REFUSAL_BIN_REQUEST.en;
+  }
+  if (flags.includes("intent:quantity_request")) {
+    return language === "fr" ? REFUSAL_QUANTITY_REQUEST.fr : REFUSAL_QUANTITY_REQUEST.en;
+  }
+  if (flags.includes("intent:transaction_sequence")) {
+    return language === "fr" ? REFUSAL_TRANSACTION_SEQUENCE.fr : REFUSAL_TRANSACTION_SEQUENCE.en;
+  }
+  if (flags.includes("intent:complete_for_me")) {
+    return language === "fr" ? REFUSAL_COMPLETE_FOR_ME.fr : REFUSAL_COMPLETE_FOR_ME.en;
+  }
+  return language === "fr" ? REFUSAL_OPERATIONAL_COLLEAGUE.fr : REFUSAL_OPERATIONAL_COLLEAGUE.en;
 }
 
 export function applyPreCallGuardrails(input: {
@@ -100,6 +176,25 @@ export function applyPreCallGuardrails(input: {
       flags,
       isHint: false,
     };
+  }
+
+  if (input.mode === "operational_colleague") {
+    const blockedIntents = [
+      "intent:answer_request",
+      "intent:lot_request",
+      "intent:bin_request",
+      "intent:quantity_request",
+      "intent:transaction_sequence",
+      "intent:complete_for_me",
+    ];
+    if (blockedIntents.some((intent) => flags.includes(intent))) {
+      return {
+        blocked: true,
+        message: colleagueRefusal(flags, input.language),
+        flags,
+        isHint: false,
+      };
+    }
   }
 
   if (flags.includes("intent:ui_bypass")) {

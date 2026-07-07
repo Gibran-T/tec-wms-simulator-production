@@ -1,5 +1,6 @@
 import type { EnterpriseContextPayload } from "../../../shared/enterpriseContext/types";
 import type { MentorMode, MentorPersonaId } from "../../../shared/aiMentor/types";
+import { applyPreCallGuardrails } from "../guardrails";
 
 const PERSONA_GREETING: Record<MentorPersonaId, { fr: string; en: string }> = {
   FLOOR_MENTOR: {
@@ -19,8 +20,8 @@ const PERSONA_GREETING: Record<MentorPersonaId, { fr: string; en: string }> = {
     en: "Élise Beaumont — crisis context.",
   },
   ERP_COACH: {
-    fr: "Coach ERP, mentor institutionnel TEC.LOG.",
-    en: "Coach ERP, TEC.LOG institutional mentor.",
+    fr: "Collègue opérationnel Concorde Logistics.",
+    en: "Concorde Logistics operational colleague.",
   },
   QUALITY_GUIDE: {
     fr: "David Okonkwo, spécialiste qualité.",
@@ -48,6 +49,12 @@ const MODE_PROMPTS: Record<
     en: (ctx) =>
       `${ctx.greeting} In professional mode, I won't give the direct answer. What decision are you considering for "${ctx.stepLabel}", and what monitor or cockpit evidence supports it?`,
   },
+  operational_colleague: {
+    fr: (ctx) =>
+      `${ctx.greeting} Je peux t'aider à raisonner, pas exécuter la mission. Pour « ${ctx.stepLabel} », qu'observes-tu dans le cockpit et la Fiche Mission?`,
+    en: (ctx) =>
+      `${ctx.greeting} I can help you reason, not execute the mission. For "${ctx.stepLabel}", what do you observe in the cockpit and Mission Sheet?`,
+  },
   reflection: {
     fr: (ctx) =>
       `${ctx.greeting} Mission terminée — réfléchissons. Quel résultat métier avez-vous obtenu pour Concorde Logistics? Quels compromis avez-vous dû faire à l'étape « ${ctx.stepLabel} »?`,
@@ -55,6 +62,32 @@ const MODE_PROMPTS: Record<
       `${ctx.greeting} Mission complete — let's reflect. What business result did you achieve for Concorde Logistics? What trade-offs did you face at step "${ctx.stepLabel}"?`,
   },
 };
+
+const CONCEPTUAL_RESPONSES: Array<{
+  conceptPattern: RegExp;
+  questionPattern: RegExp;
+  fr: string;
+  en: string;
+}> = [
+  {
+    conceptPattern: /putaway|rangement/i,
+    questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
+    fr: "Dans un entrepôt réel, pourquoi crois-tu qu'une marchandise ne doit pas rester au quai après réception? Pense à la traçabilité, à la capacité du quai et à la disponibilité du stock.",
+    en: "In a real warehouse, why do you think goods should not stay on the dock after receipt? Consider traceability, dock capacity, and stock availability.",
+  },
+  {
+    conceptPattern: /\bLT01\b/i,
+    questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
+    fr: "LT01 sert à créer un mouvement de rangement en WM. Dans une opération réelle, cela permet de déplacer la marchandise du quai vers un emplacement de stockage traçable.",
+    en: "LT01 creates a putaway movement in WM. In real operations, it moves goods from the dock to a traceable storage location.",
+  },
+  {
+    conceptPattern: /\bMIGO\b|\bGR\b|goods receipt|réception/i,
+    questionPattern: /pourquoi|why|what is|c'est quoi|explain|explique|\?/i,
+    fr: "La réception matière confirme l'arrivée physique et lance la traçabilité stock. Quelle preuve de réception vois-tu déjà dans le cockpit?",
+    en: "Goods receipt confirms physical arrival and starts stock traceability. What receipt evidence do you already see in the cockpit?",
+  },
+];
 
 type ResponseContext = {
   greeting: string;
@@ -72,8 +105,24 @@ export function generateDryRunResponse(input: {
   const { context, mode, personaId, language, studentMessage } = input;
   if (mode === "certification") {
     return language === "fr"
-      ? "Mentor verrouillé pendant l'évaluation certifiante."
-      : "Mentor locked during certification evaluation.";
+      ? "Le collègue opérationnel est indisponible pour cette session."
+      : "The operational colleague is unavailable for this session.";
+  }
+
+  const guardrail = applyPreCallGuardrails({
+    message: studentMessage,
+    mode,
+    hintCount: 0,
+    language,
+  });
+  if (guardrail.blocked && guardrail.message) {
+    return guardrail.message;
+  }
+
+  for (const entry of CONCEPTUAL_RESPONSES) {
+    if (entry.conceptPattern.test(studentMessage) && entry.questionPattern.test(studentMessage)) {
+      return language === "fr" ? entry.fr : entry.en;
+    }
   }
 
   const stepData = context.blocks.currentStep.data;
