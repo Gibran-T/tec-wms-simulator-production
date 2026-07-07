@@ -88,6 +88,7 @@ import {
   isCheckpointEngineEnabled,
   isCheckpointModule,
   isModuleReadyForTeacherValidation,
+  recomputeAllModuleCheckpoints,
   recomputeModuleCheckpoint,
 } from "./checkpointEngine";
 import {
@@ -2154,7 +2155,28 @@ export const appRouter = router({
       }),
 
     /** Get module progress for current user */
-    myProgress: protectedProcedure.query(({ ctx }) => getModuleProgressByUser(ctx.user.id)),
+    myProgress: protectedProcedure.query(async ({ ctx }) => {
+      let rows = await getModuleProgressByUser(ctx.user.id);
+      if (isCheckpointEngineEnabled()) {
+        const stale = rows.some(
+          (r) =>
+            isCheckpointModule(r.moduleId) &&
+            ((r.passed &&
+              (r.progressPct == null ||
+                r.progressPct === 0 ||
+                r.completedScenarios == null ||
+                r.completedScenarios === 0)) ||
+              (r.progressPct != null &&
+                r.progressPct > 0 &&
+                (r.scenarioStatusJson == null || r.completedScenarios == null))),
+        );
+        if (stale) {
+          await recomputeAllModuleCheckpoints(ctx.user.id);
+          rows = await getModuleProgressByUser(ctx.user.id);
+        }
+      }
+      return rows;
+    }),
 
     /** Get all module progress (teacher view) */
     allModuleProgress: teacherProcedure

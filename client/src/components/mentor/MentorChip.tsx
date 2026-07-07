@@ -19,7 +19,7 @@ export default function MentorChip({ onOpen, available = true }: MentorChipProps
       data-testid="mentor-chip"
     >
       <Bot size={10} />
-      {t("Mentor", "Mentor")}
+      {t("Collègue", "Colleague")}
     </button>
   );
 }

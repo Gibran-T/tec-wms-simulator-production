@@ -420,6 +420,16 @@ export async function completeRun(runId: number) {
     .update(scenarioRuns)
     .set({ status: "completed", completedAt: new Date() })
     .where(eq(scenarioRuns.id, runId));
+
+  const run = await getRunById(runId);
+  if (!run || run.isDemo) return;
+  const scenario = await getScenarioById(run.scenarioId);
+  if (!scenario) return;
+  const { isCheckpointEngineEnabled, isCheckpointModule, recomputeModuleCheckpoint } =
+    await import("./checkpointEngine");
+  if (isCheckpointEngineEnabled() && isCheckpointModule(scenario.moduleId)) {
+    await recomputeModuleCheckpoint(run.userId, scenario.moduleId);
+  }
 }
 
 export async function getAllRunsForMonitor(studentUserIds?: number[]) {

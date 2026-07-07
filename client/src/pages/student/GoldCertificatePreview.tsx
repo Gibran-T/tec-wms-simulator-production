@@ -13,7 +13,7 @@ import { lookupGoldRegistryByStudentNumber } from "@shared/goldCertificationRegi
 import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
 
 const ACHIEVEMENTS = [
-  { fr: "Silver TEC.LOG — prérequis validé", en: "TEC.LOG Silver — prerequisite validated" },
+  { fr: "Module 1 TEC.LOG — prérequis validé", en: "TEC.LOG Module 1 — prerequisite validated" },
   { fr: "SCN-006 à SCN-017 — parcours intégré M2–M5", en: "SCN-006 to SCN-017 — integrated M2–M5 pathway" },
   { fr: "Quiz M5 (≥ 60 %)", en: "M5 quiz (≥ 60%)" },
   { fr: "SCN-016 — action corrective avant KPI", en: "SCN-016 — corrective action before KPI" },
@@ -78,13 +78,13 @@ export default function GoldCertificatePreview() {
 
   if (!goldEarned && goldState !== "ELIGIBLE") {
     return (
-      <FioriShell title={t("Certificat Gold", "Gold Certificate")}>
+      <FioriShell title={t("Certificat intégré", "Integrated certificate")}>
         <div className="max-w-lg mx-auto px-4 py-12 text-center space-y-4">
           <GoldBadgeSvg size={80} className="mx-auto opacity-40" />
           <p className="text-muted-foreground text-sm leading-relaxed">
             {t(
-              "Certification Gold non encore éligible. Complétez le parcours M2–M5 pour accéder à l'aperçu pédagogique.",
-              "Gold certification not yet eligible. Complete the M2–M5 pathway to access the pedagogical preview.",
+              "Certification intégrée non encore éligible. Complétez le parcours M2–M5 pour accéder à l'aperçu pédagogique.",
+              "Integrated certification not yet eligible. Complete the M2–M5 pathway to access the pedagogical preview.",
             )}
           </p>
           <Button variant="outline" onClick={() => navigate("/student/certifications")}>
@@ -97,11 +97,11 @@ export default function GoldCertificatePreview() {
 
   return (
     <FioriShell
-      title={t("Certificat Gold TEC.LOG", "TEC.LOG Gold Certificate")}
+      title={t("Certificat TEC.LOG — Parcours intégré", "TEC.LOG Certificate — Integrated pathway")}
       breadcrumbs={[
         { label: t("Accueil", "Home"), href: "/" },
         { label: t("Certifications", "Certifications"), href: "/student/certifications" },
-        { label: t("Gold", "Gold") },
+        { label: t("Certificat intégré", "Integrated certificate") },
       ]}
     >
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -126,7 +126,7 @@ export default function GoldCertificatePreview() {
                 Collège de la Concorde · TEC.LOG
               </p>
               <h1 className="text-2xl md:text-3xl font-bold text-amber-950 mt-2">
-                {t("Certification Gold", "Gold Certification")}
+                {t("Certification TEC.LOG", "TEC.LOG Certification")}
               </h1>
               <p className="text-sm text-amber-900/80 mt-1">
                 {t("Parcours intégré M1–M5 · Opérations logistiques", "Integrated M1–M5 pathway · Logistics operations")}
@@ -192,8 +192,8 @@ export default function GoldCertificatePreview() {
         {missingRegistry && (
           <p className="text-sm text-amber-800 dark:text-amber-200 text-center rounded-lg border border-amber-200 bg-amber-50/80 dark:bg-amber-950/30 px-4 py-3">
             {t(
-              "Certification Gold obtenue. Votre certificat institutionnel est en cours de liaison — contactez l'administration si ce message persiste.",
-              "Gold certification obtained. Your institutional certificate is being linked — contact administration if this message persists.",
+              "Certification obtenue. Votre certificat institutionnel est en cours de liaison — contactez l'administration si ce message persiste.",
+              "Certification obtained. Your institutional certificate is being linked — contact administration if this message persists.",
             )}
           </p>
         )}

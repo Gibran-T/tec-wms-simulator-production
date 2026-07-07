@@ -135,7 +135,7 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
     situation: { fr: "3 lots SKU-003 préchargés en STOCKAGE (jan, fév, mars) — putaway déjà fait.", en: "3 SKU-003 lots preloaded in STOCKAGE (Jan, Feb, Mar) — putaway already done." },
     evidenceToObserve: { fr: "Lots LOT-A/B/C en bins STOCKAGE — dates de réception dans le cockpit.", en: "Lots LOT-A/B/C in STOCKAGE bins — receipt dates in cockpit." },
     operationalProblem: { fr: "Respecter FIFO : lot le plus ancien en premier.", en: "Respect FIFO: oldest lot first." },
-    expectedActionHint: { fr: "Pas de rangement requis — confirmez l'ordre des lots, puis FIFO_PICK sur le plus ancien.", en: "No putaway required — confirm lot order, then FIFO_PICK the oldest." },
+    expectedActionHint: { fr: "Pas de rangement requis — identifiez le lot le plus ancien (date la plus ancienne), puis FIFO_PICK sur ce lot.", en: "No putaway required — identify the oldest lot (earliest date), then FIFO_PICK that lot." },
     emptyStockNote: { fr: "Stock préchargé en STOCKAGE — démarrage direct au prélèvement FIFO.", en: "Stock preloaded in STOCKAGE — start directly at FIFO pick." },
     transactionMonitorHint: { fr: "GR multi-bins déjà postées — traçabilité lot visible.", en: "Multi-bin GRs already posted — lot traceability visible." },
     complianceHint: { fr: "Violation FIFO = non-conformité client.", en: "FIFO violation = customer non-compliance." },
@@ -270,7 +270,7 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
       en: "Normal operational start: complete M5_RECEPTION → movements → KPI first. Strategic decision comes after KPI evidence.",
     },
     complianceHint: { fr: "Décision liée aux KPI avant COMPLIANCE_M5.", en: "Decision linked to KPIs before COMPLIANCE_M5." },
-    learningTakeaway: { fr: "La certification Gold exige synthèse et justification.", en: "Gold certification requires synthesis and justification." },
+    learningTakeaway: { fr: "Le capstone M5 exige synthèse opérationnelle et justification KPI.", en: "The M5 capstone requires operational synthesis and KPI justification." },
   },
 };
 

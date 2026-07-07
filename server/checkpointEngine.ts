@@ -140,7 +140,7 @@ export function buildModuleCheckpointSnapshot(
     completedAt = existingCompletedAt ?? new Date();
   }
 
-  return {
+  return sanitizeCheckpointSnapshot({
     moduleId,
     requiredScenarios,
     completedScenarios,
@@ -151,6 +151,22 @@ export function buildModuleCheckpointSnapshot(
     passed,
     completedAt,
     teacherValidated,
+  });
+}
+
+/** RC24 — passed must never diverge from progress / scenario completion. */
+export function sanitizeCheckpointSnapshot(
+  snapshot: ModuleCheckpointSnapshot,
+): ModuleCheckpointSnapshot {
+  const zeroProgress =
+    snapshot.progressPct === 0 ||
+    snapshot.completedScenarios === 0 ||
+    snapshot.requiredScenarios === 0;
+  if (!snapshot.passed || !zeroProgress) return snapshot;
+  return {
+    ...snapshot,
+    passed: false,
+    completedAt: null,
   };
 }
 

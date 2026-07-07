@@ -1,4 +1,8 @@
 import type { Bilingual, LearningFeedbackScenario, LearningFeedbackStep } from "./learningFeedbackTypes";
+import {
+  SCN014_DIAGNOSTIC_CANONICAL_EN,
+  SCN014_DIAGNOSTIC_CANONICAL_FR,
+} from "./m4CanonicalResponses";
 
 const ANNEXE_A_BANDS = [
   {
@@ -499,8 +503,8 @@ const SCN_014: LearningFeedbackScenario = {
       canonicalAnswer: {
         short: { fr: "Initiative qualité · destock reporté", en: "Quality initiative · destock deferred" },
         full: {
-          fr: "Rotation normale à 6×, service excellent 95 %, erreurs acceptables 4 %, délai lead time 3,5 jours. Je recommande un programme qualité exécution. Trade-off : on reporte le destock pour maintenir le service et le capital. Priorité arbitrage : financer réduction erreurs. Cible 90 jours avec KPI rotation, service, erreur, délai.",
-          en: "Normal turnover at 6×, excellent 95% service, 4% acceptable errors, 3.5 d lead time. I recommend an execution quality program. Trade-off: defer destock to maintain service and capital. Arbitration priority: fund error reduction. 90-day target with turnover, service, error, lead time KPIs.",
+          fr: SCN014_DIAGNOSTIC_CANONICAL_FR,
+          en: SCN014_DIAGNOSTIC_CANONICAL_EN,
         },
         keywords: ["qualité", "trade-off", "destock", "90", "délai", "3,5"],
         whyCorrect: [

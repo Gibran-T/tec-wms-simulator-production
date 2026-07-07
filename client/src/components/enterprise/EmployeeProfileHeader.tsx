@@ -32,14 +32,9 @@ export default function EmployeeProfileHeader({
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          {profile.certificationStatus.goldCertified && (
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-100 px-2 py-1">
-              Gold
-            </span>
-          )}
-          {profile.certificationStatus.silverCertified && !profile.certificationStatus.goldCertified && (
-            <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-400/20 text-slate-100 px-2 py-1">
-              Silver
+          {(profile.certificationStatus.goldCertified || profile.certificationStatus.silverCertified) && (
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-100 px-2 py-1">
+              {t("Certifié", "Certified")}
             </span>
           )}
           <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 text-white px-2 py-1">

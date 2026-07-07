@@ -64,8 +64,8 @@ export function AnalyticalStepHints({ step, t, isM5Strategic = false }: Props) {
         </p>
         <p className="text-[10px] text-muted-foreground mt-1">
           {t(
-            "Structure board : contexte → levier prioritaire → trade-off → KPIs de suivi 90 j → décision",
-            "Board structure: context → priority lever → trade-off → 90-day follow-up KPIs → decision",
+            "Structure board : contexte → « Je recommande… » → trade-off → KPIs de suivi 90 j → décision (≥ 150 car. pour SCN-014)",
+            "Board structure: context → « I recommend… » → trade-off → 90-day follow-up KPIs → decision (≥ 150 chars for SCN-014)",
           )}
         </p>
       </div>

@@ -8,6 +8,7 @@ import {
   computeProgressPct,
   isCheckpointModule,
   isModuleReadyForTeacherValidation,
+  sanitizeCheckpointSnapshot,
   scnKeysForModule,
   type ScnCheckpointStatus,
 } from "./checkpointEngine";
@@ -268,5 +269,15 @@ describe("Checkpoint engine — CK-TRG helpers", () => {
     expect(computeProgressPct(2, 2, 3, false)).toBe(67);
     expect(computeProgressPct(3, 3, 3, false)).toBe(75);
     expect(computeProgressPct(3, 3, 3, true)).toBe(100);
+  });
+
+  it("CK-RC24-01: sanitizeCheckpointSnapshot clears passed when progress is zero", () => {
+    const keys = m2Keys();
+    const status = buildStatus(keys, {});
+    const raw = buildModuleCheckpointSnapshot(2, status, keys, true);
+    const broken = { ...raw, passed: true, progressPct: 0, completedScenarios: 0 };
+    const fixed = sanitizeCheckpointSnapshot(broken);
+    expect(fixed.passed).toBe(false);
+    expect(fixed.completedAt).toBeNull();
   });
 });

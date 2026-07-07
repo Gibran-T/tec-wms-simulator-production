@@ -3,6 +3,7 @@
  * Covers: ROP/EOQ/variance (M3), calculateKpis/scoreKpiInterpretation (M4), scoreM5Decision (M5)
  */
 import { describe, it, expect } from "vitest";
+import { SCN014_DIAGNOSTIC_FIXTURE } from "../shared/m4CanonicalResponses";
 import {
   // M3
   computeVariance,
@@ -476,8 +477,7 @@ describe("Module 4 — validateM4Compliance", () => {
     "Je recommande de maintenir la politique stock actuelle avec surveillance SKU par reference. Decision: monitor les faibles rotations sans destock global. Action: revue mensuelle des 48000 dollars immobilises.";
   const diag013 =
     "Service excellent au seuil. Les erreurs picking et reception a 4% menacent OTIF. Je recommande un programme formation pour reduire a 2% en 90 jours avec suivi hebdomadaire des indicateurs rotation service erreur.";
-  const diag014 =
-    "Rotation normale a 6x, service excellent 95%, erreurs acceptables 4%, delai lead time 3,5 jours. Je recommande un programme qualite execution. Trade-off: on reporte le destock pour maintenir le service et le capital. Priorite arbitrage: fund error reduction. Cible 90 jours avec KPI rotation service erreur delai.";
+  const diag014 = SCN014_DIAGNOSTIC_FIXTURE;
 
   it("SCN-012 rejects surstock classification at normal 6× band", () => {
     const result = validateM4Compliance({

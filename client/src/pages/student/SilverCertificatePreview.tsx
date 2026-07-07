@@ -48,13 +48,13 @@ export default function SilverCertificatePreview() {
 
   if (!silverEarned && !silverEligible && !allRequirementsMet) {
     return (
-      <FioriShell title={t("Certificat Silver", "Silver Certificate")}>
+      <FioriShell title={t("Certificat Module 1", "Module 1 Certificate")}>
         <div className="max-w-lg mx-auto px-4 py-12 text-center space-y-4">
           <SilverBadgeSvg size={80} className="mx-auto opacity-40" />
           <p className="text-muted-foreground text-sm leading-relaxed">
             {t(
-              "Certification Silver non encore éligible. Complétez le parcours M1 pour accéder à l'aperçu pédagogique.",
-              "Silver certification not yet eligible. Complete the M1 pathway to access the pedagogical preview.",
+              "Certification Module 1 non encore éligible. Complétez le parcours M1 pour accéder à l'aperçu pédagogique.",
+              "Module 1 certification not yet eligible. Complete the M1 pathway to access the pedagogical preview.",
             )}
           </p>
           <Button variant="outline" onClick={() => navigate("/student/certifications")}>
@@ -69,11 +69,11 @@ export default function SilverCertificatePreview() {
 
   return (
     <FioriShell
-      title={t("Certificat Silver TEC.LOG", "TEC.LOG Silver Certificate")}
+      title={t("Certificat TEC.LOG — Module 1", "TEC.LOG Certificate — Module 1")}
       breadcrumbs={[
         { label: t("Accueil", "Home"), href: "/" },
         { label: t("Certifications", "Certifications"), href: "/student/certifications" },
-        { label: t("Certificat Silver", "Silver Certificate") },
+        { label: t("Certificat Module 1", "Module 1 Certificate") },
       ]}
     >
       <div className="silver-certificate-page max-w-[1100px] mx-auto space-y-6 print:max-w-none print:mx-0">

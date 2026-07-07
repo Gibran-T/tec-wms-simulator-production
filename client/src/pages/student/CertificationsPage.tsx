@@ -64,23 +64,23 @@ function goldStatusBannerCopy(state: GoldCertState, t: (fr: string, en: string) 
   switch (state) {
     case "AWARDED":
       return t(
-        "Félicitations — Certification Gold TEC.LOG obtenue. Parcours intégré M1–M5 validé.",
-        "Congratulations — TEC.LOG Gold certification awarded. Integrated M1–M5 pathway validated.",
+        "Félicitations — Certification TEC.LOG obtenue. Parcours intégré M1–M5 validé.",
+        "Congratulations — TEC.LOG certification awarded. Integrated M1–M5 pathway validated.",
       );
     case "ELIGIBLE":
       return t(
-        "Toutes les exigences Gold sont remplies — vous êtes éligible à la certification TEC.LOG Gold.",
-        "All Gold requirements are met — you are eligible for TEC.LOG Gold certification.",
+        "Toutes les exigences sont remplies — vous êtes éligible à la certification TEC.LOG intégrée.",
+        "All requirements are met — you are eligible for integrated TEC.LOG certification.",
       );
     case "IN_PROGRESS":
       return t(
-        "Parcours Gold en cours — complétez les exigences ci-dessous (Silver + M2–M5 + Quiz M5).",
-        "Gold pathway in progress — complete the requirements below (Silver + M2–M5 + Quiz M5).",
+        "Parcours intégré en cours — complétez les exigences ci-dessous (M1 + M2–M5 + Quiz M5).",
+        "Integrated pathway in progress — complete the requirements below (M1 + M2–M5 + M5 quiz).",
       );
     default:
       return t(
-        "Obtenez d'abord la certification Silver pour débloquer le parcours Gold.",
-        "Earn Silver certification first to unlock the Gold pathway.",
+        "Complétez d'abord la certification Module 1 pour débloquer le parcours intégré M2–M5.",
+        "Complete Module 1 certification first to unlock the integrated M2–M5 pathway.",
       );
   }
 }
@@ -89,23 +89,23 @@ function statusBannerCopy(state: SilverCertState, t: (fr: string, en: string) =>
   switch (state) {
     case "obtenue":
       return t(
-        "Félicitations — Certification Silver TEC.LOG obtenue. Votre parcours M1 est validé institutionnellement.",
-        "Congratulations — TEC.LOG Silver certification obtained. Your M1 pathway is institutionally validated.",
+        "Félicitations — Certification TEC.LOG Module 1 obtenue. Votre parcours M1 est validé institutionnellement.",
+        "Congratulations — TEC.LOG Module 1 certification obtained. Your M1 pathway is institutionally validated.",
       );
     case "eligible":
       return t(
-        "Toutes les exigences Silver sont remplies — vous êtes éligible à la certification TEC.LOG.",
-        "All Silver requirements are met — you are eligible for TEC.LOG certification.",
+        "Toutes les exigences Module 1 sont remplies — vous êtes éligible à la certification TEC.LOG.",
+        "All Module 1 requirements are met — you are eligible for TEC.LOG certification.",
       );
     case "en_cours":
       return t(
-        "Parcours Silver en cours — complétez les exigences ci-dessous pour devenir éligible.",
-        "Silver pathway in progress — complete the requirements below to become eligible.",
+        "Parcours Module 1 en cours — complétez les exigences ci-dessous pour devenir éligible.",
+        "Module 1 pathway in progress — complete the requirements below to become eligible.",
       );
     default:
       return t(
-        "Commencez le parcours Silver : quiz M1 puis scénarios SCN-001 à SCN-005 en mode Évaluation (≥ 60/100).",
-        "Start the Silver pathway: M1 quiz then SCN-001 to SCN-005 scenarios in Evaluation mode (≥ 60/100).",
+        "Commencez le parcours Module 1 : quiz M1 puis scénarios SCN-001 à SCN-005 en mode Évaluation (≥ 60/100).",
+        "Start the Module 1 pathway: M1 quiz then SCN-001 to SCN-005 scenarios in Evaluation mode (≥ 60/100).",
       );
   }
 }
@@ -177,12 +177,12 @@ export function CertificationsPage() {
   const goldRequirements = [
     {
       id: "silver-pre",
-      labelFr: "Silver obtenue (prérequis)",
-      labelEn: "Silver obtained (prerequisite)",
+      labelFr: "Certification M1 obtenue (prérequis)",
+      labelEn: "M1 certification obtained (prerequisite)",
       met: goldChecklistComplete || (goldStatus?.silverPrerequisite ?? false),
       action: () => navigate("/student/certifications"),
-      actionFr: "Silver",
-      actionEn: "Silver",
+      actionFr: "M1",
+      actionEn: "M1",
     },
     {
       id: "quiz-m5",
@@ -296,7 +296,7 @@ export function CertificationsPage() {
             {/* Badge column */}
             <div className="flex flex-col items-center justify-center p-6 md:p-8 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900/50 dark:to-slate-950 border-b md:border-b-0 md:border-r border-border">
               <SilverBadgeSvg size={140} variant="full" />
-              <p className="text-xs font-semibold text-muted-foreground mt-3 uppercase tracking-wider">Silver · M1</p>
+              <p className="text-xs font-semibold text-muted-foreground mt-3 uppercase tracking-wider">M1 · Fondamentaux</p>
               <p className="text-sm font-medium text-foreground text-center mt-1">TEC.LOG Fundamentals</p>
             </div>
 
@@ -305,7 +305,7 @@ export function CertificationsPage() {
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <h2 className="text-base font-bold text-foreground">
-                    {t("Parcours Silver — Module 1", "Silver Pathway — Module 1")}
+                    {t("Parcours Module 1 — Fondamentaux", "Module 1 Pathway — Fundamentals")}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     {statusBannerCopy(silverState, t)}
@@ -357,7 +357,7 @@ export function CertificationsPage() {
                 {canPreviewCert && !activeSilverCredential && (
                   <Button onClick={() => navigate("/student/certifications/silver")} className="bg-[#0f2a44] hover:bg-[#0f2a44]/90">
                     {silverEarned
-                      ? t("Voir mon certificat Silver", "View my Silver certificate")
+                      ? t("Voir mon certificat M1", "View my M1 certificate")
                       : t("Aperçu du certificat (éligible)", "Certificate preview (eligible)")}
                   </Button>
                 )}
@@ -385,14 +385,14 @@ export function CertificationsPage() {
               ) : (
                 <GoldBadgeSvg size={140} variant="full" className="opacity-80" />
               )}
-              <p className="text-xs font-semibold text-muted-foreground mt-3 uppercase tracking-wider">Gold · M1–M5</p>
+              <p className="text-xs font-semibold text-muted-foreground mt-3 uppercase tracking-wider">M1–M5 · Intégré</p>
               <p className="text-sm font-medium text-foreground text-center mt-1">TEC.LOG Integrated Operations</p>
             </div>
             <div className="p-6 md:p-8 space-y-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0 pr-16">
                   <h2 className="text-base font-bold text-foreground">
-                    {t("Parcours Gold — M2 à M5", "Gold Pathway — M2 to M5")}
+                    {t("Parcours intégré — M2 à M5", "Integrated pathway — M2 to M5")}
                   </h2>
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     {goldStatusBannerCopy(goldState, t)}
@@ -453,7 +453,7 @@ export function CertificationsPage() {
                     {canPreviewGold && !activeGoldCredential && (
                       <Button onClick={() => navigate("/student/certifications/gold")} className="bg-amber-700 hover:bg-amber-800">
                         {goldEarned
-                          ? t("Voir mon certificat Gold", "View my Gold certificate")
+                          ? t("Voir mon certificat intégré", "View my integrated certificate")
                           : t("Aperçu du certificat (éligible)", "Certificate preview (eligible)")}
                       </Button>
                     )}
@@ -466,7 +466,7 @@ export function CertificationsPage() {
                 </>
               ) : (
                 <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li>· {t("Prérequis : Silver obtenue", "Prerequisite: Silver obtained")}</li>
+                  <li>· {t("Prérequis : certification Module 1", "Prerequisite: Module 1 certification")}</li>
                   <li>· {t("Modules M2–M5 + scénarios SCN-006–017 + Quiz M5", "Modules M2–M5 + SCN-006–017 scenarios + M5 quiz")}</li>
                   <li>· {t("Aperçu pédagogique — émission institutionnelle à venir (pas de QR)", "Pedagogical preview — institutional issuance coming later (no QR)")}</li>
                 </ul>
@@ -480,8 +480,8 @@ export function CertificationsPage() {
           <Info size={18} className="text-[#0070f2] shrink-0 mt-0.5" />
           <p className="text-sm text-foreground/85 leading-relaxed">
             {t(
-              "Silver = validation institutionnelle du Module 1 (quiz ≥ 60 % + SCN-001 à SCN-005 en Évaluation ≥ 60/100 + conformité). Le certificat officiel signé sera transmis par le Collège de la Concorde.",
-              "Silver = institutional Module 1 validation (quiz ≥ 60% + SCN-001 to SCN-005 in Evaluation ≥ 60/100 + compliance). The official signed certificate will be issued by Collège de la Concorde.",
+              "Certification Module 1 = validation institutionnelle (quiz ≥ 60 % + SCN-001 à SCN-005 en Évaluation ≥ 60/100 + conformité). Le certificat officiel signé sera transmis par le Collège de la Concorde.",
+              "Module 1 certification = institutional validation (quiz ≥ 60% + SCN-001 to SCN-005 in Evaluation ≥ 60/100 + compliance). The official signed certificate will be issued by Collège de la Concorde.",
             )}
           </p>
         </div>
