@@ -2,7 +2,7 @@ import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useParams, useLocation } from "wouter";
 import { CheckCircle, AlertTriangle, Trophy, ArrowLeft, FlaskConical, TrendingUp, BookOpen, Lightbulb, RotateCcw } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
 import LearningFeedbackLayer from "@/components/learning-feedback/LearningFeedbackLayer";
@@ -273,14 +273,22 @@ export default function RunReport() {
     { enabled: queryEnabled },
   );
   const recordModulePass = trpc.warehouse.recordModulePass.useMutation();
+  const recordedModulePassKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    recordedModulePassKeyRef.current = null;
+  }, [parsedRunId]);
 
   useEffect(() => {
     if (!data) return;
     const { run, scenario, totalScore } = data;
     if (!run.isDemo && run.status === "completed" && totalScore !== undefined && scenario) {
+      const passKey = `${run.id}:${scenario.moduleId}`;
+      if (recordedModulePassKeyRef.current === passKey) return;
+      recordedModulePassKeyRef.current = passKey;
       recordModulePass.mutate({ moduleId: scenario.moduleId, score: totalScore });
     }
-  }, [data, recordModulePass]);
+  }, [data]);
 
   if (!queryEnabled) {
     return (
