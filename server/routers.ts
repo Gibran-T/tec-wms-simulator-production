@@ -172,6 +172,7 @@ import {
 } from "./rulesEngine";
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
+import { getScn004StepMaxPoints, isScn004Scenario } from "./scn004";
 import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
@@ -1196,6 +1197,7 @@ export const appRouter = router({
           : moduleId === 3 ? MODULE3_STEPS
           : moduleId === 4 ? MODULE4_STEPS
           : moduleId === 5 ? getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)
+          : moduleId === 1 ? getEffectiveM1Steps(state)
           : MODULE1_STEPS;
         const stepCodesToReport = moduleSteps.map(s => s.code as string);
         // ── Per-step score breakdown ─────────────────────────────────────────
@@ -1216,7 +1218,9 @@ export const appRouter = router({
               ? getM3ReplenishStepDisplayMax(m3InitialStateJson)
               : moduleId === 3 && step in M3_STEP_MAX_SCALED
                 ? M3_STEP_MAX_SCALED[step as keyof typeof M3_STEP_MAX_SCALED]
-                : STEP_MAX_ALL[step] ?? 0;
+                : isScn004Scenario(state)
+                  ? getScn004StepMaxPoints(step)
+                  : STEP_MAX_ALL[step] ?? 0;
           const pct = maxPoints > 0 ? Math.round((completionPoints / maxPoints) * 100) : (completed ? 100 : 0);
           // Collect zone errors for this step
           const zoneErrors = events
@@ -1674,7 +1678,17 @@ export const appRouter = router({
           if (stepCode === "PUTAWAY_M1") {
             await markStepComplete(input.runId, "STOCK");
           }
-          await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: 5, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+          const scn004 = isScn004Scenario(state);
+          const putawayPoints = scn004 ? getScn004StepMaxPoints("PUTAWAY_M1") : 5;
+          await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: putawayPoints, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
+          if (scn004) {
+            await addScoringEventOnce({
+              runId: input.runId,
+              eventType: "STOCK_AVAILABLE_COMPLETED",
+              pointsDelta: getScn004StepMaxPoints("STOCK"),
+              message: "Stock disponible en STOCKAGE — prêt pour comptage cyclique",
+            });
+          }
         }
         const remainingPutaways = isScn005 ? getScn005PendingPutaways(updatedState) : [];
         const demoWarn = run.isDemo && (!validation.allowed || !zoneCheck.allowed)

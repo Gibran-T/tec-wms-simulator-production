@@ -240,7 +240,10 @@ export default function MissionControl() {
   }));
 
   const hasVariance = demoBackendState?.cycleCounts?.some((c: { variance: number; resolved?: boolean }) => c.variance !== 0 && !c.resolved) ?? false;
-  const effectiveSteps = (moduleId === 1 && !hasVariance) ? STEPS.filter(s => s.key !== "ADJ") : STEPS;
+  const effectiveSteps = (moduleId === 1 && !hasVariance && scnCode !== "SCN-004")
+    ? STEPS.filter(s => s.key !== "ADJ")
+    : STEPS;
+  const validatedStepCount = (completedSteps as string[]).filter((s) => effectiveSteps.some((e) => e.key === s)).length;
 
   const nextStepCode = (nextStep as { code?: string } | null)?.code;
   const nextStepDef = STEPS.find(s => s.key === nextStepCode);
@@ -859,7 +862,7 @@ export default function MissionControl() {
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center justify-between text-[10px]">
                     <span className="text-slate-500 font-bold uppercase">{t("Étapes Validées", "Steps Validated")}</span>
-                    <span className="font-mono font-bold">{completedSteps.length} / {effectiveSteps.length}</span>
+                    <span className="font-mono font-bold">{validatedStepCount} / {effectiveSteps.length}</span>
                   </div>
                 </div>
 

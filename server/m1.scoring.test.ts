@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { calculateTotalScore, getScoringRule } from "./scoringEngine";
 import { getM1StepsToAutoComplete } from "./m1Preload";
+import { getScn004StepMaxPoints } from "./scn004";
 
-/** SCN-004 perfect path: PO/GR pre-seeded, student completes PUTAWAY → ship → CC → ADJ → compliance. */
+/** SCN-004 perfect path: PO/GR pre-seeded, student completes PUTAWAY → CC → ADJ → compliance. */
 function scn004PerfectEvents(includePreloadPoGr: boolean) {
   const events: Array<{ pointsDelta: number }> = [];
   if (includePreloadPoGr) {
@@ -10,10 +11,8 @@ function scn004PerfectEvents(includePreloadPoGr: boolean) {
     events.push({ pointsDelta: getScoringRule("GR_COMPLETED")!.points });
   }
   events.push(
-    { pointsDelta: 5 }, // PUTAWAY_M1_COMPLETED
-    { pointsDelta: getScoringRule("SO_COMPLETED")!.points },
-    { pointsDelta: 5 }, // PICKING_M1_COMPLETED
-    { pointsDelta: getScoringRule("GI_COMPLETED")!.points },
+    { pointsDelta: getScn004StepMaxPoints("PUTAWAY_M1") },
+    { pointsDelta: getScn004StepMaxPoints("STOCK") },
     { pointsDelta: getScoringRule("CC_COMPLETED")!.points },
     { pointsDelta: getScoringRule("COMPLIANCE_OK")!.points },
   );

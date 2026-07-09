@@ -165,7 +165,7 @@ async function seed() {
           { docType: "PO", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true, docRef: "PO-2025-003" },
           { docType: "GR", sku: "SKU-006", bin: "REC-01", qty: 200, posted: true, docRef: "GR-2025-003" },
         ],
-        context: "200 unités SKU-006 au quai REC-01 (PO/GR postées) — écart physique −15 au comptage cyclique.",
+        context: "200 unités SKU-006 au quai REC-01 (PO/GR postées) — rangement vers B-02-R1-L1, puis écart physique −15 au comptage cyclique.",
         cycleCountTarget: { sku: "SKU-006", bin: "B-02-R1-L1", physicalQty: 185, variance: -15 },
         putawayTarget: { sku: "SKU-006", fromBin: "REC-01", toBin: "B-02-R1-L1" },
       },

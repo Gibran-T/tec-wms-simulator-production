@@ -23,7 +23,7 @@ const scn004HappyPathTxs: Tx[] = [
   { docType: "PUTAWAY_M1", sku: "SKU-006", bin: "B-02-R1-L1", qty: 200, posted: true },
 ];
 
-/** Optional partial ship — stock at CC is still 200 if no pick/GI before count. */
+/** Optional legacy outbound txs — not part of canonical SCN-004 audit path. */
 const scn004WithShipTxs: Tx[] = [
   ...scn004HappyPathTxs,
   { docType: "PICKING", sku: "SKU-006", bin: "B-02-R1-L1", qty: -15, posted: true },
@@ -104,7 +104,7 @@ describe("RC17-D — SCN-004 happy path (physicalQty 185 → ADJ −15)", () => 
 });
 
 describe("RC17-D — compliance after ADJ", () => {
-  const completed = ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC"];
+  const completed = ["PO", "GR", "PUTAWAY_M1", "STOCK", "CC"];
 
   it("COMPLIANCE blocked before ADJ (unresolved variance)", () => {
     const inv = invAfter(scn004HappyPathTxs);

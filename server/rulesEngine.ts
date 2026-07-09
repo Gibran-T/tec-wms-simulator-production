@@ -3,6 +3,11 @@ import {
   isScn005Scenario,
   scn005PutawayBlockMessage,
 } from "./scn005";
+import {
+  getScn004OutboundBlockMessage,
+  isScn004Scenario,
+  SCN_004_M1_STEPS,
+} from "./scn004";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -149,6 +154,13 @@ export function canExecuteStep(step, state) {
   const isKnownCorrective = SCN003_CORRECTIVE_STEPS.some((s) => s.code === step);
   if (!stepDef && step !== "ADJ" && !isKnownCorrective) {
     return { allowed: false, reason: "Unknown step", reasonFr: "Étape inconnue", reasonEn: "Unknown step" };
+  }
+  if (
+    isScn004Scenario(state) &&
+    (step === "SO" || step === "PICKING_M1" || step === "GI" || step === "PICKING")
+  ) {
+    const msg = getScn004OutboundBlockMessage("en");
+    return { allowed: false, ...msg };
   }
   if (stepDef?.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
     const prereqDef = MODULE1_STEPS.find((s) => s.code === stepDef.prerequisite);
@@ -2201,6 +2213,10 @@ export function resolveScn003CorrectiveStepCode(state, baseStepCode) {
 
 // ─── Helper: build the effective M1 step list based on run state ──────────────
 export function getEffectiveM1Steps(state) {
+  if (isScn004Scenario(state)) {
+    return [...SCN_004_M1_STEPS];
+  }
+
   let steps = [...MODULE1_STEPS];
 
   if (isScn003CorrectiveReplenishmentRequired(state)) {

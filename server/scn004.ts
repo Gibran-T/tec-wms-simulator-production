@@ -44,6 +44,59 @@ export function isScn004(scnCode: string | null | undefined): boolean {
   return scnCode === "SCN-004";
 }
 
+export function isScn004Scenario(state: {
+  scnCode?: string | null;
+  scenarioId?: number | null;
+  scenarioName?: string | null;
+} | null | undefined): boolean {
+  if (!state) return false;
+  if (state.scnCode === "SCN-004") return true;
+  if (state.scenarioId === 4) return true;
+  const name = String(state.scenarioName ?? "");
+  return /SCN-004|Scénario 4|Scenario 4/i.test(name);
+}
+
+/** Inventory-audit-only M1 pipeline — no outbound (SO / PICKING / GI). */
+export const SCN_004_M1_STEPS = [
+  { code: "PO", labelFr: "Bon de commande (ME21N)", labelEn: "Purchase Order (ME21N)", order: 1, prerequisite: null, moduleId: 1 },
+  { code: "GR", labelFr: "Réception quai (MIGO)", labelEn: "Goods Receipt — Dock (MIGO)", order: 2, prerequisite: "PO", moduleId: 1 },
+  { code: "PUTAWAY_M1", labelFr: "Rangement stock (LT0A)", labelEn: "Putaway to Stock (LT0A)", order: 3, prerequisite: "GR", moduleId: 1 },
+  { code: "STOCK", labelFr: "Stock disponible", labelEn: "Stock Available", order: 4, prerequisite: "PUTAWAY_M1", moduleId: 1 },
+  { code: "CC", labelFr: "Comptage cyclique (MI01)", labelEn: "Cycle Count (MI01)", order: 5, prerequisite: "STOCK", moduleId: 1 },
+  { code: "ADJ", labelFr: "Ajustement inventaire (MI07)", labelEn: "Inventory Adjustment (MI07)", order: 6, prerequisite: "CC", moduleId: 1 },
+  { code: "COMPLIANCE", labelFr: "Conformité système", labelEn: "System Compliance", order: 7, prerequisite: "ADJ", moduleId: 1 },
+] as const;
+
+/** Redistributes outbound step budget (SO+PICKING+GI) across inventory-audit steps — still 100 pts. */
+export const SCN_004_STEP_MAX: Record<string, number> = {
+  PO: 10,
+  GR: 10,
+  PUTAWAY_M1: 25,
+  STOCK: 5,
+  CC: 10,
+  ADJ: 0,
+  COMPLIANCE: 40,
+};
+
+export function getScn004StepMaxPoints(stepCode: string): number {
+  return SCN_004_STEP_MAX[stepCode] ?? 0;
+}
+
+export function getScn004OutboundBlockMessage(lang: "fr" | "en" = "fr") {
+  if (lang === "en") {
+    return {
+      reason: "SCN-004 is an inventory audit scenario — outbound shipping steps are not part of this mission.",
+      reasonFr: "SCN-004 est un scénario d'audit inventaire — les étapes d'expédition ne font pas partie de cette mission.",
+      reasonEn: "SCN-004 is an inventory audit scenario — outbound shipping steps are not part of this mission.",
+    };
+  }
+  return {
+    reason: "SCN-004 est un scénario d'audit inventaire — les étapes d'expédition ne font pas partie de cette mission.",
+    reasonFr: "SCN-004 est un scénario d'audit inventaire — les étapes d'expédition ne font pas partie de cette mission.",
+    reasonEn: "SCN-004 is an inventory audit scenario — outbound shipping steps are not part of this mission.",
+  };
+}
+
 export function getScn004TargetBin(initialState?: Record<string, unknown> | null): string {
   return getScn004CycleCountTarget(initialState).bin;
 }
@@ -75,7 +128,7 @@ export function getScn004CycleCountTarget(
 
 /**
  * Resolve M1 cycle count quantities for SCN-004.
- * When the CC target matches, inject pedagogical systemQty (200) even if live inventory is 185 after GI.
+ * When the CC target matches, inject pedagogical systemQty (200) for variance −15 at physical 185.
  */
 export function resolveScn004CycleCount(
   initialState: Record<string, unknown> | null | undefined,
