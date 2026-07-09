@@ -174,8 +174,8 @@ async function seed() {
     {
       moduleId: 1,
       name: "Scénario 5 — Non-conformités multiples",
-      descriptionFr: "Plusieurs anomalies simultanées : GR non postée, stock négatif potentiel, écart inventaire. Résolvez dans l'ordre.",
-      descriptionEn: "Multiple simultaneous anomalies: unposted GR, potential negative stock, inventory discrepancy. Resolve them in the correct order.",
+      descriptionFr: "Plusieurs anomalies simultanées : GR non postée, double rangement, écart inventaire SKU-005 (−8). Résolvez dans l'ordre — pas d'expédition.",
+      descriptionEn: "Multiple simultaneous anomalies: unposted GR, dual putaway, SKU-005 inventory variance (−8). Resolve in order — no outbound shipping.",
       difficulty: "difficile" as const,
       initialStateJson: {
         preloadedTransactions: [
@@ -184,12 +184,12 @@ async function seed() {
           { docType: "PO", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "PO-2025-005" },
           { docType: "GR", sku: "SKU-005", bin: "REC-02", qty: 60, posted: true, docRef: "GR-2025-005" },
         ],
-        context: "GR-2025-004 non postée (SKU-004) + 60 u. SKU-005 au quai REC-02 — écart inventaire SKU-005 (−8) au comptage.",
+        context: "GR-2025-004 non postée (SKU-004) + 60 u. SKU-005 au quai REC-02 — comptage SKU-005 : système 60, physique 52, écart −8.",
         putawayTargets: [
           { sku: "SKU-004", fromBin: "REC-01", toBin: "B-01-R1-L1", qty: 30 },
           { sku: "SKU-005", fromBin: "REC-02", toBin: "B-01-R1-L2", qty: 60 },
         ],
-        cycleCountTarget: { sku: "SKU-005", bin: "B-01-R1-L2", variance: -8 },
+        cycleCountTarget: { sku: "SKU-005", bin: "B-01-R1-L2", physicalQty: 52, variance: -8 },
       },
       createdBy: 1,
     },

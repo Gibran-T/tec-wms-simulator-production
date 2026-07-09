@@ -2,6 +2,8 @@ import {
   getScn005PendingPutaways,
   isScn005Scenario,
   scn005PutawayBlockMessage,
+  SCN_005_M1_STEPS,
+  getScn005OutboundBlockMessage,
 } from "./scn005";
 import {
   getScn004OutboundBlockMessage,
@@ -160,6 +162,13 @@ export function canExecuteStep(step, state) {
     (step === "SO" || step === "PICKING_M1" || step === "GI" || step === "PICKING")
   ) {
     const msg = getScn004OutboundBlockMessage("en");
+    return { allowed: false, ...msg };
+  }
+  if (
+    isScn005Scenario(state) &&
+    (step === "SO" || step === "PICKING_M1" || step === "GI" || step === "PICKING")
+  ) {
+    const msg = getScn005OutboundBlockMessage("en");
     return { allowed: false, ...msg };
   }
   if (stepDef?.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
@@ -1352,7 +1361,7 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
     }
   }
 
-  // SCN-005: dual putaway — block SO/PICKING until both SKUs leave reception
+  // SCN-005: dual putaway — block later steps until both SKUs leave reception
   if (moduleId === 1 && state && isScn005Scenario(state)) {
     const pendingPutaway = getScn005PendingPutaways(state);
     if (pendingPutaway.length > 0) {
@@ -2215,6 +2224,9 @@ export function resolveScn003CorrectiveStepCode(state, baseStepCode) {
 export function getEffectiveM1Steps(state) {
   if (isScn004Scenario(state)) {
     return [...SCN_004_M1_STEPS];
+  }
+  if (isScn005Scenario(state)) {
+    return [...SCN_005_M1_STEPS];
   }
 
   let steps = [...MODULE1_STEPS];

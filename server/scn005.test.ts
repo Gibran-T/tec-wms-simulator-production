@@ -3,17 +3,26 @@ import {
   canExecuteStep,
   calculateInventory,
   checkCompliance,
+  getEffectiveM1Steps,
   getNextRequiredStep,
+  validateM1AdjPosting,
   type RunState,
 } from "./rulesEngine";
 import {
   countScn005PutawayMovements,
+  getScn005CycleCountTarget,
   getScn005PendingPutaways,
+  getScn005StepMaxPoints,
   isScn005DualPutawayComplete,
   recoverScn005RunState,
+  resolveScn005CycleCount,
   SCN_005_CC_BIN,
+  SCN_005_M1_STEPS,
+  SCN_005_PHYSICAL_QTY,
   SCN_005_SKU_A,
   SCN_005_SKU_B,
+  SCN_005_SYSTEM_QTY,
+  SCN_005_VARIANCE,
   validateM1CycleCountForScn005,
   validateScn005PutawayInput,
 } from "./scn005";
@@ -32,7 +41,7 @@ const scn005Meta = {
       { sku: "SKU-004", fromBin: "REC-01", toBin: "B-01-R1-L1", qty: 30 },
       { sku: "SKU-005", fromBin: "REC-02", toBin: "B-01-R1-L2", qty: 60 },
     ],
-    cycleCountTarget: { sku: "SKU-005", bin: "B-01-R1-L2", variance: -8 },
+    cycleCountTarget: { sku: "SKU-005", bin: "B-01-R1-L2", physicalQty: 52, variance: -8 },
   },
 };
 
@@ -64,7 +73,7 @@ function tx(
 ): RunState["transactions"][number] {
   return {
     id: Math.random(),
-    runId: 154,
+    runId: 401,
     docType,
     sku,
     bin,
@@ -76,6 +85,22 @@ function tx(
     createdAt: new Date(),
   };
 }
+
+describe("SCN-005 inventory-audit step pipeline", () => {
+  it("uses 7-step audit flow without outbound steps", () => {
+    const steps = getEffectiveM1Steps(makeState([]));
+    expect(steps.map((s) => s.code)).toEqual(SCN_005_M1_STEPS.map((s) => s.code));
+    expect(steps.some((s) => s.code === "SO")).toBe(false);
+    expect(steps.some((s) => s.code === "GI")).toBe(false);
+    expect(steps.find((s) => s.code === "CC")?.prerequisite).toBe("STOCK");
+    expect(steps.find((s) => s.code === "COMPLIANCE")?.prerequisite).toBe("ADJ");
+  });
+
+  it("scoring budget redistributes outbound points (100 total)", () => {
+    const total = SCN_005_M1_STEPS.reduce((sum, s) => sum + getScn005StepMaxPoints(s.code), 0);
+    expect(total).toBe(100);
+  });
+});
 
 describe("SCN-005 dual putaway gating", () => {
   const afterGrPosted = [
@@ -150,32 +175,95 @@ describe("SCN-005 dual putaway gating", () => {
     );
     const state = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK"], bothPutaway, inv);
     expect(isScn005DualPutawayComplete(state)).toBe(true);
-    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("SO");
-    expect(canExecuteStep("SO", state).allowed).toBe(true);
+    expect(getNextRequiredStep(state.completedSteps, 1, state)?.code).toBe("CC");
+    expect(canExecuteStep("SO", state).allowed).toBe(false);
   });
 
   it("rejects CC for SKU-005 at REC-02", () => {
-    const state = makeState([], [], { "SKU-005::REC-02": 60, "SKU-005::B-01-R1-L2": 52 });
+    const state = makeState([], [], { "SKU-005::REC-02": 60, "SKU-005::B-01-R1-L2": 60 });
     const check = validateM1CycleCountForScn005(state, { sku: "SKU-005", bin: "REC-02" });
     expect(check.allowed).toBe(false);
     expect(validateM1CycleCountForScn005(state, { sku: "SKU-005", bin: SCN_005_CC_BIN }).allowed).toBe(true);
   });
+});
 
-  it("happy path: GR → dual putaway → ship → CC −8 → ADJ → compliance", () => {
+describe("SCN-005 cycle count target injection", () => {
+  it("seed contract resolves system 60 / physical 52 / variance −8", () => {
+    const target = getScn005CycleCountTarget(scn005Meta.scenarioInitialStateJson);
+    expect(target.bin).toBe(SCN_005_CC_BIN);
+    expect(target.physicalQty).toBe(SCN_005_PHYSICAL_QTY);
+    expect(target.variance).toBe(SCN_005_VARIANCE);
+    expect(target.systemQty).toBe(SCN_005_SYSTEM_QTY);
+  });
+
+  it("injects pedagogical systemQty when live inventory is 60 after putaway", () => {
+    const inv = { "SKU-005::B-01-R1-L2": 60 };
+    const resolved = resolveScn005CycleCount(
+      scn005Meta.scenarioInitialStateJson,
+      { sku: "SKU-005", bin: "B-01-R1-L2", physicalQty: 52 },
+      inv["SKU-005::B-01-R1-L2"] ?? 0,
+    );
+    expect(resolved.injected).toBe(true);
+    expect(resolved.systemQty).toBe(60);
+    expect(resolved.physicalQty).toBe(52);
+    expect(resolved.variance).toBe(-8);
+  });
+
+  it("ADJ −8 at B-01-R1-L2 passes when stock is 60 before adjustment", () => {
+    const inv = { "SKU-005::B-01-R1-L2": 60 };
+    const cc = resolveScn005CycleCount(
+      scn005Meta.scenarioInitialStateJson,
+      { sku: "SKU-005", bin: "B-01-R1-L2", physicalQty: 52 },
+      inv["SKU-005::B-01-R1-L2"] ?? 0,
+    );
+    const cycleCount = {
+      sku: "SKU-005",
+      bin: "B-01-R1-L2",
+      variance: cc.variance,
+      resolved: false,
+      systemQty: cc.systemQty,
+      physicalQty: cc.physicalQty,
+    };
+    const adjCheck = validateM1AdjPosting(
+      { inventory: inv, cycleCounts: [cycleCount] },
+      { sku: "SKU-005", bin: "B-01-R1-L2", qty: -8 },
+    );
+    expect(adjCheck.allowed).toBe(true);
+  });
+
+  it("rejects ADJ −8 when CC variance was wrongly computed as 52 (stock 0 bug)", () => {
+    const inv = { "SKU-005::B-01-R1-L2": 0 };
+    const cycleCount = {
+      sku: "SKU-005",
+      bin: "B-01-R1-L2",
+      variance: 52,
+      resolved: false,
+      systemQty: 0,
+      physicalQty: 52,
+    };
+    const adjCheck = validateM1AdjPosting(
+      { inventory: inv, cycleCounts: [cycleCount] },
+      { sku: "SKU-005", bin: "B-01-R1-L2", qty: -8 },
+    );
+    expect(adjCheck.allowed).toBe(false);
+  });
+});
+
+describe("SCN-005 happy path compliance", () => {
+  const afterGrPosted = [
+    tx("PO", "SKU-004", "REC-01", 30),
+    tx("GR", "SKU-004", "REC-01", 30, true, "GR-2025-004"),
+    tx("PO", "SKU-005", "REC-02", 60),
+    tx("GR", "SKU-005", "REC-02", 60, true, "GR-2025-005"),
+  ] as RunState["transactions"];
+
+  it("GR → dual putaway → CC −8 → ADJ → compliance (no outbound)", () => {
     const txs = [
       ...afterGrPosted,
       tx("PUTAWAY_M1", SCN_005_SKU_A, "REC-01", -30),
       tx("PUTAWAY_M1", SCN_005_SKU_A, "B-01-R1-L1", 30),
       tx("PUTAWAY_M1", SCN_005_SKU_B, "REC-02", -60),
       tx("PUTAWAY_M1", SCN_005_SKU_B, SCN_005_CC_BIN, 60),
-      tx("SO", SCN_005_SKU_A, "B-01-R1-L1", 30),
-      tx("SO", SCN_005_SKU_B, SCN_005_CC_BIN, 30),
-      tx("PICKING", SCN_005_SKU_A, "B-01-R1-L1", -30),
-      tx("PICKING_M1", SCN_005_SKU_A, "EXP-01", 30),
-      tx("PICKING", SCN_005_SKU_B, SCN_005_CC_BIN, -30),
-      tx("PICKING_M1", SCN_005_SKU_B, "EXP-01", 30),
-      tx("GI", SCN_005_SKU_A, "EXP-01", 30),
-      tx("GI", SCN_005_SKU_B, "EXP-01", 30),
       tx("ADJ", SCN_005_SKU_B, SCN_005_CC_BIN, -8),
     ] as RunState["transactions"];
 
@@ -192,11 +280,11 @@ describe("SCN-005 dual putaway gating", () => {
     const cycleCounts = [
       {
         id: 1,
-        runId: 154,
+        runId: 401,
         sku: SCN_005_SKU_B,
         bin: SCN_005_CC_BIN,
-        systemQty: "30",
-        physicalQty: "22",
+        systemQty: "60",
+        physicalQty: "52",
         variance: "-8",
         resolved: true,
         createdAt: new Date(),
@@ -204,17 +292,18 @@ describe("SCN-005 dual putaway gating", () => {
     ] as RunState["cycleCounts"];
 
     const state = makeState(
-      ["PO", "GR", "PUTAWAY_M1", "STOCK", "SO", "PICKING_M1", "GI", "CC", "ADJ"],
+      ["PO", "GR", "PUTAWAY_M1", "STOCK", "CC", "ADJ"],
       txs,
       inv,
       cycleCounts,
     );
 
     expect(isScn005DualPutawayComplete(state)).toBe(true);
+    expect(inv["SKU-005::B-01-R1-L2"]).toBe(52);
     expect(checkCompliance(state).compliant).toBe(true);
   });
 
-  it("recovers broken run 154 pattern — SKU-005 at REC-02 routes back to PUTAWAY_M1", () => {
+  it("recovers broken run — SKU-005 at REC-02 routes back to PUTAWAY_M1", () => {
     const brokenTxs = [
       ...afterGrPosted,
       tx("PUTAWAY_M1", "SKU-004", "REC-01", -30),
@@ -225,7 +314,7 @@ describe("SCN-005 dual putaway gating", () => {
       "SKU-004::B-01-R1-L1": 30,
       "SKU-005::REC-02": 60,
     };
-    const rawState = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK", "SO"], brokenTxs, inv);
+    const rawState = makeState(["PO", "GR", "PUTAWAY_M1", "STOCK"], brokenTxs, inv);
     const recovered = recoverScn005RunState(rawState);
 
     expect(getScn005PendingPutaways(recovered)).toHaveLength(1);
@@ -243,7 +332,7 @@ describe("SCN-005 dual putaway gating", () => {
       [
         {
           id: 1,
-          runId: 154,
+          runId: 401,
           sku: SCN_005_SKU_B,
           bin: "REC-02",
           systemQty: "60",
@@ -256,5 +345,6 @@ describe("SCN-005 dual putaway gating", () => {
     );
     const recovered = recoverScn005RunState(state);
     expect(recovered.cycleCounts[0]?.bin).toBe(SCN_005_CC_BIN);
+    expect(Number(recovered.cycleCounts[0]?.variance)).toBe(-8);
   });
 });

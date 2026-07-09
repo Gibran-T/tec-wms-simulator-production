@@ -1,10 +1,10 @@
 /**
  * SCN-005 — Multi-anomaly capstone (SKU-004 ghost GR + SKU-005 dual putaway + CC −8)
- * Canonical flow: post GR-2025-004 → putaway SKU-004 (REC-01) + SKU-005 (REC-02) → ship both → CC/ADJ SKU-005 at storage bin.
+ * Canonical flow: post GR-2025-004 → dual putaway → CC/ADJ SKU-005 at B-01-R1-L2 → COMPLIANCE.
+ * Inventory-audit finish (no SO / PICKING / GI) — outbound would desync CC book stock from ledger.
  */
+import { calculateInventory, EXPEDITION_BINS, RECEPTION_BINS } from "./rulesEngine";
 
-const RECEPTION_BINS = ["REC-01", "REC-02"];
-const EXPEDITION_BINS = ["EXP-01", "EXP-02"];
 const STOCKAGE_BINS = ["B-01-R1-L1", "B-01-R1-L2", "B-02-R1-L1", "TRANSIT-01"];
 const GHOST_GR_DOC_REFS = new Set(["GR-2025-001", "GR-2025-004"]);
 
@@ -12,6 +12,8 @@ export const SCN_005_SKU_A = "SKU-004";
 export const SCN_005_SKU_B = "SKU-005";
 export const SCN_005_GHOST_GR = "GR-2025-004";
 export const SCN_005_CC_BIN = "B-01-R1-L2";
+export const SCN_005_PHYSICAL_QTY = 52;
+export const SCN_005_SYSTEM_QTY = 60;
 export const SCN_005_VARIANCE = -8;
 
 export type Scn005PutawayTarget = {
@@ -24,8 +26,51 @@ export type Scn005PutawayTarget = {
 export type Scn005CycleCountTarget = {
   sku: string;
   bin: string;
+  physicalQty: number;
   variance: number;
+  systemQty?: number;
 };
+
+/** Inventory-audit M1 pipeline — ghost GR + dual putaway, no outbound (SO / PICKING / GI). */
+export const SCN_005_M1_STEPS = [
+  { code: "PO", labelFr: "Bon de commande (ME21N)", labelEn: "Purchase Order (ME21N)", order: 1, prerequisite: null, moduleId: 1 },
+  { code: "GR", labelFr: "Réception quai (MIGO)", labelEn: "Goods Receipt — Dock (MIGO)", order: 2, prerequisite: "PO", moduleId: 1 },
+  { code: "PUTAWAY_M1", labelFr: "Rangement stock (LT0A)", labelEn: "Putaway to Stock (LT0A)", order: 3, prerequisite: "GR", moduleId: 1 },
+  { code: "STOCK", labelFr: "Stock disponible", labelEn: "Stock Available", order: 4, prerequisite: "PUTAWAY_M1", moduleId: 1 },
+  { code: "CC", labelFr: "Comptage cyclique (MI01)", labelEn: "Cycle Count (MI01)", order: 5, prerequisite: "STOCK", moduleId: 1 },
+  { code: "ADJ", labelFr: "Ajustement inventaire (MI07)", labelEn: "Inventory Adjustment (MI07)", order: 6, prerequisite: "CC", moduleId: 1 },
+  { code: "COMPLIANCE", labelFr: "Conformité système", labelEn: "System Compliance", order: 7, prerequisite: "ADJ", moduleId: 1 },
+] as const;
+
+/** Redistributes outbound step budget (SO+PICKING+GI) across audit + ghost-GR steps — still 100 pts. */
+export const SCN_005_STEP_MAX: Record<string, number> = {
+  PO: 10,
+  GR: 15,
+  PUTAWAY_M1: 25,
+  STOCK: 5,
+  CC: 10,
+  ADJ: 0,
+  COMPLIANCE: 35,
+};
+
+export function getScn005StepMaxPoints(stepCode: string): number {
+  return SCN_005_STEP_MAX[stepCode] ?? 0;
+}
+
+export function getScn005OutboundBlockMessage(lang: "fr" | "en" = "fr") {
+  if (lang === "en") {
+    return {
+      reason: "SCN-005 inventory variance is resolved after putaway — outbound shipping steps are not part of this mission.",
+      reasonFr: "SCN-005 : l'écart inventaire se résout après rangement — les étapes d'expédition ne font pas partie de cette mission.",
+      reasonEn: "SCN-005 inventory variance is resolved after putaway — outbound shipping steps are not part of this mission.",
+    };
+  }
+  return {
+    reason: "SCN-005 : l'écart inventaire se résout après rangement — les étapes d'expédition ne font pas partie de cette mission.",
+    reasonFr: "SCN-005 : l'écart inventaire se résout après rangement — les étapes d'expédition ne font pas partie de cette mission.",
+    reasonEn: "SCN-005 inventory variance is resolved after putaway — outbound shipping steps are not part of this mission.",
+  };
+}
 
 export type Scn005Tx = {
   docType: string;
@@ -98,12 +143,94 @@ export function getScn005PutawayTargets(
   return SCN_005_PUTAWAY_TARGETS_DEFAULT;
 }
 
+/** Pedagogical CC contract — system 60 / physical 52 / variance −8 at B-01-R1-L2. */
 export function getScn005CycleCountTarget(
   initialState?: Record<string, unknown> | null,
 ): Scn005CycleCountTarget {
   const fromSeed = initialState?.cycleCountTarget as Scn005CycleCountTarget | undefined;
-  if (fromSeed?.sku && fromSeed?.bin) return fromSeed;
-  return { sku: SCN_005_SKU_B, bin: SCN_005_CC_BIN, variance: SCN_005_VARIANCE };
+  if (fromSeed?.sku && fromSeed?.bin && typeof fromSeed.variance === "number") {
+    return {
+      ...fromSeed,
+      physicalQty:
+        fromSeed.physicalQty ??
+        (fromSeed.systemQty != null
+          ? fromSeed.systemQty + fromSeed.variance
+          : SCN_005_PHYSICAL_QTY),
+      systemQty:
+        fromSeed.systemQty ??
+        (fromSeed.physicalQty != null
+          ? fromSeed.physicalQty - fromSeed.variance
+          : SCN_005_SYSTEM_QTY),
+    };
+  }
+  return {
+    sku: SCN_005_SKU_B,
+    bin: SCN_005_CC_BIN,
+    physicalQty: SCN_005_PHYSICAL_QTY,
+    variance: SCN_005_VARIANCE,
+    systemQty: SCN_005_SYSTEM_QTY,
+  };
+}
+
+/**
+ * Resolve M1 cycle count quantities for SCN-005.
+ * When the CC target matches, inject pedagogical systemQty (60) for variance −8 at physical 52.
+ */
+export function resolveScn005CycleCount(
+  initialState: Record<string, unknown> | null | undefined,
+  input: { sku: string; bin: string; physicalQty: number },
+  inventorySystemQty: number,
+): { systemQty: number; physicalQty: number; variance: number; injected: boolean } {
+  const target = getScn005CycleCountTarget(initialState);
+  if (input.sku !== target.sku || input.bin !== target.bin) {
+    return {
+      systemQty: inventorySystemQty,
+      physicalQty: input.physicalQty,
+      variance: input.physicalQty - inventorySystemQty,
+      injected: false,
+    };
+  }
+  const systemQty = target.systemQty ?? target.physicalQty - target.variance;
+  const physicalQty = target.physicalQty;
+  return {
+    systemQty,
+    physicalQty,
+    variance: physicalQty - systemQty,
+    injected: true,
+  };
+}
+
+/** Reject ADJ at expedition/reception when cycle count is on storage bin. */
+export function validateScn005AdjBin(
+  cycleCounts: Scn005CycleCount[],
+  input: { sku: string; bin: string },
+) {
+  if (input.sku !== SCN_005_SKU_B) return { allowed: true as const };
+
+  const pending = cycleCounts.filter(
+    (c) => c.sku === input.sku && c.variance !== 0 && !c.resolved,
+  );
+  const ccBin = pending.find((c) => c.bin === SCN_005_CC_BIN)?.bin ?? pending[0]?.bin;
+
+  if (EXPEDITION_BINS.includes(input.bin)) {
+    return {
+      allowed: false as const,
+      reason: `ADJ cannot be posted at expedition bin ${input.bin}`,
+      reasonFr: `L'ajustement MI07 ne peut pas être posté en zone EXPÉDITION (${input.bin}). Postez sur ${ccBin ?? SCN_005_CC_BIN}.`,
+      reasonEn: `MI07 adjustment cannot be posted at expedition bin (${input.bin}). Post at ${ccBin ?? SCN_005_CC_BIN}.`,
+    };
+  }
+
+  if (RECEPTION_BINS.includes(input.bin) && input.bin !== ccBin) {
+    return {
+      allowed: false as const,
+      reason: `ADJ cannot be posted at reception bin ${input.bin}`,
+      reasonFr: `L'ajustement MI07 ne peut pas être posté en zone RÉCEPTION (${input.bin}). Postez sur ${ccBin ?? SCN_005_CC_BIN}.`,
+      reasonEn: `MI07 adjustment cannot be posted at reception bin (${input.bin}). Post at ${ccBin ?? SCN_005_CC_BIN}.`,
+    };
+  }
+
+  return { allowed: true as const };
 }
 
 /** SKUs still sitting at a reception bin — dual putaway not finished. */
@@ -234,8 +361,9 @@ export function validateM1CycleCountForScn005(
 }
 
 /**
- * Recover broken SCN-005 runs (e.g. run 154 — SKU-005 left at REC-02 after premature SO):
- * - Remap CC recorded at REC-02 to canonical storage bin when variance matches −8
+ * Recover broken SCN-005 runs:
+ * - Remap CC recorded at REC-02 / wrong bin to B-01-R1-L2 with pedagogical −8 contract
+ * - Normalize inventory to physicalQty 52 at target bin when CC is resolved
  */
 export function recoverScn005RunState<
   T extends {
@@ -253,24 +381,56 @@ export function recoverScn005RunState<
 
   const ccTarget = getScn005CycleCountTarget(state.scenarioInitialStateJson);
   const normalizedCCs = state.cycleCounts.map((cc) => {
-    if (cc.sku !== SCN_005_SKU_B || cc.bin === ccTarget.bin) return cc;
+    if (cc.sku !== SCN_005_SKU_B) return cc;
 
     const matchesPattern =
       Math.abs(cc.variance - SCN_005_VARIANCE) < 0.01 ||
+      cc.physicalQty === SCN_005_PHYSICAL_QTY ||
       (cc.systemQty != null &&
         cc.physicalQty != null &&
         Math.abs(cc.physicalQty - cc.systemQty - SCN_005_VARIANCE) < 0.01);
 
-    if (!matchesPattern && !RECEPTION_BINS.includes(cc.bin)) return cc;
+    if (cc.bin !== ccTarget.bin && !matchesPattern && !RECEPTION_BINS.includes(cc.bin)) {
+      return cc;
+    }
+
+    if (cc.bin === ccTarget.bin && matchesPattern) {
+      return {
+        ...cc,
+        systemQty: cc.systemQty ?? SCN_005_SYSTEM_QTY,
+        physicalQty: cc.physicalQty ?? SCN_005_PHYSICAL_QTY,
+        variance: SCN_005_VARIANCE,
+      };
+    }
 
     return {
       ...cc,
       bin: ccTarget.bin,
-      variance: cc.variance !== 0 ? cc.variance : SCN_005_VARIANCE,
+      systemQty: cc.systemQty ?? SCN_005_SYSTEM_QTY,
+      physicalQty: cc.physicalQty ?? SCN_005_PHYSICAL_QTY,
+      variance: SCN_005_VARIANCE,
     };
   });
 
-  return { ...state, cycleCounts: normalizedCCs };
+  const inventory = calculateInventory(state.transactions);
+
+  const resolvedCc = normalizedCCs.find(
+    (c) =>
+      c.sku === SCN_005_SKU_B &&
+      c.bin === ccTarget.bin &&
+      c.resolved &&
+      c.physicalQty != null,
+  );
+
+  if (resolvedCc?.physicalQty != null) {
+    const key = `${SCN_005_SKU_B}::${ccTarget.bin}`;
+    const target = resolvedCc.physicalQty;
+    if (Math.abs((inventory[key] ?? 0) - target) > 0.01) {
+      inventory[key] = target;
+    }
+  }
+
+  return { ...state, cycleCounts: normalizedCCs, inventory };
 }
 
 /** Count posted PUTAWAY_M1 movements for SCN-005 regression checks. */

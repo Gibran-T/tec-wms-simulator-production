@@ -173,6 +173,7 @@ import {
 import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { getScn004StepMaxPoints, isScn004Scenario } from "./scn004";
+import { getScn005StepMaxPoints, isScn005Scenario } from "./scn005";
 import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
@@ -1220,7 +1221,9 @@ export const appRouter = router({
                 ? M3_STEP_MAX_SCALED[step as keyof typeof M3_STEP_MAX_SCALED]
                 : isScn004Scenario(state)
                   ? getScn004StepMaxPoints(step)
-                  : STEP_MAX_ALL[step] ?? 0;
+                  : isScn005Scenario(state)
+                    ? getScn005StepMaxPoints(step)
+                    : STEP_MAX_ALL[step] ?? 0;
           const pct = maxPoints > 0 ? Math.round((completionPoints / maxPoints) * 100) : (completed ? 100 : 0);
           // Collect zone errors for this step
           const zoneErrors = events
@@ -1679,13 +1682,20 @@ export const appRouter = router({
             await markStepComplete(input.runId, "STOCK");
           }
           const scn004 = isScn004Scenario(state);
-          const putawayPoints = scn004 ? getScn004StepMaxPoints("PUTAWAY_M1") : 5;
+          const scn005 = isScn005Scenario(state);
+          const putawayPoints = scn004
+            ? getScn004StepMaxPoints("PUTAWAY_M1")
+            : scn005
+              ? getScn005StepMaxPoints("PUTAWAY_M1")
+              : 5;
           await addScoringEventOnce({ runId: input.runId, eventType: "PUTAWAY_M1_COMPLETED", pointsDelta: putawayPoints, message: `Rangement correct : ${input.fromBin} → ${input.toBin}` });
-          if (scn004) {
+          if (scn004 || scn005) {
             await addScoringEventOnce({
               runId: input.runId,
               eventType: "STOCK_AVAILABLE_COMPLETED",
-              pointsDelta: getScn004StepMaxPoints("STOCK"),
+              pointsDelta: scn004
+                ? getScn004StepMaxPoints("STOCK")
+                : getScn005StepMaxPoints("STOCK"),
               message: "Stock disponible en STOCKAGE — prêt pour comptage cyclique",
             });
           }
@@ -1988,11 +1998,10 @@ export const appRouter = router({
         const key = `${input.sku}::${input.bin}`;
         const inventorySystemQty = state.inventory[key] ?? 0;
         const { resolveScn004CycleCount } = await import("./scn004");
-        const resolved = resolveScn004CycleCount(
-          state.scenarioInitialStateJson,
-          input,
-          inventorySystemQty,
-        );
+        const { resolveScn005CycleCount } = await import("./scn005");
+        const resolved = isScn005Scenario(state)
+          ? resolveScn005CycleCount(state.scenarioInitialStateJson, input, inventorySystemQty)
+          : resolveScn004CycleCount(state.scenarioInitialStateJson, input, inventorySystemQty);
         const { systemQty, physicalQty, variance } = resolved;
         await addCycleCount({
           runId: input.runId,
