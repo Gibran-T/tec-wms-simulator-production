@@ -114,32 +114,32 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   "SCN-007": {
     scnCode: "SCN-007",
     situation: {
-      fr: "Un stock antérieur de 100 u. SKU-002 (LOT-2025-001) est déjà en B-02-R1-L1. Une nouvelle réception de 600 u. (LOT-2025-002) est au quai REC-01 (PO-M2-002 / GR-M2-002). Capacité B-01-R1-L1 = 500 — deux PUTAWAY obligatoires (500 + 100), puis FIFO sur le lot ancien.",
-      en: "Prior stock of 100 u. SKU-002 (LOT-2025-001) is already in B-02-R1-L1. A new receipt of 600 u. (LOT-2025-002) is at dock REC-01 (PO-M2-002 / GR-M2-002). B-01-R1-L1 capacity = 500 — two mandatory PUTAWAYs (500 + 100), then FIFO on the older lot.",
+      fr: "PO-M2-002 et GR-M2-002 déjà enregistrés. 600 u. SKU-002 lot LOT-2025-002 à REC-01. Capacité B-01-R1-L1 = 500 — deux PUTAWAY obligatoires (500 + 100), puis précision inventaire et conformité.",
+      en: "PO-M2-002 and GR-M2-002 already posted. 600 u. SKU-002 lot LOT-2025-002 at REC-01. B-01-R1-L1 capacity = 500 — two mandatory PUTAWAYs (500 + 100), then stock accuracy and compliance.",
     },
     evidenceToObserve: {
-      fr: "LOT-2025-001 : 100 u. déjà en B-02-R1-L1 (plus ancien). LOT-2025-002 : 600 u. à REC-01. Capacité B-01-R1-L1 = 500 ; solde à ranger en B-01-R1-L2 = 100. Les deux putaway conservent LOT-2025-002. FIFO seulement après rangement complet des 600 u. GR-M2-002-FIFO = stock antérieur (ne pas le ranger).",
-      en: "LOT-2025-001: 100 u. already in B-02-R1-L1 (oldest). LOT-2025-002: 600 u. at REC-01. B-01-R1-L1 capacity = 500; remainder to B-01-R1-L2 = 100. Both putaways keep LOT-2025-002. FIFO only after full 600 u. putaway. GR-M2-002-FIFO = prior stock (do not put away again).",
+      fr: "600 u. LOT-2025-002 à REC-01 ; capacité B-01-R1-L1 = 500 ; B-01-R1-L2 reçoit 100 ; même lot aux deux putaway ; REC-01 vide ; total final = 600.",
+      en: "600 u. LOT-2025-002 at REC-01; B-01-R1-L1 capacity = 500; B-01-R1-L2 receives 100; same lot on both putaways; REC-01 empty; final total = 600.",
     },
     operationalProblem: {
-      fr: "Répartir les 600 unités du lot LOT-2025-002 entre deux emplacements sans dépasser la capacité maximale, puis prélever en priorité le stock plus ancien LOT-2025-001.",
-      en: "Split the 600 units of lot LOT-2025-002 across two bins without exceeding max capacity, then pick older stock LOT-2025-001 first.",
+      fr: "Répartir les 600 unités du lot LOT-2025-002 entre deux emplacements de STOCKAGE sans dépasser la capacité maximale du premier bin.",
+      en: "Split the 600 units of lot LOT-2025-002 across two STOCKAGE bins without exceeding the first bin's max capacity.",
     },
     expectedActionHint: {
-      fr: "PUTAWAY 1 : 500 u. LOT-2025-002 → B-01-R1-L1. PUTAWAY 2 : 100 u. → B-01-R1-L2. Puis FIFO_PICK : B-02-R1-L1 (LOT-2025-001) → EXP-01.",
-      en: "PUTAWAY 1: 500 u. LOT-2025-002 → B-01-R1-L1. PUTAWAY 2: 100 u. → B-01-R1-L2. Then FIFO_PICK: B-02-R1-L1 (LOT-2025-001) → EXP-01.",
+      fr: "PUTAWAY 1 : 500 u. LOT-2025-002 → B-01-R1-L1. PUTAWAY 2 : 100 u. → B-01-R1-L2. Puis STOCK_ACCURACY · COMPLIANCE_ADV.",
+      en: "PUTAWAY 1: 500 u. LOT-2025-002 → B-01-R1-L1. PUTAWAY 2: 100 u. → B-01-R1-L2. Then STOCK_ACCURACY · COMPLIANCE_ADV.",
     },
     transactionMonitorHint: {
-      fr: "Distinguez GR-M2-002-FIFO (stock antérieur LOT-2025-001 @ B-02) de GR-M2-002 (nouvelle réception LOT-2025-002 @ REC-01). Puis deux PUTAWAY du lot récent.",
-      en: "Distinguish GR-M2-002-FIFO (prior stock LOT-2025-001 @ B-02) from GR-M2-002 (new receipt LOT-2025-002 @ REC-01). Then two PUTAWAYs of the recent lot.",
+      fr: "PO-M2-002 et GR-M2-002 POSTED (600 u. LOT-2025-002). Puis deux PUTAWAY du même lot — pas de FIFO dans ce scénario.",
+      en: "PO-M2-002 and GR-M2-002 POSTED (600 u. LOT-2025-002). Then two PUTAWAYs of the same lot — no FIFO in this scenario.",
     },
     complianceHint: {
-      fr: "Pas de SYSTÈME CONFORME tant que REC-01 conserve du LOT-2025-002 ou que le split 500+100 n'est pas exact.",
-      en: "No SYSTEM COMPLIANT while REC-01 still holds LOT-2025-002 or the 500+100 split is incomplete.",
+      fr: "Pas de SYSTÈME CONFORME tant que REC-01 conserve du LOT-2025-002 ou que le split 500+100 n'est pas exact. Total attendu = 600.",
+      en: "No SYSTEM COMPLIANT while REC-01 still holds LOT-2025-002 or the 500+100 split is incomplete. Expected total = 600.",
     },
     learningTakeaway: {
-      fr: "Capacité d'emplacement (split) puis rotation FIFO protègent le stock — deux apprentissages distincts.",
-      en: "Bin capacity (split) then FIFO rotation protect inventory — two distinct learnings.",
+      fr: "La capacité d'emplacement force la répartition — une compétence distincte du FIFO (SCN-008).",
+      en: "Bin capacity forces a split — a skill distinct from FIFO (SCN-008).",
     },
   },
   "SCN-008": {

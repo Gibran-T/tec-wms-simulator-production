@@ -230,14 +230,11 @@ async function seed() {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "PO-M2-002" },
           { docType: "GR", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "GR-M2-002" },
-          // Older lot in STOCKAGE (B-02) — keeps L1/L2 free for capacity split of LOT-2025-002 (500+100)
-          { docType: "GR", sku: "SKU-002", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-002-FIFO" },
         ],
         context:
-          "Stock antérieur : 100 u. SKU-002 lot LOT-2025-001 en B-02-R1-L1 (STOCKAGE) — pour l'étape FIFO. Nouvelle réception : 600 u. SKU-002 lot LOT-2025-002 au quai REC-01 (PO-M2-002 / GR-M2-002). Capacité B-01-R1-L1 = 500 — deux PUTAWAY obligatoires : B-01-R1-L1 (500) + B-01-R1-L2 (100). GR-M2-002-FIFO = stock déjà rangé, ne pas le déplacer au putaway.",
+          "PO-M2-002 et GR-M2-002 déjà enregistrés. 600 u. SKU-002 lot LOT-2025-002 disponibles à REC-01. Capacité B-01-R1-L1 = 500 — deux PUTAWAY obligatoires : 500 vers B-01-R1-L1, puis 100 vers B-01-R1-L2. Ensuite précision inventaire et conformité.",
         module: 2,
         lots: [
-          { lotNumber: "LOT-2025-001", receivedAt: "2025-01-15T08:00:00Z", qty: 100 },
           { lotNumber: "LOT-2025-002", receivedAt: "2025-02-01T10:00:00Z", qty: 600 },
         ],
       },

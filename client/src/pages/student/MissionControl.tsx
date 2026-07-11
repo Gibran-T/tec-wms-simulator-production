@@ -772,27 +772,14 @@ export default function MissionControl() {
                         const isStudentAdj = isM3 && m3Evidence && isStudentAdjTransaction(tx, m3Evidence.initialStateJson);
                         const scn007Lot =
                           scnCode === "SCN-007"
-                            ? tx.docRef === "GR-M2-002-FIFO"
-                              ? "LOT-2025-001"
-                              : tx.docRef === "GR-M2-002" || tx.docRef === "PO-M2-002"
-                                ? "LOT-2025-002"
-                                : tx.docType === "PUTAWAY"
-                                  ? "LOT-2025-002"
-                                  : "—"
-                            : null;
-                        const scn007Label =
-                          scnCode === "SCN-007" && tx.docRef === "GR-M2-002-FIFO"
-                            ? t("Stock antérieur", "Prior stock")
+                            ? tx.docRef === "GR-M2-002" || tx.docRef === "PO-M2-002" || tx.docType === "PUTAWAY"
+                              ? "LOT-2025-002"
+                              : "—"
                             : null;
                         return (
                         <tr key={idx} className={`border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isStudentAdj ? "bg-primary/5" : ""}`}>
                           <td className="px-4 py-2 font-bold">
                             {tx.docType}
-                            {scn007Label ? (
-                              <span className="block text-[9px] font-sans font-normal text-slate-500 normal-case">
-                                {scn007Label}
-                              </span>
-                            ) : null}
                           </td>
                           <td className="px-4 py-2 text-slate-500">{tx.docRef || "—"}</td>
                           <td className="px-4 py-2">{tx.sku}</td>

@@ -896,6 +896,19 @@ export default function StepForm() {
     [runData?.scenario],
   );
 
+  const scn007Etape = useMemo(() => {
+    if (scnCode !== "SCN-007") return null;
+    const map: Record<string, { fr: string; en: string }> = {
+      PUTAWAY: { fr: "Étape 2 sur 4", en: "Step 2 of 4" },
+      STOCK_ACCURACY: { fr: "Étape 3 sur 4", en: "Step 3 of 4" },
+      COMPLIANCE_ADV: { fr: "Étape 4 sur 4", en: "Step 4 of 4" },
+      GR: { fr: "Étape 1 sur 4", en: "Step 1 of 4" },
+    };
+    return map[cfg.code] ?? null;
+  }, [scnCode, cfg.code]);
+
+  const isScn007FifoNotInScenario = scnCode === "SCN-007" && cfg.code === "FIFO_PICK";
+
   const isAnalyticalStep = isAnalyticalAnswerStep(step);
   const analyticalQuestionText = useMemo(
     () => getAnalyticalQuestionText(step ?? "", scnCode, language, isM5Strategic),
@@ -1372,7 +1385,10 @@ export default function StepForm() {
     !!atpShortage?.active && (cfg.code === "PICKING_M1" || cfg.code === "GI");
   const isCurrentStep = nextStep === cfg.code;
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
-  const isLocked = isBlockedByScn003Shortage || (!isDemo && !isCurrentStep && !isCompleted);
+  const isLocked =
+    isScn007FifoNotInScenario ||
+    isBlockedByScn003Shortage ||
+    (!isDemo && !isCurrentStep && !isCompleted);
   const inventory: Record<string, number> = runData?.inventory ?? {};
   const selectedSku = watch("sku") ?? "";
   const selectedBin = watch("bin") ?? "";
@@ -1444,7 +1460,7 @@ export default function StepForm() {
 
   return (
     <FioriShell
-      title={`${t("Transaction", "Transaction")}: ${t(cfg.titleFr, cfg.titleEn)} (${cfg.code}) | ${t(cfg.etapeFr, cfg.etapeEn)}`}
+      title={`${t("Transaction", "Transaction")}: ${t(cfg.titleFr, cfg.titleEn)} (${cfg.code}) | ${t(scn007Etape?.fr ?? cfg.etapeFr, scn007Etape?.en ?? cfg.etapeEn)}`}
       breadcrumbs={[
         { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
         { label: "Mission Control", href: `/student/run/${runId}` },
@@ -1619,7 +1635,12 @@ export default function StepForm() {
               <div>
                 <p className="text-xs font-semibold mb-0.5">{t("Étape actuellement verrouillée", "Step currently locked")}</p>
                 <p className="text-xs">
-                  {isBlockedByScn003Shortage
+                  {isScn007FifoNotInScenario
+                    ? t(
+                        "L'étape FIFO_PICK ne fait pas partie du SCN-007. Ce scénario porte uniquement sur la capacité d'emplacement (PUTAWAY 500 + 100). Le FIFO est enseigné dans le SCN-008.",
+                        "FIFO_PICK is not part of SCN-007. This scenario covers bin capacity only (PUTAWAY 500 + 100). FIFO is taught in SCN-008.",
+                      )
+                    : isBlockedByScn003Shortage
                     ? (runData as { atpShortage?: { stockAvailable: number; soDemand: number; deficit: number } })?.atpShortage
                       ? t(
                           `Stock insuffisant détecté: ${(runData as any).atpShortage.stockAvailable} unités disponibles en STOCKAGE pour une commande de ${(runData as any).atpShortage.soDemand} unités. Créez une PO corrective de ${(runData as any).atpShortage.deficit} unités, postez la GR, puis rangez le stock avant le Picking/GI.`,
@@ -2080,12 +2101,20 @@ export default function StepForm() {
                     <span className="text-[10px] text-muted-foreground ml-1">
                       {scnCode === "SCN-008"
                         ? t("Ex: LOT-A", "Ex: LOT-A")
-                        : t("Ex: LOT-2025-001", "Ex: LOT-2025-001")}
+                        : scnCode === "SCN-007"
+                          ? t("Ex: LOT-2025-002", "Ex: LOT-2025-002")
+                          : t("Ex: LOT-2025-001", "Ex: LOT-2025-001")}
                     </span>
                   </label>
                   <input
                     {...register("lotNumber")}
-                    placeholder={scnCode === "SCN-008" ? "LOT-A" : "LOT-2025-001"}
+                    placeholder={
+                      scnCode === "SCN-008"
+                        ? "LOT-A"
+                        : scnCode === "SCN-007"
+                          ? "LOT-2025-002"
+                          : "LOT-2025-001"
+                    }
                     className="fiori-field-input fiori-field-active"
                   />
                 </div>

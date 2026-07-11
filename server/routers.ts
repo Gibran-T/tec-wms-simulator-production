@@ -101,6 +101,7 @@ import {
   checkCompliance,
   getNextRequiredStep,
   getNextRequiredStepAllModules,
+  getEffectiveM2Steps,
   isM2PutawayStepComplete,
   isModuleUnlocked,
   isModule3Unlocked,
@@ -178,6 +179,8 @@ import { getScn004StepMaxPoints, isScn004Scenario } from "./scn004";
 import { getScn005StepMaxPoints, isScn005Scenario } from "./scn005";
 import {
   getScn007NextActionHint,
+  getScn007StepMaxPoints,
+  getScn007StockAccuracyPoints,
   isScn007PutawayComplete,
   isScn007Scenario,
   projectInventoryAfterPutaway,
@@ -1162,7 +1165,7 @@ export const appRouter = router({
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
           PO: 10, GR: 10, PUTAWAY_M1: 5, STOCK: 0, SO: 10, PICKING_M1: 5, GI: 10, CC: 10, ADJ: 10, COMPLIANCE: 40,
-          // M2 (GR pre-seeded; 25+25+25+25 = 100)
+          // M2 (GR pre-seeded; default 25×4 = 100; SCN-007 = 40+30+30 without FIFO)
           PUTAWAY: 25, FIFO_PICK: 25, STOCK_ACCURACY: 25, COMPLIANCE_ADV: 25,
           // M3 (SCN-009/010 scaled to 100; SCN-011 REPLENISH display max includes ROP/EOQ)
           ...M3_STEP_MAX_SCALED,
@@ -1203,7 +1206,7 @@ export const appRouter = router({
           M5_KPI: { zone: "ANALYTIQUE" }, M5_DECISION: { zone: "STRATÉGIQUE" }, COMPLIANCE_M5: { zone: "SYSTÈME" },
         };
         // ── Select steps for this module ─────────────────────────────────────
-        const moduleSteps = moduleId === 2 ? MODULE2_STEPS
+        const moduleSteps = moduleId === 2 ? getEffectiveM2Steps(state)
           : moduleId === 3 ? MODULE3_STEPS
           : moduleId === 4 ? MODULE4_STEPS
           : moduleId === 5 ? getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)
@@ -1232,7 +1235,9 @@ export const appRouter = router({
                   ? getScn004StepMaxPoints(step)
                   : isScn005Scenario(state)
                     ? getScn005StepMaxPoints(step)
-                    : STEP_MAX_ALL[step] ?? 0;
+                    : isScn007Scenario(state)
+                      ? getScn007StepMaxPoints(step) || (STEP_MAX_ALL[step] ?? 0)
+                      : STEP_MAX_ALL[step] ?? 0;
           const pct = maxPoints > 0 ? Math.round((completionPoints / maxPoints) * 100) : (completed ? 100 : 0);
           // Collect zone errors for this step
           const zoneErrors = events
@@ -1449,7 +1454,7 @@ export const appRouter = router({
           stepsCompleted: state.completedSteps.length,
           totalSteps: (moduleId === 1
             ? getEffectiveM1Steps(state)
-            : moduleId === 2 ? MODULE2_STEPS
+            : moduleId === 2 ? getEffectiveM2Steps(state)
             : moduleId === 3 ? MODULE3_STEPS
             : moduleId === 4 ? MODULE4_STEPS
             : getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)).length,
@@ -1516,7 +1521,7 @@ export const appRouter = router({
           moduleId,
           atpShortage,
           steps: moduleId === 1 ? getEffectiveM1Steps(state)
-            : moduleId === 2 ? MODULE2_STEPS
+            : moduleId === 2 ? getEffectiveM2Steps(state)
             : moduleId === 3 ? MODULE3_STEPS
             : moduleId === 4 ? MODULE4_STEPS
             : getEffectiveM5Steps(state.m5InitialStateJson, state),
@@ -2245,7 +2250,10 @@ export const appRouter = router({
           await markStepComplete(input.runId, "PUTAWAY");
           if (!run.isDemo) {
             const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
-            await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayRule!.points, message: "Rangement structuré validé (bin + capacité + FIFO)" });
+            const putawayPts = isScn007Scenario(projectedState)
+              ? getScn007StepMaxPoints("PUTAWAY")
+              : putawayRule!.points;
+            await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayPts, message: "Rangement structuré validé (bin + capacité)" });
           }
         }
         return { success: true, demoWarning: null, putawayComplete: putawayDone };
@@ -2888,7 +2896,10 @@ export const appRouter = router({
         if (putawayDone && !alreadyComplete) {
           await markStepComplete(input.runId, "PUTAWAY");
           const rule = getScoringRule("PUTAWAY_COMPLETED");
-          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
+          const putawayPts = isScn007Scenario(projectedState)
+            ? getScn007StepMaxPoints("PUTAWAY")
+            : rule!.points;
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayPts, message: rule!.descriptionFr });
         }
         const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed || !capacityCheck.allowed || !scn007Check.allowed)
           ? [!check.allowed ? pickReason(check, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !capacityCheck.allowed ? pickReason(capacityCheck, ctx.req) : null, !scn007Check.allowed ? pickReason(scn007Check, ctx.req) : null].filter(Boolean).join(" | ")
@@ -3003,7 +3014,9 @@ export const appRouter = router({
         const variance = input.countedQty - input.systemQty;
         await addInventoryCount({ runId: input.runId, sku: input.sku, systemQty: input.systemQty, countedQty: input.countedQty, varianceQty: variance });
         await markStepComplete(input.runId, "STOCK_ACCURACY");
-        const stockPoints = getM2StockAccuracyPoints(variance);
+        const stockPoints = isScn007Scenario(state)
+          ? getScn007StockAccuracyPoints(variance)
+          : getM2StockAccuracyPoints(variance);
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "STOCK_ACCURACY_COMPLETED", pointsDelta: stockPoints, message: `Précision inventaire: variance ${variance >= 0 ? "+" : ""}${variance}` });
         return { success: true, variance };
       }),
@@ -3023,7 +3036,10 @@ export const appRouter = router({
         }
         await markStepComplete(input.runId, "COMPLIANCE_ADV");
         const complianceRule = getScoringRule("COMPLIANCE_ADV_COMPLETED");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_ADV_COMPLETED", pointsDelta: complianceRule!.points, message: "Conformité avancée M2 validée" });
+        const compliancePts = isScn007Scenario(state)
+          ? getScn007StepMaxPoints("COMPLIANCE_ADV")
+          : complianceRule!.points;
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "COMPLIANCE_ADV_COMPLETED", pointsDelta: compliancePts, message: "Conformité avancée M2 validée" });
         await completeRun(input.runId);
         return { success: true };
       }),

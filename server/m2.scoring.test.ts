@@ -1,14 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { calculateTotalScore, getM2PerfectRunMaxScore, getM2StockAccuracyPoints, getScoringRule } from "./scoringEngine";
 import { getM2StepsToAutoComplete, isM2PutawayPreSatisfied } from "./m1Preload";
+import { getScn007StepMaxPoints, getScn007StockAccuracyPoints, SCN_007_STEP_MAX } from "./scn007";
 
-/** Perfect M2 run events (SCN-006 / SCN-007 / SCN-008 share the same scored steps). */
+/** Perfect M2 run events (SCN-006 / SCN-008 share FIFO path). */
 function perfectM2Events() {
   return [
     { pointsDelta: getScoringRule("PUTAWAY_COMPLETED")!.points },
     { pointsDelta: getScoringRule("FIFO_PICK_COMPLETED")!.points },
     { pointsDelta: getM2StockAccuracyPoints(0) },
     { pointsDelta: getScoringRule("COMPLIANCE_ADV_COMPLETED")!.points },
+  ];
+}
+
+function perfectScn007Events() {
+  return [
+    { pointsDelta: getScn007StepMaxPoints("PUTAWAY") },
+    { pointsDelta: getScn007StockAccuracyPoints(0) },
+    { pointsDelta: getScn007StepMaxPoints("COMPLIANCE_ADV") },
   ];
 }
 
@@ -21,8 +30,10 @@ describe("M2 scoring model", () => {
     expect(calculateTotalScore(perfectM2Events())).toBe(100);
   });
 
-  it("SCN-007 perfect execution reaches 100/100", () => {
-    expect(calculateTotalScore(perfectM2Events())).toBe(100);
+  it("SCN-007 perfect execution reaches 100/100 without FIFO", () => {
+    expect(Object.values(SCN_007_STEP_MAX).reduce((s, n) => s + n, 0)).toBe(100);
+    expect(calculateTotalScore(perfectScn007Events())).toBe(100);
+    expect(getScn007StepMaxPoints("FIFO_PICK")).toBe(0);
   });
 
   it("SCN-008 perfect execution reaches 100/100", () => {

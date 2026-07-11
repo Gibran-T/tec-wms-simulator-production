@@ -14,6 +14,7 @@ import {
   getScn007ComplianceIssues,
   isScn007PutawayComplete,
   isScn007Scenario,
+  scn007FifoNotInScenarioMessage,
   scn007IncompletePutawayMessage,
 } from "./scn007";
 
@@ -45,6 +46,19 @@ export const MODULE2_STEPS = [
   { code: "STOCK_ACCURACY", labelFr: "Précision inventaire", labelEn: "Stock Accuracy", order: 4, prerequisite: "FIFO_PICK", moduleId: 2 },
   { code: "COMPLIANCE_ADV", labelFr: "Conformité avancée", labelEn: "Advanced Compliance", order: 5, prerequisite: "STOCK_ACCURACY", moduleId: 2 }
 ];
+
+/** SCN-007 capacity-only path — FIFO is taught in SCN-008. */
+export const MODULE2_SCN007_STEPS = [
+  { code: "GR", labelFr: "Réception marchandises", labelEn: "Goods Receipt", order: 1, prerequisite: null, moduleId: 2 },
+  { code: "PUTAWAY", labelFr: "Rangement structuré", labelEn: "Structured Putaway", order: 2, prerequisite: "GR", moduleId: 2 },
+  { code: "STOCK_ACCURACY", labelFr: "Précision inventaire", labelEn: "Stock Accuracy", order: 3, prerequisite: "PUTAWAY", moduleId: 2 },
+  { code: "COMPLIANCE_ADV", labelFr: "Conformité avancée", labelEn: "Advanced Compliance", order: 4, prerequisite: "STOCK_ACCURACY", moduleId: 2 },
+];
+
+export function getEffectiveM2Steps(state?: { scnCode?: string | null; scenarioId?: number | null; scenarioName?: string | null; scenarioInitialStateJson?: Record<string, unknown> | null } | null) {
+  if (isScn007Scenario(state)) return [...MODULE2_SCN007_STEPS];
+  return [...MODULE2_STEPS];
+}
 export const MODULE3_STEPS = [
   { code: "CC_LIST", labelFr: "Liste de comptage", labelEn: "Count List", order: 1, prerequisite: null, moduleId: 3 },
   { code: "CC_COUNT", labelFr: "Saisie des quantités", labelEn: "Count Entry", order: 2, prerequisite: "CC_LIST", moduleId: 3 },
@@ -454,16 +468,40 @@ export function validatePutaway(ctx) {
   return { allowed: true };
 }
 export function canExecuteStepM2(step, state) {
-  const stepDef = MODULE2_STEPS.find((s) => s.code === step);
-  if (!stepDef) return { allowed: false, reason: "Unknown M2 step", reasonFr: "Étape M2 inconnue", reasonEn: "Unknown M2 step" };
-  if (stepDef.prerequisite && !state.completedSteps.includes(stepDef.prerequisite)) {
-    const prereqDef = MODULE2_STEPS.find((s) => s.code === stepDef.prerequisite);
-    return {
-      allowed: false,
-      reason: `Step ${stepDef.prerequisite} must be completed first`,
-      reasonFr: `L'étape "${prereqDef?.labelFr}" doit être complétée en premier`,
-      reasonEn: `Step "${prereqDef?.labelEn}" must be completed first`
-    };
+  const steps = getEffectiveM2Steps(state);
+  const stepDef = steps.find((s) => s.code === step);
+  if (!stepDef) {
+    if (step === "FIFO_PICK" && isScn007Scenario(state)) {
+      const msg = scn007FifoNotInScenarioMessage();
+      return { allowed: false, reason: msg.reasonEn, reasonFr: msg.reasonFr, reasonEn: msg.reasonEn };
+    }
+    return { allowed: false, reason: "Unknown M2 step", reasonFr: "Étape M2 inconnue", reasonEn: "Unknown M2 step" };
+  }
+  if (stepDef.prerequisite) {
+    const putawaySatisfied =
+      stepDef.prerequisite === "PUTAWAY" &&
+      ((isScn007Scenario(state) && isScn007PutawayComplete(state)) ||
+        isM2PutawaySatisfiedByInventory(state));
+    const prereqMet =
+      state.completedSteps.includes(stepDef.prerequisite) || putawaySatisfied;
+    if (!prereqMet) {
+      if (stepDef.prerequisite === "PUTAWAY" && isScn007Scenario(state)) {
+        const msg = scn007IncompletePutawayMessage();
+        return {
+          allowed: false,
+          reason: msg.reasonEn,
+          reasonFr: msg.reasonFr,
+          reasonEn: msg.reasonEn,
+        };
+      }
+      const prereqDef = steps.find((s) => s.code === stepDef.prerequisite);
+      return {
+        allowed: false,
+        reason: `Step ${stepDef.prerequisite} must be completed first`,
+        reasonFr: `L'étape "${prereqDef?.labelFr}" doit être complétée en premier`,
+        reasonEn: `Step "${prereqDef?.labelEn}" must be completed first`
+      };
+    }
   }
   if (step === "PUTAWAY") {
     const hasGR = state.transactions.some((t) => t.docType === "GR" && t.posted);
@@ -477,18 +515,12 @@ export function canExecuteStepM2(step, state) {
     }
   }
   if (step === "FIFO_PICK") {
-    if (isScn007Scenario(state) && !isScn007PutawayComplete(state)) {
-      const msg = scn007IncompletePutawayMessage();
-      return {
-        allowed: false,
-        reason: msg.reasonEn,
-        reasonFr: msg.reasonFr,
-        reasonEn: msg.reasonEn,
-      };
+    if (isScn007Scenario(state)) {
+      const msg = scn007FifoNotInScenarioMessage();
+      return { allowed: false, reason: msg.reasonEn, reasonFr: msg.reasonFr, reasonEn: msg.reasonEn };
     }
     const hasPutaway =
       state.completedSteps.includes("PUTAWAY") ||
-      (isScn007Scenario(state) && isScn007PutawayComplete(state)) ||
       isM2PutawaySatisfiedByInventory(state);
     if (!hasPutaway) {
       return {
@@ -498,6 +530,10 @@ export function canExecuteStepM2(step, state) {
         reasonEn: "Putaway must be completed before FIFO picking."
       };
     }
+  }
+  if (step === "STOCK_ACCURACY" && isScn007Scenario(state) && !isScn007PutawayComplete(state)) {
+    const msg = scn007IncompletePutawayMessage();
+    return { allowed: false, reason: msg.reasonEn, reasonFr: msg.reasonFr, reasonEn: msg.reasonEn };
   }
   if (step === "COMPLIANCE_ADV") {
     const result = checkCompliance(state);
@@ -2438,6 +2474,8 @@ export function isM2PutawayStepComplete(state) {
 function effectiveM2CompletedSteps(completedSteps, state) {
   let effective = [...completedSteps];
   if (isScn007Scenario(state)) {
+    // FIFO is out of path — strip if present from older runs
+    effective = effective.filter((code) => code !== "FIFO_PICK");
     if (!isScn007PutawayComplete(state)) {
       effective = effective.filter((code) => code !== "PUTAWAY");
     } else if (!effective.includes("PUTAWAY")) {
@@ -2451,6 +2489,11 @@ function effectiveM2CompletedSteps(completedSteps, state) {
   return effective;
 }
 
+/** Exported for SCN-007 regression tests. */
+export function getEffectiveM2CompletedSteps(completedSteps, state) {
+  return effectiveM2CompletedSteps(completedSteps, state);
+}
+
 export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
   if (moduleId === 1) {
     return getNextRequiredStep(completedSteps, 1, state);
@@ -2458,9 +2501,10 @@ export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
   let steps;
   if (moduleId === 5) {
     steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
+  } else if (moduleId === 2) {
+    steps = getEffectiveM2Steps(state);
   } else {
     const stepsMap = {
-      2: MODULE2_STEPS,
       3: MODULE3_STEPS,
       4: MODULE4_STEPS,
       5: MODULE5_STEPS
@@ -2482,9 +2526,10 @@ export function calculateProgressPctAllModules(completedSteps, moduleId, state) 
     steps = getEffectiveM1Steps(state);
   } else if (moduleId === 5) {
     steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
+  } else if (moduleId === 2) {
+    steps = getEffectiveM2Steps(state);
   } else {
     const stepsMap = {
-      2: MODULE2_STEPS,
       3: MODULE3_STEPS,
       4: MODULE4_STEPS,
       5: MODULE5_STEPS

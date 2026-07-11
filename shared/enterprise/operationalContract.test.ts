@@ -67,11 +67,12 @@ describe("RC21-C.1A — enterprise operational contracts", () => {
   describe("SCN-007 — M2 capacity split lot", () => {
     const mission = EXTENDED_MISSIONS["SCN-007"];
 
-    it("surfaces LOT-2025-002 and split destination bins", () => {
-      expect(mission.technicalSpecs.lotNumber).toContain("LOT-2025-002");
-      expect(mission.technicalSpecs.lotNumber).toContain("LOT-2025-001");
+    it("surfaces LOT-2025-002 and split destination bins (no FIFO lot)", () => {
+      expect(mission.technicalSpecs.lotNumber).toBe("LOT-2025-002");
+      expect(mission.technicalSpecs.lotNumber).not.toContain("LOT-2025-001");
       expect(mission.technicalSpecs.targetBin).toContain("B-01-R1-L1");
       expect(mission.technicalSpecs.targetBin).toContain("B-01-R1-L2");
+      expect(mission.technicalSpecs.status).toMatch(/pas de FIFO|capacité/i);
     });
   });
 
