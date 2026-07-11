@@ -130,6 +130,7 @@ import {
   buildM2FifoLotCatalog,
   canExecuteStepM2,
   validateM2FifoPick,
+  validateM2FifoPickZone,
   canExecuteStepM3,
   computeReplenishmentSuggestion,
   formatReplenishReasonWithStudentQty,
@@ -2761,6 +2762,13 @@ export const appRouter = router({
           .filter((p) => p.sku === input.sku)
           .map((p) => ({ lotNumber: p.lotNumber ?? "", receivedAt: new Date(p.receivedAt), qty: p.qty }))
           .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
+        const scenarioForPutaway = await getScenarioById(run.scenarioId);
+        const putawaySeed = scenarioForPutaway?.initialStateJson as {
+          lots?: Array<{ lotNumber: string; receivedAt: string }>;
+        } | null;
+        const lotNum = input.lotNumber || `LOT-${Date.now()}`;
+        const seedLotDate = putawaySeed?.lots?.find((l) => l.lotNumber === lotNum)?.receivedAt;
+        const putawayReceivedAt = seedLotDate ? new Date(seedLotDate) : new Date();
         const capacityCheck = validatePutaway({
           sku: input.sku,
           fromBin: input.fromBin,
@@ -2769,8 +2777,8 @@ export const appRouter = router({
           binCapacities,
           binCurrentLoad,
           existingLots,
-          lotNumber: input.lotNumber ?? `LOT-${Date.now()}`,
-          receivedAt: new Date(),
+          lotNumber: lotNum,
+          receivedAt: putawayReceivedAt,
         });
         if (!capacityCheck.allowed) {
           if (!run.isDemo) {
@@ -2785,8 +2793,7 @@ export const appRouter = router({
         }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
-        const lotNum = input.lotNumber || `LOT-${Date.now()}`;
-        await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: lotNum, receivedAt: new Date() });
+        await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: lotNum, receivedAt: putawayReceivedAt });
         await markStepComplete(input.runId, "PUTAWAY");
         const rule = getScoringRule("PUTAWAY_COMPLETED");
         if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
@@ -2815,6 +2822,22 @@ export const appRouter = router({
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
+        const zoneCheck = validateM2FifoPickZone(input.fromBin, input.toBin);
+        if (!zoneCheck.allowed) {
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "WRONG_ZONE_PUTAWAY", pointsDelta: -3, message: zoneCheck.reasonFr });
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(zoneCheck, ctx.req) });
+        }
+        const stockAtSource = state.inventory[`${input.sku}::${input.fromBin}`] ?? 0;
+        if (input.qty > stockAtSource) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: pickReason({
+              allowed: false,
+              reasonFr: "Le lot sélectionné n'est pas disponible dans l'emplacement source indiqué.",
+              reasonEn: "The selected lot is not available in the indicated source location.",
+            }, ctx.req),
+          });
+        }
         const putawayList = await getPutawayByRun(input.runId);
         const scenario = await getScenarioById(run.scenarioId);
         const seed = scenario?.initialStateJson as {
@@ -2834,6 +2857,7 @@ export const appRouter = router({
         const fifoCheck = validateM2FifoPick({
           sku: input.sku,
           lotNumber: input.lotNumber,
+          fromBin: input.fromBin,
           catalog: fifoCatalog,
           inventory: state.inventory,
         });
@@ -2845,15 +2869,19 @@ export const appRouter = router({
               pointsDelta: fifoCheck.penaltyPoints ?? -10,
               message: `FIFO violation: lot ${input.lotNumber} prélevé avant lot ${fifoCheck.requiredLot}`,
             });
-            throw new TRPCError({ code: "BAD_REQUEST", message: fifoCheck.reasonFr ?? "Violation FIFO" });
           }
+          throw new TRPCError({ code: "BAD_REQUEST", message: fifoCheck.reasonFr ?? "Violation FIFO" });
         }
         await addTransaction({ runId: input.runId, docType: "PICKING", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: `FIFO-${input.lotNumber}`, comment: `Prélèvement FIFO de ${input.fromBin} vers ${input.toBin}` });
         await addTransaction({ runId: input.runId, docType: "PICKING_M1", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: `FIFO-${input.lotNumber}`, comment: `Arrivée FIFO en ${input.toBin}` });
         await markStepComplete(input.runId, "FIFO_PICK");
         const fifoRule = getScoringRule("FIFO_PICK_COMPLETED");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "FIFO_PICK_COMPLETED", pointsDelta: fifoRule!.points, message: "Prélèvement FIFO validé" });
-        return { success: true };
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "FIFO_PICK_COMPLETED", pointsDelta: fifoRule!.points, message: "Prélèvement FIFO conforme : le lot le plus ancien a été sélectionné et déplacé vers la zone d'expédition." });
+        return {
+          success: true,
+          messageFr: "Prélèvement FIFO conforme : le lot le plus ancien a été sélectionné et déplacé vers la zone d'expédition.",
+          messageEn: "FIFO pick compliant: the oldest lot was selected and moved to the expedition zone.",
+        };
       }),
 
     /** M2 Step 4: Stock Accuracy */

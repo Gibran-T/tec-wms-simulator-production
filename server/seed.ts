@@ -230,10 +230,16 @@ async function seed() {
         preloadedTransactions: [
           { docType: "PO", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "PO-M2-002" },
           { docType: "GR", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "GR-M2-002" },
+          // Older lot in STOCKAGE (B-02) — keeps L1/L2 free for capacity split of LOT-2025-002 (500+100)
+          { docType: "GR", sku: "SKU-002", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-002-FIFO" },
         ],
-        context: "600 unités SKU-002 reçues. Le bin B-01-R1-L1 a une capacité de 500. Gérez le dépassement.",
+        context:
+          "600 unités SKU-002 (LOT-2025-002) reçues. Capacité B-01-R1-L1 = 500 — répartissez B-01-R1-L1 (500) + B-01-R1-L2 (100). Lot plus ancien LOT-2025-001 (100 u.) déjà en STOCKAGE (B-02-R1-L1) pour l'étape FIFO.",
         module: 2,
-        lots: [{ lotNumber: "LOT-2025-002", receivedAt: "2025-02-01T10:00:00Z", qty: 600 }],
+        lots: [
+          { lotNumber: "LOT-2025-001", receivedAt: "2025-01-15T08:00:00Z", qty: 100 },
+          { lotNumber: "LOT-2025-002", receivedAt: "2025-02-01T10:00:00Z", qty: 600 },
+        ],
       },
       createdBy: 1,
     },
@@ -263,7 +269,9 @@ async function seed() {
   ];
 
   for (const s of module2Scenarios) {
-    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({ set: { name: s.name } });
+    await db.insert(scenarios).values(s).onDuplicateKeyUpdate({
+      set: { name: s.name, initialStateJson: s.initialStateJson },
+    });
   }
 
   // ─── Module 3 Scenarios ──────────────────────────────────────────────────────

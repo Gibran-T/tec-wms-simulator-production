@@ -2256,52 +2256,109 @@ export type M2FifoLotEntry = {
   sku: string;
 };
 
-/** Build FIFO lot catalog from putaway records, or from scenario seed when preloaded (SCN-008). */
+/** Build FIFO lot catalog from putaway records merged with scenario seed (SCN-007/008). */
 export function buildM2FifoLotCatalog(
   putawayRecords: Array<{ sku: string; toBin: string; lotNumber: string | null; receivedAt: Date; qty: number }>,
   scenarioSeed?: {
     lots?: Array<{ lotNumber: string; receivedAt: string; qty?: number }>;
-    preloadedTransactions?: Array<{ docType: string; sku?: string; bin?: string; qty?: number; posted?: boolean }>;
+    preloadedTransactions?: Array<{ docType: string; sku?: string; bin?: string; qty?: number; posted?: boolean; docRef?: string }>;
   }
 ): M2FifoLotEntry[] {
-  if (putawayRecords.length > 0) {
-    return putawayRecords
-      .filter((p) => p.lotNumber)
-      .map((p) => ({
-        lotNumber: p.lotNumber!,
-        receivedAt: new Date(p.receivedAt),
-        toBin: p.toBin,
-        sku: p.sku,
-      }));
-  }
   const lots = scenarioSeed?.lots ?? [];
+  const lotDateByNumber = new Map(
+    lots.map((l) => [l.lotNumber, new Date(l.receivedAt)] as const)
+  );
   const storageBinsList = [...STOCKAGE_BINS, ...PICKING_BINS, ...RESERVE_BINS];
   const storageGrs = (scenarioSeed?.preloadedTransactions ?? [])
     .filter((t) => t.docType === "GR" && t.posted && t.bin && t.sku && storageBinsList.includes(t.bin))
     .sort((a, b) => String(a.docRef ?? a.bin).localeCompare(String(b.docRef ?? b.bin)));
+
+  const byKey = new Map<string, M2FifoLotEntry>();
+
+  // Pair seed STOCKAGE GRs with lots in chronological order (oldest → first storage GR)
   const sortedLots = [...lots].sort(
     (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
   );
-  return sortedLots
-    .map((lot, i) => ({
+  for (let i = 0; i < storageGrs.length; i++) {
+    const gr = storageGrs[i]!;
+    const lot = sortedLots[i];
+    if (!lot || !gr.bin || !gr.sku) continue;
+    byKey.set(`${lot.lotNumber}::${gr.bin}`, {
       lotNumber: lot.lotNumber,
       receivedAt: new Date(lot.receivedAt),
-      toBin: storageGrs[i]?.bin ?? "",
-      sku: storageGrs[i]?.sku ?? "",
-    }))
-    .filter((e) => e.toBin && e.sku);
+      toBin: gr.bin,
+      sku: gr.sku,
+    });
+  }
+
+  // Putaway records — preserve seed receivedAt when lot is known
+  for (const p of putawayRecords) {
+    if (!p.lotNumber) continue;
+    const key = `${p.lotNumber}::${p.toBin}`;
+    const seedDate = lotDateByNumber.get(p.lotNumber);
+    byKey.set(key, {
+      lotNumber: p.lotNumber,
+      receivedAt: seedDate ?? new Date(p.receivedAt),
+      toBin: p.toBin,
+      sku: p.sku,
+    });
+  }
+
+  return Array.from(byKey.values()).sort(
+    (a, b) => a.receivedAt.getTime() - b.receivedAt.getTime()
+  );
 }
 
-/** Global FIFO: oldest lot with remaining stock must be picked first (SCN-008 Gold Standard). */
+/** FIFO pick zones: STOCKAGE → EXPÉDITION only (never RÉCEPTION source / STOCKAGE dest). */
+export function validateM2FifoPickZone(fromBin: string, toBin: string) {
+  if (!STOCKAGE_BINS.includes(fromBin)) {
+    return {
+      allowed: false as const,
+      reason: `FIFO pick fromBin must be STOCKAGE. Got: "${fromBin}"`,
+      reasonFr: "Le prélèvement FIFO doit partir d'un emplacement de STOCKAGE.",
+      reasonEn: "FIFO picking must start from a STOCKAGE location.",
+      fieldError: { field: "fromBin", expected: "STOCKAGE", actual: fromBin },
+    };
+  }
+  if (!EXPEDITION_BINS.includes(toBin)) {
+    return {
+      allowed: false as const,
+      reason: `FIFO pick toBin must be EXPEDITION. Got: "${toBin}"`,
+      reasonFr: "La destination doit être un emplacement de la zone EXPÉDITION.",
+      reasonEn: "Destination must be an EXPÉDITION zone location.",
+      fieldError: { field: "toBin", expected: EXPEDITION_BINS.join(" ou "), actual: toBin },
+    };
+  }
+  return { allowed: true as const };
+}
+
+/** Global FIFO: oldest lot with remaining stock must be picked first (SCN-007/008). */
 export function validateM2FifoPick(input: {
   sku: string;
   lotNumber: string;
+  fromBin?: string;
   catalog: M2FifoLotEntry[];
   inventory: Record<string, number>;
 }) {
   const skuLots = input.catalog
     .filter((e) => e.sku === input.sku)
     .sort((a, b) => a.receivedAt.getTime() - b.receivedAt.getTime());
+
+  if (input.fromBin) {
+    const lotAtBin = skuLots.find((e) => e.lotNumber === input.lotNumber && e.toBin === input.fromBin);
+    const qtyAtBin = input.inventory[`${input.sku}::${input.fromBin}`] ?? 0;
+    if (!lotAtBin || qtyAtBin <= 0) {
+      return {
+        allowed: false as const,
+        requiredLot: undefined as string | undefined,
+        reasonFr: "Le lot sélectionné n'est pas disponible dans l'emplacement source indiqué.",
+        reasonEn: "The selected lot is not available in the indicated source location.",
+        penaltyEvent: "FIFO_VIOLATION" as const,
+        penaltyPoints: -10,
+      };
+    }
+  }
+
   let oldestWithStock: M2FifoLotEntry | undefined;
   for (const lot of skuLots) {
     const key = `${input.sku}::${lot.toBin}`;
@@ -2315,8 +2372,8 @@ export function validateM2FifoPick(input: {
     return {
       allowed: false as const,
       requiredLot: oldestWithStock.lotNumber,
-      reasonFr: `Violation FIFO : le lot ${oldestWithStock.lotNumber} doit être prélevé en premier (plus ancien)`,
-      reasonEn: `FIFO violation: lot ${oldestWithStock.lotNumber} must be picked first (oldest)`,
+      reasonFr: `La règle FIFO exige de prélever en priorité le lot ${oldestWithStock.lotNumber}, entré en stock le plus ancien.`,
+      reasonEn: `FIFO requires picking lot ${oldestWithStock.lotNumber} first — it is the oldest lot entered into stock.`,
       penaltyEvent: "FIFO_VIOLATION" as const,
       penaltyPoints: -10,
     };

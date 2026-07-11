@@ -114,21 +114,21 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   "SCN-007": {
     scnCode: "SCN-007",
     situation: {
-      fr: "PO-M2-002 · GR-M2-002 : 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100).",
-      en: "PO-M2-002 · GR-M2-002: 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100).",
+      fr: "PO-M2-002 · GR-M2-002 : 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100). Lot plus ancien LOT-2025-001 déjà en B-02-R1-L1.",
+      en: "PO-M2-002 · GR-M2-002: 600 u. SKU-002 · lot LOT-2025-002 · split B-01-R1-L1 (500) + B-01-R1-L2 (100). Older lot LOT-2025-001 already in B-02-R1-L1.",
     },
     evidenceToObserve: {
-      fr: "Capacité B-01-R1-L1 = 500 u. ; lot LOT-2025-002 obligatoire au putaway.",
-      en: "B-01-R1-L1 capacity = 500 u.; lot LOT-2025-002 mandatory at putaway.",
+      fr: "Capacité B-01-R1-L1 = 500 u. ; lot LOT-2025-002 obligatoire au putaway ; LOT-2025-001 = plus ancien pour FIFO.",
+      en: "B-01-R1-L1 capacity = 500 u.; lot LOT-2025-002 mandatory at putaway; LOT-2025-001 = oldest for FIFO.",
     },
-    operationalProblem: { fr: "Répartition contractuelle 500 + 100 u. sans overflow.", en: "Contract split 500 + 100 u. without overflow." },
+    operationalProblem: { fr: "Répartition 500 + 100 u. sans overflow, puis FIFO STOCKAGE → EXPÉDITION.", en: "Split 500 + 100 u. without overflow, then FIFO STOCKAGE → EXPÉDITION." },
     expectedActionHint: {
-      fr: "PUTAWAY split : B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002.",
-      en: "PUTAWAY split: B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002.",
+      fr: "PUTAWAY split : B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002. Puis FIFO_PICK : B-02-R1-L1 (LOT-2025-001) → EXP-01.",
+      en: "PUTAWAY split: B-01-R1-L1 500 u. + B-01-R1-L2 100 u. · lot LOT-2025-002. Then FIFO_PICK: B-02-R1-L1 (LOT-2025-001) → EXP-01.",
     },
-    transactionMonitorHint: { fr: "GR-M2-002 POSTED — 600 u. à placer sans overflow.", en: "GR-M2-002 POSTED — 600 u. to place without overflow." },
-    complianceHint: { fr: "Aucun bin ne doit dépasser sa capacité max.", en: "No bin may exceed max capacity." },
-    learningTakeaway: { fr: "La capacité d'emplacement évite la saturation des slots.", en: "Bin capacity prevents slot saturation." },
+    transactionMonitorHint: { fr: "GR-M2-002 POSTED — 600 u. à placer sans overflow ; FIFO depuis STOCKAGE uniquement.", en: "GR-M2-002 POSTED — 600 u. to place without overflow; FIFO from STOCKAGE only." },
+    complianceHint: { fr: "Aucun bin ne doit dépasser sa capacité max. FIFO : lot le plus ancien en premier.", en: "No bin may exceed max capacity. FIFO: oldest lot first." },
+    learningTakeaway: { fr: "Capacité d'emplacement puis rotation FIFO protègent le stock.", en: "Bin capacity then FIFO rotation protect inventory." },
   },
   "SCN-008": {
     scnCode: "SCN-008",

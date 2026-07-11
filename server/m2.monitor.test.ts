@@ -11,6 +11,7 @@ describe("M2 monitor transaction alignment", () => {
   const scn007Txs = [
     { docType: "PO", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "PO-M2-002" },
     { docType: "GR", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "GR-M2-002" },
+    { docType: "GR", sku: "SKU-002", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-002-FIFO" },
   ];
 
   it("SCN-006 preloaded ledger has 2 posted rows for monitor", () => {
@@ -20,10 +21,11 @@ describe("M2 monitor transaction alignment", () => {
     expect(calculateInventory(scn006Txs)["SKU-001::REC-01"]).toBe(150);
   });
 
-  it("SCN-007 preloaded ledger has 2 posted rows for monitor", () => {
+  it("SCN-007 preloaded ledger has capacity GR + older FIFO lot in STOCKAGE", () => {
     const posted = scn007Txs.filter((t) => t.posted);
-    expect(posted).toHaveLength(2);
-    expect(posted.map((t) => t.docRef)).toEqual(["PO-M2-002", "GR-M2-002"]);
+    expect(posted).toHaveLength(3);
+    expect(posted.map((t) => t.docRef)).toEqual(["PO-M2-002", "GR-M2-002", "GR-M2-002-FIFO"]);
     expect(calculateInventory(scn007Txs)["SKU-002::REC-01"]).toBe(600);
+    expect(calculateInventory(scn007Txs)["SKU-002::B-02-R1-L1"]).toBe(100);
   });
 });

@@ -68,7 +68,8 @@ describe("RC21-C.1A — enterprise operational contracts", () => {
     const mission = EXTENDED_MISSIONS["SCN-007"];
 
     it("surfaces LOT-2025-002 and split destination bins", () => {
-      expect(mission.technicalSpecs.lotNumber).toBe("LOT-2025-002");
+      expect(mission.technicalSpecs.lotNumber).toContain("LOT-2025-002");
+      expect(mission.technicalSpecs.lotNumber).toContain("LOT-2025-001");
       expect(mission.technicalSpecs.targetBin).toContain("B-01-R1-L1");
       expect(mission.technicalSpecs.targetBin).toContain("B-01-R1-L2");
     });

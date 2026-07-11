@@ -1050,6 +1050,31 @@ export default function StepForm() {
     }
   }, [scnCode, step, setValue, runData]);
 
+  // FIFO_PICK: clear inherited PUTAWAY values — never preselect REC-01 or STOCKAGE destination
+  useEffect(() => {
+    if (step?.toLowerCase() !== "fifo_pick") return;
+    reset({
+      sku: "",
+      bin: "",
+      fromBin: "",
+      toBin: "",
+      qty: "",
+      docRef: "",
+      comment: "",
+      lotNumber: "",
+      physicalQty: "",
+      systemQty: "",
+      countedQty: "",
+      minQty: "",
+      maxQty: "",
+      safetyStock: "",
+      studentQty: "",
+      varianceQty: "",
+      justification: "",
+      studentAnswer: "",
+    });
+  }, [step, runId, reset]);
+
   function handleSuccess(data: any) {
     // Reset all form fields (dropdowns, inputs) after successful submission
     reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });
@@ -1356,6 +1381,63 @@ export default function StepForm() {
   const availableStock = selectedSku && selectedBin ? (inventory[`${selectedSku}::${selectedBin}`] ?? 0) : null;
   const availableStockFromBin = selectedSku && selectedFromBin ? (inventory[`${selectedSku}::${selectedFromBin}`] ?? 0) : null;
   const isOutOfSequence = isDemo && !isCurrentStep && !isCompleted;
+
+  const isFifoPickStep = step?.toLowerCase() === "fifo_pick";
+  const fromBinOptions = useMemo(() => {
+    if (!bins) return [];
+    if (!isFifoPickStep) return bins;
+    return bins.filter((b: any) => {
+      const z = String(b.zone ?? "").toUpperCase().normalize("NFD").replace(/\p{M}/gu, "");
+      return z === "STOCKAGE";
+    });
+  }, [bins, isFifoPickStep]);
+  const toBinOptions = useMemo(() => {
+    if (!bins) return [];
+    if (!isFifoPickStep) return bins;
+    return bins.filter((b: any) => {
+      const z = String(b.zone ?? "").toUpperCase().normalize("NFD").replace(/\p{M}/gu, "");
+      return z === "EXPEDITION";
+    });
+  }, [bins, isFifoPickStep]);
+
+  const fifoLotRows = useMemo(() => {
+    if (!isFifoPickStep || !runData) return [];
+    const seed = runData.scenario?.initialStateJson as {
+      lots?: Array<{ lotNumber: string; receivedAt: string; qty?: number }>;
+      preloadedTransactions?: Array<{ docType: string; sku?: string; bin?: string; qty?: number; posted?: boolean; docRef?: string }>;
+    } | null;
+    const lots = [...(seed?.lots ?? [])].sort(
+      (a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime()
+    );
+    const stockageBins = new Set(["B-01-R1-L1", "B-01-R1-L2", "B-02-R1-L1", "TRANSIT-01"]);
+    const storageGrs = (seed?.preloadedTransactions ?? [])
+      .filter((t) => t.docType === "GR" && t.posted && t.bin && stockageBins.has(t.bin))
+      .sort((a, b) => String(a.docRef ?? a.bin).localeCompare(String(b.docRef ?? b.bin)));
+    const inv = (runData.inventory ?? {}) as Record<string, number>;
+    const rows: Array<{ lotNumber: string; bin: string; qty: number }> = [];
+    storageGrs.forEach((gr, i) => {
+      const lot = lots[i];
+      if (!lot || !gr.bin || !gr.sku) return;
+      const qty = inv[`${gr.sku}::${gr.bin}`] ?? 0;
+      if (qty <= 0) return;
+      rows.push({ lotNumber: lot.lotNumber, bin: gr.bin, qty });
+    });
+    for (const lot of lots) {
+      if (rows.some((r) => r.lotNumber === lot.lotNumber)) continue;
+      for (const [key, qty] of Object.entries(inv)) {
+        if (qty <= 0) continue;
+        const [, bin] = key.split("::");
+        if (!bin || !stockageBins.has(bin)) continue;
+        if (rows.some((r) => r.bin === bin)) continue;
+        rows.push({ lotNumber: lot.lotNumber, bin, qty });
+        break;
+      }
+    }
+    const lotOrder = new Map(lots.map((l, i) => [l.lotNumber, i]));
+    return rows
+      .filter((r, idx, arr) => arr.findIndex((x) => x.lotNumber === r.lotNumber && x.bin === r.bin) === idx)
+      .sort((a, b) => (lotOrder.get(a.lotNumber) ?? 99) - (lotOrder.get(b.lotNumber) ?? 99));
+  }, [isFifoPickStep, runData]);
 
   // Determine if this is a compliance/auto step (no real form)
   const isAutoStep = ["stock", "compliance", "compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5", "kpi_data"].includes(step?.toLowerCase() ?? "");
@@ -1884,6 +1966,39 @@ export default function StepForm() {
                 </div>
               )}
 
+              {/* FIFO lot availability table */}
+              {isFifoPickStep && fifoLotRows.length > 0 && (
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                  <p className="text-[10px] font-bold text-primary uppercase tracking-wider mb-2">
+                    {t("Lots disponibles (ordre FIFO)", "Available lots (FIFO order)")}
+                  </p>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-blue-50 dark:bg-blue-950/30">
+                        <th className="text-left px-2 py-1 font-semibold">{t("Lot", "Lot")}</th>
+                        <th className="text-left px-2 py-1 font-semibold">{t("Ordre d'entrée", "Entry order")}</th>
+                        <th className="text-left px-2 py-1 font-semibold">{t("Emplacement", "Location")}</th>
+                        <th className="text-right px-2 py-1 font-semibold">{t("Quantité", "Quantity")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fifoLotRows.map((row, i) => (
+                        <tr key={`${row.lotNumber}-${row.bin}`} className="border-t border-border">
+                          <td className="px-2 py-1 font-mono font-bold text-primary">{row.lotNumber}</td>
+                          <td className="px-2 py-1">
+                            {i === 0
+                              ? t("Plus ancien", "Oldest")
+                              : t("Plus récent", "Newest")}
+                          </td>
+                          <td className="px-2 py-1 font-mono">{row.bin}</td>
+                          <td className="px-2 py-1 text-right font-medium">{row.qty}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
               {/* Standard single bin field */}
               {cfg.fields.includes("bin") && (
                 <div>
@@ -1918,7 +2033,7 @@ export default function StepForm() {
                   </label>
                   <select {...register("fromBin")} value={selectedFromBin} onChange={e => setValue("fromBin", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner le bin source", "Select source bin")} —</option>
-                    {bins?.map((b: any) => (
+                    {fromBinOptions.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
@@ -1944,7 +2059,7 @@ export default function StepForm() {
                   </label>
                   <select {...register("toBin")} value={selectedToBin} onChange={e => setValue("toBin", e.target.value)} className="fiori-field-input fiori-field-active">
                     <option value="">— {t("Sélectionner le bin destination", "Select destination bin")} —</option>
-                    {bins?.map((b: any) => (
+                    {toBinOptions.map((b: any) => (
                       <option key={b.binCode} value={b.binCode}>{b.binCode} — {b.zone}</option>
                     ))}
                   </select>
