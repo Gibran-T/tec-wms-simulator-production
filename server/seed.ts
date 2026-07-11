@@ -234,7 +234,7 @@ async function seed() {
           { docType: "GR", sku: "SKU-002", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-002-FIFO" },
         ],
         context:
-          "600 unités SKU-002 (LOT-2025-002) reçues. Capacité B-01-R1-L1 = 500 — répartissez B-01-R1-L1 (500) + B-01-R1-L2 (100). Lot plus ancien LOT-2025-001 (100 u.) déjà en STOCKAGE (B-02-R1-L1) pour l'étape FIFO.",
+          "Stock antérieur : 100 u. SKU-002 lot LOT-2025-001 en B-02-R1-L1 (STOCKAGE) — pour l'étape FIFO. Nouvelle réception : 600 u. SKU-002 lot LOT-2025-002 au quai REC-01 (PO-M2-002 / GR-M2-002). Capacité B-01-R1-L1 = 500 — deux PUTAWAY obligatoires : B-01-R1-L1 (500) + B-01-R1-L2 (100). GR-M2-002-FIFO = stock déjà rangé, ne pas le déplacer au putaway.",
         module: 2,
         lots: [
           { lotNumber: "LOT-2025-001", receivedAt: "2025-01-15T08:00:00Z", qty: 100 },

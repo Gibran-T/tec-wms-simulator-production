@@ -10,6 +10,12 @@ import {
   isScn004Scenario,
   SCN_004_M1_STEPS,
 } from "./scn004";
+import {
+  getScn007ComplianceIssues,
+  isScn007PutawayComplete,
+  isScn007Scenario,
+  scn007IncompletePutawayMessage,
+} from "./scn007";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -471,7 +477,19 @@ export function canExecuteStepM2(step, state) {
     }
   }
   if (step === "FIFO_PICK") {
-    const hasPutaway = state.completedSteps.includes("PUTAWAY");
+    if (isScn007Scenario(state) && !isScn007PutawayComplete(state)) {
+      const msg = scn007IncompletePutawayMessage();
+      return {
+        allowed: false,
+        reason: msg.reasonEn,
+        reasonFr: msg.reasonFr,
+        reasonEn: msg.reasonEn,
+      };
+    }
+    const hasPutaway =
+      state.completedSteps.includes("PUTAWAY") ||
+      (isScn007Scenario(state) && isScn007PutawayComplete(state)) ||
+      isM2PutawaySatisfiedByInventory(state);
     if (!hasPutaway) {
       return {
         allowed: false,
@@ -1342,6 +1360,11 @@ export function checkCompliance(state) {
       issues.push(`Reception stock not put away: ${skus}`);
       issuesFr.push(`Stock encore au quai — rangement PUTAWAY requis pour : ${skus}`);
     }
+  }
+  if (isScn007Scenario(state)) {
+    const scn007Issues = getScn007ComplianceIssues(state);
+    issues.push(...scn007Issues.issues);
+    issuesFr.push(...scn007Issues.issuesFr);
   }
   return { compliant: issues.length === 0, issues, issuesFr };
 }
@@ -2400,8 +2423,28 @@ export function isM2PutawaySatisfiedByInventory(state) {
   return receptionQty === 0 && storageQty > 0;
 }
 
+/**
+ * Whether M2 PUTAWAY step is actually satisfied for progression.
+ * SCN-007 requires exact 500+100 split; SCN-008 uses empty-reception heuristic;
+ * other M2 scenarios complete only when reception is empty.
+ */
+export function isM2PutawayStepComplete(state) {
+  if (isScn007Scenario(state)) {
+    return isScn007PutawayComplete(state);
+  }
+  return isM2PutawaySatisfiedByInventory(state);
+}
+
 function effectiveM2CompletedSteps(completedSteps, state) {
-  const effective = [...completedSteps];
+  let effective = [...completedSteps];
+  if (isScn007Scenario(state)) {
+    if (!isScn007PutawayComplete(state)) {
+      effective = effective.filter((code) => code !== "PUTAWAY");
+    } else if (!effective.includes("PUTAWAY")) {
+      effective.push("PUTAWAY");
+    }
+    return effective;
+  }
   if (!effective.includes("PUTAWAY") && isM2PutawaySatisfiedByInventory(state)) {
     effective.push("PUTAWAY");
   }
@@ -2450,6 +2493,8 @@ export function calculateProgressPctAllModules(completedSteps, moduleId, state) 
   }
   if (steps.length === 0) return 0;
   const stepCodes = new Set(steps.map((s) => s.code));
-  const completedInList = completedSteps.filter((code) => stepCodes.has(code)).length;
+  const effective =
+    moduleId === 2 ? effectiveM2CompletedSteps(completedSteps, state) : completedSteps;
+  const completedInList = effective.filter((code) => stepCodes.has(code)).length;
   return Math.min(100, Math.round((completedInList / steps.length) * 100));
 }

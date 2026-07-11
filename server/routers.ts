@@ -101,6 +101,7 @@ import {
   checkCompliance,
   getNextRequiredStep,
   getNextRequiredStepAllModules,
+  isM2PutawayStepComplete,
   isModuleUnlocked,
   isModule3Unlocked,
   MODULE1_STEPS,
@@ -175,6 +176,13 @@ import { resolveScenarioScnCode } from "./canonicalScenarios";
 import { calculateTotalScore, getM2StockAccuracyPoints, getScoringRule, getScoreLabel } from "./scoringEngine";
 import { getScn004StepMaxPoints, isScn004Scenario } from "./scn004";
 import { getScn005StepMaxPoints, isScn005Scenario } from "./scn005";
+import {
+  getScn007NextActionHint,
+  isScn007PutawayComplete,
+  isScn007Scenario,
+  projectInventoryAfterPutaway,
+  validateScn007PutawayInput,
+} from "./scn007";
 import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
@@ -1481,6 +1489,7 @@ export const appRouter = router({
          const moduleId = scenario?.moduleId ?? 1;
         const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId, state);
         const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId, state);
+        const scn007Hint = moduleId === 2 ? getScn007NextActionHint(state) : null;
         const replenishmentSuggestions = moduleId === 3
           ? await getReplenishmentSuggestionsByRun(input.runId)
           : [];
@@ -1524,6 +1533,8 @@ export const appRouter = router({
           } : null,
           // Unposted transactions always exposed for Ghost GR recovery (SCN-002, SCN-005)
           unpostedTransactions: state.transactions.filter((t) => !t.posted),
+          /** SCN-007: dynamic split guidance while REC still has LOT-2025-002 */
+          nextActionHint: scn007Hint,
           m3Evidence: moduleId === 3 ? {
             inventoryCounts: state.inventoryCounts,
             inventoryAdjustments: state.inventoryAdjustments,
@@ -2187,15 +2198,57 @@ export const appRouter = router({
           return { success: true, demoWarning: pickReason(validation, ctx.req) };
         }
 
+        const scn007Check = validateScn007PutawayInput(state, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+          lotNumber: input.lotNumber,
+        });
+        if (!scn007Check.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "OUT_OF_SEQUENCE",
+              pointsDelta: -5,
+              message: scn007Check.reasonFr,
+            });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
+          }
+          return { success: true, demoWarning: pickReason(scn007Check, ctx.req) };
+        }
+
         await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: input.lotNumber, receivedAt });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT01", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: `PUT-${input.lotNumber}`, comment: `Rangement de ${input.fromBin} vers ${input.toBin}` });
-        await markStepComplete(input.runId, "PUTAWAY");
 
-        if (!run.isDemo) {
-          const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
-          await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayRule!.points, message: "Rangement structuré validé (bin + capacité + FIFO)" });
+        const scenario = await getScenarioById(run.scenarioId);
+        // Legacy warehouse path only credits destination; project reception drain for completion gate.
+        const projectedInventory = projectInventoryAfterPutaway(state.inventory, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+        });
+        const projectedState = {
+          ...state,
+          inventory: projectedInventory,
+          scnCode: resolveScenarioScnCode(scenario),
+          scenarioId: run.scenarioId,
+          scenarioName: scenario?.name ?? null,
+          scenarioInitialStateJson: (scenario?.initialStateJson as Record<string, unknown> | null) ?? null,
+        };
+        const putawayDone = isM2PutawayStepComplete(projectedState);
+        const alreadyComplete = state.completedSteps.includes("PUTAWAY") && (
+          isScn007Scenario(state) ? isScn007PutawayComplete(state) : true
+        );
+        if (putawayDone && !alreadyComplete) {
+          await markStepComplete(input.runId, "PUTAWAY");
+          if (!run.isDemo) {
+            const putawayRule = getScoringRule("PUTAWAY_COMPLETED");
+            await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: putawayRule!.points, message: "Rangement structuré validé (bin + capacité + FIFO)" });
+          }
         }
-        return { success: true, demoWarning: null };
+        return { success: true, demoWarning: null, putawayComplete: putawayDone };
       }),
 
     /** Get module progress for current user */
@@ -2791,16 +2844,61 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(capacityCheck, ctx.req) });
           }
         }
+        const scn007Check = validateScn007PutawayInput(state, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+          lotNumber: lotNum,
+        });
+        if (!scn007Check.allowed) {
+          if (!run.isDemo) {
+            await addScoringEvent({
+              runId: input.runId,
+              eventType: "OUT_OF_SEQUENCE",
+              pointsDelta: -5,
+              message: scn007Check.reasonFr,
+            });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
+          }
+        }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: lotNum, receivedAt: putawayReceivedAt });
-        await markStepComplete(input.runId, "PUTAWAY");
-        const rule = getScoringRule("PUTAWAY_COMPLETED");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
-        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed || !capacityCheck.allowed)
-          ? [!check.allowed ? pickReason(check, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !capacityCheck.allowed ? pickReason(capacityCheck, ctx.req) : null].filter(Boolean).join(" | ")
+
+        // Complete PUTAWAY only when reception is fully cleared (SCN-007: exact 500+100 split)
+        const projectedInventory = projectInventoryAfterPutaway(state.inventory, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+        });
+        const projectedState = {
+          ...state,
+          inventory: projectedInventory,
+          scnCode: resolveScenarioScnCode(scenarioForPutaway),
+          scenarioId: run.scenarioId,
+          scenarioName: scenarioForPutaway?.name ?? null,
+          scenarioInitialStateJson: (scenarioForPutaway?.initialStateJson as Record<string, unknown> | null) ?? null,
+        };
+        const putawayDone = isM2PutawayStepComplete(projectedState);
+        const alreadyComplete = state.completedSteps.includes("PUTAWAY") && (
+          isScn007Scenario(state) ? isScn007PutawayComplete(state) : true
+        );
+        if (putawayDone && !alreadyComplete) {
+          await markStepComplete(input.runId, "PUTAWAY");
+          const rule = getScoringRule("PUTAWAY_COMPLETED");
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "PUTAWAY_COMPLETED", pointsDelta: rule!.points, message: rule!.descriptionFr });
+        }
+        const demoWarn = run.isDemo && (!check.allowed || !zoneCheck.allowed || !capacityCheck.allowed || !scn007Check.allowed)
+          ? [!check.allowed ? pickReason(check, ctx.req) : null, !zoneCheck.allowed ? pickReason(zoneCheck, ctx.req) : null, !capacityCheck.allowed ? pickReason(capacityCheck, ctx.req) : null, !scn007Check.allowed ? pickReason(scn007Check, ctx.req) : null].filter(Boolean).join(" | ")
           : null;
-        return { success: true, demoWarning: demoWarn };
+        return {
+          success: true,
+          demoWarning: demoWarn,
+          putawayComplete: putawayDone,
+          nextActionHint: getScn007NextActionHint(projectedState),
+        };
       }),
     /** M2 Step 3: FIFO Pick */
     submitFifoPick: protectedProcedure

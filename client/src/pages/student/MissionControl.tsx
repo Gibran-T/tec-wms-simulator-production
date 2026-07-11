@@ -208,6 +208,9 @@ export default function MissionControl() {
   } = data;
 
   const atpShortage = (data as { atpShortage?: { active: boolean; sku: string; stockAvailable: number; soDemand: number; deficit: number } | null }).atpShortage;
+  const nextActionHint = (data as {
+    nextActionHint?: { fr: string; en: string; titleFr: string; titleEn: string } | null;
+  }).nextActionHint;
 
   const kpiInterpretations = (data as { kpiInterpretations?: M4KpiInterpretationRow[] }).kpiInterpretations;
   const m4KpiSnapshot = (data as { m4KpiSnapshot?: M4KpiSnapshot }).m4KpiSnapshot;
@@ -287,6 +290,12 @@ export default function MissionControl() {
   const m3ActionHint = isM3 && pedagogy
     ? getM3StepAwareHint(m3Scn, nextStepCode, pedagogy, language)
     : null;
+  const scn007ActionHint = scnCode === "SCN-007" && nextActionHint
+    ? (language === "EN" ? nextActionHint.en : nextActionHint.fr)
+    : null;
+  const cockpitActionHint = isM3
+    ? m3ActionHint
+    : scn007ActionHint ?? (pedagogy ? pickLang(pedagogy.expectedActionHint, language) : null);
   const showScn011ConfirmatoryBanner = m3Scn === "SCN-011" && isScn011ConfirmatoryStep(nextStepCode);
   const m3ConfirmationTargets = m3Scn === "SCN-011"
     ? m3ReplenishRows.map((r) => ({
@@ -497,13 +506,15 @@ export default function MissionControl() {
                   <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
                     {run.status === "completed" 
                       ? t("MISSION TERMINÉE", "MISSION COMPLETE")
+                      : scnCode === "SCN-007" && nextActionHint && nextStepCode === "PUTAWAY"
+                        ? (language === "EN" ? nextActionHint.titleEn : nextActionHint.titleFr)
                       : nextStepCode ? `${nextStepDef?.label || nextStepCode} (${nextStepDef?.code || ''})` : t("BLOQUAGE SYSTÈME", "SYSTEM BLOCK")}
                   </h2>
                   <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xl">
                     {run.status === "completed"
                       ? t("Consultez votre rapport de mission pour valider la progression du module.", "Review your mission report to confirm module progress.")
-                      : nextStepCode && (isM3 ? m3ActionHint : pedagogy)
-                        ? (isM3 ? m3ActionHint : pickLang(pedagogy!.expectedActionHint, language))
+                      : nextStepCode && cockpitActionHint
+                        ? cockpitActionHint
                         : nextStepCode
                           ? t("Consultez la fiche de mission et validez les transactions dans le WMS.", "Check the mission sheet and validate transactions in WMS.")
                           : pedagogy
@@ -747,6 +758,9 @@ export default function MissionControl() {
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Type</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Ref</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">SKU</th>
+                      {scnCode === "SCN-007" && (
+                        <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Lot</th>
+                      )}
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Bin</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase text-right">Qty</th>
                       <th className="px-4 py-2 text-[10px] font-bold text-slate-500 uppercase">Status</th>
@@ -756,11 +770,35 @@ export default function MissionControl() {
                     {allTransactions.length > 0 ? (
                       [...allTransactions].reverse().map((tx, idx) => {
                         const isStudentAdj = isM3 && m3Evidence && isStudentAdjTransaction(tx, m3Evidence.initialStateJson);
+                        const scn007Lot =
+                          scnCode === "SCN-007"
+                            ? tx.docRef === "GR-M2-002-FIFO"
+                              ? "LOT-2025-001"
+                              : tx.docRef === "GR-M2-002" || tx.docRef === "PO-M2-002"
+                                ? "LOT-2025-002"
+                                : tx.docType === "PUTAWAY"
+                                  ? "LOT-2025-002"
+                                  : "—"
+                            : null;
+                        const scn007Label =
+                          scnCode === "SCN-007" && tx.docRef === "GR-M2-002-FIFO"
+                            ? t("Stock antérieur", "Prior stock")
+                            : null;
                         return (
                         <tr key={idx} className={`border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isStudentAdj ? "bg-primary/5" : ""}`}>
-                          <td className="px-4 py-2 font-bold">{tx.docType}</td>
+                          <td className="px-4 py-2 font-bold">
+                            {tx.docType}
+                            {scn007Label ? (
+                              <span className="block text-[9px] font-sans font-normal text-slate-500 normal-case">
+                                {scn007Label}
+                              </span>
+                            ) : null}
+                          </td>
                           <td className="px-4 py-2 text-slate-500">{tx.docRef || "—"}</td>
                           <td className="px-4 py-2">{tx.sku}</td>
+                          {scnCode === "SCN-007" && (
+                            <td className="px-4 py-2 text-amber-800 dark:text-amber-300 font-semibold">{scn007Lot}</td>
+                          )}
                           <td className="px-4 py-2 text-primary font-semibold">{tx.bin}</td>
                           <td className="px-4 py-2 text-right font-bold">{tx.qty}</td>
                           <td className="px-4 py-2">
@@ -779,7 +817,7 @@ export default function MissionControl() {
                       })
                     ) : (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-slate-400 italic">
+                        <td colSpan={scnCode === "SCN-007" ? 7 : 6} className="px-4 py-6 text-center text-slate-400 italic">
                           {t("Aucune transaction enregistrée.", "No transactions recorded.")}
                         </td>
                       </tr>
