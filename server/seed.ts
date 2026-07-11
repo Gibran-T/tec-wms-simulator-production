@@ -259,9 +259,9 @@ async function seed() {
         context: "3 lots SKU-003 en stock. Respectez l'ordre FIFO : LOT-A (jan), LOT-B (fév), LOT-C (mars).",
         module: 2,
         lots: [
-          { lotNumber: "LOT-A-2025", receivedAt: "2025-01-10T08:00:00Z", qty: 100 },
-          { lotNumber: "LOT-B-2025", receivedAt: "2025-02-10T08:00:00Z", qty: 100 },
-          { lotNumber: "LOT-C-2025", receivedAt: "2025-03-10T08:00:00Z", qty: 100 },
+          { lotNumber: "LOT-A", receivedAt: "2025-01-10T08:00:00Z", qty: 100 },
+          { lotNumber: "LOT-B", receivedAt: "2025-02-10T08:00:00Z", qty: 100 },
+          { lotNumber: "LOT-C", receivedAt: "2025-03-10T08:00:00Z", qty: 100 },
         ],
       },
       createdBy: 1,

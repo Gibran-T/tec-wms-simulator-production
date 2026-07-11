@@ -2077,9 +2077,17 @@ export default function StepForm() {
                 <div>
                   <label className="fiori-field-label">
                     {t("Numéro de lot", "Lot Number")} <span className="text-destructive">*</span>{" "}
-                    <span className="text-[10px] text-muted-foreground ml-1">{t("Ex: LOT-2025-001", "Ex: LOT-2025-001")}</span>
+                    <span className="text-[10px] text-muted-foreground ml-1">
+                      {scnCode === "SCN-008"
+                        ? t("Ex: LOT-A", "Ex: LOT-A")
+                        : t("Ex: LOT-2025-001", "Ex: LOT-2025-001")}
+                    </span>
                   </label>
-                  <input {...register("lotNumber")} placeholder="LOT-2025-001" className="fiori-field-input fiori-field-active" />
+                  <input
+                    {...register("lotNumber")}
+                    placeholder={scnCode === "SCN-008" ? "LOT-A" : "LOT-2025-001"}
+                    className="fiori-field-input fiori-field-active"
+                  />
                 </div>
               )}
 

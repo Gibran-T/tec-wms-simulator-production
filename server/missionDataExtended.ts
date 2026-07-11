@@ -112,7 +112,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
     module: "WM — Traçabilité lots",
     controlPoints: [
       "Comparer les dates de réception des trois lots dans le cockpit.",
-      "Confirmer que LOT-A-2025 est le lot le plus ancien.",
+      "Confirmer que LOT-A est le lot le plus ancien.",
       "Prélever LOT-A avant LOT-B et LOT-C lors du FIFO_PICK.",
       "Ne pas mélanger les lots dans un même mouvement.",
     ],
@@ -129,7 +129,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       quantity: 300,
       sourceBin: "B-01-R1-L1 / B-01-R1-L2 / B-02-R1-L1",
       targetBin: "Zone EXPÉDITION (FIFO_PICK)",
-      expectedTransaction: "FIFO_PICK — LOT-A-2025 en premier",
+      expectedTransaction: "FIFO_PICK — LOT-A en premier",
       status: "3 lots préchargés en STOCKAGE — putaway auto ; démarrage à FIFO_PICK",
     },
     successCriteria: ["Lot oldest picked first", "Traçabilité lot conservée"],

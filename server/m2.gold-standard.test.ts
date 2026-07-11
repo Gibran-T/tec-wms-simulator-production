@@ -19,9 +19,9 @@ const SCN_008_SEED = {
     { docType: "GR", sku: "SKU-003", bin: "B-02-R1-L1", qty: 100, posted: true, docRef: "GR-M2-003C" },
   ],
   lots: [
-    { lotNumber: "LOT-A-2025", receivedAt: "2025-01-10T08:00:00Z", qty: 100 },
-    { lotNumber: "LOT-B-2025", receivedAt: "2025-02-10T08:00:00Z", qty: 100 },
-    { lotNumber: "LOT-C-2025", receivedAt: "2025-03-10T08:00:00Z", qty: 100 },
+    { lotNumber: "LOT-A", receivedAt: "2025-01-10T08:00:00Z", qty: 100 },
+    { lotNumber: "LOT-B", receivedAt: "2025-02-10T08:00:00Z", qty: 100 },
+    { lotNumber: "LOT-C", receivedAt: "2025-03-10T08:00:00Z", qty: 100 },
   ],
 };
 
@@ -110,10 +110,10 @@ describe("M2 Gold Standard — SCN-008 FIFO multi-lot", () => {
   it("builds FIFO catalog from scenario seed when no putaway records (preloaded GR)", () => {
     const catalog = buildM2FifoLotCatalog([], SCN_008_SEED);
     expect(catalog).toHaveLength(3);
-    expect(catalog[0].lotNumber).toBe("LOT-A-2025");
+    expect(catalog[0].lotNumber).toBe("LOT-A");
     expect(catalog[0].toBin).toBe("B-01-R1-L1");
-    expect(catalog[1].lotNumber).toBe("LOT-B-2025");
-    expect(catalog[2].lotNumber).toBe("LOT-C-2025");
+    expect(catalog[1].lotNumber).toBe("LOT-B");
+    expect(catalog[2].lotNumber).toBe("LOT-C");
   });
 
   it("FIFO wrong lot (LOT-B) fails while LOT-A has stock", () => {
@@ -125,12 +125,12 @@ describe("M2 Gold Standard — SCN-008 FIFO multi-lot", () => {
     };
     const check = validateM2FifoPick({
       sku: "SKU-003",
-      lotNumber: "LOT-B-2025",
+      lotNumber: "LOT-B",
       catalog,
       inventory,
     });
     expect(check.allowed).toBe(false);
-    expect(check.requiredLot).toBe("LOT-A-2025");
+    expect(check.requiredLot).toBe("LOT-A");
   });
 
   it("FIFO oldest lot (LOT-A) succeeds", () => {
@@ -142,7 +142,7 @@ describe("M2 Gold Standard — SCN-008 FIFO multi-lot", () => {
     };
     const check = validateM2FifoPick({
       sku: "SKU-003",
-      lotNumber: "LOT-A-2025",
+      lotNumber: "LOT-A",
       catalog,
       inventory,
     });
@@ -158,16 +158,16 @@ describe("M2 Gold Standard — SCN-008 FIFO multi-lot", () => {
     };
     const wrong = validateM2FifoPick({
       sku: "SKU-003",
-      lotNumber: "LOT-C-2025",
+      lotNumber: "LOT-C",
       catalog,
       inventory: inventoryAfterA,
     });
     expect(wrong.allowed).toBe(false);
-    expect(wrong.requiredLot).toBe("LOT-B-2025");
+    expect(wrong.requiredLot).toBe("LOT-B");
 
     const ok = validateM2FifoPick({
       sku: "SKU-003",
-      lotNumber: "LOT-B-2025",
+      lotNumber: "LOT-B",
       catalog,
       inventory: inventoryAfterA,
     });
