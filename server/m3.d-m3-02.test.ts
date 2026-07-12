@@ -63,12 +63,29 @@ describe("D-M3-02 — SCN-009 multi-SKU cycle count", () => {
     expect(result.complete).toBe(true);
   });
 
-  it("completes reconciliation when SKU-001 variance is adjusted", () => {
+  it("does not complete reconciliation until SKU-003 zero-variance is confirmed", () => {
     const counts = [
       { sku: "SKU-001", systemQty: 100, countedQty: 97 },
       { sku: "SKU-003", systemQty: 80, countedQty: 80 },
     ];
     const adjustments = [{ sku: "SKU-001", varianceQty: -3, adjustmentQty: -3, reason: null }];
+    const transactions = [
+      { docType: "ADJ", sku: "SKU-001", bin: "B-01-R1-L1", qty: -3, posted: true },
+    ];
+    const result = validateCycleCountReconComplete(targets, counts, adjustments, transactions);
+    expect(result.complete).toBe(false);
+    expect(result.remainingSkus).toContain("SKU-003");
+  });
+
+  it("completes reconciliation when SKU-001 ADJ and SKU-003 zero-variance are confirmed", () => {
+    const counts = [
+      { sku: "SKU-001", systemQty: 100, countedQty: 97 },
+      { sku: "SKU-003", systemQty: 80, countedQty: 80 },
+    ];
+    const adjustments = [
+      { sku: "SKU-001", varianceQty: -3, adjustmentQty: -3, reason: null },
+      { sku: "SKU-003", varianceQty: 0, adjustmentQty: 0, reason: "ZERO_VARIANCE_CONFIRMED" },
+    ];
     const transactions = [
       { docType: "ADJ", sku: "SKU-001", bin: "B-01-R1-L1", qty: -3, posted: true },
     ];
@@ -130,14 +147,17 @@ describe("D-M3-02 — COMPLIANCE_M3 validateM3Compliance", () => {
     expect(result.reasonFr).toMatch(/SKU-003/);
   });
 
-  it("accepts SCN-009 when all SKUs counted and reconciled", () => {
+  it("accepts SCN-009 when all SKUs counted and reconciled including zero-variance", () => {
     const result = validateM3Compliance({
       initialStateJson: SCN_009_STATE,
       inventoryCounts: [
         { sku: "SKU-001", systemQty: 100, countedQty: 97 },
         { sku: "SKU-003", systemQty: 80, countedQty: 80 },
       ],
-      inventoryAdjustments: [{ sku: "SKU-001", varianceQty: -3, adjustmentQty: -3, reason: "" }],
+      inventoryAdjustments: [
+        { sku: "SKU-001", varianceQty: -3, adjustmentQty: -3, reason: "" },
+        { sku: "SKU-003", varianceQty: 0, adjustmentQty: 0, reason: "ZERO_VARIANCE_CONFIRMED" },
+      ],
       replenishmentSuggestions: [],
       transactions: [{ docType: "ADJ", sku: "SKU-001", bin: "B-01-R1-L1", qty: -3, posted: true }],
     });

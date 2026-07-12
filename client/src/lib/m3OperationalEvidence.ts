@@ -139,6 +139,98 @@ export function isAdjPostedForSku(
   return adjMatch || txMatch;
 }
 
+export function hasZeroVarianceConfirmation(
+  sku: string,
+  inventoryAdjustments: M3InventoryAdjustmentRow[],
+): boolean {
+  return inventoryAdjustments.some((a) => a.sku === sku && Number(a.adjustmentQty) === 0);
+}
+
+export type M3ReconTargetStatus =
+  | "PENDING"
+  | "RECONCILED_WITH_ADJUSTMENT"
+  | "RECONCILED_NO_ADJUSTMENT";
+
+export function getCountVarianceQty(count: M3InventoryCountRow): number {
+  if (count.varianceQty != null && count.varianceQty !== "") {
+    return Number(count.varianceQty);
+  }
+  return Number(count.countedQty) - Number(count.systemQty);
+}
+
+export function getCcReconTargetUiStatus(
+  sku: string,
+  inventoryCounts: M3InventoryCountRow[],
+  inventoryAdjustments: M3InventoryAdjustmentRow[],
+  transactions: Array<{ docType: string; sku: string; bin?: string; qty: number; posted?: boolean }>,
+): { status: M3ReconTargetStatus; varianceQty: number | null } {
+  const count = inventoryCounts.find((c) => c.sku === sku);
+  if (!count) return { status: "PENDING", varianceQty: null };
+  const varianceQty = getCountVarianceQty(count);
+  if (varianceQty === 0) {
+    return {
+      status: hasZeroVarianceConfirmation(sku, inventoryAdjustments)
+        ? "RECONCILED_NO_ADJUSTMENT"
+        : "PENDING",
+      varianceQty,
+    };
+  }
+  const adjOk = inventoryAdjustments.some((a) => a.sku === sku && Number(a.adjustmentQty) === varianceQty);
+  const txOk = transactions.some(
+    (t) => t.docType === "ADJ" && t.sku === sku && t.posted !== false && Number(t.qty) === varianceQty,
+  );
+  return {
+    status: adjOk && txOk ? "RECONCILED_WITH_ADJUSTMENT" : "PENDING",
+    varianceQty,
+  };
+}
+
+export function computeCcReconProgress(
+  targets: M3CycleCountTarget[],
+  inventoryCounts: M3InventoryCountRow[],
+  inventoryAdjustments: M3InventoryAdjustmentRow[],
+  transactions: Array<{ docType: string; sku: string; bin?: string; qty: number; posted?: boolean }>,
+): {
+  reconciledCount: number;
+  requiredCount: number;
+  pendingSkus: string[];
+  completedSkus: string[];
+  statuses: Array<{
+    sku: string;
+    bin?: string;
+    status: M3ReconTargetStatus;
+    varianceQty: number | null;
+    systemQty?: number;
+    physicalQty?: number;
+  }>;
+} {
+  const statuses = targets.map((t) => {
+    const { status, varianceQty } = getCcReconTargetUiStatus(
+      t.sku,
+      inventoryCounts,
+      inventoryAdjustments,
+      transactions,
+    );
+    return {
+      sku: t.sku,
+      bin: t.bin,
+      status,
+      varianceQty,
+      systemQty: t.systemQty,
+      physicalQty: t.physicalQty,
+    };
+  });
+  const completedSkus = statuses.filter((s) => s.status !== "PENDING").map((s) => s.sku);
+  const pendingSkus = statuses.filter((s) => s.status === "PENDING").map((s) => s.sku);
+  return {
+    reconciledCount: completedSkus.length,
+    requiredCount: targets.length,
+    pendingSkus,
+    completedSkus,
+    statuses,
+  };
+}
+
 export function hasOpenVariance(
   sku: string,
   inventoryCounts: M3InventoryCountRow[],
@@ -147,9 +239,7 @@ export function hasOpenVariance(
 ): boolean {
   const count = inventoryCounts.find((c) => c.sku === sku);
   if (!count) return false;
-  const varianceQty = count.varianceQty != null
-    ? Number(count.varianceQty)
-    : Number(count.countedQty) - Number(count.systemQty);
+  const varianceQty = getCountVarianceQty(count);
   if (varianceQty === 0) return false;
   return !isAdjPostedForSku(sku, varianceQty, inventoryAdjustments, transactions);
 }
