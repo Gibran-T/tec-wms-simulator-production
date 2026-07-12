@@ -7,7 +7,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
-import { buildReplenishmentParamRows } from "@/lib/m3OperationalEvidence";
+import { buildReplenishmentParamRows, computeCcReconProgress } from "@/lib/m3OperationalEvidence";
 import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
@@ -882,6 +882,44 @@ export default function StepForm() {
   const m3ReplenishmentParams = m3InitialState?.replenishmentParams ?? [];
   const isM3ReplenishOnly =
     m3ReplenishmentParams.length > 0 && m3CycleCountTargets.length === 0;
+  const ccReconProgress = useMemo(() => {
+    if (m3CycleCountTargets.length === 0) return null;
+    const evidence = (runData as {
+      m3Evidence?: {
+        inventoryCounts?: Array<{
+          sku: string;
+          systemQty: number | string;
+          countedQty: number | string;
+          varianceQty?: number | string;
+        }>;
+        inventoryAdjustments?: Array<{
+          sku: string;
+          varianceQty: number | string;
+          adjustmentQty: number | string;
+        }>;
+      };
+    } | undefined)?.m3Evidence;
+    const txs =
+      ((runData as {
+        transactions?: Array<{
+          docType: string;
+          sku: string;
+          bin?: string;
+          qty: number;
+          posted?: boolean;
+        }>;
+      } | undefined)?.transactions) ?? [];
+    return computeCcReconProgress(
+      m3CycleCountTargets,
+      evidence?.inventoryCounts ?? [],
+      evidence?.inventoryAdjustments ?? [],
+      txs,
+    );
+  }, [m3CycleCountTargets, runData]);
+  const ccReconPendingTargets = useMemo(() => {
+    if (!ccReconProgress) return m3CycleCountTargets;
+    return m3CycleCountTargets.filter((t) => ccReconProgress.pendingSkus.includes(t.sku));
+  }, [ccReconProgress, m3CycleCountTargets]);
   const cfg = useMemo(() => {
     if (!isM3ReplenishOnly) return baseCfg;
     if (step?.toLowerCase() === "replenish") {
@@ -1253,9 +1291,13 @@ export default function StepForm() {
       // Partial submission (e.g. multi-SKU CC_COUNT or REPLENISH) — keep form visible so
       // the student can immediately enter the next SKU. Do NOT show the green success panel.
       const remaining = (data?.remainingSkus as string[] | undefined)?.join(", ");
+      const reconProgress =
+        data?.reconciledCount != null && data?.requiredCount != null
+          ? ` (${data.reconciledCount}/${data.requiredCount})`
+          : "";
       toast.info(
         remaining
-          ? t(`Enregistré — SKU restants : ${remaining}`, `Saved — remaining SKU(s): ${remaining}`)
+          ? t(`Enregistré — SKU restants : ${remaining}${reconProgress}`, `Saved — remaining SKU(s): ${remaining}${reconProgress}`)
           : t("Enregistré — complétez les cibles restantes pour valider l'étape.", "Saved — complete remaining targets to finish this step."),
         { duration: 6000 },
       );
@@ -1421,7 +1463,20 @@ export default function StepForm() {
       case "cc_count":
         return submitCcCount.mutate({ ...base, counts: [{ sku: values.sku!, bin: values.bin!, systemQty: Number(values.systemQty ?? 0), countedQty: Number(values.countedQty ?? 0) }] });
       case "cc_recon": {
-        const varianceQty = Number(values.varianceQty ?? 0);
+        const pendingTarget =
+          m3CycleCountTargets.find((t) => t.sku === values.sku) ??
+          ccReconPendingTargets[0];
+        const sku = values.sku || pendingTarget?.sku;
+        const bin = values.bin || pendingTarget?.bin || "";
+        if (!sku) {
+          toast.error(t("Veuillez sélectionner un SKU à réconcilier.", "Please select a SKU to reconcile."));
+          return;
+        }
+        const statusRow = ccReconProgress?.statuses.find((s) => s.sku === sku);
+        const varianceQty =
+          values.varianceQty !== undefined && values.varianceQty !== ""
+            ? Number(values.varianceQty)
+            : (statusRow?.varianceQty ?? Number(values.varianceQty ?? 0));
         const justification = (values.justification ?? "").trim();
         if (varianceQty !== 0 && Math.abs(varianceQty) >= m3VarianceThreshold && justification.length < 5) {
           toast.error(
@@ -1435,8 +1490,8 @@ export default function StepForm() {
         return submitCcRecon.mutate({
           ...base,
           adjustments: [{
-            sku: values.sku!,
-            bin: values.bin!,
+            sku,
+            bin,
             varianceQty,
             justification,
           }],
@@ -1545,9 +1600,45 @@ export default function StepForm() {
   const selectedBin = watch("bin") ?? "";
   const selectedFromBin = watch("fromBin") ?? "";
   const selectedToBin = watch("toBin") ?? "";
+  const selectedCcReconTarget = useMemo(() => {
+    if (step?.toLowerCase() !== "cc_recon") return null;
+    const sku = selectedSku || ccReconPendingTargets[0]?.sku || "";
+    return m3CycleCountTargets.find((t) => t.sku === sku) ?? null;
+  }, [step, selectedSku, ccReconPendingTargets, m3CycleCountTargets]);
+  const selectedCcReconVariance = useMemo(() => {
+    if (!selectedCcReconTarget) return null;
+    const row = ccReconProgress?.statuses.find((s) => s.sku === selectedCcReconTarget.sku);
+    return row?.varianceQty ?? (selectedCcReconTarget.physicalQty - selectedCcReconTarget.systemQty);
+  }, [selectedCcReconTarget, ccReconProgress]);
+
+  useEffect(() => {
+    if (step?.toLowerCase() !== "cc_recon") return;
+    if (ccReconPendingTargets.length === 0) return;
+    const stillPending = selectedSku && ccReconPendingTargets.some((t) => t.sku === selectedSku);
+    if (!stillPending) {
+      const next = ccReconPendingTargets[0];
+      setValue("sku", next.sku);
+      if (next.bin) setValue("bin", next.bin);
+      const variance = ccReconProgress?.statuses.find((s) => s.sku === next.sku)?.varianceQty
+        ?? (next.physicalQty - next.systemQty);
+      setValue("varianceQty", String(variance));
+    }
+  }, [step, ccReconPendingTargets, selectedSku, ccReconProgress, setValue]);
+
+  useEffect(() => {
+    if (step?.toLowerCase() !== "cc_recon" || !selectedCcReconTarget) return;
+    if (selectedCcReconTarget.bin) setValue("bin", selectedCcReconTarget.bin);
+    if (selectedCcReconVariance != null) setValue("varianceQty", String(selectedCcReconVariance));
+  }, [step, selectedCcReconTarget, selectedCcReconVariance, setValue]);
+
   const availableStock = selectedSku && selectedBin ? (inventory[`${selectedSku}::${selectedBin}`] ?? 0) : null;
   const availableStockFromBin = selectedSku && selectedFromBin ? (inventory[`${selectedSku}::${selectedFromBin}`] ?? 0) : null;
   const isOutOfSequence = isDemo && !isCurrentStep && !isCompleted;
+  const ccReconFormComplete =
+    step?.toLowerCase() === "cc_recon" &&
+    !!ccReconProgress &&
+    ccReconProgress.pendingSkus.length === 0 &&
+    ccReconProgress.requiredCount > 0;
 
   const isFifoPickStep = step?.toLowerCase() === "fifo_pick";
   const fromBinOptions = useMemo(() => {
@@ -2123,7 +2214,7 @@ export default function StepForm() {
                 </div>
               )}
 
-              {cfg.fields.includes("sku") && (
+              {cfg.fields.includes("sku") && !ccReconFormComplete && (
                 <div>
                   <label className="fiori-field-label">
                     SKU <span className="text-destructive">*</span>{" "}
@@ -2131,9 +2222,17 @@ export default function StepForm() {
                   </label>
                   <select {...register("sku")} value={selectedSku} onChange={e => setValue("sku", e.target.value)} disabled={isGrRegularization} className={`fiori-field-input fiori-field-active ${isGrRegularization ? "bg-muted" : ""}`}>
                     <option value="">— {t("Sélectionner un SKU", "Select a SKU")} —</option>
-                    {masterData?.map((s: any) => (
-                      <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
-                    ))}
+                    {step?.toLowerCase() === "cc_recon" && m3CycleCountTargets.length > 0
+                      ? (ccReconPendingTargets.length > 0 ? ccReconPendingTargets : m3CycleCountTargets).map((target) => (
+                          <option key={target.sku} value={target.sku}>
+                            {target.sku}{target.bin ? ` @ ${target.bin}` : ""} — {t("écart", "variance")}{" "}
+                            {ccReconProgress?.statuses.find((s) => s.sku === target.sku)?.varianceQty
+                              ?? (target.physicalQty - target.systemQty)}
+                          </option>
+                        ))
+                      : masterData?.map((s: any) => (
+                          <option key={s.sku} value={s.sku}>{s.sku} — {s.descriptionFr}</option>
+                        ))}
                   </select>
                 </div>
               )}
@@ -2172,7 +2271,7 @@ export default function StepForm() {
               )}
 
               {/* Standard single bin field */}
-              {cfg.fields.includes("bin") && (
+              {cfg.fields.includes("bin") && !ccReconFormComplete && (
                 <div>
                   <label className="fiori-field-label">
                     {t("Bin / Emplacement", "Bin / Location")} <span className="text-destructive">*</span>
@@ -2441,39 +2540,97 @@ export default function StepForm() {
                 </div>
               )}
 
-              {/* M3 CC_RECON — variance threshold guidance */}
+              {/* M3 CC_RECON — variance threshold guidance + target progress */}
               {step?.toLowerCase() === "cc_recon" && (
-                <div className="mb-4 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-                  <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
-                    {t(
-                      `Seuil d'ajustement interne : ${m3VarianceThreshold} unités`,
-                      `Internal adjustment threshold: ${m3VarianceThreshold} units`,
+                <div className="mb-4 space-y-3">
+                  {ccReconProgress && ccReconProgress.requiredCount > 0 && (
+                    <div className="rounded-md border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 px-4 py-3">
+                      <p className="text-xs font-semibold text-blue-900 dark:text-blue-200">
+                        {t(
+                          `Cibles de réconciliation : ${ccReconProgress.reconciledCount} / ${ccReconProgress.requiredCount} complétées`,
+                          `Reconciliation targets: ${ccReconProgress.reconciledCount} / ${ccReconProgress.requiredCount} completed`,
+                        )}
+                      </p>
+                      <ul className="mt-2 space-y-1.5 text-[11px]">
+                        {ccReconProgress.statuses.map((row) => (
+                          <li key={row.sku} className="font-mono text-blue-900 dark:text-blue-100">
+                            <span className="font-semibold">{row.sku}</span>
+                            {row.bin ? ` — ${row.bin}` : ""}
+                            {row.systemQty != null && row.physicalQty != null
+                              ? ` · ${t("système", "system")} ${row.systemQty} / ${t("physique", "physical")} ${row.physicalQty}`
+                              : ""}
+                            {row.varianceQty != null ? ` · ${t("écart", "variance")} ${row.varianceQty}` : ""}
+                            {" — "}
+                            {row.status === "RECONCILED_WITH_ADJUSTMENT"
+                              ? t(`Réconcilié — ADJ ${row.varianceQty} posté`, `Reconciled — ADJ ${row.varianceQty} posted`)
+                              : row.status === "RECONCILED_NO_ADJUSTMENT"
+                                ? t("Réconcilié — aucun ajustement requis", "Reconciled — no adjustment required")
+                                : row.varianceQty === 0
+                                  ? t("En attente de confirmation (écart 0)", "Pending confirmation (variance 0)")
+                                  : t("En attente de réconciliation", "Pending reconciliation")}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
+                    <p className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                      {t(
+                        `Seuil d'ajustement interne : ${m3VarianceThreshold} unités`,
+                        `Internal adjustment threshold: ${m3VarianceThreshold} units`,
+                      )}
+                    </p>
+                    <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
+                      {t(
+                        `Toute variance dont la valeur absolue est ≥ ${m3VarianceThreshold} exige une justification écrite (minimum 5 caractères) avant validation MI07.`,
+                        `Any variance with absolute value ≥ ${m3VarianceThreshold} requires a written justification (minimum 5 characters) before MI07 validation.`,
+                      )}
+                    </p>
+                    {selectedCcReconVariance === 0 && (
+                      <p className="text-xs text-amber-800 dark:text-amber-300 mt-2 font-medium">
+                        {t(
+                          "Écart nul : confirmez sans créer d'ajustement ADJ. Aucune ADJ 0 n'est requise.",
+                          "Zero variance: confirm without posting an ADJ. No ADJ 0 is required.",
+                        )}
+                      </p>
                     )}
-                  </p>
-                  <p className="text-xs text-amber-800 dark:text-amber-300 mt-1">
-                    {t(
-                      `Toute variance dont la valeur absolue est ≥ ${m3VarianceThreshold} exige une justification écrite (minimum 5 caractères) avant validation MI07.`,
-                      `Any variance with absolute value ≥ ${m3VarianceThreshold} requires a written justification (minimum 5 characters) before MI07 validation.`,
-                    )}
-                  </p>
+                  </div>
+                  {ccReconFormComplete && (
+                    <div className="rounded-md border border-green-200 bg-green-50 dark:bg-green-950/30 px-4 py-3 text-xs text-green-800 dark:text-green-200">
+                      {t(
+                        "Toutes les cibles de réconciliation sont complétées. CC_RECON est validé.",
+                        "All reconciliation targets are complete. CC_RECON is validated.",
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Variance Qty field */}
-              {cfg.fields.includes("varianceQty") && (
+              {cfg.fields.includes("varianceQty") && !ccReconFormComplete && (
                 <div>
                   <label className="fiori-field-label">
-                    {t("Quantité d'ajustement (variance)", "Adjustment quantity (variance)")} <span className="text-destructive">*</span>
+                    {selectedCcReconVariance === 0
+                      ? t("Variance (confirmation écart nul)", "Variance (zero-variance confirmation)")
+                      : t("Quantité d'ajustement (variance)", "Adjustment quantity (variance)")}{" "}
+                    <span className="text-destructive">*</span>
                   </label>
-                  <input {...register("varianceQty")} type="number" placeholder="Ex: -2 (manquant) ou +3 (surplus)" className="fiori-field-input fiori-field-active" />
+                  <input
+                    {...register("varianceQty")}
+                    type="number"
+                    placeholder={selectedCcReconVariance === 0 ? "0" : "Ex: -2 (manquant) ou +3 (surplus)"}
+                    className="fiori-field-input fiori-field-active"
+                  />
                 </div>
               )}
 
               {/* Justification field */}
-              {cfg.fields.includes("justification") && (
+              {cfg.fields.includes("justification") && !ccReconFormComplete && (
                 <div>
                   <label className="fiori-field-label">
-                    {t("Justification de l'ajustement", "Adjustment justification")} <span className="text-destructive">*</span>
+                    {selectedCcReconVariance === 0
+                      ? t("Note de confirmation (optionnelle)", "Confirmation note (optional)")
+                      : <>{t("Justification de l'ajustement", "Adjustment justification")} <span className="text-destructive">*</span></>}
                   </label>
                   <input {...register("justification")} placeholder={t("Ex: Erreur de comptage lors de la réception", "Ex: Counting error during reception")} className="fiori-field-input fiori-field-active" />
                 </div>
@@ -2632,16 +2789,21 @@ export default function StepForm() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isAnyPending}
+                  disabled={isAnyPending || ccReconFormComplete}
                   className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-semibold text-white transition-all ${
-                    isAnyPending
+                    isAnyPending || ccReconFormComplete
                       ? "opacity-60 cursor-not-allowed bg-primary/60"
                       : isDemo
                       ? "bg-indigo-600 hover:bg-indigo-700"
                       : "bg-primary hover:bg-primary/90"
                   }`}
                 >
-                  {isAnyPending ? (
+                  {ccReconFormComplete ? (
+                    <>
+                      <CheckCircle size={14} />
+                      {t("CC_RECON complété", "CC_RECON completed")}
+                    </>
+                  ) : isAnyPending ? (
                     <>
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       {t("Validation...", "Validating...")}
@@ -2651,7 +2813,9 @@ export default function StepForm() {
                       <CheckCircle size={14} />
                       {isGrRegularization
                         ? t("Poster (MIGO)", "Post (MIGO)")
-                        : t("Valider la transaction", "Validate transaction")}
+                        : selectedCcReconVariance === 0
+                          ? t("Confirmer l'écart nul", "Confirm zero variance")
+                          : t("Valider la transaction", "Validate transaction")}
                     </>
                   )}
                 </button>

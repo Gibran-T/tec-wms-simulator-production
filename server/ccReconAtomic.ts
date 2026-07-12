@@ -30,14 +30,25 @@ export type CcReconClaimRow = {
   bin: string;
   varianceQty: number;
   idempotencyKey: string;
+  status?: string;
 };
 
 function isDuplicateKeyError(err: unknown): boolean {
-  const e = err as { code?: string | number; errno?: number; message?: string };
-  if (e?.code === "ER_DUP_ENTRY" || e?.errno === 1062) return true;
-  if (typeof e?.code === "string" && e.code.includes("DUP")) return true;
-  const msg = String(e?.message ?? err ?? "");
-  return /duplicate|unique|ER_DUP_ENTRY/i.test(msg);
+  const candidates: unknown[] = [err];
+  const e = err as { cause?: unknown; code?: string | number; errno?: number; message?: string };
+  if (e?.cause) candidates.push(e.cause);
+  // Drizzle may nest the mysql2 error under cause.cause
+  const nested = (e?.cause as { cause?: unknown } | undefined)?.cause;
+  if (nested) candidates.push(nested);
+
+  for (const candidate of candidates) {
+    const c = candidate as { code?: string | number; errno?: number; message?: string };
+    if (c?.code === "ER_DUP_ENTRY" || c?.errno === 1062) return true;
+    if (typeof c?.code === "string" && c.code.includes("DUP")) return true;
+    const msg = String(c?.message ?? candidate ?? "");
+    if (/duplicate|unique|ER_DUP_ENTRY/i.test(msg)) return true;
+  }
+  return false;
 }
 
 /** In-memory atomic claim store for concurrency tests (Promise.all). */
@@ -82,6 +93,7 @@ export class InMemoryCcReconStore {
       bin: input.bin,
       varianceQty: input.varianceQty,
       idempotencyKey: claimKey,
+      status: "CLAIMED",
     });
 
     if (this.failAfterClaimKeys.has(claimKey)) {
@@ -123,6 +135,9 @@ export class InMemoryCcReconStore {
         });
       }
     }
+
+    const claim = this.claims.get(claimKey);
+    if (claim) claim.status = "COMPLETED";
 
     return { created: true, alreadyReconciled: false, claimKey };
   }
@@ -171,6 +186,7 @@ export async function claimAndPersistCcReconTarget(
         bin: input.bin,
         idempotencyKey: claimKey,
         varianceQty: String(input.varianceQty),
+        status: "CLAIMED",
       });
 
       const adjRows = await tx
@@ -213,6 +229,11 @@ export async function claimAndPersistCcReconTarget(
           });
         }
       }
+
+      await tx
+        .update(ccReconTargetClaims)
+        .set({ status: "COMPLETED", completedAt: new Date() })
+        .where(eq(ccReconTargetClaims.idempotencyKey, claimKey));
     });
     return { created: true, alreadyReconciled: false, claimKey };
   } catch (err) {
@@ -235,5 +256,6 @@ export async function getCcReconClaimsByRun(runId: number): Promise<CcReconClaim
     bin: r.bin,
     varianceQty: Number(r.varianceQty),
     idempotencyKey: r.idempotencyKey,
+    status: r.status,
   }));
 }

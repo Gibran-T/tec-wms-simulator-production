@@ -98,7 +98,7 @@ describe("SCN-009 CC_RECON — canonical contract", () => {
     ).toBe(true);
   });
 
-  it("wrong variance / bin / sku rejected", () => {
+  it("wrong variance / bin / sku / system / physical rejected", () => {
     expect(
       validateCcReconSubmission(targets, COUNTS, {
         sku: "SKU-001",
@@ -123,6 +123,47 @@ describe("SCN-009 CC_RECON — canonical contract", () => {
         justification: "enough",
       }).allowed,
     ).toBe(false);
+    expect(
+      validateCcReconSubmission(targets, COUNTS, {
+        sku: "SKU-001",
+        bin: "B-01-R1-L1",
+        varianceQty: -3,
+        justification: "enough",
+        systemQty: 99,
+      }).allowed,
+    ).toBe(false);
+    expect(
+      validateCcReconSubmission(targets, COUNTS, {
+        sku: "SKU-001",
+        bin: "B-01-R1-L1",
+        varianceQty: -3,
+        justification: "enough",
+        physicalQty: 96,
+      }).allowed,
+    ).toBe(false);
+    expect(
+      validateCcReconSubmission(
+        targets,
+        [{ sku: "SKU-001", systemQty: 90, countedQty: 87, varianceQty: -3 }, COUNTS[1]],
+        {
+          sku: "SKU-001",
+          bin: "B-01-R1-L1",
+          varianceQty: -3,
+          justification: "enough",
+        },
+      ).allowed,
+    ).toBe(false);
+  });
+
+  it("zero variance does not require ADJ 0 or justification", () => {
+    expect(
+      validateCcReconSubmission(targets, COUNTS, {
+        sku: "SKU-003",
+        bin: "B-01-R1-L2",
+        varianceQty: 0,
+        justification: "",
+      }).allowed,
+    ).toBe(true);
   });
 });
 
@@ -311,6 +352,21 @@ describe("SCN-009 CC_RECON — concurrent atomic claim (Promise.all)", () => {
     );
     expect(progress.statuses.find((s) => s.sku === "SKU-001")?.status).toBe("RECONCILED_WITH_ADJUSTMENT");
     expect(progress.complete).toBe(false);
+  });
+
+  it("13: Drizzle-wrapped ER_DUP_ENTRY shape remains detectable for idempotent loser path", () => {
+    const drizzleWrapped = {
+      message: "Failed query: insert into `cc_recon_target_claims`",
+      cause: {
+        code: "ER_DUP_ENTRY",
+        errno: 1062,
+        sqlMessage:
+          "Duplicate entry 'CC_RECON:1:SKU-001:B-01-R1-L1' for key 'cc_recon_target_claims_key_uidx'",
+      },
+    };
+    expect(drizzleWrapped.cause.code).toBe("ER_DUP_ENTRY");
+    expect(drizzleWrapped.cause.errno).toBe(1062);
+    expect(/duplicate|ER_DUP_ENTRY/i.test(drizzleWrapped.cause.sqlMessage)).toBe(true);
   });
 });
 

@@ -284,6 +284,30 @@ export const inventoryAdjustments = mysqlTable("inventory_adjustments", {
 
 export type InventoryAdjustment = typeof inventoryAdjustments.$inferSelect;
 
+// ─── CC_RECON target claims (SCN-009 atomic idempotency) ─────────────────────
+export const ccReconTargetClaims = mysqlTable("cc_recon_target_claims", {
+  id: int("id").autoincrement().primaryKey(),
+  runId: int("runId").notNull(),
+  stepCode: varchar("stepCode", { length: 32 }).notNull().default("CC_RECON"),
+  sku: varchar("sku", { length: 64 }).notNull(),
+  bin: varchar("bin", { length: 64 }).notNull(),
+  idempotencyKey: varchar("idempotencyKey", { length: 191 }).notNull(),
+  varianceQty: decimal("varianceQty", { precision: 10, scale: 2 }).notNull(),
+  status: varchar("status", { length: 32 }).notNull().default("CLAIMED"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  completedAt: timestamp("completedAt"),
+}, (table) => ({
+  keyUid: uniqueIndex("cc_recon_target_claims_key_uidx").on(table.idempotencyKey),
+  runTargetUid: uniqueIndex("cc_recon_target_claims_run_target_uidx").on(
+    table.runId,
+    table.stepCode,
+    table.sku,
+    table.bin,
+  ),
+}));
+
+export type CcReconTargetClaim = typeof ccReconTargetClaims.$inferSelect;
+
 // ─── Replenishment Params (Module 3) ─────────────────────────────────────────
 export const replenishmentParams = mysqlTable("replenishment_params", {
   id: int("id").autoincrement().primaryKey(),
