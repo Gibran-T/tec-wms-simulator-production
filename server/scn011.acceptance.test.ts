@@ -8,6 +8,8 @@ import {
   canExecuteStepM3,
   formatReplenishReasonWithStudentQty,
   getEffectiveM3Steps,
+  getM3StepsForRun,
+  hasM3LegacyPipelineEvidence,
   getM3StepAwardPoints,
   getNextRequiredStepAllModules,
   getReplenishmentParamsFromSeed,
@@ -263,5 +265,13 @@ describe("SCN-011 acceptance — isolation & identity", () => {
     expect(isM3ReplenishmentOnlyScenario(SCN_011)).toBe(true);
     expect(isM3ReplenishmentOnlyScenario(SCN_009)).toBe(false);
     expect(isM3ReplenishmentOnlyScenario(SCN_010)).toBe(false);
+  });
+
+  it("historical SCN-011 with CC evidence keeps 5 report steps", () => {
+    expect(hasM3LegacyPipelineEvidence(["CC_LIST", "CC_COUNT", "CC_RECON"], [])).toBe(true);
+    expect(getM3StepsForRun(SCN_011, ["CC_LIST", "CC_COUNT", "CC_RECON"], []).map((s) => s.code)).toEqual([
+      "CC_LIST", "CC_COUNT", "CC_RECON", "REPLENISH", "COMPLIANCE_M3",
+    ]);
+    expect(getM3StepsForRun(SCN_011, [], []).map((s) => s.code)).toEqual(["REPLENISH", "COMPLIANCE_M3"]);
   });
 });
