@@ -1110,167 +1110,35 @@ export function validateCycleCountEntriesComplete(
   return { allowed: true, complete: true };
 }
 
-/** Canonical CC_RECON idempotency key: CC_RECON:{runId}:{sku}:{bin} */
-export function buildCcReconIdempotencyKey(runId: number, sku: string, bin: string): string {
-  return `CC_RECON:${runId}:${sku}:${bin}`;
-}
-
-/** @deprecated Prefer buildCcReconIdempotencyKey — kept for readable diagnostics. */
-export function buildCcReconTargetKey(runId: number, sku: string, bin: string): string {
-  return buildCcReconIdempotencyKey(runId, sku, bin);
-}
-
-export function buildCcReconAdjDocRef(sku: string, bin: string): string {
-  return `CC_RECON:${sku}:${bin}`;
-}
-
-export type M3ReconTargetStatus =
-  | "PENDING"
-  | "RECONCILED_WITH_ADJUSTMENT"
-  | "RECONCILED_NO_ADJUSTMENT";
-
-export type M3CcReconClaimRow = {
-  sku: string;
-  bin: string;
-  varianceQty?: number | string;
-};
-
-export function getInventoryCountVarianceQty(row: M3InventoryCountRow): number {
-  if (row.varianceQty != null && row.varianceQty !== "") {
-    return Number(row.varianceQty);
-  }
-  return Number(row.countedQty) - Number(row.systemQty);
-}
-
-export function hasPostedCcReconAdj(
-  sku: string,
-  bin: string | undefined,
-  varianceQty: number,
-  transactions: M3TransactionRow[],
-): boolean {
-  return transactions.some(
-    (t) =>
-      t.docType === "ADJ" &&
-      t.sku === sku &&
-      t.posted &&
-      Number(t.qty) === varianceQty &&
-      (bin == null || !t.bin || t.bin === bin),
-  );
-}
-
-export function hasMatchingInventoryAdjustment(
-  sku: string,
-  varianceQty: number,
-  adjustments: M3InventoryAdjustmentRow[],
-): boolean {
-  return adjustments.some((a) => a.sku === sku && Number(a.adjustmentQty) === varianceQty);
-}
-
-/** Zero-variance confirmation is persisted as an inventory_adjustments row with qty 0 (no ADJ tx). */
-export function hasZeroVarianceConfirmation(
-  sku: string,
-  adjustments: M3InventoryAdjustmentRow[],
-): boolean {
-  return adjustments.some((a) => a.sku === sku && Number(a.adjustmentQty) === 0);
-}
-
-export function hasCcReconClaim(
-  target: M3CycleCountTarget,
-  claims: M3CcReconClaimRow[] | undefined,
-): boolean {
-  if (!claims || claims.length === 0) return false;
-  return claims.some(
-    (c) => c.sku === target.sku && (!target.bin || !c.bin || c.bin === target.bin),
-  );
-}
-
-export function getCcReconTargetStatus(
-  target: M3CycleCountTarget,
-  counts: M3InventoryCountRow[],
-  adjustments: M3InventoryAdjustmentRow[],
-  transactions: M3TransactionRow[],
-  claims?: M3CcReconClaimRow[],
-): { status: M3ReconTargetStatus; varianceQty: number | null } {
-  const row = findCountRow(counts, target.sku);
-  if (!row) return { status: "PENDING", varianceQty: null };
-  const varianceQty = getInventoryCountVarianceQty(row);
-
-  if (hasCcReconClaim(target, claims)) {
-    return {
-      status: varianceQty === 0 ? "RECONCILED_NO_ADJUSTMENT" : "RECONCILED_WITH_ADJUSTMENT",
-      varianceQty,
-    };
-  }
-
-  if (varianceQty === 0) {
-    if (hasZeroVarianceConfirmation(target.sku, adjustments)) {
-      return { status: "RECONCILED_NO_ADJUSTMENT", varianceQty };
-    }
-    return { status: "PENDING", varianceQty };
-  }
-  const adjOk = hasMatchingInventoryAdjustment(target.sku, varianceQty, adjustments);
-  const txOk = hasPostedCcReconAdj(target.sku, target.bin, varianceQty, transactions);
-  if (adjOk && txOk) {
-    return { status: "RECONCILED_WITH_ADJUSTMENT", varianceQty };
-  }
-  return { status: "PENDING", varianceQty };
-}
-
-export function evaluateCycleCountReconProgress(
+export function validateCycleCountReconComplete(
   targets: M3CycleCountTarget[],
   counts: M3InventoryCountRow[],
   adjustments: M3InventoryAdjustmentRow[],
   transactions: M3TransactionRow[],
-  claims?: M3CcReconClaimRow[],
-): ValidationResult & {
-  complete: boolean;
-  completedSkus: string[];
-  remainingSkus: string[];
-  reconciledCount: number;
-  requiredCount: number;
-  statuses: Array<{ sku: string; bin?: string; status: M3ReconTargetStatus; varianceQty: number | null }>;
-} {
+): ValidationResult & { complete: boolean } {
   const entriesCheck = validateCycleCountEntriesComplete(targets, counts);
-  if (!entriesCheck.complete) {
-    return {
-      ...entriesCheck,
-      completedSkus: [],
-      remainingSkus: targets.map((t) => t.sku),
-      reconciledCount: 0,
-      requiredCount: targets.length,
-      statuses: targets.map((t) => ({ sku: t.sku, bin: t.bin, status: "PENDING" as const, varianceQty: null })),
-    };
-  }
+  if (!entriesCheck.complete) return entriesCheck;
 
   const issues: string[] = [];
   const issuesFr: string[] = [];
-  const completedSkus: string[] = [];
-  const remainingSkus: string[] = [];
-  const statuses: Array<{ sku: string; bin?: string; status: M3ReconTargetStatus; varianceQty: number | null }> = [];
-
   for (const target of targets) {
-    const { status, varianceQty } = getCcReconTargetStatus(
-      target,
-      counts,
-      adjustments,
-      transactions,
-      claims,
+    const row = findCountRow(counts, target.sku)!;
+    const varianceQty = Number(row.countedQty) - Number(row.systemQty);
+    if (varianceQty === 0) continue;
+
+    const adj = adjustments.find((a) => a.sku === target.sku);
+    if (!adj || Number(adj.adjustmentQty) !== varianceQty) {
+      issues.push(`${target.sku}: variance ${varianceQty} not reconciled with matching ADJ`);
+      issuesFr.push(`${target.sku} : écart ${varianceQty} non réconcilié par un ADJ correspondant`);
+      continue;
+    }
+
+    const postedAdj = transactions.some(
+      (t) => t.docType === "ADJ" && t.sku === target.sku && t.posted && Number(t.qty) === varianceQty,
     );
-    statuses.push({ sku: target.sku, bin: target.bin, status, varianceQty });
-    if (status === "PENDING") {
-      remainingSkus.push(target.sku);
-      if (varianceQty === 0) {
-        issues.push(`${target.sku}: zero variance not confirmed`);
-        issuesFr.push(`${target.sku} : écart nul non confirmé`);
-      } else if (varianceQty == null) {
-        issues.push(`${target.sku}: missing count`);
-        issuesFr.push(`${target.sku} : comptage manquant`);
-      } else {
-        issues.push(`${target.sku}: variance ${varianceQty} not reconciled with matching ADJ`);
-        issuesFr.push(`${target.sku} : écart ${varianceQty} non réconcilié par un ADJ correspondant`);
-      }
-    } else {
-      completedSkus.push(target.sku);
+    if (!postedAdj) {
+      issues.push(`${target.sku}: missing posted ADJ transaction for variance ${varianceQty}`);
+      issuesFr.push(`${target.sku} : transaction ADJ postée manquante pour l'écart ${varianceQty}`);
     }
   }
 
@@ -1281,106 +1149,9 @@ export function evaluateCycleCountReconProgress(
       reason: issues.join("; "),
       reasonFr: issuesFr.join(" ; "),
       reasonEn: issues.join("; "),
-      completedSkus,
-      remainingSkus,
-      reconciledCount: completedSkus.length,
-      requiredCount: targets.length,
-      statuses,
     };
   }
-  return {
-    allowed: true,
-    complete: true,
-    completedSkus,
-    remainingSkus: [],
-    reconciledCount: completedSkus.length,
-    requiredCount: targets.length,
-    statuses,
-  };
-}
-
-export function validateCycleCountReconComplete(
-  targets: M3CycleCountTarget[],
-  counts: M3InventoryCountRow[],
-  adjustments: M3InventoryAdjustmentRow[],
-  transactions: M3TransactionRow[],
-  claims?: M3CcReconClaimRow[],
-): ValidationResult & {
-  complete: boolean;
-  completedSkus?: string[];
-  remainingSkus?: string[];
-  reconciledCount?: number;
-  requiredCount?: number;
-} {
-  const progress = evaluateCycleCountReconProgress(targets, counts, adjustments, transactions, claims);
-  return {
-    allowed: progress.allowed,
-    complete: progress.complete,
-    reason: progress.reason,
-    reasonFr: progress.reasonFr,
-    reasonEn: progress.reasonEn,
-    completedSkus: progress.completedSkus,
-    remainingSkus: progress.remainingSkus,
-    reconciledCount: progress.reconciledCount,
-    requiredCount: progress.requiredCount,
-  };
-}
-
-/** Validate one CC_RECON submission against the canonical target + counted variance. */
-export function validateCcReconSubmission(
-  targets: M3CycleCountTarget[],
-  counts: M3InventoryCountRow[],
-  input: { sku: string; bin: string; varianceQty: number; justification: string },
-  threshold: number = M3_VARIANCE_THRESHOLD_DEFAULT,
-): ValidationResult & { expectedVarianceQty?: number } {
-  const target = targets.find((t) => t.sku === input.sku);
-  if (!target) {
-    return {
-      allowed: false,
-      reason: `SKU ${input.sku} is not a required reconciliation target`,
-      reasonFr: `Le SKU ${input.sku} n'est pas une cible de réconciliation requise`,
-      reasonEn: `SKU ${input.sku} is not a required reconciliation target`,
-    };
-  }
-  if (target.bin && input.bin && target.bin !== input.bin) {
-    return {
-      allowed: false,
-      reason: `Bin ${input.bin} does not match required bin ${target.bin} for ${input.sku}`,
-      reasonFr: `L'emplacement ${input.bin} ne correspond pas au bin requis ${target.bin} pour ${input.sku}`,
-      reasonEn: `Bin ${input.bin} does not match required bin ${target.bin} for ${input.sku}`,
-    };
-  }
-  const countRow = findCountRow(counts, input.sku);
-  if (!countRow) {
-    return {
-      allowed: false,
-      reason: `Missing cycle count for ${input.sku}`,
-      reasonFr: `Comptage manquant pour ${input.sku}`,
-      reasonEn: `Missing cycle count for ${input.sku}`,
-    };
-  }
-  const expectedVarianceQty = getInventoryCountVarianceQty(countRow);
-  if (Math.abs(input.varianceQty - expectedVarianceQty) > 0.01) {
-    return {
-      allowed: false,
-      expectedVarianceQty,
-      reason: `Submitted variance ${input.varianceQty} does not match counted variance ${expectedVarianceQty}`,
-      reasonFr: `La variance saisie (${input.varianceQty}) ne correspond pas à l'écart compté (${expectedVarianceQty})`,
-      reasonEn: `Submitted variance ${input.varianceQty} does not match counted variance ${expectedVarianceQty}`,
-    };
-  }
-  if (expectedVarianceQty !== 0) {
-    const qtyCheck = validateAdjustment(expectedVarianceQty, input.varianceQty);
-    if (!qtyCheck.allowed) return { ...qtyCheck, expectedVarianceQty };
-    const justificationCheck = validateVarianceEntry(
-      Number(countRow.systemQty),
-      Number(countRow.countedQty),
-      input.justification,
-      threshold,
-    );
-    if (!justificationCheck.allowed) return { ...justificationCheck, expectedVarianceQty };
-  }
-  return { allowed: true, expectedVarianceQty };
+  return { allowed: true, complete: true };
 }
 
 export function validateReplenishmentSubmission(

@@ -151,9 +151,6 @@ import {
   validateCycleCountEntriesComplete,
   validateCycleCountListComplete,
   validateCycleCountReconComplete,
-  validateCcReconSubmission,
-  evaluateCycleCountReconProgress,
-  getCcReconTargetStatus,
   validateM3Compliance,
   validateM4Compliance,
   validateReplenishmentComplete,
@@ -1364,15 +1361,29 @@ export const appRouter = router({
           recommendations.push("En cas de dépassement de capacité, répartissez la quantité sur plusieurs bins STOCKAGE plutôt que de forcer un seul emplacement");
         if (!compliance.compliant)
           recommendations.push("Relancez la simulation en Mode Démonstration pour explorer librement les étapes sans pénalité");
-        if (recommendations.length === 0 && errors.length === 0 && run.status === "completed") {
-          const totalScorePreview = calculateTotalScore(events);
-          if (moduleId === 3 && isM3ReplenishmentOnlyScenario(m3InitialStateJson)) {
-            if (totalScorePreview >= getModuleScenarioPassThreshold(3)) {
+        if (recommendations.length === 0 && errors.length === 0) {
+          const reportScore = calculateTotalScore(events);
+          const reportIsReplenishmentOnly =
+            moduleId === 3 &&
+            isM3ReplenishmentOnlyScenario(m3InitialStateJson) &&
+            !hasM3LegacyPipelineEvidence(state.completedSteps as string[], events) &&
+            moduleSteps.length === 2;
+          if (reportIsReplenishmentOnly && run.status === "completed") {
+            recommendations.push(
+              "Excellente maîtrise de la planification Min/Max. Votre plan de réapprovisionnement respecte les seuils définis pour les deux SKU. Après validation du Module 3 par l'enseignant, poursuivez vers le Module 4.",
+            );
+          } else if (moduleId === 3 && hasM3LegacyPipelineEvidence(state.completedSteps as string[], events)) {
+            // Historical SCN-011 (or any M3 run with CC evidence): keep classic guidance; do not reinterpret as perfect Min/Max.
+            if (run.status === "completed" && reportScore >= 70) {
               recommendations.push(
-                "Excellente maîtrise de la planification Min/Max. Votre plan de réapprovisionnement respecte les seuils définis pour les deux SKU. Après validation du Module 3 par l'enseignant, poursuivez vers le Module 4.",
+                "Excellent travail. Vous maîtrisez le cycle counting et le replenishment. Vous êtes prêt pour le Module 4 (Wave Planning & Shipping).",
+              );
+            } else {
+              recommendations.push(
+                "Continuez à pratiquer le cycle counting et le replenishment avant de passer au Module 4.",
               );
             }
-          } else {
+          } else if (!(moduleId === 3 && isM3ReplenishmentOnlyScenario(m3InitialStateJson))) {
             recommendations.push("Excellente maîtrise du flux complet ! Passez au Module 2 pour approfondir FIFO, gestion de lots et traçabilité.");
           }
         }
@@ -3180,7 +3191,7 @@ export const appRouter = router({
         return { success: true, totalVariance, complete: true };
       }),
 
-    /** M3 Step 3: CC_RECON — reconcile & adjust (atomic per-target claim) */
+    /** M3 Step 3: CC_RECON — reconcile & adjust */
     submitCcRecon: protectedProcedure
       .input(z.object({
         runId: z.number(),
@@ -3192,196 +3203,91 @@ export const appRouter = router({
         })),
       }))
       .mutation(async ({ ctx, input }) => {
-        const { claimAndPersistCcReconTarget, getCcReconClaimsByRun } = await import("./ccReconAtomic");
         const run = await getRunById(input.runId);
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-
-        const progressPayload = (
-          progress: ReturnType<typeof evaluateCycleCountReconProgress>,
-          extra: Record<string, unknown> = {},
-        ) => ({
-          success: true as const,
-          complete: progress.complete,
-          remainingSkus: progress.remainingSkus,
-          completedSkus: progress.completedSkus,
-          reconciledCount: progress.reconciledCount,
-          requiredCount: progress.requiredCount,
-          statuses: progress.statuses,
-          ...extra,
-        });
-
-        if (run.status === "completed") {
-          return {
-            success: true,
-            adjustmentsApplied: 0,
-            complete: true,
-            alreadyComplete: true,
-            remainingSkus: [] as string[],
-            completedSkus: [] as string[],
-            reconciledCount: 0,
-            requiredCount: 0,
-          };
-        }
-
+        if (run.status === "completed") return { success: true, adjustmentsApplied: 0, complete: true };
         const state = await buildRunState(input.runId);
         const scenario = await getScenarioById(run.scenarioId);
         const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const targets = getCycleCountTargets(initialStateJson);
         const inventoryCounts = await getInventoryCountsByRun(input.runId);
         const inventoryAdjustmentsBefore = await getInventoryAdjustmentsByRun(input.runId);
-        const claimsBefore = await getCcReconClaimsByRun(input.runId);
-        const reconBefore = evaluateCycleCountReconProgress(
+        const reconBefore = validateCycleCountReconComplete(
           targets,
           inventoryCounts,
           inventoryAdjustmentsBefore,
           state.transactions,
-          claimsBefore,
         );
-
-        if (reconBefore.complete) {
-          if (!state.completedSteps.includes("CC_RECON")) {
-            await markStepComplete(input.runId, "CC_RECON");
-            if (!run.isDemo) {
-              await addScoringEventOnce({
-                runId: input.runId,
-                eventType: "CC_RECON_COMPLETED",
-                pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson),
-                message: "Réconciliation et ajustements validés",
-              });
-            }
-            const replenishParamsForRecon = getReplenishmentParamsFromSeed(initialStateJson);
-            if (replenishParamsForRecon.length === 0 && !state.completedSteps.includes("REPLENISH")) {
-              await markStepComplete(input.runId, "REPLENISH");
-              if (!run.isDemo) {
-                await addScoringEventOnce({
-                  runId: input.runId,
-                  eventType: "REPLENISH_COMPLETED",
-                  pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson),
-                  message: "Réapprovisionnement non requis pour ce scénario",
-                });
-              }
-            }
-          }
-          return progressPayload(reconBefore, {
-            adjustmentsApplied: 0,
-            alreadyReconciled: true,
-            alreadyComplete: true,
-          });
-        }
-
         const needsCatchUp = targets.length > 0 && !reconBefore.complete;
         const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-
         const varianceThreshold = getM3VarianceThreshold(initialStateJson);
         const replenishParamsForRecon = getReplenishmentParamsFromSeed(initialStateJson);
-        let adjustmentsApplied = 0;
-        let idempotentHits = 0;
-
         for (const adj of input.adjustments) {
-          const submissionCheck = validateCcReconSubmission(
-            targets,
-            inventoryCounts,
-            adj,
+          if (adj.varianceQty === 0) continue;
+          const qtyCheck = validateAdjustment(adj.varianceQty, adj.varianceQty);
+          if (!qtyCheck.allowed) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(qtyCheck, ctx.req) });
+          }
+          const countRow = inventoryCounts.find((c) => c.sku === adj.sku);
+          const systemQty = countRow
+            ? Number(countRow.systemQty)
+            : (state.inventory[`${adj.sku}::${adj.bin}`] ?? 0);
+          const countedQty = countRow
+            ? Number(countRow.countedQty)
+            : systemQty + adj.varianceQty;
+          const justificationCheck = validateVarianceEntry(
+            systemQty,
+            countedQty,
+            adj.justification,
             varianceThreshold,
           );
-          if (!submissionCheck.allowed) {
-            if (
-              submissionCheck.reason?.toLowerCase().includes("justification") ||
-              submissionCheck.reasonFr?.toLowerCase().includes("justification")
-            ) {
-              if (!run.isDemo) {
-                await addScoringEvent({
-                  runId: input.runId,
-                  eventType: "VARIANCE_JUSTIFICATION_MISSING",
-                  pointsDelta: -10,
-                  message: submissionCheck.reasonFr ?? "",
-                });
-              }
+          if (!justificationCheck.allowed) {
+            if (!run.isDemo) {
+              await addScoringEvent({
+                runId: input.runId,
+                eventType: "VARIANCE_JUSTIFICATION_MISSING",
+                pointsDelta: -10,
+                message: justificationCheck.reasonFr ?? "",
+              });
             }
-            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(submissionCheck, ctx.req) });
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(justificationCheck, ctx.req) });
           }
-
-          const expectedVarianceQty = submissionCheck.expectedVarianceQty ?? adj.varianceQty;
-          const target = targets.find((t) => t.sku === adj.sku)!;
-          const bin = adj.bin || target.bin || "";
-          const priorStatus = getCcReconTargetStatus(
-            target,
-            inventoryCounts,
-            inventoryAdjustmentsBefore,
-            state.transactions,
-            claimsBefore,
-          );
-          if (priorStatus.status !== "PENDING") {
-            idempotentHits += 1;
-            continue;
-          }
-
-          const writeResult = await claimAndPersistCcReconTarget({
-            runId: input.runId,
-            sku: adj.sku,
-            bin,
-            varianceQty: expectedVarianceQty,
-            justification: adj.justification.trim() || undefined,
-          });
-
-          if (writeResult.alreadyReconciled) {
-            idempotentHits += 1;
-          } else if (writeResult.created && expectedVarianceQty !== 0) {
-            adjustmentsApplied += 1;
-          }
+          await addInventoryAdjustment({ runId: input.runId, sku: adj.sku, varianceQty: adj.varianceQty, adjustmentQty: adj.varianceQty, reason: adj.justification.trim() || undefined });
+          await addTransaction({ runId: input.runId, docType: "ADJ", moveType: "MI07", sku: adj.sku, bin: adj.bin, qty: String(adj.varianceQty), posted: true, docRef: `ADJ-${adj.sku}`, comment: adj.justification.trim() || null });
         }
-
         const updatedState = await buildRunState(input.runId);
         const allAdjustments = await getInventoryAdjustmentsByRun(input.runId);
         const allCounts = await getInventoryCountsByRun(input.runId);
-        const claimsAfter = await getCcReconClaimsByRun(input.runId);
-        const reconCheck = evaluateCycleCountReconProgress(
+        const reconCheck = validateCycleCountReconComplete(
           targets,
           allCounts,
           allAdjustments,
           updatedState.transactions,
-          claimsAfter,
         );
-
         if (!reconCheck.complete) {
-          return progressPayload(reconCheck, {
-            adjustmentsApplied,
-            alreadyReconciled: idempotentHits > 0 && adjustmentsApplied === 0,
-          });
+          return {
+            success: true,
+            adjustmentsApplied: input.adjustments.filter((a) => a.varianceQty !== 0).length,
+            complete: false,
+          };
         }
-
         if (!state.completedSteps.includes("CC_RECON")) {
           await markStepComplete(input.runId, "CC_RECON");
-          if (!run.isDemo) {
-            await addScoringEventOnce({
-              runId: input.runId,
-              eventType: "CC_RECON_COMPLETED",
-              pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson),
-              message: "Réconciliation et ajustements validés",
-            });
-          }
+          if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "CC_RECON_COMPLETED", pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson), message: "Réconciliation et ajustements validés" });
+          // SCN-009 / SCN-010: no replenishment targets → auto-complete REPLENISH so the student
+          // can proceed directly to COMPLIANCE_M3 without a meaningless REPLENISH form submission.
           if (replenishParamsForRecon.length === 0 && !state.completedSteps.includes("REPLENISH")) {
             await markStepComplete(input.runId, "REPLENISH");
-            if (!run.isDemo) {
-              await addScoringEventOnce({
-                runId: input.runId,
-                eventType: "REPLENISH_COMPLETED",
-                pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson),
-                message: "Réapprovisionnement non requis pour ce scénario",
-              });
-            }
+            if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "REPLENISH_COMPLETED", pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson), message: "Réapprovisionnement non requis pour ce scénario" });
           }
         }
-
-        return progressPayload(reconCheck, {
-          adjustmentsApplied,
-          alreadyReconciled: idempotentHits > 0 && adjustmentsApplied === 0,
-        });
+        const adjustmentsApplied = input.adjustments.filter((a) => a.varianceQty !== 0).length;
+        return { success: true, adjustmentsApplied, complete: true };
       }),
 
     /** M3 Step 4: REPLENISH \u2014 replenishment suggestion */
