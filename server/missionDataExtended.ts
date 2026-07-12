@@ -97,7 +97,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
     ],
     failureConditions: [
       "Single-bin overflow (600 dans B-01-R1-L1)",
-      "PUTAWAY partiel (ex. 400) marqué comme terminé",
+      "PUTAWAY partiel (ex. 400) accepté / posté",
       "Lot incorrect",
       "Saldo residual em REC-01",
     ],

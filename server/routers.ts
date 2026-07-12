@@ -184,7 +184,8 @@ import {
   isScn007PutawayComplete,
   isScn007Scenario,
   projectInventoryAfterPutaway,
-  validateScn007PutawayInput,
+  projectTransactionsAfterPutaway,
+  validateScn007PutawayContract,
 } from "./scn007";
 import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
@@ -2203,7 +2204,8 @@ export const appRouter = router({
           return { success: true, demoWarning: pickReason(validation, ctx.req) };
         }
 
-        const scn007Check = validateScn007PutawayInput(state, {
+        // Canonical SCN-007 contract — reject before any mutation (both endpoints).
+        const scn007Check = validateScn007PutawayContract(state, {
           sku: input.sku,
           fromBin: input.fromBin,
           toBin: input.toBin,
@@ -2218,9 +2220,8 @@ export const appRouter = router({
               pointsDelta: -5,
               message: scn007Check.reasonFr,
             });
-            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
           }
-          return { success: true, demoWarning: pickReason(scn007Check, ctx.req) };
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
         }
 
         await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: input.lotNumber, receivedAt });
@@ -2234,9 +2235,18 @@ export const appRouter = router({
           toBin: input.toBin,
           qty: input.qty,
         });
+        const putDocRef = `PUT-${input.lotNumber}`;
+        const projectedTransactions = projectTransactionsAfterPutaway(state.transactions, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+          docRef: putDocRef,
+        });
         const projectedState = {
           ...state,
           inventory: projectedInventory,
+          transactions: projectedTransactions,
           scnCode: resolveScenarioScnCode(scenario),
           scenarioId: run.scenarioId,
           scenarioName: scenario?.name ?? null,
@@ -2852,7 +2862,8 @@ export const appRouter = router({
             throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(capacityCheck, ctx.req) });
           }
         }
-        const scn007Check = validateScn007PutawayInput(state, {
+        // Canonical SCN-007 contract — reject before any mutation (both endpoints).
+        const scn007Check = validateScn007PutawayContract(state, {
           sku: input.sku,
           fromBin: input.fromBin,
           toBin: input.toBin,
@@ -2867,23 +2878,31 @@ export const appRouter = router({
               pointsDelta: -5,
               message: scn007Check.reasonFr,
             });
-            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
           }
+          throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(scn007Check, ctx.req) });
         }
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.fromBin, qty: String(-input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addTransaction({ runId: input.runId, docType: "PUTAWAY", moveType: "LT0A", sku: input.sku, bin: input.toBin, qty: String(input.qty), posted: true, docRef: input.docRef, comment: input.comment ?? null });
         await addPutawayRecord({ runId: input.runId, sku: input.sku, fromBin: input.fromBin, toBin: input.toBin, qty: input.qty, lotNumber: lotNum, receivedAt: putawayReceivedAt });
 
-        // Complete PUTAWAY only when reception is fully cleared (SCN-007: exact 500+100 split)
+        // Complete PUTAWAY only when reception is fully cleared (SCN-007: exact 500+100 split + canonical sequence)
         const projectedInventory = projectInventoryAfterPutaway(state.inventory, {
           sku: input.sku,
           fromBin: input.fromBin,
           toBin: input.toBin,
           qty: input.qty,
         });
+        const projectedTransactions = projectTransactionsAfterPutaway(state.transactions, {
+          sku: input.sku,
+          fromBin: input.fromBin,
+          toBin: input.toBin,
+          qty: input.qty,
+          docRef: input.docRef,
+        });
         const projectedState = {
           ...state,
           inventory: projectedInventory,
+          transactions: projectedTransactions,
           scnCode: resolveScenarioScnCode(scenarioForPutaway),
           scenarioId: run.scenarioId,
           scenarioName: scenarioForPutaway?.name ?? null,

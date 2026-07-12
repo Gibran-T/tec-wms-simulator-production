@@ -907,6 +907,89 @@ export default function StepForm() {
     return map[cfg.code] ?? null;
   }, [scnCode, cfg.code]);
 
+  /** SCN-007 localized copy — capacity split only; never FIFO / "4 sur 5" / partial recovery. */
+  const displayCfg = useMemo(() => {
+    if (scnCode !== "SCN-007") return cfg;
+    const etape = scn007Etape;
+    if (cfg.code === "PUTAWAY") {
+      return {
+        ...cfg,
+        etapeFr: etape?.fr ?? "Étape 2 sur 4",
+        etapeEn: etape?.en ?? "Step 2 of 4",
+        objectiveFr:
+          "Ranger exactement 500 unités du lot LOT-2025-002 vers B-01-R1-L1, puis exactement 100 unités vers B-01-R1-L2. Aucun rangement partiel n'est accepté.",
+        objectiveEn:
+          "Put away exactly 500 units of lot LOT-2025-002 to B-01-R1-L1, then exactly 100 units to B-01-R1-L2. No partial putaway is accepted.",
+        pedagogicalDeep: {
+          ...cfg.pedagogicalDeep,
+          whyFr:
+            "Ce scénario enseigne le contrôle de capacité d'emplacement : un bin max 500 force le split contractuel 500 + 100.",
+          whyEn:
+            "This scenario teaches bin capacity control: a max-500 bin forces the contractual 500 + 100 split.",
+          dependencyFr:
+            "Le PUTAWAY SCN-007 exige une GR postée (600 u. à REC-01). Seule la séquence exacte 500→L1 puis 100→L2 est autorisée.",
+          dependencyEn:
+            "SCN-007 PUTAWAY requires a posted GR (600 u. at REC-01). Only the exact sequence 500→L1 then 100→L2 is allowed.",
+          realErrorFr:
+            "Accepter un PUTAWAY de 400 (sous capacité) crée un état non contractuel — le système doit le rejeter avant toute mutation.",
+          realErrorEn:
+            "Accepting a 400-unit PUTAWAY (under capacity) creates a non-contractual state — the system must reject it before any mutation.",
+        },
+      };
+    }
+    if (cfg.code === "STOCK_ACCURACY") {
+      return {
+        ...cfg,
+        etapeFr: etape?.fr ?? "Étape 3 sur 4",
+        etapeEn: etape?.en ?? "Step 3 of 4",
+        objectiveFr:
+          "Vérifier que REC-01 est vide, que B-01-R1-L1 contient 500 unités et que B-01-R1-L2 contient 100 unités (total 600).",
+        objectiveEn:
+          "Verify that REC-01 is empty, B-01-R1-L1 holds 500 units and B-01-R1-L2 holds 100 units (total 600).",
+        pedagogicalDeep: {
+          ...cfg.pedagogicalDeep,
+          dependencyFr:
+            "La précision inventaire SCN-007 dépend du split PUTAWAY exact 500 + 100. FIFO n'appartient pas à ce scénario.",
+          dependencyEn:
+            "SCN-007 stock accuracy depends on the exact 500 + 100 PUTAWAY split. FIFO is not part of this scenario.",
+        },
+      };
+    }
+    if (cfg.code === "COMPLIANCE_ADV") {
+      return {
+        ...cfg,
+        etapeFr: etape?.fr ?? "Étape 4 sur 4",
+        etapeEn: etape?.en ?? "Step 4 of 4",
+        objectiveFr:
+          "Valider la conformité SCN-007 : capacité respectée, split 500+100 terminé, précision inventaire et traçabilité du lot LOT-2025-002.",
+        objectiveEn:
+          "Validate SCN-007 compliance: capacity respected, 500+100 split complete, inventory accuracy and lot LOT-2025-002 traceability.",
+        pedagogicalDeep: {
+          whyFr:
+            "La conformité avancée SCN-007 vérifie le contrôle de capacité (split 500+100), la précision inventaire et la traçabilité du lot LOT-2025-002. Le FIFO est enseigné dans le SCN-008.",
+          whyEn:
+            "SCN-007 advanced compliance verifies capacity control (500+100 split), inventory accuracy and lot LOT-2025-002 traceability. FIFO is taught in SCN-008.",
+          realSAPFr:
+            "Dans SAP, le contrôle de capacité d'emplacement est géré via les types de stockage et les contrôles LT01/LT0A.",
+          realSAPEn:
+            "In SAP, bin capacity control is managed via storage types and LT01/LT0A checks.",
+          dependencyFr:
+            "La conformité SCN-007 dépend de PUTAWAY (500+100) et STOCK_ACCURACY. FIFO_PICK n'est pas requis.",
+          dependencyEn:
+            "SCN-007 compliance depends on PUTAWAY (500+100) and STOCK_ACCURACY. FIFO_PICK is not required.",
+          realErrorFr:
+            "Une répartition non contractuelle (ex. 400+100+100) ou un overflow 600 bloque la conformité même si le total reste 600.",
+          realErrorEn:
+            "A non-contractual split (e.g. 400+100+100) or a 600 overflow blocks compliance even if the total remains 600.",
+        },
+      };
+    }
+    if (etape) {
+      return { ...cfg, etapeFr: etape.fr, etapeEn: etape.en };
+    }
+    return cfg;
+  }, [scnCode, cfg, scn007Etape]);
+
   const isScn007FifoNotInScenario = scnCode === "SCN-007" && cfg.code === "FIFO_PICK";
 
   const isAnalyticalStep = isAnalyticalAnswerStep(step);
@@ -1460,7 +1543,7 @@ export default function StepForm() {
 
   return (
     <FioriShell
-      title={`${t("Transaction", "Transaction")}: ${t(cfg.titleFr, cfg.titleEn)} (${cfg.code}) | ${t(scn007Etape?.fr ?? cfg.etapeFr, scn007Etape?.en ?? cfg.etapeEn)}`}
+      title={`${t("Transaction", "Transaction")}: ${t(cfg.titleFr, cfg.titleEn)} (${cfg.code}) | ${t(displayCfg.etapeFr, displayCfg.etapeEn)}`}
       breadcrumbs={[
         { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
         { label: "Mission Control", href: `/student/run/${runId}` },
@@ -1560,17 +1643,17 @@ export default function StepForm() {
               <div className="space-y-3">
                 <div>
                   <p className="text-xs font-semibold text-foreground mb-1">{t("Pourquoi cette étape ?", "Why this step?")}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.pedagogicalDeep.whyFr, cfg.pedagogicalDeep.whyEn)}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t(displayCfg.pedagogicalDeep.whyFr, displayCfg.pedagogicalDeep.whyEn)}</p>
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-foreground mb-1">{t("Dans SAP réel", "In real SAP")}</p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{t(cfg.pedagogicalDeep.realSAPFr, cfg.pedagogicalDeep.realSAPEn)}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{t(displayCfg.pedagogicalDeep.realSAPFr, displayCfg.pedagogicalDeep.realSAPEn)}</p>
                 </div>
                 <div className="bg-amber-50 dark:bg-amber-950/30 rounded-md p-3 border border-amber-200 dark:border-amber-800">
                   <p className="text-xs font-semibold text-amber-800 dark:text-amber-300 mb-1">
                     ⚠ {t("Erreur fréquente en production", "Common production error")}
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">{t(cfg.pedagogicalDeep.realErrorFr, cfg.pedagogicalDeep.realErrorEn)}</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">{t(displayCfg.pedagogicalDeep.realErrorFr, displayCfg.pedagogicalDeep.realErrorEn)}</p>
                 </div>
               </div>
             </div>
@@ -1669,7 +1752,7 @@ export default function StepForm() {
               </div>
             </div>
             <BackendTransparencyPanel runData={runData} />
-            <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+            <PedagogicalPanel cfg={displayCfg} isDemo={isDemo} />
             <button onClick={() => navigate(`/student/run/${runId}`)}
               className="flex items-center gap-2 text-xs text-primary hover:underline mt-4">
               <ArrowLeft size={13} /> {t("Retour au Mission Control", "Back to Mission Control")}
@@ -1720,7 +1803,7 @@ export default function StepForm() {
                       "Poster la réception fantôme existante pour activer le stock en zone RÉCEPTION.",
                       "Post the existing ghost receipt to activate stock in the RECEPTION zone."
                     )
-                  : t(cfg.objectiveFr, cfg.objectiveEn)}
+                  : t(displayCfg.objectiveFr, displayCfg.objectiveEn)}
               </p>
             </div>
             )}
@@ -2501,7 +2584,7 @@ export default function StepForm() {
             {/* Backend Transparency Panel (demo only) */}
             <div className="px-5 pb-5">
               <BackendTransparencyPanel runData={runData} />
-              <PedagogicalPanel cfg={cfg} isDemo={isDemo} />
+              <PedagogicalPanel cfg={displayCfg} isDemo={isDemo} />
             </div>
           </div>
         )}

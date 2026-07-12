@@ -31,6 +31,7 @@ import MentorHelpDrawer from "@/components/mentor/MentorHelpDrawer";
 import UnpostedTransactionsPanel from "@/components/UnpostedTransactionsPanel";
 import OperationalIntelligenceLayer from "@/components/operational-intelligence/OperationalIntelligenceLayer";
 import { getMissionForScenario, resolveScnCode } from "../../../../server/missionData";
+import { toScn007MonitorBusinessRows } from "../../../../server/scn007";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
 import M4KpiEvidenceFeed from "@/components/operational-intelligence/m4/M4KpiEvidenceFeed";
@@ -118,6 +119,31 @@ export default function MissionControl() {
     for (const tx of unpostedFromState ?? []) add({ ...tx, posted: false });
     return Array.from(merged.values());
   }, [transactionsFromState, txList, demoBackendState, unpostedFromState]);
+
+  /** SCN-007: group technical debit/credit PUTAWAY pairs into one business movement each. */
+  const monitorTransactions = useMemo(() => {
+    const earlyScn =
+      getMissionForScenario(
+        data?.scenario
+          ? { ...data.scenario, moduleId: data.scenario.moduleId ?? data.moduleId }
+          : null,
+      )?.scnCode ??
+      resolveScnCode(
+        data?.scenario
+          ? { ...data.scenario, moduleId: data.scenario.moduleId ?? data.moduleId }
+          : null,
+      );
+    if (earlyScn !== "SCN-007") return allTransactions;
+    return toScn007MonitorBusinessRows(allTransactions).map((row) => ({
+      docType: row.docType,
+      sku: row.sku,
+      bin: row.bin,
+      qty: row.qty,
+      posted: row.posted,
+      docRef: row.docRef,
+      lot: row.lot,
+    }));
+  }, [allTransactions, data?.scenario, data?.moduleId]);
 
   const unpostedTxs = useMemo(() => {
     const fromState = unpostedFromState ?? [];
@@ -767,14 +793,16 @@ export default function MissionControl() {
                     </tr>
                   </thead>
                   <tbody className="text-[10px] font-mono">
-                    {allTransactions.length > 0 ? (
-                      [...allTransactions].reverse().map((tx, idx) => {
+                    {monitorTransactions.length > 0 ? (
+                      [...monitorTransactions].reverse().map((tx, idx) => {
                         const isStudentAdj = isM3 && m3Evidence && isStudentAdjTransaction(tx, m3Evidence.initialStateJson);
                         const scn007Lot =
                           scnCode === "SCN-007"
-                            ? tx.docRef === "GR-M2-002" || tx.docRef === "PO-M2-002" || tx.docType === "PUTAWAY"
-                              ? "LOT-2025-002"
-                              : "—"
+                            ? ("lot" in tx && tx.lot)
+                              ? String(tx.lot)
+                              : tx.docRef === "GR-M2-002" || tx.docRef === "PO-M2-002" || tx.docType === "PUTAWAY"
+                                ? "LOT-2025-002"
+                                : "—"
                             : null;
                         return (
                         <tr key={idx} className={`border-b border-border hover:bg-slate-50 dark:hover:bg-slate-800/50 ${isStudentAdj ? "bg-primary/5" : ""}`}>

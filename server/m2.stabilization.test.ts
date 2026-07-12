@@ -108,7 +108,12 @@ describe("M2 stabilization — step sequence", () => {
       scenarioId: 7,
       completedSteps: ["GR", "PUTAWAY"] as string[],
       transactions: [
+        { docType: "PO", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "PO-M2-002" },
         { docType: "GR", sku: "SKU-002", bin: "REC-01", qty: 600, posted: true, docRef: "GR-M2-002" },
+        { docType: "PUTAWAY", sku: "SKU-002", bin: "REC-01", qty: -500, posted: true, docRef: "PUT-L1" },
+        { docType: "PUTAWAY", sku: "SKU-002", bin: "B-01-R1-L1", qty: 500, posted: true, docRef: "PUT-L1" },
+        { docType: "PUTAWAY", sku: "SKU-002", bin: "REC-01", qty: -100, posted: true, docRef: "PUT-L2" },
+        { docType: "PUTAWAY", sku: "SKU-002", bin: "B-01-R1-L2", qty: 100, posted: true, docRef: "PUT-L2" },
       ],
       inventory: {
         "SKU-002::REC-01": 0,

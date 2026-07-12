@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { calculateInventory } from "./rulesEngine";
+import { toScn007MonitorBusinessRows } from "./scn007";
 
 /** Monitor reads the same transaction ledger as runs.state.inventory. */
 describe("M2 monitor transaction alignment", () => {
@@ -18,10 +19,26 @@ describe("M2 monitor transaction alignment", () => {
     {
       docType: "PUTAWAY",
       sku: "SKU-002",
+      bin: "REC-01",
+      qty: -500,
+      posted: true,
+      docRef: "PUT-L1",
+    },
+    {
+      docType: "PUTAWAY",
+      sku: "SKU-002",
       bin: "B-01-R1-L1",
       qty: 500,
       posted: true,
       docRef: "PUT-L1",
+    },
+    {
+      docType: "PUTAWAY",
+      sku: "SKU-002",
+      bin: "REC-01",
+      qty: -100,
+      posted: true,
+      docRef: "PUT-L2",
     },
     {
       docType: "PUTAWAY",
@@ -49,17 +66,21 @@ describe("M2 monitor transaction alignment", () => {
     expect(calculateInventory(scn007Txs)["SKU-002::B-02-R1-L1"]).toBeUndefined();
   });
 
-  it("SCN-007 after split shows two PUTAWAY lines and total 600 in STOCKAGE", () => {
-    const inv = calculateInventory(scn007AfterSplit);
-    // Note: PUTAWAY without fromBin may add only destination in this helper —
-    // monitor alignment checks posted refs and absence of FIFO docs.
-    expect(scn007AfterSplit.map((t) => t.docRef)).toEqual([
+  it("SCN-007 after split shows two business PUTAWAY movements and total 600 in STOCKAGE", () => {
+    const business = toScn007MonitorBusinessRows(scn007AfterSplit);
+    const putaways = business.filter((r) => r.docType === "PUTAWAY");
+    expect(putaways).toHaveLength(2);
+    expect(putaways.map((p) => p.qty)).toEqual([500, 100]);
+    expect(business.map((t) => t.docRef)).toEqual([
       "PO-M2-002",
       "GR-M2-002",
       "PUT-L1",
       "PUT-L2",
     ]);
     expect(scn007AfterSplit.some((t) => t.docRef === "GR-M2-002-FIFO")).toBe(false);
-    expect((inv["SKU-002::B-01-R1-L1"] ?? 0) + (inv["SKU-002::B-01-R1-L2"] ?? 0)).toBeGreaterThan(0);
+    const inv = calculateInventory(scn007AfterSplit);
+    expect(inv["SKU-002::REC-01"]).toBe(0);
+    expect(inv["SKU-002::B-01-R1-L1"]).toBe(500);
+    expect(inv["SKU-002::B-01-R1-L2"]).toBe(100);
   });
 });
