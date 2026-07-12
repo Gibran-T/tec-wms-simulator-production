@@ -10,6 +10,7 @@ import {
   computeVariance,
   formatReplenishReasonWithStudentQty,
   getCycleCountTargets,
+  getEffectiveM3Steps,
   getReplenishmentParamsFromSeed,
   validateCycleCountEntriesComplete,
   validateCycleCountListComplete,
@@ -47,7 +48,7 @@ const SCN_011: M3InitialStateJson = {
 // ─── Step sequencing ─────────────────────────────────────────────────────────
 
 describe("M3 Smoke — step sequencing (canExecuteStepM3)", () => {
-  it("CC_LIST is allowed with empty completedSteps", () => {
+  it("CC_LIST is allowed with empty completedSteps (full M3 pipeline)", () => {
     expect(canExecuteStepM3("CC_LIST" as any, [] as any).allowed).toBe(true);
   });
   it("CC_COUNT requires CC_LIST", () => {
@@ -58,13 +59,17 @@ describe("M3 Smoke — step sequencing (canExecuteStepM3)", () => {
     expect(canExecuteStepM3("CC_RECON" as any, ["CC_LIST"] as any).allowed).toBe(false);
     expect(canExecuteStepM3("CC_RECON" as any, ["CC_LIST", "CC_COUNT"] as any).allowed).toBe(true);
   });
-  it("REPLENISH requires CC_RECON", () => {
+  it("REPLENISH requires CC_RECON on full pipeline", () => {
     expect(canExecuteStepM3("REPLENISH" as any, ["CC_LIST", "CC_COUNT"] as any).allowed).toBe(false);
     expect(canExecuteStepM3("REPLENISH" as any, ["CC_LIST", "CC_COUNT", "CC_RECON"] as any).allowed).toBe(true);
   });
-  it("COMPLIANCE_M3 requires REPLENISH", () => {
+  it("COMPLIANCE_M3 requires REPLENISH on full pipeline", () => {
     expect(canExecuteStepM3("COMPLIANCE_M3" as any, ["CC_LIST", "CC_COUNT", "CC_RECON"] as any).allowed).toBe(false);
     expect(canExecuteStepM3("COMPLIANCE_M3" as any, ["CC_LIST", "CC_COUNT", "CC_RECON", "REPLENISH"] as any).allowed).toBe(true);
+  });
+  it("SCN-011 starts at REPLENISH with no CC prerequisite", () => {
+    expect(canExecuteStepM3("REPLENISH" as any, [] as any, SCN_011).allowed).toBe(true);
+    expect(canExecuteStepM3("CC_LIST" as any, [] as any, SCN_011).allowed).toBe(false);
   });
 });
 
@@ -213,31 +218,20 @@ describe("M3 Smoke — SCN-010 full flow", () => {
 describe("M3 Smoke — SCN-011 full flow", () => {
   const params = getReplenishmentParamsFromSeed(SCN_011);
   const targets = getCycleCountTargets(SCN_011);
+  const inventory = { "SKU-004::B-01-R1-L1": 30, "SKU-005::B-01-R1-L2": 40 };
 
   it("SCN-011 has no cycle count targets", () => {
     expect(targets.length).toBe(0);
   });
 
-  it("CC_LIST: completes immediately (no targets)", () => {
-    const result = validateCycleCountListComplete(targets, []);
-    expect(result.allowed).toBe(true);
-    expect(result.complete).toBe(true);
-  });
-
-  it("CC_COUNT: completes immediately (no targets)", () => {
-    const result = validateCycleCountEntriesComplete(targets, []);
-    expect(result.complete).toBe(true);
-  });
-
-  it("CC_RECON: completes immediately (no targets)", () => {
-    const result = validateCycleCountReconComplete(targets, [], [], []);
-    expect(result.complete).toBe(true);
+  it("effective pipeline is REPLENISH → COMPLIANCE_M3 only", () => {
+    expect(getEffectiveM3Steps(SCN_011).map((s) => s.code)).toEqual(["REPLENISH", "COMPLIANCE_M3"]);
   });
 
   it("REPLENISH: requires both SKU-004 and SKU-005", () => {
     const partial = validateReplenishmentComplete(params, [
       { sku: "SKU-004", systemQty: 30, suggestedQty: 170, reason: formatReplenishReasonWithStudentQty("Below Min", 170) },
-    ]);
+    ], inventory);
     expect(partial.complete).toBe(false);
     expect(partial.reasonFr).toMatch(/SKU-005/);
   });
@@ -246,7 +240,7 @@ describe("M3 Smoke — SCN-011 full flow", () => {
     const result = validateReplenishmentComplete(params, [
       { sku: "SKU-004", systemQty: 30, suggestedQty: 170, reason: formatReplenishReasonWithStudentQty("Below Min", 170) },
       { sku: "SKU-005", systemQty: 40, suggestedQty: 260, reason: formatReplenishReasonWithStudentQty("Below Min", 260) },
-    ]);
+    ], inventory);
     expect(result.complete).toBe(true);
   });
 

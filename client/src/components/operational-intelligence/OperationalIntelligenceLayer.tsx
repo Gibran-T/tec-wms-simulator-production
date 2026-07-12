@@ -799,7 +799,7 @@ function PanelF({
             status === "active" ? "bg-primary text-primary-foreground border-primary" :
             status === "demo-available" ? "bg-indigo-100 text-indigo-800 border-indigo-300" :
             "bg-slate-100 text-slate-500 border-slate-200";
-          const isConfirmatory = scnCode === "SCN-011" && ["CC_LIST", "CC_COUNT", "CC_RECON"].includes(s.key);
+          const isConfirmatory = false;
           const isReplenishFocus = scnCode === "SCN-011" && s.key === "REPLENISH";
           return (
             <span key={s.key} className={`text-[9px] font-mono font-bold px-2 py-0.5 border ${cls}`}>

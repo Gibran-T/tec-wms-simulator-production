@@ -67,7 +67,13 @@ export const MODULE3_STEPS = [
   { code: "COMPLIANCE_M3", labelFr: "Conformité Module 3", labelEn: "M3 Compliance", order: 5, prerequisite: "REPLENISH", moduleId: 3 }
 ];
 
-/** M3 pipeline step maxima — SCN-011 adds ROP/EOQ planning events (+20) on top of this 80-pt base (= 100). */
+/** SCN-011 (replenishment-only) — Min/Max planning without cycle-count steps. */
+export const MODULE3_REPLENISH_ONLY_STEPS = [
+  { code: "REPLENISH", labelFr: "Réapprovisionnement Min/Max", labelEn: "Min/Max Replenishment", order: 1, prerequisite: null, moduleId: 3 },
+  { code: "COMPLIANCE_M3", labelFr: "Conformité Module 3", labelEn: "M3 Compliance", order: 2, prerequisite: "REPLENISH", moduleId: 3 },
+];
+
+/** Legacy M3 pipeline maxima (historical SCN-011 ROP/EOQ model + base). Kept for historical event readability. */
 export const M3_STEP_MAX = {
   CC_LIST: 10,
   CC_COUNT: 20,
@@ -87,12 +93,32 @@ export const M3_STEP_MAX_SCALED = {
   COMPLIANCE_M3: 18,
 } as const;
 
+/** Transparent SCN-011 scoring — REPLENISH 90 + COMPLIANCE_M3 10 = 100. */
+export const M3_011_STEP_MAX = {
+  REPLENISH: 90,
+  COMPLIANCE_M3: 10,
+} as const;
+
+export const M3_011_REPLENISH_AWARDS = {
+  BELOW_MIN_IDENTIFIED: 20,
+  PARAMS_CORRECT: 20,
+  SKU004_Q: 20,
+  SKU005_Q: 20,
+  BOTH_RECOMMENDATIONS: 10,
+} as const;
+
 export const M3_SCALED_PERFECT_TOTAL = Object.values(M3_STEP_MAX_SCALED).reduce((sum, pts) => sum + pts, 0);
 
+/** Report display: sum historical + new SCN-011 replenish events for a run. */
 export const M3_REPLENISH_SCORING_EVENTS = [
   "ROP_CHECK_COMPLETED",
   "EOQ_CALC_COMPLETED",
   "REPLENISH_COMPLETED",
+  "M3_BELOW_MIN_IDENTIFIED",
+  "M3_PARAMS_CORRECT",
+  "M3_SKU004_Q_CORRECT",
+  "M3_SKU005_Q_CORRECT",
+  "M3_BOTH_RECOMMENDATIONS",
 ] as const;
 
 export const M3_PIPELINE_PERFECT_TOTAL =
@@ -817,8 +843,51 @@ export function formatReplenishReasonWithStudentQty(baseReason: string, studentQ
   return `${stripped};studentQty=${studentQty}`;
 }
 
-export function hasM3ReplenishmentPlanning(initialStateJson?: M3InitialStateJson): boolean {
-  return getReplenishmentParamsFromSeed(initialStateJson).length > 0;
+export function hasM3ReplenishmentPlanning(initialStateJson?: M3InitialStateJson | Record<string, unknown> | null): boolean {
+  return getReplenishmentParamsFromSeed(initialStateJson as M3InitialStateJson | undefined).length > 0;
+}
+
+/** Structural identity for SCN-011: replenishment params present and no cycle-count targets. */
+export function isM3ReplenishmentOnlyScenario(
+  initialStateJson?: M3InitialStateJson | Record<string, unknown> | null,
+): boolean {
+  return (
+    hasM3ReplenishmentPlanning(initialStateJson) &&
+    getCycleCountTargets(initialStateJson as M3InitialStateJson | undefined).length === 0
+  );
+}
+
+/** Canonical M3 step resolver — SCN-009/010 full pipeline; SCN-011 REPLENISH → COMPLIANCE_M3 only. */
+export function getEffectiveM3Steps(
+  initialStateJson?: M3InitialStateJson | Record<string, unknown> | null,
+) {
+  if (isM3ReplenishmentOnlyScenario(initialStateJson)) {
+    return [...MODULE3_REPLENISH_ONLY_STEPS];
+  }
+  return [...MODULE3_STEPS];
+}
+
+export function resolveM3InitialStateJson(
+  state?: {
+    scenarioInitialStateJson?: Record<string, unknown> | null;
+    m3InitialStateJson?: M3InitialStateJson | null;
+  } | null,
+  fallback?: M3InitialStateJson | Record<string, unknown> | null,
+): M3InitialStateJson | undefined {
+  const raw =
+    fallback ??
+    state?.m3InitialStateJson ??
+    state?.scenarioInitialStateJson ??
+    null;
+  return (raw as M3InitialStateJson | null | undefined) ?? undefined;
+}
+
+export function stockQtyForSku(inventory: Record<string, number>, sku: string): number {
+  let total = 0;
+  for (const [key, qty] of Object.entries(inventory)) {
+    if (key.startsWith(`${sku}::`)) total += Number(qty);
+  }
+  return total;
 }
 
 type M3PipelineStepKey = keyof typeof M3_STEP_MAX;
@@ -829,7 +898,14 @@ export function getM3StepAwardPoints(
   step: M3StepAwardKey,
   initialStateJson?: M3InitialStateJson,
 ): number {
+  if (isM3ReplenishmentOnlyScenario(initialStateJson)) {
+    if (step === "COMPLIANCE_M3") return M3_011_STEP_MAX.COMPLIANCE_M3;
+    if (step === "REPLENISH") return M3_011_STEP_MAX.REPLENISH;
+    // CC / ROP / EOQ are not awarded on new SCN-011 runs
+    return 0;
+  }
   if (hasM3ReplenishmentPlanning(initialStateJson)) {
+    // Defensive: replenishment with CC targets (not current catalog) — legacy path
     const pipelineStep = step as M3PipelineStepKey;
     if (pipelineStep === "ROP_CHECK") return M3_STEP_MAX.ROP_CHECK;
     if (pipelineStep === "EOQ_CALC") return M3_STEP_MAX.EOQ_CALC;
@@ -842,7 +918,23 @@ export function getM3StepAwardPoints(
   return 0;
 }
 
-export function getM3ReplenishStepDisplayMax(initialStateJson?: M3InitialStateJson): number {
+export function getM3ReplenishStepDisplayMax(
+  initialStateJson?: M3InitialStateJson,
+  events?: Array<{ eventType: string }>,
+): number {
+  if (isM3ReplenishmentOnlyScenario(initialStateJson)) {
+    const hasLegacyPlanningEvents = (events ?? []).some(
+      (e) => e.eventType === "ROP_CHECK_COMPLETED" || e.eventType === "EOQ_CALC_COMPLETED" || e.eventType === "REPLENISH_COMPLETED",
+    );
+    const hasNewPlanningEvents = (events ?? []).some(
+      (e) => e.eventType === "M3_BELOW_MIN_IDENTIFIED" || e.eventType === "M3_BOTH_RECOMMENDATIONS",
+    );
+    // Historical SCN-011 runs used ROP/EOQ/REPLENISH (40). New runs use transparent 90.
+    if (hasLegacyPlanningEvents && !hasNewPlanningEvents) {
+      return M3_STEP_MAX.ROP_CHECK + M3_STEP_MAX.EOQ_CALC + M3_STEP_MAX.REPLENISH;
+    }
+    return M3_011_STEP_MAX.REPLENISH;
+  }
   if (hasM3ReplenishmentPlanning(initialStateJson)) {
     return M3_STEP_MAX.ROP_CHECK + M3_STEP_MAX.EOQ_CALC + M3_STEP_MAX.REPLENISH;
   }
@@ -877,6 +969,56 @@ export function scoreM3ReplenishQtyFromSuggestions(
     worst = Math.min(worst, scoreM3ReplenishQtyPoints(diff));
   }
   return worst;
+}
+
+/** Build transparent SCN-011 replenish awards once both SKUs are correctly completed. */
+export function buildM3011ReplenishScoringEvents(
+  params: M3ReplenishmentParam[],
+  suggestions: M3ReplenishmentSuggestionRow[],
+): Array<{ eventType: string; pointsDelta: number; message: string }> {
+  const bySku = (sku: string) => suggestions.find((s) => s.sku === sku);
+  const sku004Ok = (() => {
+    const p = params.find((x) => x.sku === "SKU-004");
+    const row = bySku("SKU-004");
+    if (!p || !row) return false;
+    const studentQty = parseStudentQtyFromReplenishReason(row.reason);
+    return studentQty === p.maxQty - Number(row.systemQty) && Number(row.suggestedQty) === studentQty;
+  })();
+  const sku005Ok = (() => {
+    const p = params.find((x) => x.sku === "SKU-005");
+    const row = bySku("SKU-005");
+    if (!p || !row) return false;
+    const studentQty = parseStudentQtyFromReplenishReason(row.reason);
+    return studentQty === p.maxQty - Number(row.systemQty) && Number(row.suggestedQty) === studentQty;
+  })();
+
+  return [
+    {
+      eventType: "M3_BELOW_MIN_IDENTIFIED",
+      pointsDelta: M3_011_REPLENISH_AWARDS.BELOW_MIN_IDENTIFIED,
+      message: "SKU sous Min identifiés (SKU-004 et SKU-005)",
+    },
+    {
+      eventType: "M3_PARAMS_CORRECT",
+      pointsDelta: M3_011_REPLENISH_AWARDS.PARAMS_CORRECT,
+      message: "Paramètres Min/Max/SS corrects pour les deux SKU",
+    },
+    {
+      eventType: "M3_SKU004_Q_CORRECT",
+      pointsDelta: sku004Ok ? M3_011_REPLENISH_AWARDS.SKU004_Q : 0,
+      message: "Calcul Q SKU-004 (Max − stock) validé",
+    },
+    {
+      eventType: "M3_SKU005_Q_CORRECT",
+      pointsDelta: sku005Ok ? M3_011_REPLENISH_AWARDS.SKU005_Q : 0,
+      message: "Calcul Q SKU-005 (Max − stock) validé",
+    },
+    {
+      eventType: "M3_BOTH_RECOMMENDATIONS",
+      pointsDelta: sku004Ok && sku005Ok ? M3_011_REPLENISH_AWARDS.BOTH_RECOMMENDATIONS : 0,
+      message: "Deux recommandations de réapprovisionnement validées",
+    },
+  ].filter((e) => e.pointsDelta > 0);
 }
 
 function findCountRow(counts: M3InventoryCountRow[], sku: string): M3InventoryCountRow | undefined {
@@ -976,40 +1118,152 @@ export function validateCycleCountReconComplete(
   return { allowed: true, complete: true };
 }
 
+export function validateReplenishmentSubmission(
+  params: M3ReplenishmentParam[],
+  input: {
+    sku: string;
+    systemQty: number;
+    minQty: number;
+    maxQty: number;
+    safetyStock: number;
+    studentQty: number;
+  },
+  inventory?: Record<string, number>,
+): ValidationResult {
+  const param = params.find((p) => p.sku === input.sku);
+  if (!param) {
+    return {
+      allowed: false,
+      reason: `SKU ${input.sku} is not a required replenishment target`,
+      reasonFr: `Le SKU ${input.sku} n'est pas une cible de réapprovisionnement requise`,
+      reasonEn: `SKU ${input.sku} is not a required replenishment target`,
+    };
+  }
+
+  const expectedSystemQty =
+    inventory && Object.keys(inventory).length > 0
+      ? stockQtyForSku(inventory, input.sku)
+      : input.systemQty;
+
+  if (inventory && Object.keys(inventory).length > 0 && input.systemQty !== expectedSystemQty) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: current stock must be ${expectedSystemQty}`,
+      reasonFr: `${input.sku} : le stock actuel doit être ${expectedSystemQty}`,
+      reasonEn: `${input.sku}: current stock must be ${expectedSystemQty}`,
+    };
+  }
+
+  if (input.minQty !== param.minQty) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: Min must be ${param.minQty}`,
+      reasonFr: `${input.sku} : le Min doit être ${param.minQty}`,
+      reasonEn: `${input.sku}: Min must be ${param.minQty}`,
+    };
+  }
+  if (input.maxQty !== param.maxQty) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: Max must be ${param.maxQty}`,
+      reasonFr: `${input.sku} : le Max doit être ${param.maxQty}`,
+      reasonEn: `${input.sku}: Max must be ${param.maxQty}`,
+    };
+  }
+  if (input.safetyStock !== param.safetyStock) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: safety stock must be ${param.safetyStock}`,
+      reasonFr: `${input.sku} : le stock de sécurité doit être ${param.safetyStock}`,
+      reasonEn: `${input.sku}: safety stock must be ${param.safetyStock}`,
+    };
+  }
+
+  const expected = computeReplenishmentSuggestion({
+    sku: param.sku,
+    systemQty: expectedSystemQty,
+    minQty: param.minQty,
+    maxQty: param.maxQty,
+    safetyStock: param.safetyStock,
+  });
+
+  if (!expected.needsReplenishment) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: stock is not below Min`,
+      reasonFr: `${input.sku} : le stock n'est pas sous le seuil Min`,
+      reasonEn: `${input.sku}: stock is not below Min`,
+    };
+  }
+
+  if (input.studentQty !== expected.suggestedQty) {
+    return {
+      allowed: false,
+      reason: `${input.sku}: Q must equal Max − current stock (${expected.suggestedQty})`,
+      reasonFr: `${input.sku} : Q doit être égal à Max − stock actuel (${expected.suggestedQty})`,
+      reasonEn: `${input.sku}: Q must equal Max − current stock (${expected.suggestedQty})`,
+    };
+  }
+
+  return { allowed: true };
+}
+
 export function validateReplenishmentComplete(
   params: M3ReplenishmentParam[],
   suggestions: M3ReplenishmentSuggestionRow[],
-): ValidationResult & { complete: boolean } {
-  if (params.length === 0) return { allowed: true, complete: true };
+  inventory?: Record<string, number>,
+): ValidationResult & { complete: boolean; completedSkus?: string[]; remainingSkus?: string[] } {
+  if (params.length === 0) return { allowed: true, complete: true, completedSkus: [], remainingSkus: [] };
 
   const issues: string[] = [];
   const issuesFr: string[] = [];
+  const completedSkus: string[] = [];
+  const remainingSkus: string[] = [];
+
   for (const param of params) {
     const row = suggestions.find((s) => s.sku === param.sku);
     if (!row) {
+      remainingSkus.push(param.sku);
       issues.push(`Missing replenishment for ${param.sku}`);
       issuesFr.push(`Réapprovisionnement manquant pour ${param.sku}`);
       continue;
     }
 
+    const expectedSystemQty =
+      inventory && Object.keys(inventory).length > 0
+        ? stockQtyForSku(inventory, param.sku)
+        : Number(row.systemQty);
+
     const expected = computeReplenishmentSuggestion({
       sku: param.sku,
-      systemQty: Number(row.systemQty),
+      systemQty: expectedSystemQty,
       minQty: param.minQty,
       maxQty: param.maxQty,
       safetyStock: param.safetyStock,
     });
     const suggestedQty = Number(row.suggestedQty);
     const studentQty = parseStudentQtyFromReplenishReason(row.reason);
+    const systemOk = Number(row.systemQty) === expectedSystemQty;
 
+    if (!systemOk) {
+      remainingSkus.push(param.sku);
+      issues.push(`${param.sku}: incorrect current stock ${row.systemQty}`);
+      issuesFr.push(`${param.sku} : stock actuel incorrect ${row.systemQty}`);
+      continue;
+    }
     if (suggestedQty !== expected.suggestedQty) {
+      remainingSkus.push(param.sku);
       issues.push(`${param.sku}: invalid system suggestion ${suggestedQty}`);
       issuesFr.push(`${param.sku} : suggestion système invalide ${suggestedQty}`);
+      continue;
     }
     if (studentQty === null || studentQty !== expected.suggestedQty) {
+      remainingSkus.push(param.sku);
       issues.push(`${param.sku}: student qty must equal ${expected.suggestedQty}`);
       issuesFr.push(`${param.sku} : quantité étudiant doit être ${expected.suggestedQty}`);
+      continue;
     }
+    completedSkus.push(param.sku);
   }
 
   if (issues.length > 0) {
@@ -1019,9 +1273,11 @@ export function validateReplenishmentComplete(
       reason: issues.join("; "),
       reasonFr: issuesFr.join(" ; "),
       reasonEn: issues.join("; "),
+      completedSkus,
+      remainingSkus,
     };
   }
-  return { allowed: true, complete: true };
+  return { allowed: true, complete: true, completedSkus, remainingSkus: [] };
 }
 
 export function validateM3Compliance(input: {
@@ -1299,11 +1555,12 @@ export function validateM4Compliance(input: {
   };
 }
 
-export function canExecuteStepM3(step, completedSteps) {
-  const stepDef = MODULE3_STEPS.find((s) => s.code === step);
+export function canExecuteStepM3(step, completedSteps, initialStateJson?) {
+  const steps = getEffectiveM3Steps(initialStateJson);
+  const stepDef = steps.find((s) => s.code === step);
   if (!stepDef) return { allowed: false, reason: "Unknown M3 step", reasonFr: "Étape M3 inconnue", reasonEn: "Unknown M3 step" };
   if (stepDef.prerequisite && !completedSteps.includes(stepDef.prerequisite)) {
-    const prereqDef = MODULE3_STEPS.find((s) => s.code === stepDef.prerequisite);
+    const prereqDef = steps.find((s) => s.code === stepDef.prerequisite);
     return {
       allowed: false,
       reason: `Step ${stepDef.prerequisite} must be completed first`,
@@ -1408,8 +1665,10 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
   let steps;
   if (moduleId === 1) {
     steps = getEffectiveM1Steps(state);
+  } else if (moduleId === 3) {
+    steps = getEffectiveM3Steps(resolveM3InitialStateJson(state));
   } else {
-    steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
+    steps = moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
   }
 
   // SCN-002/005: any unposted GR blocks later steps until posted
@@ -1443,8 +1702,13 @@ export function getNextRequiredStep(completedSteps, moduleId = 1, state) {
   }
   return null;
 }
-export function calculateProgressPct(completedSteps, moduleId = 1) {
-  const steps = moduleId === 3 ? MODULE3_STEPS : moduleId === 2 ? MODULE2_STEPS : MODULE1_STEPS;
+export function calculateProgressPct(completedSteps, moduleId = 1, state?) {
+  const steps =
+    moduleId === 3
+      ? getEffectiveM3Steps(resolveM3InitialStateJson(state))
+      : moduleId === 2
+        ? MODULE2_STEPS
+        : MODULE1_STEPS;
   return Math.round(completedSteps.length / steps.length * 100);
 }
 export const MODULE4_STEPS = [
@@ -2503,9 +2767,10 @@ export function getNextRequiredStepAllModules(completedSteps, moduleId, state) {
     steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
   } else if (moduleId === 2) {
     steps = getEffectiveM2Steps(state);
+  } else if (moduleId === 3) {
+    steps = getEffectiveM3Steps(resolveM3InitialStateJson(state));
   } else {
     const stepsMap = {
-      3: MODULE3_STEPS,
       4: MODULE4_STEPS,
       5: MODULE5_STEPS
     };
@@ -2528,9 +2793,10 @@ export function calculateProgressPctAllModules(completedSteps, moduleId, state) 
     steps = getEffectiveM5Steps(state?.m5InitialStateJson, state);
   } else if (moduleId === 2) {
     steps = getEffectiveM2Steps(state);
+  } else if (moduleId === 3) {
+    steps = getEffectiveM3Steps(resolveM3InitialStateJson(state));
   } else {
     const stepsMap = {
-      3: MODULE3_STEPS,
       4: MODULE4_STEPS,
       5: MODULE5_STEPS
     };

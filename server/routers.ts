@@ -107,16 +107,20 @@ import {
   isModule3Unlocked,
   MODULE1_STEPS,
   MODULE2_STEPS,
-  MODULE3_STEPS,
   MODULE4_STEPS,
   MODULE5_STEPS,
   M4_STEP_MAX,
   M3_STEP_MAX,
   M3_STEP_MAX_SCALED,
+  M3_011_STEP_MAX,
   M3_REPLENISH_SCORING_EVENTS,
+  getEffectiveM3Steps,
+  isM3ReplenishmentOnlyScenario,
   getM3StepAwardPoints,
   getM3ReplenishStepDisplayMax,
   scoreM3ReplenishQtyFromSuggestions,
+  buildM3011ReplenishScoringEvents,
+  validateReplenishmentSubmission,
   validatePutaway,
   validateGRZone,
   validatePutawayM1Zone,
@@ -190,7 +194,7 @@ import {
 import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyticsRoster";
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
-import { computeModulePassResult } from "@shared/moduleThresholds";
+import { computeModulePassResult, getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { mentorRouter } from "./aiMentor/router";
@@ -1138,9 +1142,11 @@ export const appRouter = router({
         const bestScore = scores.length ? Math.max(...scores) : 0;
         const lastScore = scores.length ? scores[scores.length - 1] : 0;
         const trend     = scores.length >= 2 ? lastScore - scores[scores.length - 2] : 0;
-        const passed    = bestScore >= 60;
+        const firstScenario = filtered[0]?.scenario;
+        const passThreshold = getModuleScenarioPassThreshold(firstScenario?.moduleId ?? 1);
+        const passed    = bestScore >= passThreshold;
 
-        return { attempts, bestScore, lastScore, trend, passed, totalAttempts: attempts.length };
+        return { attempts, bestScore, lastScore, trend, passed, totalAttempts: attempts.length, passThreshold };
       }),
 
     /** Detailed report: per-step scores, errors, and recommendations */
@@ -1207,15 +1213,15 @@ export const appRouter = router({
           M5_KPI: { zone: "ANALYTIQUE" }, M5_DECISION: { zone: "STRATÉGIQUE" }, COMPLIANCE_M5: { zone: "SYSTÈME" },
         };
         // ── Select steps for this module ─────────────────────────────────────
+        const m3InitialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const moduleSteps = moduleId === 2 ? getEffectiveM2Steps(state)
-          : moduleId === 3 ? MODULE3_STEPS
+          : moduleId === 3 ? getEffectiveM3Steps(m3InitialStateJson)
           : moduleId === 4 ? MODULE4_STEPS
           : moduleId === 5 ? getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)
           : moduleId === 1 ? getEffectiveM1Steps(state)
           : MODULE1_STEPS;
         const stepCodesToReport = moduleSteps.map(s => s.code as string);
         // ── Per-step score breakdown ─────────────────────────────────────────
-        const m3InitialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const stepBreakdown = stepCodesToReport.map(step => {
           const completed = state.completedSteps.includes(step as any);
           const completionEvent = STEP_EVENT_MAP_ALL[step];
@@ -1229,7 +1235,13 @@ export const appRouter = router({
                 : 0;
           const maxPoints =
             moduleId === 3 && step === "REPLENISH"
-              ? getM3ReplenishStepDisplayMax(m3InitialStateJson)
+              ? getM3ReplenishStepDisplayMax(m3InitialStateJson, events)
+              : moduleId === 3 && isM3ReplenishmentOnlyScenario(m3InitialStateJson) && step === "COMPLIANCE_M3"
+                ? (
+                    events.some((e) => e.eventType === "COMPLIANCE_M3_COMPLETED" && e.pointsDelta === M3_STEP_MAX.COMPLIANCE_M3)
+                      ? M3_STEP_MAX.COMPLIANCE_M3
+                      : M3_011_STEP_MAX.COMPLIANCE_M3
+                  )
               : moduleId === 3 && step in M3_STEP_MAX_SCALED
                 ? M3_STEP_MAX_SCALED[step as keyof typeof M3_STEP_MAX_SCALED]
                 : isScn004Scenario(state)
@@ -1347,8 +1359,15 @@ export const appRouter = router({
           recommendations.push("En cas de dépassement de capacité, répartissez la quantité sur plusieurs bins STOCKAGE plutôt que de forcer un seul emplacement");
         if (!compliance.compliant)
           recommendations.push("Relancez la simulation en Mode Démonstration pour explorer librement les étapes sans pénalité");
-        if (recommendations.length === 0 && errors.length === 0)
-          recommendations.push("Excellente maîtrise du flux complet ! Passez au Module 2 pour approfondir FIFO, gestion de lots et traçabilité.");
+        if (recommendations.length === 0 && errors.length === 0) {
+          if (moduleId === 3 && isM3ReplenishmentOnlyScenario(m3InitialStateJson)) {
+            recommendations.push(
+              "Excellente maîtrise de la planification Min/Max. Votre plan de réapprovisionnement respecte les seuils définis pour les deux SKU. Après validation du Module 3 par l'enseignant, poursuivez vers le Module 4.",
+            );
+          } else {
+            recommendations.push("Excellente maîtrise du flux complet ! Passez au Module 2 pour approfondir FIFO, gestion de lots et traçabilité.");
+          }
+        }
 
         const totalScore = calculateTotalScore(events);
         const { label: scoreLabel, color: scoreColor } = getScoreLabel(totalScore);
@@ -1456,7 +1475,7 @@ export const appRouter = router({
           totalSteps: (moduleId === 1
             ? getEffectiveM1Steps(state)
             : moduleId === 2 ? getEffectiveM2Steps(state)
-            : moduleId === 3 ? MODULE3_STEPS
+            : moduleId === 3 ? getEffectiveM3Steps(scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson)
             : moduleId === 4 ? MODULE4_STEPS
             : getEffectiveM5Steps(scenario?.initialStateJson as M5InitialStateJson, state)).length,
           certificationUnlocked: silverStatus.silverCertified,
@@ -1523,7 +1542,7 @@ export const appRouter = router({
           atpShortage,
           steps: moduleId === 1 ? getEffectiveM1Steps(state)
             : moduleId === 2 ? getEffectiveM2Steps(state)
-            : moduleId === 3 ? MODULE3_STEPS
+            : moduleId === 3 ? getEffectiveM3Steps(scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson)
             : moduleId === 4 ? MODULE4_STEPS
             : getEffectiveM5Steps(state.m5InitialStateJson, state),
           isDemo: run.isDemo,
@@ -3075,13 +3094,13 @@ export const appRouter = router({
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (run.status === "completed") return { success: true, skus: input.skus, complete: true };
         const state = await buildRunState(input.runId);
-        const check = canExecuteStepM3("CC_LIST" as any, state.completedSteps as any);
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const check = canExecuteStepM3("CC_LIST" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        const scenario = await getScenarioById(run.scenarioId);
-        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const targets = getCycleCountTargets(initialStateJson);
         const listCheck = validateCycleCountListComplete(targets, input.skus);
         if (!listCheck.allowed) {
@@ -3117,7 +3136,7 @@ export const appRouter = router({
         const existingCounts = await getInventoryCountsByRun(input.runId);
         const entriesBefore = validateCycleCountEntriesComplete(targets, existingCounts);
         const needsCatchUp = targets.length > 0 && !entriesBefore.complete;
-        const check = canExecuteStepM3("CC_COUNT" as any, state.completedSteps as any);
+        const check = canExecuteStepM3("CC_COUNT" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
@@ -3177,7 +3196,7 @@ export const appRouter = router({
           state.transactions,
         );
         const needsCatchUp = targets.length > 0 && !reconBefore.complete;
-        const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any);
+        const check = canExecuteStepM3("CC_RECON" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
@@ -3267,15 +3286,41 @@ export const appRouter = router({
         const scenario = await getScenarioById(run.scenarioId);
         const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
         const replenishParams = getReplenishmentParamsFromSeed(initialStateJson);
+        const inventory = state.inventory as Record<string, number>;
         const existingSuggestions = await getReplenishmentSuggestionsByRun(input.runId);
-        const replenishBefore = validateReplenishmentComplete(replenishParams, existingSuggestions);
+        const replenishBefore = validateReplenishmentComplete(replenishParams, existingSuggestions, inventory);
         const needsCatchUp = replenishParams.length > 0 && !replenishBefore.complete;
-        const check = canExecuteStepM3("REPLENISH" as any, state.completedSteps as any);
+        const check = canExecuteStepM3("REPLENISH" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed && !needsCatchUp) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        const suggestion = computeReplenishmentSuggestion({ sku: input.sku, systemQty: input.systemQty, minQty: input.minQty, maxQty: input.maxQty, safetyStock: input.safetyStock });
+
+        if (isM3ReplenishmentOnlyScenario(initialStateJson) || replenishParams.length > 0) {
+          const submissionCheck = validateReplenishmentSubmission(
+            replenishParams,
+            {
+              sku: input.sku,
+              systemQty: input.systemQty,
+              minQty: input.minQty,
+              maxQty: input.maxQty,
+              safetyStock: input.safetyStock,
+              studentQty: input.studentQty,
+            },
+            inventory,
+          );
+          if (!submissionCheck.allowed) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(submissionCheck, ctx.req) });
+          }
+        }
+
+        const suggestion = computeReplenishmentSuggestion({
+          sku: input.sku,
+          systemQty: input.systemQty,
+          minQty: input.minQty,
+          maxQty: input.maxQty,
+          safetyStock: input.safetyStock,
+        });
         const diff = Math.abs(input.studentQty - suggestion.suggestedQty);
         const reasonWithStudentQty = formatReplenishReasonWithStudentQty(suggestion.reason, input.studentQty);
         await upsertReplenishmentSuggestion({
@@ -3286,7 +3331,7 @@ export const appRouter = router({
           reason: reasonWithStudentQty,
         });
         const allSuggestions = await getReplenishmentSuggestionsByRun(input.runId);
-        const replenishCheck = validateReplenishmentComplete(replenishParams, allSuggestions);
+        const replenishCheck = validateReplenishmentComplete(replenishParams, allSuggestions, inventory);
         if (replenishParams.length > 0 && !replenishCheck.complete) {
           return {
             success: true,
@@ -3294,31 +3339,43 @@ export const appRouter = router({
             diff,
             studentQty: input.studentQty,
             complete: false,
-            remainingSkus: replenishParams.filter((p) => !allSuggestions.some((s) => s.sku === p.sku)).map((p) => p.sku),
+            remainingSkus: replenishCheck.remainingSkus ?? replenishParams.filter((p) => !(replenishCheck.completedSkus ?? []).includes(p.sku)).map((p) => p.sku),
+            completedSkus: replenishCheck.completedSkus ?? [],
           };
         }
         if (!state.completedSteps.includes("REPLENISH")) {
           await markStepComplete(input.runId, "REPLENISH");
           if (!run.isDemo) {
-            const qtyPoints = scoreM3ReplenishQtyFromSuggestions(replenishParams, allSuggestions);
-            await addScoringEvent({
-              runId: input.runId,
-              eventType: "ROP_CHECK_COMPLETED",
-              pointsDelta: M3_STEP_MAX.ROP_CHECK,
-              message: "Analyse ROP / seuil Min validée",
-            });
-            await addScoringEvent({
-              runId: input.runId,
-              eventType: "EOQ_CALC_COMPLETED",
-              pointsDelta: M3_STEP_MAX.EOQ_CALC,
-              message: "Calcul quantité réappro (Max − stock) validé",
-            });
-            await addScoringEvent({
-              runId: input.runId,
-              eventType: "REPLENISH_COMPLETED",
-              pointsDelta: qtyPoints,
-              message: `Réapprovisionnement: suggéré ${suggestion.suggestedQty}, étudiant ${input.studentQty}`,
-            });
+            if (isM3ReplenishmentOnlyScenario(initialStateJson)) {
+              for (const evt of buildM3011ReplenishScoringEvents(replenishParams, allSuggestions)) {
+                await addScoringEvent({
+                  runId: input.runId,
+                  eventType: evt.eventType,
+                  pointsDelta: evt.pointsDelta,
+                  message: evt.message,
+                });
+              }
+            } else {
+              const qtyPoints = scoreM3ReplenishQtyFromSuggestions(replenishParams, allSuggestions);
+              await addScoringEvent({
+                runId: input.runId,
+                eventType: "ROP_CHECK_COMPLETED",
+                pointsDelta: M3_STEP_MAX.ROP_CHECK,
+                message: "Analyse ROP / seuil Min validée",
+              });
+              await addScoringEvent({
+                runId: input.runId,
+                eventType: "EOQ_CALC_COMPLETED",
+                pointsDelta: M3_STEP_MAX.EOQ_CALC,
+                message: "Calcul quantité réappro (Max − stock) validé",
+              });
+              await addScoringEvent({
+                runId: input.runId,
+                eventType: "REPLENISH_COMPLETED",
+                pointsDelta: qtyPoints,
+                message: `Réapprovisionnement: suggéré ${suggestion.suggestedQty}, étudiant ${input.studentQty}`,
+              });
+            }
           }
         }
         return { success: true, suggestion, diff, studentQty: input.studentQty, complete: true };
@@ -3333,15 +3390,16 @@ export const appRouter = router({
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         if (run.status === "completed") return { success: true };
         const state = await buildRunState(input.runId);
-        const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any);
+        const scenario = await getScenarioById(run.scenarioId);
+        const initialStateJson = scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson;
+        const check = canExecuteStepM3("COMPLIANCE_M3" as any, state.completedSteps as any, initialStateJson);
         if (!check.allowed) {
           if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "OUT_OF_SEQUENCE", pointsDelta: -5, message: check.reasonFr ?? "" });
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(check, ctx.req) });
         }
-        const scenario = await getScenarioById(run.scenarioId);
         const artifacts = await loadM3ComplianceArtifacts(input.runId);
         const compliance = validateM3Compliance({
-          initialStateJson: scenario?.initialStateJson as import("./rulesEngine").M3InitialStateJson,
+          initialStateJson,
           inventoryCounts: artifacts.inventoryCounts,
           inventoryAdjustments: artifacts.inventoryAdjustments,
           replenishmentSuggestions: artifacts.replenishmentSuggestions,

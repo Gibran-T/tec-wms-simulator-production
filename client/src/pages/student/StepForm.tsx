@@ -854,12 +854,12 @@ export default function StepForm() {
   const { runId, step } = useParams<{ runId: string; step: string }>();
   const [, navigate] = useLocation();
   const { t, language } = useLanguage();
-  const cfg = STEP_CONFIG[step?.toLowerCase() ?? ""] ?? STEP_CONFIG.po;
+  const baseCfg = STEP_CONFIG[step?.toLowerCase() ?? ""] ?? STEP_CONFIG.po;
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
   const isM5KpiStep = step?.toLowerCase() === "m5_kpi";
   /** ADJ / MI07 — signed inventory variance; must not inherit positive-qty min from other steps. */
-  const isAdjStep = cfg.code === "ADJ" || step?.toLowerCase() === "adj";
+  const isAdjStep = baseCfg.code === "ADJ" || step?.toLowerCase() === "adj";
   const { data: m5KpiLedger } = trpc.m5.kpiLedger.useQuery(
     { runId: parseInt(runId) },
     { enabled: isM5KpiStep && !!runId },
@@ -880,6 +880,74 @@ export default function StepForm() {
 
   const m3CycleCountTargets = m3InitialState?.cycleCountTargets ?? [];
   const m3ReplenishmentParams = m3InitialState?.replenishmentParams ?? [];
+  const isM3ReplenishOnly =
+    m3ReplenishmentParams.length > 0 && m3CycleCountTargets.length === 0;
+  const cfg = useMemo(() => {
+    if (!isM3ReplenishOnly) return baseCfg;
+    if (step?.toLowerCase() === "replenish") {
+      return {
+        ...baseCfg,
+        titleFr: "Réapprovisionnement Min/Max",
+        titleEn: "Min/Max Replenishment",
+        txCode: "MD04",
+        tCode: "MD04",
+        etapeFr: "Étape 1 sur 2",
+        etapeEn: "Step 1 of 2",
+        objectiveFr:
+          "Analyser les niveaux actuels, identifier les SKU sous le seuil minimum, calculer Q = Max − stock actuel, puis générer une recommandation pour chaque SKU.",
+        objectiveEn:
+          "Analyze the current stock levels, identify the SKUs below the minimum threshold, calculate Q = Maximum stock − Current stock, and generate one recommendation for each SKU.",
+        pedagogicalDeep: {
+          whyFr:
+            "La planification Min/Max (MRP / reorder point) maintient le stock entre un seuil minimum et un maximum. Le stock de sécurité est un indicateur de risque, pas un additif à Q.",
+          whyEn:
+            "Min/Max planning (MRP / reorder point) keeps stock between a minimum and maximum. Safety stock is a risk indicator, not an add-on to Q.",
+          realSAPFr:
+            "Référence conceptuelle : MD04 (besoins en stock), politique Min/Max / reorder point. Q = Max − stock actuel.",
+          realSAPEn:
+            "Conceptual reference: MD04 (stock requirements), Min/Max / reorder-point policy. Q = Max − current stock.",
+          dependencyFr:
+            "Soumettez une recommandation pour chacun des deux SKU. L'étape est validée uniquement lorsque les deux quantités cibles sont correctes.",
+          dependencyEn:
+            "Submit one replenishment recommendation for each required SKU. The step is completed only when both target quantities are correct.",
+          realErrorFr:
+            "Remplir seulement jusqu'au Min, saisir Max comme quantité, ou ignorer un SKU laisse le plan de réapprovisionnement incomplet.",
+          realErrorEn:
+            "Filling only to Min, entering Max as the order quantity, or skipping a SKU leaves the replenishment plan incomplete.",
+        },
+      };
+    }
+    if (step?.toLowerCase() === "compliance_m3") {
+      return {
+        ...baseCfg,
+        etapeFr: "Étape 2 sur 2",
+        etapeEn: "Step 2 of 2",
+        objectiveFr:
+          "Valider que les deux recommandations respectent les paramètres Min/Max et le stock de sécurité comme indicateur de risque.",
+        objectiveEn:
+          "Validate that both replenishment recommendations comply with the Min/Max parameters and use safety stock as a risk indicator.",
+        pedagogicalDeep: {
+          whyFr:
+            "La conformité M3 pour ce scénario valide le plan de réapprovisionnement Min/Max multi-SKU, pas un cycle de comptage.",
+          whyEn:
+            "M3 compliance for this scenario validates the multi-SKU Min/Max replenishment plan, not a cycle-count flow.",
+          realSAPFr:
+            "Références : MRP / planification de réapprovisionnement, MD04, politique Min/Max.",
+          realSAPEn:
+            "References: MRP / replenishment planning, MD04, Min/Max policy.",
+          dependencyFr:
+            "La conformité dépend de REPLENISH avec les deux SKU validés.",
+          dependencyEn:
+            "Compliance depends on REPLENISH with both SKUs validated.",
+          realErrorFr:
+            "Une conformité sans les deux recommandations correctes laisse le plan d'approvisionnement incomplet.",
+          realErrorEn:
+            "Compliance without both correct recommendations leaves the supply plan incomplete.",
+        },
+      };
+    }
+    return baseCfg;
+  }, [baseCfg, isM3ReplenishOnly, step]);
   const m3ReplenishParamRows = useMemo(
     () => buildReplenishmentParamRows(m3ReplenishmentParams, (runData?.inventory ?? {}) as Record<string, number>),
     [m3ReplenishmentParams, runData?.inventory],
@@ -1979,7 +2047,7 @@ export default function StepForm() {
               )}
 
               {/* ── SCN-011: replenishment-only scenario — no cycle count targets ─── */}
-              {["cc_list", "cc_count", "cc_recon"].includes(step?.toLowerCase() ?? "") && m3CycleCountTargets.length === 0 && (
+              {["cc_list", "cc_count", "cc_recon"].includes(step?.toLowerCase() ?? "") && m3CycleCountTargets.length === 0 && !isM3ReplenishOnly && (
                 <div className="mb-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-700 rounded-lg">
                   <p className="text-[10px] font-bold text-amber-800 dark:text-amber-200 uppercase mb-1">
                     ℹ️ {t("Comptage non requis", "No cycle count required")}
@@ -2334,18 +2402,27 @@ export default function StepForm() {
                   {/* Min/Max Replenishment Pedagogical Reference Panel */}
                   <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider mb-2">
-                      📐 {t("Formules de référence — Min/Max & ROP", "Reference formulas — Min/Max & ROP")}
+                      📐 {t(
+                        isM3ReplenishOnly ? "Formules de référence — Min/Max" : "Formules de référence — Min/Max & ROP",
+                        isM3ReplenishOnly ? "Reference formulas — Min/Max" : "Reference formulas — Min/Max & ROP",
+                      )}
                     </p>
                     <div className="space-y-2 text-[10px] font-mono">
+                      {!isM3ReplenishOnly && (
                       <div className="bg-white dark:bg-blue-900/30 rounded p-2 border border-blue-100 dark:border-blue-800">
                         <p className="text-blue-600 dark:text-blue-300 font-bold mb-0.5">{t("Point de commande (ROP)", "Reorder Point (ROP)")}</p>
                         <p className="text-blue-800 dark:text-blue-200">ROP = {t("Stock de sécurité", "Safety Stock")} + (D × LT)</p>
                         <p className="text-blue-500 dark:text-blue-400 text-[9px] mt-0.5">{t("D = demande journalière, LT = délai fournisseur", "D = daily demand, LT = supplier lead time")}</p>
                       </div>
+                      )}
                       <div className="bg-white dark:bg-blue-900/30 rounded p-2 border border-blue-100 dark:border-blue-800">
                         <p className="text-blue-600 dark:text-blue-300 font-bold mb-0.5">{t("Quantité à commander", "Order Quantity")}</p>
                         <p className="text-blue-800 dark:text-blue-200">Q = {t("Stock max", "Max stock")} − {t("Stock actuel", "Current stock")}</p>
-                        <p className="text-blue-500 dark:text-blue-400 text-[9px] mt-0.5">{t("Si stock actuel ≤ ROP → déclencher commande", "If current stock ≤ ROP → trigger order")}</p>
+                        <p className="text-blue-500 dark:text-blue-400 text-[9px] mt-0.5">
+                          {isM3ReplenishOnly
+                            ? t("Stock de sécurité = indicateur de risque (ne pas ajouter à Q)", "Safety stock = risk indicator (do not add to Q)")
+                            : t("Si stock actuel ≤ ROP → déclencher commande", "If current stock ≤ ROP → trigger order")}
+                        </p>
                       </div>
                       <div className="bg-amber-50 dark:bg-amber-950/30 rounded p-2 border border-amber-200 dark:border-amber-800">
                         <p className="text-amber-700 dark:text-amber-300 font-bold mb-0.5">💡 {t("Exemple concret", "Concrete example")}</p>

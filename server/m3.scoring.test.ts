@@ -4,13 +4,18 @@
 import { describe, expect, it } from "vitest";
 import { calculateTotalScore } from "./scoringEngine";
 import {
+  M3_011_STEP_MAX,
   M3_PIPELINE_PERFECT_TOTAL,
   M3_SCALED_PERFECT_TOTAL,
   M3_STEP_MAX,
   M3_STEP_MAX_SCALED,
+  buildM3011ReplenishScoringEvents,
   formatReplenishReasonWithStudentQty,
+  getEffectiveM3Steps,
+  getM3ReplenishStepDisplayMax,
   getM3StepAwardPoints,
   getReplenishmentParamsFromSeed,
+  isM3ReplenishmentOnlyScenario,
   scoreM3ReplenishQtyFromSuggestions,
   type M3InitialStateJson,
 } from "./rulesEngine";
@@ -38,15 +43,8 @@ const SCN_011: M3InitialStateJson = {
 };
 
 function perfectM3EventsForState(initialStateJson: M3InitialStateJson) {
-  const events = [
-    { pointsDelta: getM3StepAwardPoints("CC_LIST", initialStateJson) },
-    { pointsDelta: getM3StepAwardPoints("CC_COUNT", initialStateJson) },
-    { pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson) },
-    { pointsDelta: getM3StepAwardPoints("COMPLIANCE_M3", initialStateJson) },
-  ];
-
-  const replenishParams = getReplenishmentParamsFromSeed(initialStateJson);
-  if (replenishParams.length > 0) {
+  if (isM3ReplenishmentOnlyScenario(initialStateJson)) {
+    const params = getReplenishmentParamsFromSeed(initialStateJson);
     const suggestions = [
       {
         sku: "SKU-004",
@@ -61,15 +59,19 @@ function perfectM3EventsForState(initialStateJson: M3InitialStateJson) {
         reason: formatReplenishReasonWithStudentQty("Below Min", 260),
       },
     ];
-    events.splice(3, 0,
-      { pointsDelta: M3_STEP_MAX.ROP_CHECK },
-      { pointsDelta: M3_STEP_MAX.EOQ_CALC },
-      { pointsDelta: scoreM3ReplenishQtyFromSuggestions(replenishParams, suggestions) },
-    );
-  } else {
-    events.splice(3, 0, { pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson) });
+    return [
+      ...buildM3011ReplenishScoringEvents(params, suggestions).map((e) => ({ pointsDelta: e.pointsDelta })),
+      { pointsDelta: getM3StepAwardPoints("COMPLIANCE_M3", initialStateJson) },
+    ];
   }
 
+  const events = [
+    { pointsDelta: getM3StepAwardPoints("CC_LIST", initialStateJson) },
+    { pointsDelta: getM3StepAwardPoints("CC_COUNT", initialStateJson) },
+    { pointsDelta: getM3StepAwardPoints("CC_RECON", initialStateJson) },
+    { pointsDelta: getM3StepAwardPoints("REPLENISH", initialStateJson) },
+    { pointsDelta: getM3StepAwardPoints("COMPLIANCE_M3", initialStateJson) },
+  ];
   return events;
 }
 
@@ -82,9 +84,8 @@ describe("M3 scoring model — budgets", () => {
     expect(M3_SCALED_PERFECT_TOTAL).toBe(100);
   });
 
-  it("SCN-011 planning events add ROP+EOQ on top of 80-pt pipeline", () => {
-    expect(M3_STEP_MAX.ROP_CHECK + M3_STEP_MAX.EOQ_CALC).toBe(20);
-    expect(M3_PIPELINE_PERFECT_TOTAL + M3_STEP_MAX.ROP_CHECK + M3_STEP_MAX.EOQ_CALC).toBe(100);
+  it("SCN-011 transparent model is REPLENISH 90 + COMPLIANCE 10", () => {
+    expect(M3_011_STEP_MAX.REPLENISH + M3_011_STEP_MAX.COMPLIANCE_M3).toBe(100);
   });
 
   it("M3 pass threshold is 70/100", () => {
@@ -108,39 +109,34 @@ describe("M3 perfect execution — 100/100 achievable", () => {
     expect(total).toBe(100);
   });
 
-  it("SCN-011: imperfect replenishment on one SKU still passes threshold 70", () => {
-    const params = getReplenishmentParamsFromSeed(SCN_011);
-    const suggestions = [
-      {
-        sku: "SKU-004",
-        systemQty: 30,
-        suggestedQty: 170,
-        reason: formatReplenishReasonWithStudentQty("Below Min", 170),
-      },
-      {
-        sku: "SKU-005",
-        systemQty: 40,
-        suggestedQty: 260,
-        reason: formatReplenishReasonWithStudentQty("Below Min", 240),
-      },
-    ];
-    const events = [
-      { pointsDelta: getM3StepAwardPoints("CC_LIST", SCN_011) },
-      { pointsDelta: getM3StepAwardPoints("CC_COUNT", SCN_011) },
-      { pointsDelta: getM3StepAwardPoints("CC_RECON", SCN_011) },
-      { pointsDelta: M3_STEP_MAX.ROP_CHECK },
-      { pointsDelta: M3_STEP_MAX.EOQ_CALC },
-      { pointsDelta: scoreM3ReplenishQtyFromSuggestions(params, suggestions) },
-      { pointsDelta: getM3StepAwardPoints("COMPLIANCE_M3", SCN_011) },
-    ];
-    const total = calculateTotalScore(events);
-    expect(total).toBeLessThan(100);
-    expect(total).toBeGreaterThanOrEqual(getModuleScenarioPassThreshold(3));
+  it("SCN-011: no CC / ROP / EOQ awards on new runs", () => {
+    expect(getM3StepAwardPoints("CC_LIST", SCN_011)).toBe(0);
+    expect(getM3StepAwardPoints("CC_COUNT", SCN_011)).toBe(0);
+    expect(getM3StepAwardPoints("CC_RECON", SCN_011)).toBe(0);
+    expect(getM3StepAwardPoints("ROP_CHECK", SCN_011)).toBe(0);
+    expect(getM3StepAwardPoints("EOQ_CALC", SCN_011)).toBe(0);
+    expect(getM3StepAwardPoints("COMPLIANCE_M3", SCN_011)).toBe(10);
+    expect(getM3ReplenishStepDisplayMax(SCN_011)).toBe(90);
   });
 
-  it("CC_COUNT awards full points when variance is detected (pedagogically correct count)", () => {
+  it("historical SCN-011 ROP/EOQ events remain readable for display max", () => {
+    expect(
+      getM3ReplenishStepDisplayMax(SCN_011, [
+        { eventType: "ROP_CHECK_COMPLETED" },
+        { eventType: "EOQ_CALC_COMPLETED" },
+        { eventType: "REPLENISH_COMPLETED" },
+      ]),
+    ).toBe(40);
+  });
+
+  it("CC_COUNT awards full points for SCN-009/010", () => {
     expect(getM3StepAwardPoints("CC_COUNT", SCN_009)).toBe(M3_STEP_MAX_SCALED.CC_COUNT);
     expect(getM3StepAwardPoints("CC_COUNT", SCN_010)).toBe(M3_STEP_MAX_SCALED.CC_COUNT);
-    expect(getM3StepAwardPoints("CC_COUNT", SCN_011)).toBe(M3_STEP_MAX.CC_COUNT);
+  });
+
+  it("getEffectiveM3Steps isolates SCN-011", () => {
+    expect(getEffectiveM3Steps(SCN_011).map((s) => s.code)).toEqual(["REPLENISH", "COMPLIANCE_M3"]);
+    expect(getEffectiveM3Steps(SCN_009)).toHaveLength(5);
+    expect(getEffectiveM3Steps(SCN_010)).toHaveLength(5);
   });
 });

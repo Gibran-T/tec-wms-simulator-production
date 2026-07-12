@@ -168,8 +168,8 @@ export function M3ReplenishmentParamsTable({
       {showFooter && (
         <p className="text-[9px] text-slate-600 dark:text-slate-400 italic mt-2">
           {isFr
-            ? "Évaluation : Q = Max − stock actuel. Les étapes CC_LIST/COUNT/RECON confirment les niveaux — concentrez-vous sur REPLENISH."
-            : "Evaluation: Q = Max − current stock. CC_LIST/COUNT/RECON steps confirm levels — focus on REPLENISH."}
+            ? "Évaluation : Q = Max − stock actuel. Soumettez une recommandation pour chaque SKU sous Min."
+            : "Evaluation: Q = Max − current stock. Submit one recommendation for each SKU below Min."}
           {" "}
           <span className="not-italic font-semibold">
             ({t("Référence pédagogique", "Pedagogical reference")})

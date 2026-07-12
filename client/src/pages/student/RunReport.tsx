@@ -110,7 +110,15 @@ function normalizeReportDetail(
 }
 
 // ─── Score Evolution Chart component ─────────────────────────────────────────
-function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number; currentRunId: number }) {
+function ScoreEvolutionChart({
+  scenarioId,
+  currentRunId,
+  passThreshold = 60,
+}: {
+  scenarioId: number;
+  currentRunId: number;
+  passThreshold?: number;
+}) {
   const { t } = useLanguage();
   const { data, isLoading } = trpc.runs.myScoreEvolution.useQuery({ scenarioId });
 
@@ -156,7 +164,7 @@ function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number;
             {t("Tentatives", "Attempts")}: <strong className="text-foreground">{data.totalAttempts}</strong>
           </span>
           <span className="text-muted-foreground">
-            {t("Meilleur", "Best")}: <strong className={data.bestScore >= 60 ? "text-emerald-500" : "text-rose-500"}>{data.bestScore}/100</strong>
+            {t("Meilleur", "Best")}: <strong className={data.bestScore >= passThreshold ? "text-emerald-500" : "text-rose-500"}>{data.bestScore}/100</strong>
           </span>
           {data.totalAttempts >= 2 && (
             <span className={`font-bold ${
@@ -191,10 +199,10 @@ function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number;
             />
             {/* Pass threshold line */}
             <ReferenceLine
-              y={60}
+              y={passThreshold}
               stroke="#10b981"
               strokeDasharray="6 3"
-              label={{ value: t("Seuil 60", "Pass 60"), position: "insideTopRight", fontSize: 10, fill: "#10b981" }}
+              label={{ value: t(`Seuil ${passThreshold}`, `Pass ${passThreshold}`), position: "insideTopRight", fontSize: 10, fill: "#10b981" }}
             />
             <Tooltip
               content={({ active, payload, label }) => {
@@ -220,7 +228,7 @@ function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number;
               dot={(props: any) => {
                 const isCurrent = props.payload?.isCurrent;
                 const score = props.payload?.score;
-                const color = score >= 60 ? "#10b981" : "#d13438";
+                const color = score >= passThreshold ? "#10b981" : "#d13438";
                 return (
                   <circle
                     key={props.key}
@@ -243,11 +251,11 @@ function ScoreEvolutionChart({ scenarioId, currentRunId }: { scenarioId: number;
       <div className="flex flex-wrap items-center gap-4 mt-3 pt-3 border-t border-border text-xs text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-emerald-500" />
-          <span>{t("Score ≥ 60 (Réussi)", "Score ≥ 60 (Passed)")}</span>
+          <span>{t(`Score ≥ ${passThreshold} (Réussi)`, `Score ≥ ${passThreshold} (Passed)`)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-rose-500" />
-          <span>{t("Score < 60 (À améliorer)", "Score < 60 (Needs improvement)")}</span>
+          <span>{t(`Score < ${passThreshold} (À améliorer)`, `Score < ${passThreshold} (Needs improvement)`)}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3 h-3 rounded-full bg-amber-500" />
@@ -811,14 +819,33 @@ export default function RunReport() {
                 t("Traçabilité (ASN)", "Traceability (ASN)"),
                 t("Conformité avancée", "Advanced compliance"),
               ];
-              if (mod === 3) return [
-                t("Comptage cyclique (CC)", "Cycle Count (CC)"),
-                t("Réconciliation des écarts", "Variance reconciliation"),
-                t("ROP — Point de réapprovisionnement", "ROP — Reorder point"),
-                t("EOQ — Quantité économique", "EOQ — Economic order quantity"),
-                t("Gestion du stock de sécurité", "Safety stock management"),
-                t("MRP — Planification des besoins", "MRP — Material requirements"),
-              ];
+              if (mod === 3) {
+                const m3State = scenario?.initialStateJson as {
+                  replenishmentParams?: unknown[];
+                  cycleCountTargets?: unknown[];
+                } | null | undefined;
+                const replenishOnly =
+                  Array.isArray(m3State?.replenishmentParams) &&
+                  m3State!.replenishmentParams!.length > 0 &&
+                  (!Array.isArray(m3State?.cycleCountTargets) || m3State!.cycleCountTargets!.length === 0);
+                if (replenishOnly) {
+                  return [
+                    t("Identification des SKU sous Min", "Identification of SKUs below Min"),
+                    t("Analyse Min/Max", "Min/Max analysis"),
+                    t("Interprétation du stock de sécurité", "Safety-stock interpretation"),
+                    t("Calcul de quantité de réapprovisionnement", "Replenishment quantity calculation"),
+                    t("Recommandations multi-SKU", "Multi-SKU recommendation generation"),
+                    t("Validation du plan de réapprovisionnement", "Replenishment-plan validation"),
+                  ];
+                }
+                return [
+                  t("Comptage cyclique (CC)", "Cycle Count (CC)"),
+                  t("Réconciliation des écarts", "Variance reconciliation"),
+                  t("ROP — Point de réapprovisionnement", "ROP — Reorder point"),
+                  t("Gestion du stock de sécurité", "Safety stock management"),
+                  t("MRP — Planification des besoins", "MRP — Material requirements"),
+                ];
+              }
               if (mod === 4) return [
                 t("Taux de rotation des stocks", "Inventory turnover rate"),
                 t("Taux de service (Fill Rate)", "Service level (Fill Rate)"),
@@ -842,7 +869,13 @@ export default function RunReport() {
         </div>
 
         {/* Score Evolution Chart — only shown when student has > 1 attempt */}
-        {!isDemo && scenario && <ScoreEvolutionChart scenarioId={scenario.id} currentRunId={parsedRunId} />}
+        {!isDemo && scenario && (
+          <ScoreEvolutionChart
+            scenarioId={scenario.id}
+            currentRunId={parsedRunId}
+            passThreshold={passThreshold}
+          />
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-between pb-4">
