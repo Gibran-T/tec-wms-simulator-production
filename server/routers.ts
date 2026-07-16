@@ -103,8 +103,6 @@ import {
   getNextRequiredStepAllModules,
   getEffectiveM2Steps,
   isM2PutawayStepComplete,
-  isModuleUnlocked,
-  isModule3Unlocked,
   MODULE1_STEPS,
   MODULE2_STEPS,
   MODULE4_STEPS,
@@ -200,6 +198,7 @@ import { computeRosterKpis, mergeRosterIntoStudentRanking } from "./powerAnalyti
 import { COOKIE_NAME } from "@shared/const";
 import { buildLearningFeedbackPayload } from "@shared/learningFeedbackPayload";
 import { computeModulePassResult, getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
+import { canAccessLearningModule } from "@shared/moduleAccess";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { mentorRouter } from "./aiMentor/router";
@@ -997,26 +996,20 @@ export const appRouter = router({
 
         const moduleId = scenario.moduleId ?? 1;
 
-        // Server-side progression gates for students in evaluation mode (P0-07)
+        // Open M1–M5 access: no prior-module / quiz / teacher-validation checkpoint.
+        // Scenario-internal sequencing and WMS validators remain enforced elsewhere.
         if (!isDemo && ctx.user.role === "student") {
-          if (moduleId >= 2) {
-            const passedIds = await getPassedModuleIds(ctx.user.id);
-            if (!isModuleUnlocked(1, passedIds)) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Module 2 verrouillé — complétez le Module 1 d'abord.",
-              });
-            }
-          }
-
-          if (moduleId === 4) {
-            const m3Progress = await getModuleProgressRow(ctx.user.id, 3);
-            if (!isModule3Unlocked(m3Progress ?? undefined)) {
-              throw new TRPCError({
-                code: "FORBIDDEN",
-                message: "Module 4 verrouillé — validation enseignant du Module 3 requise.",
-              });
-            }
+          if (
+            !canAccessLearningModule({
+              authenticated: true,
+              enrolledInCohort: true,
+              moduleId,
+            })
+          ) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "Module non accessible pour ce parcours.",
+            });
           }
         }
 
@@ -2147,10 +2140,14 @@ export const appRouter = router({
   // ─── Teacher Monitor ─────────────────────────────────────────────────────────
   // ─── Module 2: Warehouse Execution ──────────────────────────────────────────
   warehouse: router({
-    /** Check if Module 2 is unlocked for the current user */
+    /** Module access flag — M1–M5 open when authenticated (no progression checkpoints). */
     checkAccess: protectedProcedure.query(async ({ ctx }) => {
       const passedIds = await getPassedModuleIds(ctx.user.id);
-      const unlocked = isModuleUnlocked(1, passedIds);
+      const unlocked = canAccessLearningModule({
+        authenticated: true,
+        enrolledInCohort: true,
+        moduleId: 2,
+      });
       return { unlocked, passedModuleIds: passedIds };
     }),
 
@@ -2180,14 +2177,6 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
           throw new TRPCError({ code: "FORBIDDEN" });
-        }
-
-        // Check Module 2 unlock for students
-        if (ctx.user.role === "student") {
-          const passedIds = await getPassedModuleIds(ctx.user.id);
-          if (!isModuleUnlocked(1, passedIds)) {
-            throw new TRPCError({ code: "FORBIDDEN", message: "Module 2 verrouillé — complétez le Module 1 d'abord" });
-          }
         }
 
         const state = await buildRunState(input.runId);

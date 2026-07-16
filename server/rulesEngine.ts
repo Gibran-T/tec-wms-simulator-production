@@ -1875,10 +1875,21 @@ export function canExecuteStepM3(step, completedSteps, initialStateJson?) {
   }
   return { allowed: true };
 }
+/**
+ * Legacy helper: whether a prior-module id appears in passedModuleIds.
+ * NOT used for student learning-module navigation (see canAccessLearningModule).
+ * Kept for progress/status bookkeeping and historical tests.
+ */
 export function isModuleUnlocked(moduleUnlockedByModuleId, passedModuleIds) {
   if (moduleUnlockedByModuleId === null) return true;
   return passedModuleIds.includes(moduleUnlockedByModuleId);
 }
+
+/**
+ * Legacy status helper: M3 passed + teacherValidated (historical M4 unlock signal).
+ * NOT used for student learning-module navigation (see canAccessLearningModule).
+ * Teacher validation and checkpoint records remain intact for analytics/cert paths.
+ */
 export function isModule3Unlocked(module2Progress) {
   if (!module2Progress) return false;
   return module2Progress.passed && module2Progress.teacherValidated;

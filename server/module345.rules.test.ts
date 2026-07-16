@@ -245,20 +245,20 @@ describe("Module 3 — canExecuteStepM3", () => {
   });
 });
 
-describe("Module 3 — isModule3Unlocked (hybrid unlock)", () => {
-  it("is locked when module2Progress is null", () => {
+describe("Module 3 — isModule3Unlocked (legacy teacher-validation STATUS only)", () => {
+  it("status false when progress is null", () => {
     expect(isModule3Unlocked(null)).toBe(false);
   });
 
-  it("is locked when module 2 passed but not teacher-validated", () => {
+  it("status false when passed but not teacher-validated", () => {
     expect(isModule3Unlocked({ passed: true, teacherValidated: false })).toBe(false);
   });
 
-  it("is locked when teacher-validated but module 2 not passed", () => {
+  it("status false when teacher-validated but not passed", () => {
     expect(isModule3Unlocked({ passed: false, teacherValidated: true })).toBe(false);
   });
 
-  it("is unlocked when module 2 passed AND teacher-validated", () => {
+  it("status true when passed AND teacher-validated (does not gate M4 access)", () => {
     expect(isModule3Unlocked({ passed: true, teacherValidated: true })).toBe(true);
   });
 });

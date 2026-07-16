@@ -2,6 +2,7 @@
 export interface ProgressionCopy {
   promotionTitle: { fr: string; en: string };
   promotionBody: { fr: string; en: string };
+  /** Neutral progress note (not a lock / prerequisite gate). */
   prerequisiteNote: { fr: string; en: string };
 }
 
@@ -16,8 +17,8 @@ export const MODULE_PROGRESSION_COPY: Record<number, ProgressionCopy> = {
       en: "You are joining the Montréal DC team. Your first assignments cover the PO→GR→SO→GI cycle and operational compliance (SCN-001 to SCN-005).",
     },
     prerequisiteNote: {
-      fr: "Complétez votre intégration M1 avant de demander une promotion interne.",
-      en: "Complete your M1 onboarding before requesting an internal promotion.",
+      fr: "Statut du chapitre : Non commencé, En cours ou Terminé — selon vos sessions.",
+      en: "Chapter status: Not started, In progress, or Completed — based on your sessions.",
     },
   },
   2: {
@@ -30,8 +31,8 @@ export const MODULE_PROGRESSION_COPY: Record<number, ProgressionCopy> = {
       en: "You are now joining the warehouse execution team. Your next assignment covers structured putaway, bin capacity, and FIFO compliance (SCN-006 to SCN-008).",
     },
     prerequisiteNote: {
-      fr: "Le chapitre M1 devrait être complété avant cette affectation. Accès ouvert pour la session — suivez votre progression chez Concorde Logistics.",
-      en: "Chapter M1 should be completed before this assignment. Access open for class session — track your progress at Concorde Logistics.",
+      fr: "Accès libre au chapitre M2. Statut : Non commencé, En cours ou Terminé.",
+      en: "Open access to chapter M2. Status: Not started, In progress, or Completed.",
     },
   },
   3: {
@@ -44,8 +45,8 @@ export const MODULE_PROGRESSION_COPY: Record<number, ProgressionCopy> = {
       en: "You are joining the stock governance team. Your missions focus on cycle counting, variance analysis, and Min/Max replenishment (SCN-009 to SCN-011).",
     },
     prerequisiteNote: {
-      fr: "Le chapitre M2 devrait être complété avant cette affectation. Accès ouvert pour la session de classe.",
-      en: "Chapter M2 should be completed before this assignment. Access open for class session.",
+      fr: "Accès libre au chapitre M3. Statut : Non commencé, En cours ou Terminé.",
+      en: "Open access to chapter M3. Status: Not started, In progress, or Completed.",
     },
   },
   4: {
@@ -58,8 +59,8 @@ export const MODULE_PROGRESSION_COPY: Record<number, ProgressionCopy> = {
       en: "You are joining the operational control tower. Your missions cover KPI calculation, performance diagnostics, and committee recommendations (SCN-012 to SCN-014).",
     },
     prerequisiteNote: {
-      fr: "Cette affectation requiert la validation de votre superviseur au chapitre M3 (≥ 70/100).",
-      en: "This assignment requires your supervisor's validation of chapter M3 (≥ 70/100).",
+      fr: "Accès libre au chapitre M4. Statut : Non commencé, En cours ou Terminé.",
+      en: "Open access to chapter M4. Status: Not started, In progress, or Completed.",
     },
   },
   5: {
@@ -72,8 +73,8 @@ export const MODULE_PROGRESSION_COPY: Record<number, ProgressionCopy> = {
       en: "You are taking ownership of an integrated peak week. Your missions cover reception, putaway, inventory, replenishment, and strategic decision-making (SCN-015 to SCN-017).",
     },
     prerequisiteNote: {
-      fr: "Prérequis recommandé : validation du chapitre M4. Accès ouvert pour la session — SCN-015 à SCN-017.",
-      en: "Recommended prerequisite: chapter M4 validation. Access open for class session — SCN-015 to SCN-017.",
+      fr: "Accès libre au chapitre M5. Statut : Non commencé, En cours ou Terminé.",
+      en: "Open access to chapter M5. Status: Not started, In progress, or Completed.",
     },
   },
 };

@@ -134,43 +134,25 @@ describe("Module 2 — FIFO Rules", () => {
   });
 });
 
-// ─── Module Unlock Logic Tests ────────────────────────────────────────────────
+// ─── Module access policy (open M1–M5; legacy helper retained for status) ─────
 
-describe("Module 2 — Sequential Unlock Logic", () => {
-  // isModuleUnlocked(unlockedByModuleId, passedModuleIds[])
-  // Module 1 has unlockedByModuleId = null (always accessible)
-  // Module 2 has unlockedByModuleId = 1 (requires module 1 passed)
-
-  it("module 1 is always accessible (unlockedByModuleId = null)", () => {
-    const result = isModuleUnlocked(null, []);
-    expect(result).toBe(true);
+describe("Module 2 — Open learning-module access (no sequential checkpoints)", () => {
+  it("legacy isModuleUnlocked still reports prior-pass membership (status only)", () => {
+    expect(isModuleUnlocked(null, [])).toBe(true);
+    expect(isModuleUnlocked(1, [1])).toBe(true);
+    expect(isModuleUnlocked(1, [])).toBe(false);
+    expect(isModuleUnlocked(2, [1])).toBe(false);
   });
 
-  it("module 2 is accessible when module 1 is in passedModuleIds", () => {
-    // Module 2 unlockedByModuleId = 1, student passed module 1
-    const result = isModuleUnlocked(1, [1]);
-    expect(result).toBe(true);
-  });
-
-  it("module 2 is NOT accessible when module 1 is not in passedModuleIds", () => {
-    const result = isModuleUnlocked(1, []);
-    expect(result).toBe(false);
-  });
-
-  it("module 2 is NOT accessible with empty passed list", () => {
-    const result = isModuleUnlocked(1, []);
-    expect(result).toBe(false);
-  });
-
-  it("module 2 accessible when module 1 passed (multiple modules in list)", () => {
-    const result = isModuleUnlocked(1, [1, 3]);
-    expect(result).toBe(true);
-  });
-
-  it("module 3 is NOT accessible if only module 1 passed (requires module 2)", () => {
-    // Module 3 unlockedByModuleId = 2
-    const result = isModuleUnlocked(2, [1]);
-    expect(result).toBe(false);
+  it("capacity overflow still rejected (scenario validators preserved)", () => {
+    const ctx = makePutawayCtx({
+      qty: 999,
+      binCurrentLoad: { "BIN-A01": 0 },
+      binCapacities: { "BIN-A01": 100 },
+    });
+    const result = validatePutaway(ctx);
+    expect(result.allowed).toBe(false);
+    expect(result.penaltyPoints).toBe(-10);
   });
 });
 

@@ -33,7 +33,7 @@ export interface EnterpriseModuleHubProps {
   prerequisiteAlert?: ReactNode;
   /** Show enterprise promotion banner when prior chapter completed */
   showPromotionBanner?: boolean;
-  /** Block mission starts (e.g. M4 locked pending teacher validation) */
+  /** Reserved: must not be used for inter-module progression locks (M1–M5 are open). */
   missionsBlocked?: boolean;
   /** Override scenario loading error state */
   loadError?: boolean;
@@ -361,7 +361,7 @@ export default function EnterpriseModuleHub({
             <AlertDescription className="text-amber-800 text-sm">
               {progression
                 ? (language === "FR" ? progression.prerequisiteNote.fr : progression.prerequisiteNote.en)
-                : t("Affectations verrouillées — complétez le chapitre précédent.", "Assignments locked — complete the previous chapter.")}
+                : t("Affectations temporairement indisponibles.", "Assignments temporarily unavailable.")}
             </AlertDescription>
           </Alert>
         ) : assignmentsEnabled && employeeProfile ? (

@@ -7,6 +7,7 @@ import {
   getModuleScenarioPassThreshold,
   QUIZ_PASS_THRESHOLD,
 } from "@shared/moduleThresholds";
+import { canAccessLearningModule } from "@shared/moduleAccess";
 import { isModule3Unlocked } from "./rulesEngine";
 
 describe("Wave 2 — V2.1 threshold governance (GOV-T01)", () => {
@@ -67,17 +68,21 @@ describe("Wave 2 hotfix — quiz must not block scenario access", () => {
   });
 });
 
-describe("Wave 2 — V2.7 teacherValidated M3→M4 gate", () => {
-  it("M3 passed without teacher validation blocks M4 unlock", () => {
+describe("Wave 2 — V2.7 teacherValidated is STATUS only (not M4 access gate)", () => {
+  it("legacy status helper still reflects teacherValidated + passed", () => {
     expect(isModule3Unlocked({ passed: true, teacherValidated: false })).toBe(false);
-  });
-
-  it("M3 passed with teacher validation unlocks M4", () => {
     expect(isModule3Unlocked({ passed: true, teacherValidated: true })).toBe(true);
+    expect(isModule3Unlocked({ passed: false, teacherValidated: true })).toBe(false);
   });
 
-  it("teacher validation alone without M3 pass does not unlock M4", () => {
-    expect(isModule3Unlocked({ passed: false, teacherValidated: true })).toBe(false);
+  it("M4 learning access is open without teacher validation", () => {
+    expect(
+      canAccessLearningModule({
+        authenticated: true,
+        enrolledInCohort: true,
+        moduleId: 4,
+      }),
+    ).toBe(true);
   });
 });
 
