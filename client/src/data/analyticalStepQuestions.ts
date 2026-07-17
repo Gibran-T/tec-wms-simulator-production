@@ -17,6 +17,9 @@ export const M4_ANALYTICAL_STEPS = new Set([
   "compliance_m4",
 ]);
 
+/** M5 analytical (non-transaction) steps — KPI verification + decision. */
+export const M5_ANALYTICAL_STEPS = new Set(["m5_kpi", "m5_decision"]);
+
 export function isAnalyticalAnswerStep(step: string | undefined | null): boolean {
   return ANALYTICAL_ANSWER_STEPS.has((step ?? "").toLowerCase());
 }
@@ -25,6 +28,12 @@ export function isAnalyticalAnswerStep(step: string | undefined | null): boolean
 export function isM4AnalyticalStep(step: string | undefined | null, moduleId?: number | null): boolean {
   if (moduleId != null && moduleId !== 4) return false;
   return M4_ANALYTICAL_STEPS.has((step ?? "").toLowerCase());
+}
+
+/** True for Module 5 KPI/decision steps — analytical labels, not transaction CTAs. */
+export function isM5AnalyticalStep(step: string | undefined | null, moduleId?: number | null): boolean {
+  if (moduleId != null && moduleId !== 5) return false;
+  return M5_ANALYTICAL_STEPS.has((step ?? "").toLowerCase());
 }
 
 type Bilingual = { fr: string; en: string };
@@ -84,20 +93,20 @@ const SCN_STEP_QUESTIONS: Partial<Record<OfficialScnCode, Partial<Record<StepKey
   },
   "SCN-015": {
     m5_decision: {
-      fr: "Le cycle opérationnel est-il conforme ? Un réapprovisionnement est-il nécessaire d'après le stock et les seuils du run ? Que faut-il maintenir ou surveiller ? (Q = 0 peut être une décision complète.)",
-      en: "Is the operational cycle compliant? Is replenishment required given run stock and thresholds? What should be maintained or monitored? (Q = 0 can be a complete decision.)",
+      fr: "À partir des résultats de votre session, indiquez si le cycle est conforme, si un réapprovisionnement est nécessaire et quelle décision tactique vous recommandez.",
+      en: "From your session results, state whether the cycle is compliant, whether replenishment is required, and which tactical decision you recommend.",
     },
   },
   "SCN-016": {
     m5_decision: {
-      fr: "Réconcilier d'abord, décider ensuite. Sur la base du stock corrigé après ajustement, un réapprovisionnement est-il nécessaire ? Que maintenez-vous ou surveillez-vous ?",
-      en: "Reconcile first, decide afterward. Based on corrected stock after adjustment, is replenishment required? What do you maintain or monitor?",
+      fr: "À partir du stock réconcilié, indiquez si un réapprovisionnement est nécessaire et expliquez votre décision. Réconcilier d'abord, décider ensuite.",
+      en: "From reconciled stock, state whether replenishment is required and explain your decision. Reconcile first, decide afterward.",
     },
   },
   "SCN-017": {
     m5_decision: {
-      fr: "À partir du snapshot M5_KPI de votre session, citez au moins deux KPI chiffrés, définissez une priorité stratégique, explicitez un compromis et indiquez un horizon de revue (90–180 jours ou équivalent).",
-      en: "From your session M5_KPI snapshot, cite at least two numeric KPIs, define one strategic priority, state an explicit trade-off, and give a review horizon (90–180 days or equivalent).",
+      fr: "À partir d'au moins deux KPI de votre snapshot, choisissez une priorité stratégique, expliquez le compromis et indiquez l'horizon de suivi.",
+      en: "From at least two KPIs in your snapshot, choose a strategic priority, explain the trade-off, and state the follow-up horizon.",
     },
   },
 };
@@ -116,16 +125,16 @@ const DEFAULT_QUESTIONS: Record<string, Bilingual> = {
     en: "From available KPIs, write a short synthesis: classification, decision, and follow-up. Use your own words.",
   },
   m5_decision_tactical: {
-    fr: "Le cycle opérationnel est-il conforme ? Un réapprovisionnement est-il nécessaire d'après le stock et les seuils du run ? Que faut-il maintenir ou surveiller ?",
-    en: "Is the operational cycle compliant? Is replenishment required given run stock and thresholds? What should be maintained or monitored?",
+    fr: "À partir des résultats de votre session, indiquez si le cycle est conforme, si un réapprovisionnement est nécessaire et quelle décision tactique vous recommandez.",
+    en: "From your session results, state whether the cycle is compliant, whether replenishment is required, and which tactical decision you recommend.",
   },
   m5_decision_tactical_recon: {
-    fr: "Réconcilier d'abord, décider ensuite. Sur la base du stock corrigé, un réapprovisionnement est-il nécessaire ? Que maintenez-vous ou surveillez-vous ?",
-    en: "Reconcile first, decide afterward. Based on corrected stock, is replenishment required? What do you maintain or monitor?",
+    fr: "À partir du stock réconcilié, indiquez si un réapprovisionnement est nécessaire et expliquez votre décision. Réconcilier d'abord, décider ensuite.",
+    en: "From reconciled stock, state whether replenishment is required and explain your decision. Reconcile first, decide afterward.",
   },
   m5_decision_strategic: {
-    fr: "À partir du snapshot M5_KPI de votre session, citez au moins deux KPI chiffrés, définissez une priorité stratégique, explicitez un compromis et indiquez un horizon de revue (90–180 jours ou équivalent).",
-    en: "From your session M5_KPI snapshot, cite at least two numeric KPIs, define one strategic priority, state an explicit trade-off, and give a review horizon (90–180 days or equivalent).",
+    fr: "À partir d'au moins deux KPI de votre snapshot, choisissez une priorité stratégique, expliquez le compromis et indiquez l'horizon de suivi.",
+    en: "From at least two KPIs in your snapshot, choose a strategic priority, explain the trade-off, and state the follow-up horizon.",
   },
 };
 
@@ -162,7 +171,7 @@ export function getAnalyticalQuestionText(
   return language === "FR" ? fallback.fr : fallback.en;
 }
 
-/** Header label for step chrome — analytical for M4 only. */
+/** Header label for step chrome — analytical for M4 / M5 analytical steps. */
 export function getStepChromeCodeLabel(
   moduleId: number | null | undefined,
   step: string | undefined | null,
@@ -171,10 +180,17 @@ export function getStepChromeCodeLabel(
   if (isM4AnalyticalStep(step, moduleId)) {
     return language === "FR" ? "Référence analytique" : "Analytical reference";
   }
+  const key = (step ?? "").toLowerCase();
+  if (isM5AnalyticalStep(step, moduleId)) {
+    if (key === "m5_kpi") {
+      return language === "FR" ? "Vérification des résultats" : "Results verification";
+    }
+    return language === "FR" ? "Référence décisionnelle" : "Decision reference";
+  }
   return language === "FR" ? "Code Transaction" : "Transaction Code";
 }
 
-/** Primary submit CTA — analytical for M4 free-text / compliance steps. */
+/** Primary submit CTA — conditional by module and step type. */
 export function getStepSubmitLabel(
   moduleId: number | null | undefined,
   step: string | undefined | null,
@@ -189,6 +205,13 @@ export function getStepSubmitLabel(
   }
   if (isM4AnalyticalStep(step, moduleId)) {
     return language === "FR" ? "Valider l'analyse" : "Validate analysis";
+  }
+  const key = (step ?? "").toLowerCase();
+  if (isM5AnalyticalStep(step, moduleId)) {
+    if (key === "m5_kpi") {
+      return language === "FR" ? "Valider les résultats" : "Validate results";
+    }
+    return language === "FR" ? "Soumettre la décision" : "Submit decision";
   }
   return language === "FR" ? "Valider la transaction" : "Validate transaction";
 }
@@ -205,6 +228,27 @@ export function getM5DecisionStepTitle(
     return { fr: "Décision tactique après réconciliation", en: "Tactical decision after reconciliation" };
   }
   return { fr: "Décision tactique", en: "Tactical decision" };
+}
+
+/** Visible response guidance (replaces bare “Min. N caractères” as primary pedagogy). */
+export function getM5ResponseGuidance(
+  scnCode: OfficialScnCode | null,
+  isM5Strategic: boolean,
+  language: string,
+): string {
+  if (isM5Strategic || scnCode === "SCN-017") {
+    return language === "FR"
+      ? "Citez deux KPI, une priorité, un compromis et un horizon. 4 à 6 phrases suffisent."
+      : "Cite two KPIs, one priority, one trade-off, and a horizon. 4–6 sentences are enough.";
+  }
+  if (scnCode === "SCN-016") {
+    return language === "FR"
+      ? "Utilisez le stock réconcilié pour justifier votre décision. 2 à 3 phrases suffisent si vous basez votre décision sur le stock réconcilié."
+      : "Use reconciled stock to justify your decision. 2–3 sentences are enough when based on reconciled stock.";
+  }
+  return language === "FR"
+    ? "Expliquez la conformité, le besoin de réapprovisionnement et votre décision. 2 à 3 phrases suffisent."
+    : "Explain compliance, replenishment need, and your decision. 2–3 sentences are enough.";
 }
 
 /** KPI_DATA title — lecture, not data entry of invented numbers. */

@@ -11,13 +11,16 @@ import { buildReplenishmentParamRows, computeCcReconProgress } from "@/lib/m3Ope
 import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
+import M5DecisionResultPanel from "@/components/m5/M5DecisionResultPanel";
 import {
   getAnalyticalQuestionText,
   getM5DecisionStepTitle,
+  getM5ResponseGuidance,
   getStepChromeCodeLabel,
   getStepSubmitLabel,
   isAnalyticalAnswerStep,
   isM4AnalyticalStep,
+  isM5AnalyticalStep,
   M4_KPI_DATA_TITLE,
 } from "@/data/analyticalStepQuestions";
 import { resolveScenarioScnCode } from "@/lib/scenarioCatalog";
@@ -866,11 +869,16 @@ export default function StepForm() {
 
   const { data: runData, isLoading, refetch } = trpc.runs.state.useQuery({ runId: parseInt(runId) });
   const isM5KpiStep = step?.toLowerCase() === "m5_kpi";
+  const isM5DecisionStep = step?.toLowerCase() === "m5_decision";
   /** ADJ / MI07 — signed inventory variance; must not inherit positive-qty min from other steps. */
   const isAdjStep = baseCfg.code === "ADJ" || step?.toLowerCase() === "adj";
-  const { data: m5KpiLedger } = trpc.m5.kpiLedger.useQuery(
+  const {
+    data: m5KpiLedger,
+    isLoading: m5KpiLedgerLoading,
+    isError: m5KpiLedgerError,
+  } = trpc.m5.kpiLedger.useQuery(
     { runId: parseInt(runId) },
-    { enabled: isM5KpiStep && !!runId },
+    { enabled: (isM5KpiStep || isM5DecisionStep) && !!runId },
   );
   const { data: masterData } = trpc.master.skus.useQuery();
   const { data: bins } = trpc.master.bins.useQuery();
@@ -1146,9 +1154,27 @@ export default function StepForm() {
 
   const isAnalyticalStep = isAnalyticalAnswerStep(step);
   const useM4AnalyticalChrome = isM4AnalyticalStep(step, runData?.moduleId);
+  const useM5AnalyticalChrome = isM5AnalyticalStep(step, runData?.moduleId);
+  const useAnalyticalChrome = useM4AnalyticalChrome || useM5AnalyticalChrome;
   const analyticalQuestionText = useMemo(
     () => getAnalyticalQuestionText(step ?? "", scnCode, language, isM5Strategic),
     [step, scnCode, language, isM5Strategic],
+  );
+  const m5ResponseGuidance = useMemo(() => {
+    if (!isM5DecisionStep) return undefined;
+    return getM5ResponseGuidance(scnCode, isM5Strategic, language);
+  }, [isM5DecisionStep, scnCode, isM5Strategic, language]);
+  const m5Contract = useMemo(() => {
+    const json = runData?.scenario?.initialStateJson as {
+      m5Contract?: {
+        replenishmentParams?: { minQty: number; maxQty: number; safetyStock: number };
+        cycleCountTargets?: Array<{ systemQty: number; physicalQty: number }>;
+      };
+    } | null | undefined;
+    return json?.m5Contract ?? null;
+  }, [runData?.scenario?.initialStateJson]);
+  const m5AdjCompleted = Boolean(
+    (runData?.completedSteps as string[] | undefined)?.includes("M5_ADJ"),
   );
 
   // ── M1 mutations ──────────────────────────────────────────────────────────
@@ -1749,7 +1775,7 @@ export default function StepForm() {
 
   return (
     <FioriShell
-      title={`${useM4AnalyticalChrome ? t("Analyse", "Analysis") : t("Transaction", "Transaction")}: ${t(displayCfg.titleFr, displayCfg.titleEn)} (${cfg.code}) | ${t(displayCfg.etapeFr, displayCfg.etapeEn)}`}
+      title={`${useAnalyticalChrome ? t("Analyse", "Analysis") : t("Transaction", "Transaction")}: ${t(displayCfg.titleFr, displayCfg.titleEn)} (${cfg.code}) | ${t(displayCfg.etapeFr, displayCfg.etapeEn)}`}
       breadcrumbs={[
         { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
         { label: "Mission Control", href: `/student/run/${runId}` },
@@ -2726,21 +2752,52 @@ export default function StepForm() {
 
               {/* Student Answer (KPI interpretation, M5 decision) */}
               {cfg.fields.includes("studentAnswer") && (
-                <AnalyticalResponseField
-                  questionText={analyticalQuestionText}
-                  registerProps={register("studentAnswer")}
-                  t={t}
-                  minChars={5}
-                  testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
-                  hints={
-                    <AnalyticalStepHints
-                      step={step ?? ""}
-                      t={t}
-                      isM5Strategic={isM5Strategic}
-                      scnCode={scnCode}
-                    />
+                <div
+                  className={
+                    isM5DecisionStep
+                      ? "grid grid-cols-1 lg:grid-cols-5 gap-4 items-start"
+                      : undefined
                   }
-                />
+                >
+                  {isM5DecisionStep && (
+                    <M5DecisionResultPanel
+                      className="lg:col-span-2 order-1 lg:order-2"
+                      scnCode={scnCode}
+                      t={t}
+                      evidence={m5KpiLedger?.evidence ?? null}
+                      kpiResult={m5KpiLedger?.kpiResult ?? null}
+                      avgLeadTimeDays={m5KpiLedger?.kpiData?.avgLeadTimeDays ?? null}
+                      contract={{
+                        minQty: m5Contract?.replenishmentParams?.minQty,
+                        maxQty: m5Contract?.replenishmentParams?.maxQty,
+                        // Seed fallback only — panel prefers run cycle-count evidence when present.
+                        systemQtyBefore: m5Contract?.cycleCountTargets?.[0]?.systemQty ?? null,
+                        physicalQty: m5Contract?.cycleCountTargets?.[0]?.physicalQty ?? null,
+                      }}
+                      adjCompleted={m5AdjCompleted}
+                      isLoading={m5KpiLedgerLoading}
+                      isError={m5KpiLedgerError}
+                    />
+                  )}
+                  <div className={isM5DecisionStep ? "lg:col-span-3 order-2 lg:order-1" : undefined}>
+                    <AnalyticalResponseField
+                      questionText={analyticalQuestionText}
+                      registerProps={register("studentAnswer")}
+                      t={t}
+                      minChars={5}
+                      guidanceText={m5ResponseGuidance}
+                      testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
+                      hints={
+                        <AnalyticalStepHints
+                          step={step ?? ""}
+                          t={t}
+                          isM5Strategic={isM5Strategic}
+                          scnCode={scnCode}
+                        />
+                      }
+                    />
+                  </div>
+                </div>
               )}
 
               {/* KPI Data fields (M5 only) */}

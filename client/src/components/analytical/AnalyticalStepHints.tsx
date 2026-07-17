@@ -64,33 +64,55 @@ export function AnalyticalStepHints({ step, t, isM5Strategic = false, scnCode = 
   if (key === "m5_decision") {
     const isRecon = scnCode === "SCN-016";
     return (
-      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3">
+      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-md p-3 space-y-1.5">
         <p className="text-[10px] font-bold text-blue-700 dark:text-blue-300 mb-1">
-          💡{" "}
-          {isM5Strategic
-            ? t("Décision stratégique", "Strategic decision")
-            : isRecon
-              ? t("Décision tactique après réconciliation", "Tactical decision after reconciliation")
-              : t("Décision tactique", "Tactical decision")}
+          💡 {t("Chaîne de raisonnement", "Reasoning chain")}
         </p>
         {isM5Strategic ? (
-          <p className="text-[10px] text-muted-foreground">
-            {t(
-              "Preuves (KPI du snapshot de session) → Priorité → Compromis → Horizon. Ne recopiez pas les valeurs du Module 4.",
-              "Evidence (session snapshot KPIs) → Priority → Trade-off → Horizon. Do not copy Module 4 values.",
-            )}
-          </p>
+          <>
+            <p className="text-[11px] font-medium text-foreground">
+              {t(
+                "Preuves → Priorité → Compromis → Horizon",
+                "Evidence → Priority → Trade-off → Horizon",
+              )}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {t(
+                "Citez des KPI du snapshot de cette session. Ne recopiez pas les valeurs du Module 4.",
+                "Cite KPIs from this session snapshot. Do not copy Module 4 values.",
+              )}
+            </p>
+          </>
+        ) : isRecon ? (
+          <>
+            <p className="text-[11px] font-medium text-foreground">
+              {t(
+                "Exécuter → Réconcilier → Vérifier → Décider",
+                "Execute → Reconcile → Verify → Decide",
+              )}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {t(
+                "Basez votre décision sur le stock corrigé, et non sur la quantité avant ajustement.",
+                "Base your decision on corrected stock, not the quantity before adjustment.",
+              )}
+            </p>
+          </>
         ) : (
-          <p className="text-[10px] text-muted-foreground">
-            {t(
-              isRecon
-                ? "Exécuter → Vérifier → Corriger si nécessaire → Décider. Basez-vous sur le stock corrigé. Q = 0 peut être correct."
-                : "Exécuter → Vérifier → Décider. Un cycle nominal avec Q = 0 peut être une décision complète — n'inventez pas un problème.",
-              isRecon
-                ? "Execute → Verify → Correct if needed → Decide. Use corrected stock. Q = 0 can be correct."
-                : "Execute → Verify → Decide. A nominal cycle with Q = 0 can be a complete decision — do not invent a problem.",
-            )}
-          </p>
+          <>
+            <p className="text-[11px] font-medium text-foreground">
+              {t(
+                "Exécuter → Vérifier → Interpréter → Décider",
+                "Execute → Verify → Interpret → Decide",
+              )}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {t(
+                "Un cycle nominal avec Q = 0 peut être une décision complète — n'inventez pas un problème.",
+                "A nominal cycle with Q = 0 can be a complete decision — do not invent a problem.",
+              )}
+            </p>
+          </>
         )}
       </div>
     );

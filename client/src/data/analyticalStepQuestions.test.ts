@@ -29,6 +29,8 @@ describe("analyticalStepQuestions — Slice B", () => {
     expect(getStepChromeCodeLabel(1, "po", "FR")).toBe("Code Transaction");
     expect(getStepSubmitLabel(4, "kpi_diagnostic", "FR")).toBe("Valider l'analyse");
     expect(getStepSubmitLabel(2, "putaway", "FR")).toBe("Valider la transaction");
+    expect(getStepSubmitLabel(5, "m5_decision", "FR")).toBe("Soumettre la décision");
+    expect(getStepSubmitLabel(5, "m5_putaway", "FR")).toBe("Valider la transaction");
   });
 
   it("SCN-015/016 tactical titles vs SCN-017 strategic", () => {
@@ -65,9 +67,9 @@ describe("analyticalStepQuestions — Slice B", () => {
 
   it("SCN-015 allows Q=0 / no forced corrective initiative", () => {
     const text = getAnalyticalQuestionText("m5_decision", "SCN-015", "FR", false);
-    expect(text).toContain("Q = 0");
+    expect(text.toLowerCase()).toMatch(/conforme|r[eé]appro|d[eé]cision/);
     expect(text.toLowerCase()).not.toContain("formation");
-    expect(text.toLowerCase()).toMatch(/conforme|r[eé]appro|surveill/);
+    expect(text.toLowerCase()).toMatch(/session|r[eé]sultats/);
   });
 
   it("SCN-016 reinforces reconcile-first", () => {
@@ -77,9 +79,8 @@ describe("analyticalStepQuestions — Slice B", () => {
 
   it("SCN-017 asks for snapshot KPIs, priority, trade-off, horizon", () => {
     const text = getAnalyticalQuestionText("m5_decision", "SCN-017", "FR", true);
-    expect(text).toMatch(/snapshot|session/i);
-    expect(text.toLowerCase()).toMatch(/compromis|trade/);
-    expect(text).toMatch(/90/);
+    expect(text.toLowerCase()).toMatch(/kpi|snapshot/);
+    expect(text.toLowerCase()).toMatch(/compromis|horizon|priorit/);
   });
 
   it("legacy leakage patterns are detected by helper", () => {

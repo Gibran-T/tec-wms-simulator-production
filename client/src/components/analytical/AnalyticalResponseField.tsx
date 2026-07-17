@@ -10,6 +10,8 @@ export interface AnalyticalResponseFieldProps {
   registerProps: UseFormRegisterReturn;
   t: TranslateFn;
   minChars?: number;
+  /** Pedagogical helper shown instead of bare “Min. N caractères” as primary guidance. */
+  guidanceText?: string;
   hints?: React.ReactNode;
   testId?: string;
   className?: string;
@@ -20,6 +22,7 @@ export default function AnalyticalResponseField({
   registerProps,
   t,
   minChars = 5,
+  guidanceText,
   hints,
   testId = "analytical-response-field",
   className,
@@ -45,24 +48,38 @@ export default function AnalyticalResponseField({
 
       <div className="p-4 sm:p-5 space-y-2">
         <label htmlFor={registerProps.name} className="fiori-field-label block">
-          {t("Votre réponse", "Your answer")} <span className="text-destructive">*</span>{" "}
-          <span className="text-[10px] text-muted-foreground ml-1 font-normal">
-            {t(`Min. ${minChars} caractères`, `Min. ${minChars} characters`)}
-          </span>
+          {t("Votre réponse", "Your answer")} <span className="text-destructive">*</span>
         </label>
+        {guidanceText ? (
+          <p className="text-[11px] text-muted-foreground leading-snug" data-testid={`${testId}-guidance`}>
+            {guidanceText}
+          </p>
+        ) : (
+          <p className="text-[10px] text-muted-foreground">
+            {t(`Min. ${minChars} caractères`, `Min. ${minChars} characters`)}
+          </p>
+        )}
         <Textarea
           id={registerProps.name}
           {...registerProps}
           rows={6}
-          placeholder={t(
-            "Rédigez votre analyse ici. Soyez précis et justifiez votre réponse avec des données.",
-            "Write your analysis here. Be precise and justify your answer with data.",
-          )}
+          placeholder={
+            guidanceText ||
+            t(
+              "Rédigez votre analyse ici. Soyez précis et justifiez votre réponse avec des données.",
+              "Write your analysis here. Be precise and justify your answer with data.",
+            )
+          }
           className={cn(
             "fiori-field-input fiori-field-active w-full text-sm leading-relaxed",
             "min-h-[9rem] sm:min-h-[10rem] md:min-h-[11rem] resize-y",
           )}
         />
+        {guidanceText ? (
+          <p className="sr-only">
+            {t(`Minimum technique : ${minChars} caractères`, `Technical minimum: ${minChars} characters`)}
+          </p>
+        ) : null}
       </div>
     </div>
   );
