@@ -497,6 +497,13 @@ export const CG_ONE_PRIORITY: ConceptGroup = {
     "priorite",
     "priorité",
     "prioritaire",
+    // Verb / participle forms — "prioriser" does not contain stem "priorite"
+    "prioriser",
+    "priorise",
+    "priorisons",
+    "priorisé",
+    "priorisée",
+    "priorisee",
     "initiative",
     "je choisis",
     "nous priorisons",

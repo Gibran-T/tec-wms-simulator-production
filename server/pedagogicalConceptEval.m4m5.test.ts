@@ -221,6 +221,46 @@ describe("SCN-014 — concept evaluation", () => {
     expect(m4Compliance("SCN-014", rotOk, svcOk, SCN014_DIAGNOSTIC_FIXTURE).allowed).toBe(true);
   });
 
+  it("positive: verb prioriser with trade-off and horizon (prod smoke recovery)", () => {
+    const diag =
+      "Les indicateurs sont globalement stables. Je recommande de prioriser la qualité afin de protéger le service. L'optimisation générale du stock sera reportée et la décision sera réévaluée dans 90 jours.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(true);
+  });
+
+  it("positive: noun priorité form remains accepted", () => {
+    const diag =
+      "Les indicateurs sont stables. Notre priorité est la qualité. Le projet de réduction générale du stock est reporté afin de protéger le service. Révision dans 90 jours.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(true);
+  });
+
+  it("positive: adjective prioritaire with trade-off and horizon", () => {
+    const diag =
+      "Situation globalement stable. La qualité est prioritaire. Le stock global sera maintenu pour protéger le service et la décision sera revue dans 90 jours.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(true);
+  });
+
+  it("partial: prioriser without trade-off fails", () => {
+    const diag = "Je recommande de prioriser la qualité. Révision dans 90 jours.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(false);
+  });
+
+  it("partial: prioriser without horizon fails", () => {
+    const diag =
+      "Je recommande de prioriser la qualité et de reporter la réduction du stock afin de protéger le service.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(false);
+  });
+
+  it("partial: generic wording without selected priority", () => {
+    const diag =
+      "Les indicateurs sont stables. Il faut améliorer les opérations dans 90 jours.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(false);
+  });
+
+  it("adversarial: keyword stuffing priority list rejected", () => {
+    const diag = "Priorité, compromis, horizon, S&OP, qualité.";
+    expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(false);
+  });
+
   it("partial: priority without trade-off fails", () => {
     const diag = "Situation stable. Priorite formation. Je recommande d'agir vite sur 90 jours.";
     expect(m4Compliance("SCN-014", rotOk, svcOk, diag).allowed).toBe(false);
