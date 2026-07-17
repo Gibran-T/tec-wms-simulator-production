@@ -138,7 +138,7 @@
     size: A4;
     margin: 2.5cm;
     @bottom-center {
-      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026";
+      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026";
       font-size: 9pt;
       color: #444;
     }
@@ -213,7 +213,7 @@
     size: A4;
     margin: 2.5cm;
     @bottom-center {
-      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026";
+      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026";
       font-size: 9pt;
       color: #444;
     }
@@ -282,7 +282,7 @@
 <h1>Modules M1, M2 et M3</h1>
 <h1>Préparation aux scénarios et à la certification</h1>
 </div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong><br>Simulateur pédagogique ERP/WMS</p>
-</div><div class="meta"><p>Scénarios SCN-001 à SCN-011 · Seuils : M1/M2 ≥ 60/100 · M3 ≥ 70/100<br>Version juin 2026 · Document étudiant</p>
+</div><div class="meta"><p>Scénarios SCN-001 à SCN-011 · Seuils : M1/M2 ≥ 60/100 · M3 ≥ 70/100<br>Version juillet 2026 · Document étudiant</p>
 </div></div><h1>Table des matières</h1>
 <ol>
 <li><a href="#pr%C3%A9sentation-du-guide">Présentation du guide</a></li>
@@ -312,9 +312,9 @@
 <li><a href="#progression-p%C3%A9dagogique">Progression pédagogique</a></li>
 <li><a href="#checklist-finale-avant-soumission">Checklist finale avant soumission</a></li>
 </ol>
-<div class="page-break"></div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026</div><hr>
+<div class="page-break"></div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026</div><hr>
 <h2>Présentation du guide</h2>
-<p><strong>Programme :</strong> TEC.LOG — Simulation WMS intégrée<br><strong>Public :</strong> étudiants en préparation à l&#39;évaluation<br><strong>Scénarios couverts :</strong> SCN-001 à SCN-011<br><strong>Seuils de réussite :</strong> M1 et M2 ≥ 60/100 · M3 ≥ 70/100<br><strong>Version :</strong> juin 2026</p>
+<p><strong>Programme :</strong> TEC.LOG — Simulation WMS intégrée<br><strong>Public :</strong> étudiants en préparation à l&#39;évaluation<br><strong>Scénarios couverts :</strong> SCN-001 à SCN-011<br><strong>Seuils de réussite :</strong> M1 et M2 ≥ 60/100 · M3 ≥ 70/100<br><strong>Version :</strong> juillet 2026</p>
 <p>Ce document consolide l&#39;essentiel pour préparer les <strong>Modules 1, 2 et 3</strong> de la simulation WMS. Il vous aide à <strong>comprendre, observer et exécuter</strong> — pas à mémoriser des réponses toutes faites.</p>
 <table>
 <thead>
@@ -391,8 +391,15 @@
 </tr>
 </tbody></table>
 <p><strong>Codes transaction SAP (référence pédagogique) :</strong> ME21N (PO) · MIGO (GR) · LT0A/LT01 (putaway) · VA01 (SO) · VL01N/VL02N (picking/GI) · MI01 (comptage) · MI07 (ajustement).</p>
-<p><strong>Contrat M2 :</strong> GR pré-chargée et postée — démarrage au PUTAWAY (sauf SCN-008 : stock pré-chargé en STOCKAGE, démarrage au FIFO_PICK).</p>
-<p><strong>Contrat M3 :</strong> stock pré-chargé — pipeline CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3.</p>
+<p><strong>Contrat M2 :</strong> GR pré-chargée et postée — démarrage au PUTAWAY (sauf SCN-008 : stock pré-chargé en STOCKAGE, démarrage au FIFO_PICK). SCN-007 = parcours capacité sans FIFO.</p>
+<p><strong>Contrat M3 :</strong> selon le scénario —</p>
+<ul>
+<li><strong>SCN-009 / SCN-010 :</strong> pipeline inventaire <code>CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3</code> ;</li>
+<li><strong>SCN-011 :</strong> parcours Min/Max <strong>uniquement</strong> <code>REPLENISH → COMPLIANCE_M3</code> (pas de cycle count obligatoire).</li>
+</ul>
+<blockquote>
+<p><strong>Utilisez vos propres mots.</strong> Une réponse correcte démontre le raisonnement attendu ; elle ne dépend pas d’une phrase unique ni d’une liste magique de mots-clés.</p>
+</blockquote>
 <hr>
 <h2>Trois paradigmes à distinguer</h2>
 <table>
@@ -406,33 +413,33 @@
 </thead>
 <tbody><tr>
 <td><strong>Activité</strong></td>
-<td>Cycle ERP/WMS complet de bout en bout</td>
+<td>Exécution ERP/WMS + audit inventaire (SCN-004/005)</td>
 <td>Rangement, capacité, FIFO</td>
-<td>Comptage, écarts, réappro</td>
+<td>Comptage (009/010) ou réappro Min/Max (011)</td>
 </tr>
 <tr>
 <td><strong>Moniteur</strong></td>
 <td>Chaque transaction que vous créez</td>
 <td>GR pré-postée + vos mouvements</td>
-<td>Historique + ajustements ADJ</td>
+<td>Historique + ajustements ADJ (si écart)</td>
 </tr>
 <tr>
 <td><strong>Source de preuve</strong></td>
 <td>Moniteur + cockpit stock</td>
 <td>Cockpit emplacements + capacité</td>
-<td>Quantités système vs physique</td>
+<td>Quantités système vs physique, ou seuils Min/Max</td>
 </tr>
 <tr>
-<td><strong>Parcours</strong></td>
-<td>PO → GR → Putaway → SO → GI → CC → [ADJ] → Conformité</td>
-<td>PUTAWAY → FIFO_PICK → STOCK_ACCURACY → COMPLIANCE_ADV</td>
-<td>CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3</td>
+<td><strong>Parcours type</strong></td>
+<td>PO → GR → Putaway → [STOCK] → CC → [ADJ] → Conformité <em>(audit SCN-004/005 : pas d’expédition SO/GI)</em></td>
+<td>PUTAWAY → (FIFO_PICK si SCN-008) → STOCK_ACCURACY → COMPLIANCE_ADV</td>
+<td>009/010 : CC → RECON ; <strong>011 : REPLENISH seulement</strong></td>
 </tr>
 <tr>
 <td><strong>Niveau décision</strong></td>
 <td>Exécution séquentielle (M1)</td>
 <td>Règles d&#39;emplacement et lots (M2)</td>
-<td>Réconciliation et planification (M3)</td>
+<td>Réconciliation et/ou planification (M3)</td>
 </tr>
 <tr>
 <td><strong>Seuil</strong></td>
@@ -798,8 +805,11 @@
 <li><strong>Réappro avant GI :</strong> ordre métier non négociable en évaluation.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-004 — Écart d&#39;inventaire</h2>
-<p><strong>Rôle simulé :</strong> Auditeur d&#39;inventaire — réconciliation physique/système<br><strong>Enjeu :</strong> 200 u. SKU-006 reçues ; après expédition partielle, comptage physique révèle <strong>écart −15 u.</strong><br><strong>Piège pédagogique :</strong> saisir la <strong>variance (−15)</strong> au lieu de la <strong>quantité physique réelle (185 u.)</strong> au comptage.</p>
-<h3>Où porter son attention</h3>
+<p><strong>Rôle simulé :</strong> Auditeur d&#39;inventaire — réconciliation physique/système après rangement<br><strong>Enjeu :</strong> 200 u. SKU-006 reçues et rangées ; le comptage physique révèle un <strong>écart −15 u.</strong> (système 200 / physique 185).<br><strong>Piège pédagogique :</strong> saisir la <strong>variance (−15)</strong> au lieu de la <strong>quantité physique réelle (185 u.)</strong> au comptage.</p>
+<blockquote>
+<p><strong>Contrat de production :</strong> scénario d’<strong>audit inventaire après putaway</strong>. Aucune transaction d’expédition (SO / picking / GI) n’est requise ni attendue.</p>
+</blockquote>
+<h3>Ce que vous observez</h3>
 <table>
 <thead>
 <tr>
@@ -813,7 +823,7 @@
 </tr>
 <tr>
 <td>Cockpit B-02-R1-L1</td>
-<td>Stock système après putaway et expédition</td>
+<td>Stock système après putaway (pas d’expédition préalable)</td>
 </tr>
 <tr>
 <td>Étape CC (MI01)</td>
@@ -825,10 +835,10 @@
 </tr>
 <tr>
 <td>Moniteur</td>
-<td>Trace PO → GR → putaway → SO → GI avant comptage</td>
+<td>Trace PO → GR → putaway → CC → ADJ</td>
 </tr>
 </tbody></table>
-<h3>KPI / données à lire</h3>
+<h3>Ce que vous devez comprendre</h3>
 <table>
 <thead>
 <tr>
@@ -838,19 +848,19 @@
 </tr>
 </thead>
 <tbody><tr>
-<td><strong>Stock système (200 u. initiales)</strong></td>
+<td><strong>Stock système (200 u.)</strong></td>
 <td>Primaire</td>
 <td>Référence avant comptage</td>
 </tr>
 <tr>
 <td><strong>Quantité physique saisie</strong></td>
 <td>Primaire</td>
-<td>Valeur réelle comptée (ex. 185 si système affiche 200)</td>
+<td>Valeur réelle comptée (185 si système affiche 200)</td>
 </tr>
 <tr>
 <td><strong>Variance (−15)</strong></td>
 <td>Primaire</td>
-<td>Calculée système — à corriger via ADJ</td>
+<td>Calculée par le système — à corriger via ADJ</td>
 </tr>
 <tr>
 <td><strong>Statut conformité</strong></td>
@@ -858,66 +868,33 @@
 <td>Bloquée si écart non résolu</td>
 </tr>
 </tbody></table>
-<h3>Mots-clés — où et comment les utiliser</h3>
-<table>
-<thead>
-<tr>
-<th>Étape</th>
-<th>Mots à privilégier</th>
-<th>Où les placer</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Flux amont</td>
-<td><code>PUTAWAY</code>, <code>B-02-R1-L1</code>, <code>SO</code>, <code>GI</code>, <code>SKU-006</code>, <code>200 u.</code></td>
-<td>Avant comptage : cycle standard</td>
-</tr>
-<tr>
-<td>Comptage</td>
-<td><code>MI01</code>, <code>comptage cyclique</code>, <code>quantité physique</code>, <code>stock système</code>, <code>écart</code></td>
-<td>CC : saisir qty réelle comptée</td>
-</tr>
-<tr>
-<td>Ajustement</td>
-<td><code>MI07</code>, <code>ADJ</code>, <code>ajustement inventaire</code>, <code>−15</code>, <code>variance</code>, <code>réconciliation</code></td>
-<td>ADJ : corriger l&#39;écart</td>
-</tr>
-<tr>
-<td>Justification</td>
-<td><code>écart physique</code>, <code>intégrité</code>, <code>audit</code>, <code>conformité</code></td>
-<td>Commentaire ADJ</td>
-</tr>
-<tr>
-<td>Conformité</td>
-<td><code>écart résolu</code>, <code>conformité verte</code>, <code>UNRESOLVED_VARIANCE</code></td>
-<td>Clôture</td>
-</tr>
-</tbody></table>
-<p><strong>Mots à éviter :</strong> saisir <code>−15</code> comme quantité physique, <code>ignorer écart</code>, <code>conformité sans ADJ</code>, <code>GR fantôme</code>, <code>FIFO</code>, <code>capacité</code>.</p>
-<h3>Structure de réponse</h3>
+<h3>Ce que vous devez faire</h3>
 <ol>
 <li><strong>PUTAWAY</strong> — REC-01 → B-02-R1-L1 (200 u. SKU-006).</li>
-<li><strong>SO → PICKING → GI</strong> — Flux expédition standard.</li>
-<li><strong>CC (MI01)</strong> — Saisir quantité physique réelle (ex. 185).</li>
-<li><strong>ADJ (MI07)</strong> — Corriger écart −15 ; poster ajustement.</li>
+<li><strong>STOCK</strong> — Confirmer la disponibilité en STOCKAGE.</li>
+<li><strong>CC (MI01)</strong> — Saisir la quantité physique réelle (185).</li>
+<li><strong>ADJ (MI07)</strong> — Corriger l’écart −15 ; poster l’ajustement.</li>
 <li><strong>COMPLIANCE</strong> — Conformité au vert.</li>
 </ol>
-<h3>Erreurs fréquentes</h3>
+<h3>Ce que vous devez vérifier</h3>
 <ul>
-<li>Saisir <strong>−15</strong> au comptage au lieu de <strong>185</strong> (qty physique).</li>
-<li>Passer à conformité <strong>sans ADJ</strong> — UNRESOLVED_VARIANCE.</li>
-<li>Oublier le flux expédition avant le comptage.</li>
-<li>Traiter l&#39;écart comme optionnel — bloqueur en évaluation.</li>
+<li>Ne pas saisir <strong>−15</strong> comme quantité physique (saisir <strong>185</strong>).</li>
+<li>Ne pas passer à conformité <strong>sans ADJ</strong> — UNRESOLVED_VARIANCE.</li>
+<li>Ne pas chercher SO / picking / GI : ce scénario <strong>n’est pas</strong> un flux d’expédition.</li>
+<li>L’écart n’est pas optionnel — bloqueur en évaluation.</li>
 </ul>
 <h3>Pièges pédagogiques</h3>
 <ul>
-<li><strong>physicalQty ≠ variance :</strong> le comptage enregistre ce qui est compté, pas l&#39;écart calculé.</li>
-<li><strong>ADJ dynamique :</strong> l&#39;étape MI07 s&#39;insère automatiquement si variance détectée.</li>
-<li><strong>Précurseur M3 :</strong> même discipline que SCN-009/010 en Module 3.</li>
+<li><strong>physicalQty ≠ variance :</strong> le comptage enregistre ce qui est compté, pas l’écart calculé.</li>
+<li><strong>ADJ dynamique :</strong> l’étape MI07 s’insère si variance détectée.</li>
+<li><strong>Précurseur M3 :</strong> même discipline que SCN-009/010.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-005 — Non-conformités multiples (capstone M1)</h2>
-<p><strong>Rôle simulé :</strong> Superviseur logistique — résolution de non-conformités multiples<br><strong>Enjeu :</strong> Deux anomalies simultanées : <strong>GR-2025-004 non postée</strong> (SKU-004) + <strong>écart SKU-005 (−8 u.)</strong>.<br><strong>Piège pédagogique :</strong> mauvais <strong>ordre de résolution</strong> — putaway SKU-004 avant post GR, ou expédition avant correction inventaire.</p>
-<h3>Où porter son attention</h3>
+<p><strong>Rôle simulé :</strong> Superviseur logistique — résolution de non-conformités multiples<br><strong>Enjeu :</strong> Deux anomalies simultanées : <strong>GR-2025-004 non postée</strong> (SKU-004, 30 u.) + <strong>écart inventaire SKU-005 (−8 u. à B-01-R1-L2)</strong>.<br><strong>Piège pédagogique :</strong> mauvais <strong>ordre de résolution</strong> — putaway SKU-004 avant post de la GR fantôme.</p>
+<blockquote>
+<p><strong>Contrat de production :</strong> capstone d’<strong>audit multi-anomalies</strong> (documents → putaway → inventaire → conformité). <strong>Aucune expédition SO / picking / GI n’est requise.</strong></p>
+</blockquote>
+<h3>Ce que vous observez</h3>
 <table>
 <thead>
 <tr>
@@ -927,7 +904,7 @@
 </thead>
 <tbody><tr>
 <td>Fiche Mission</td>
-<td>Ordre : Documents → Physique → Expédition</td>
+<td>Ordre : Documents → Physique / putaway → Contrôle inventaire</td>
 </tr>
 <tr>
 <td>Moniteur</td>
@@ -939,14 +916,14 @@
 </tr>
 <tr>
 <td>Étape CC + ADJ</td>
-<td>Écart −8 sur SKU-005 au comptage</td>
+<td>Écart −8 sur SKU-005 (système 60 / physique 52)</td>
 </tr>
 <tr>
 <td>COMPLIANCE</td>
 <td>Vert seulement si <strong>tous</strong> bloqueurs levés</td>
 </tr>
 </tbody></table>
-<h3>KPI / données à lire</h3>
+<h3>Ce que vous devez comprendre</h3>
 <table>
 <thead>
 <tr>
@@ -963,7 +940,7 @@
 <tr>
 <td><strong>Stock SKU-004 / SKU-005</strong></td>
 <td>Primaire</td>
-<td>Deux SKU, deux quais — traçabilité distincte</td>
+<td>Deux SKU, deux quais — putaways distincts</td>
 </tr>
 <tr>
 <td><strong>Variance SKU-005 (−8)</strong></td>
@@ -973,70 +950,29 @@
 <tr>
 <td><strong>Conformité globale</strong></td>
 <td>Primaire</td>
-<td>100 % requis — capstone M1</td>
+<td>Tous bloqueurs levés — capstone M1</td>
 </tr>
 </tbody></table>
-<h3>Mots-clés — où et comment les utiliser</h3>
-<table>
-<thead>
-<tr>
-<th>Étape</th>
-<th>Mots à privilégier</th>
-<th>Où les placer</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Priorisation</td>
-<td><code>ordre</code>, <code>documents</code>, <code>physique</code>, <code>expédition</code>, <code>GR fantôme</code>, <code>GR-2025-004</code>, <code>priorité</code></td>
-<td>Plan d&#39;action initial</td>
-</tr>
-<tr>
-<td>Correction doc</td>
-<td><code>MIGO</code>, <code>poster</code>, <code>SKU-004</code>, <code>REC-01</code>, <code>30 u.</code></td>
-<td>Étape 1 : post GR-004</td>
-</tr>
-<tr>
-<td>Putaway</td>
-<td><code>PUTAWAY</code>, <code>SKU-004</code>, <code>SKU-005</code>, <code>REC-01</code>, <code>REC-02</code>, <code>STOCKAGE</code></td>
-<td>Étape 2 : rangement les deux SKU</td>
-</tr>
-<tr>
-<td>Expédition</td>
-<td><code>SO</code>, <code>picking</code>, <code>GI</code>, <code>multi-SKU</code></td>
-<td>Étape 3 : expédition</td>
-</tr>
-<tr>
-<td>Inventaire</td>
-<td><code>MI01</code>, <code>MI07</code>, <code>SKU-005</code>, <code>−8</code>, <code>écart</code>, <code>quantité physique</code></td>
-<td>Étape 4-5 : CC + ADJ</td>
-</tr>
-<tr>
-<td>Conformité</td>
-<td><code>100 %</code>, <code>multi-anomalie</code>, <code>crise logistique</code>, <code>conformité</code></td>
-<td>Clôture capstone</td>
-</tr>
-</tbody></table>
-<p><strong>Mots à éviter :</strong> <code>nouvelle GR SKU-004</code>, putaway avant post GR-004, <code>ignorer SKU-005</code>, <code>une seule anomalie</code>, vocabulaire M2/M3 (<code>FIFO</code>, <code>Min/Max</code>, <code>overflow</code>).</p>
-<h3>Structure de réponse</h3>
+<h3>Ce que vous devez faire</h3>
 <ol>
 <li><strong>Poster GR-2025-004</strong> — MIGO · SKU-004 · 30 u. · REC-01.</li>
-<li><strong>PUTAWAY</strong> — SKU-004 (REC-01 → STOCKAGE) et SKU-005 (REC-02 → STOCKAGE).</li>
-<li><strong>SO → PICKING → GI</strong> — Expédition pour les deux SKU.</li>
-<li><strong>CC SKU-005</strong> — Saisir quantité physique réelle (système − 8).</li>
-<li><strong>ADJ (MI07)</strong> — Corriger écart SKU-005 ; <strong>COMPLIANCE</strong> au vert.</li>
+<li><strong>PUTAWAY</strong> — SKU-004 : REC-01 → B-01-R1-L1 (30) ; SKU-005 : REC-02 → B-01-R1-L2 (60).</li>
+<li><strong>STOCK</strong> — Confirmer les deux SKU en STOCKAGE.</li>
+<li><strong>CC SKU-005</strong> — Saisir la quantité physique réelle (52).</li>
+<li><strong>ADJ (MI07)</strong> — Corriger l’écart −8 ; <strong>COMPLIANCE</strong> au vert.</li>
 </ol>
-<h3>Erreurs fréquentes</h3>
+<h3>Ce que vous devez vérifier</h3>
 <ul>
-<li><strong>Putaway SKU-004 avant post GR-2025-004</strong> — non-conformité persistante.</li>
-<li>Créer nouvelle GR pour SKU-004 au lieu de poster GR-2025-004.</li>
-<li>Traiter SKU-005 sans ADJ pour l&#39;écart −8.</li>
-<li>Ignorer l&#39;ordre Documents → Physique → Expédition.</li>
+<li>Ne pas faire le putaway SKU-004 <strong>avant</strong> le post de GR-2025-004.</li>
+<li>Ne pas créer une <strong>nouvelle</strong> GR pour SKU-004.</li>
+<li>Ne pas clôturer sans ADJ pour l’écart −8.</li>
+<li>Ne pas ajouter une étape d’expédition : ce n’est <strong>pas</strong> le contrat actuel.</li>
 </ul>
 <h3>Pièges pédagogiques</h3>
 <ul>
-<li><strong>Capstone M1 :</strong> combine SCN-002 (fantôme) + SCN-004 (écart) — compétences cumulatives.</li>
-<li><strong>Ordre strict :</strong> poster GR fantôme <strong>avant</strong> tout rangement SKU-004.</li>
-<li><strong>Score bloqué ~60 %</strong> sans COMPLIANCE_OK — la conformité est le gate final Silver.</li>
+<li><strong>Capstone M1 :</strong> combine GR fantôme (SCN-002) + écart inventaire (SCN-004).</li>
+<li><strong>Ordre strict :</strong> poster la GR fantôme <strong>avant</strong> tout rangement SKU-004.</li>
+<li><strong>Score bloqué</strong> sans conformité — gate final Silver.</li>
 </ul>
 <div class="page-break"></div><h1>MODULE 2 — Exécution d&#39;entrepôt</h1>
 <blockquote>
@@ -1155,8 +1091,14 @@
 <li><strong>Séquence M2 distincte M1 :</strong> PUTAWAY → FIFO_PICK → STOCK_ACCURACY → COMPLIANCE_ADV.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-007 — Dépassement de capacité d&#39;emplacement</h2>
-<p><strong>Rôle simulé :</strong> Planificateur capacité (Capacity Planner) — gestion overflow<br><strong>Enjeu :</strong> 600 u. SKU-002 reçues ; bin B-01-R1-L1 <strong>max 500 u.</strong> — répartir sans dépassement.<br><strong>Piège pédagogique :</strong> <strong>forcer 600 u. dans un seul bin</strong> malgré l&#39;alerte capacité.</p>
-<h3>Où porter son attention</h3>
+<p><strong>Rôle simulé :</strong> Planificateur capacité (Capacity Planner) — gestion overflow<br><strong>Enjeu :</strong> 600 u. SKU-002 (LOT-2025-002) au quai ; bin B-01-R1-L1 <strong>max 500 u.</strong> — répartir sans dépassement.<br><strong>Piège pédagogique :</strong> <strong>forcer 600 u. dans un seul bin</strong> malgré l&#39;alerte capacité.</p>
+<blockquote>
+<p><strong>Contrat de production (exact-match) :</strong>  </p>
+<ol>
+<li><strong>500 u.</strong> → <code>B-01-R1-L1</code> · 2) <strong>100 u.</strong> → <code>B-01-R1-L2</code> · lot <strong>LOT-2025-002</strong> conservé · <strong>600 u. placées</strong>.<br>Aucun split « équivalent » ni bin alternatif n’est accepté. Parcours : GR → PUTAWAY → STOCK_ACCURACY → COMPLIANCE_ADV (<strong>pas de FIFO</strong> ici — FIFO = SCN-008).</li>
+</ol>
+</blockquote>
+<h3>Ce que vous observez</h3>
 <table>
 <thead>
 <tr>
@@ -1178,14 +1120,14 @@
 </tr>
 <tr>
 <td>Split putaway</td>
-<td>B-01-R1-L1 (500 u.) + bin STOCKAGE secondaire (100 u.)</td>
+<td>D’abord 500 → B-01-R1-L1, puis 100 → B-01-R1-L2</td>
 </tr>
 <tr>
 <td>Traçabilité lot</td>
-<td>LOT-2025-002 conservé sur les deux mouvements</td>
+<td>LOT-2025-002 sur les deux mouvements</td>
 </tr>
 </tbody></table>
-<h3>KPI / données à lire</h3>
+<h3>Ce que vous devez comprendre</h3>
 <table>
 <thead>
 <tr>
@@ -1205,66 +1147,35 @@
 <td>Limite hard — alerte overflow</td>
 </tr>
 <tr>
-<td><strong>Répartition multi-bins</strong></td>
+<td><strong>Répartition exacte</strong></td>
 <td>Primaire</td>
-<td>500 + 100 (ou équivalent) sans overflow</td>
+<td>500 @ L1 + 100 @ L2 uniquement</td>
 </tr>
 <tr>
 <td><strong>LOT-2025-002</strong></td>
 <td>Secondaire</td>
-<td>Traçabilité lot sur split</td>
+<td>Traçabilité lot sur le split</td>
 </tr>
 </tbody></table>
-<h3>Mots-clés — où et comment les utiliser</h3>
-<table>
-<thead>
-<tr>
-<th>Étape</th>
-<th>Mots à privilégier</th>
-<th>Où les placer</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Diagnostic</td>
-<td><code>capacité</code>, <code>500 u.</code>, <code>600 u.</code>, <code>overflow</code>, <code>dépassement</code>, <code>B-01-R1-L1</code>, <code>alerte</code></td>
-<td>Identification contrainte</td>
-</tr>
-<tr>
-<td>Solution</td>
-<td><code>répartir</code>, <code>split</code>, <code>bin secondaire</code>, <code>STOCKAGE</code>, <code>LOT-2025-002</code>, <code>traçabilité</code></td>
-<td>Putaway split</td>
-</tr>
-<tr>
-<td>Validation</td>
-<td><code>aucun overflow</code>, <code>capacité max</code>, <code>toutes unités rangées</code></td>
-<td>Conformité</td>
-</tr>
-<tr>
-<td>Suite M2</td>
-<td><code>FIFO_PICK</code>, <code>STOCK_ACCURACY</code>, <code>COMPLIANCE_ADV</code></td>
-<td>Pipeline</td>
-</tr>
-</tbody></table>
-<p><strong>Mots à éviter :</strong> <code>forcer</code>, <code>ignorer alerte</code>, <code>single-bin</code>, <code>600 dans B-01-R1-L1</code>, <code>GR fantôme</code>, <code>FIFO violation</code>.</p>
-<h3>Structure de réponse</h3>
+<h3>Ce que vous devez faire</h3>
 <ol>
 <li><strong>Vérifier REC-01</strong> — 600 u. SKU-002 · GR-M2-002 POSTED.</li>
-<li><strong>Tester capacité</strong> — Observer alerte si PUTAWAY 600 u. → B-01-R1-L1.</li>
-<li><strong>Split PUTAWAY</strong> — 500 u. B-01-R1-L1 + 100 u. bin STOCKAGE alternatif.</li>
-<li><strong>FIFO_PICK → STOCK_ACCURACY → COMPLIANCE_ADV</strong> — Compléter M2.</li>
+<li><strong>PUTAWAY #1</strong> — 500 u. REC-01 → <strong>B-01-R1-L1</strong> (LOT-2025-002).</li>
+<li><strong>PUTAWAY #2</strong> — 100 u. REC-01 → <strong>B-01-R1-L2</strong> (LOT-2025-002).</li>
+<li><strong>STOCK_ACCURACY → COMPLIANCE_ADV</strong> — Compléter le parcours capacité.</li>
 </ol>
-<h3>Erreurs fréquentes</h3>
+<h3>Ce que vous devez vérifier</h3>
 <ul>
-<li>Forcer <strong>600 u. dans un bin max 500</strong>.</li>
-<li>Ignorer message de dépassement capacité.</li>
-<li>Perdre traçabilité <strong>LOT-2025-002</strong> lors du split.</li>
-<li>Oublier de ranger <strong>toutes</strong> les unités (600 total).</li>
+<li>Ne pas forcer <strong>600 u. dans un bin max 500</strong>.</li>
+<li>Ne pas inventer un autre bin « alternatif » : seul <strong>B-01-R1-L2</strong> est accepté pour les 100 u.</li>
+<li>Conserver <strong>LOT-2025-002</strong> ; ranger <strong>toutes</strong> les 600 u.</li>
+<li>Ne pas démarrer un FIFO_PICK : hors contrat SCN-007.</li>
 </ul>
 <h3>Pièges pédagogiques</h3>
 <ul>
-<li><strong>Capacité = contrainte hard :</strong> le système alerte ou refuse — comportement pédagogique intentionnel.</li>
-<li><strong>Split ≠ deux réceptions :</strong> un seul GR, plusieurs mouvements putaway.</li>
-<li><strong>Précurseur e-commerce :</strong> saturation slots en haute rotation.</li>
+<li><strong>Capacité = contrainte hard :</strong> le système alerte ou refuse — comportement intentionnel.</li>
+<li><strong>Split ≠ deux réceptions :</strong> un seul GR, deux mouvements putaway canoniques.</li>
+<li><strong>FIFO est enseigné en SCN-008</strong>, pas ici.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-008 — Application FIFO multi-lots</h2>
 <p><strong>Rôle simulé :</strong> Spécialiste FIFO — prélèvement conforme traçabilité lots<br><strong>Enjeu :</strong> 3 lots SKU-003 préchargés en STOCKAGE — prélever <strong>LOT-A (janvier)</strong> avant LOT-B et LOT-C.<br><strong>Piège pédagogique :</strong> tenter un <strong>PUTAWAY</strong> (déjà fait) ou prélever <strong>LOT-C (mars)</strong> en premier.</p>
@@ -1380,11 +1291,11 @@
 </ul>
 <div class="page-break"></div><h1>MODULE 3 — Contrôle des stocks et réapprovisionnement</h1>
 <blockquote>
-<p>Vous <strong>réconciliez</strong> inventaire et <strong>planifiez</strong> le réapprovisionnement. Stock pré-chargé — pipeline CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3. <strong>Seuil 70/100</strong> · validation enseignant requise avant M4.</p>
+<p>Vous <strong>réconciliez</strong> l’inventaire (SCN-009/010) et/ou <strong>planifiez</strong> le réapprovisionnement Min/Max (SCN-011).<br><strong>SCN-009/010 :</strong> <code>CC_LIST → CC_COUNT → CC_RECON → REPLENISH → COMPLIANCE_M3</code>.<br><strong>SCN-011 :</strong> <code>REPLENISH → COMPLIANCE_M3</code> uniquement.<br><strong>Seuil 70/100</strong> · validation enseignant requise avant M4.</p>
 </blockquote>
 <div class="page-break"></div><h2>SCN-009 — Inventaire cyclique simple</h2>
-<p><strong>Rôle simulé :</strong> Auditeur inventaire (Inventory Auditor) — détection d&#39;écart système/physique<br><strong>Enjeu :</strong> SKU-001 (100 u. système) et SKU-003 (80 u.) — comptage révèle <strong>écart −3 sur SKU-001</strong>.<br><strong>Piège pédagogique :</strong> ignorer l&#39;écart −3 ou clôturer <strong>sans ADJ (MI07)</strong> dans CC_RECON.</p>
-<h3>Où porter son attention</h3>
+<p><strong>Rôle simulé :</strong> Auditeur inventaire (Inventory Auditor) — détection d&#39;écart système/physique<br><strong>Enjeu :</strong> SKU-001 (100 u. système → 97 physique) et SKU-003 (80 / 80) — <strong>écart −3 sur SKU-001</strong>.<br><strong>Piège pédagogique :</strong> ignorer l&#39;écart −3 ou clôturer <strong>sans ajustement</strong> dans CC_RECON.</p>
+<h3>Ce que vous observez</h3>
 <table>
 <thead>
 <tr>
@@ -1398,7 +1309,7 @@
 </tr>
 <tr>
 <td>Tour de contrôle M3</td>
-<td>Focus : détecter −3, poster ADJ, clôturer</td>
+<td>Détecter −3, poster l’ajustement, clôturer</td>
 </tr>
 <tr>
 <td>Étape CC_LIST</td>
@@ -1410,10 +1321,10 @@
 </tr>
 <tr>
 <td>Étape CC_RECON</td>
-<td>ADJ (MI07) obligatoire pour écart −3</td>
+<td>Ajustement pour l’écart −3 ; confirmation écart nul SKU-003</td>
 </tr>
 </tbody></table>
-<h3>KPI / données à lire</h3>
+<h3>Ce que vous devez comprendre</h3>
 <table>
 <thead>
 <tr>
@@ -1435,70 +1346,34 @@
 <tr>
 <td><strong>Quantité physique SKU-001 (97)</strong></td>
 <td>Primaire</td>
-<td>100 − 3 = écart −3</td>
+<td>Écart −3</td>
 </tr>
 <tr>
-<td><strong>Ligne ADJ au moniteur</strong></td>
+<td><strong>Ligne d’ajustement au moniteur</strong></td>
 <td>Primaire</td>
-<td>Preuve ajustement posté</td>
+<td>Preuve de correction postée</td>
 </tr>
 </tbody></table>
-<h3>Mots-clés — où et comment les utiliser</h3>
-<table>
-<thead>
-<tr>
-<th>Étape</th>
-<th>Mots à privilégier</th>
-<th>Où les placer</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>CC_LIST</td>
-<td><code>liste comptage</code>, <code>SKU-001</code>, <code>SKU-003</code>, <code>B-01-R1-L1</code>, <code>B-01-R1-L2</code></td>
-<td>Identification</td>
-</tr>
-<tr>
-<td>CC_COUNT</td>
-<td><code>MI01</code>, <code>quantité physique</code>, <code>comptage cyclique</code>, <code>stock système</code></td>
-<td>Saisie</td>
-</tr>
-<tr>
-<td>CC_RECON</td>
-<td><code>écart</code>, <code>−3</code>, <code>variance</code>, <code>réconciliation</code>, <code>MI07</code>, <code>ADJ</code></td>
-<td>Correction</td>
-</tr>
-<tr>
-<td>Conformité</td>
-<td><code>COMPLIANCE_M3</code>, <code>écart résolu</code>, <code>inventaire cyclique</code></td>
-<td>Clôture</td>
-</tr>
-<tr>
-<td>REPLENISH</td>
-<td><code>non requis</code>, <code>auto-validé</code></td>
-<td>Passer à conformité</td>
-</tr>
-</tbody></table>
-<p><strong>Mots à éviter :</strong> <code>ignorer écart</code>, <code>conformité sans ADJ</code>, <code>quantité −3</code> comme saisie physique, <code>Min/Max</code> (SCN-011), <code>justification longue</code> (seuil 20 u. — SCN-010).</p>
-<h3>Structure de réponse</h3>
+<h3>Ce que vous devez faire</h3>
 <ol>
-<li><strong>CC_LIST</strong> — Identifier SKU-001 et SKU-003 à compter.</li>
-<li><strong>CC_COUNT</strong> — Saisir quantités physiques (SKU-001 ≠ 100 ; SKU-003 = 80).</li>
-<li><strong>CC_RECON</strong> — Analyser écart −3 ; poster ADJ (MI07) sur SKU-001.</li>
-<li><strong>REPLENISH</strong> — Auto-validé ; passer à COMPLIANCE_M3.</li>
+<li><strong>CC_LIST</strong> — Identifier SKU-001 et SKU-003.</li>
+<li><strong>CC_COUNT</strong> — Saisir les quantités physiques (97 et 80).</li>
+<li><strong>CC_RECON</strong> — Soumettre <strong>une</strong> réconciliation cohérente : ajuster SKU-001 (−3) ; confirmer SKU-003 (écart 0).</li>
+<li><strong>REPLENISH</strong> — Non requis ici ; poursuivre vers COMPLIANCE_M3.</li>
 <li><strong>COMPLIANCE_M3</strong> — Conformité verte.</li>
 </ol>
-<h3>Erreurs fréquentes</h3>
+<h3>Ce que vous devez vérifier</h3>
 <ul>
-<li>Ignorer écart −3 à la réconciliation.</li>
-<li>Clôturer sans <strong>ADJ posté</strong> dans CC_RECON.</li>
-<li>Saisir variance au lieu de quantité physique au CC_COUNT.</li>
-<li>Confondre avec SCN-010 (justification seuil 20 u.).</li>
+<li>Soumettre <strong>une</strong> réconciliation cohérente par cible ; <strong>ne pas répéter</strong> l’ajustement pour le même écart.</li>
+<li>Ne pas créer <strong>plusieurs corrections</strong> pour la même variance.</li>
+<li>Vérifier le résultat posté au moniteur <strong>avant</strong> de continuer.</li>
+<li>Ne pas saisir −3 comme quantité physique (saisir <strong>97</strong>).</li>
 </ul>
 <h3>Pièges pédagogiques</h3>
 <ul>
-<li><strong>Écart intentionnel −3 :</strong> comportement pédagogique — ne pas arrondir à 100.</li>
-<li><strong>ADJ visible au moniteur :</strong> preuve opérationnelle requise avant COMPLIANCE_M3.</li>
-<li><strong>REPLENISH auto-validé SCN-009 :</strong> focus inventaire, pas réappro.</li>
+<li><strong>Écart intentionnel −3 :</strong> ne pas « corriger » le comptage à 100.</li>
+<li><strong>Une correction suffit :</strong> une fois l’écart traité et visible, ne pas resoumettre la même correction.</li>
+<li><strong>Focus inventaire :</strong> le réappro n’est pas l’enjeu de SCN-009.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-010 — Écart significatif et justification</h2>
 <p><strong>Rôle simulé :</strong> Gestionnaire inventaire — variance management avec piste d&#39;audit<br><strong>Enjeu :</strong> SKU-006 : système <strong>380 u.</strong>, physique <strong>352 u.</strong> — écart <strong>−28 &gt; seuil 20 u.</strong> — justification obligatoire.<br><strong>Piège pédagogique :</strong> ajuster <strong>sans justification écrite</strong> ou passer conformité <strong>sans ADJ</strong>.</p>
@@ -1614,8 +1489,11 @@
 <li><strong>Précurseur SCN-016 M5 :</strong> corriger avant de piloter — principe transversal TEC.WMS.</li>
 </ul>
 <div class="page-break"></div><h2>SCN-011 — Réapprovisionnement Min/Max (capstone M3)</h2>
-<p><strong>Rôle simulé :</strong> Planificateur approvisionnement (Supply Planner) — recommandations REPLENISH<br><strong>Enjeu :</strong> SKU-004 (<strong>30 u.</strong> &lt; Min 50) et SKU-005 (<strong>40 u.</strong> &lt; Min 80) — calculer <strong>Q = Max − stock actuel</strong>.<br><strong>Piège pédagogique :</strong> <strong>sous-réapprovisionner</strong> ou ignorer <strong>stock de sécurité (SS)</strong> dans l&#39;analyse d&#39;urgence.</p>
-<h3>Où porter son attention</h3>
+<p><strong>Rôle simulé :</strong> Planificateur approvisionnement (Supply Planner) — recommandations REPLENISH<br><strong>Enjeu :</strong> SKU-004 (<strong>30 u.</strong> &lt; Min 50) et SKU-005 (<strong>40 u.</strong> &lt; Min 80) — calculer <strong>Q = Max − stock actuel</strong>.<br><strong>Piège pédagogique :</strong> <strong>sous-réapprovisionner</strong> ou utiliser la mauvaise formule.</p>
+<blockquote>
+<p><strong>Contrat de production :</strong> parcours <strong>REPLENISH → COMPLIANCE_M3</strong> uniquement.<br><strong>Pas</strong> de CC_LIST / CC_COUNT / CC_RECON / ADJ sur les nouveaux runs SCN-011.</p>
+</blockquote>
+<h3>Ce que vous observez</h3>
 <table>
 <thead>
 <tr>
@@ -1636,15 +1514,11 @@
 <td>SKU-004 : 30 (Min 50, Max 200, SS 25) · SKU-005 : 40 (Min 80, Max 300, SS 30)</td>
 </tr>
 <tr>
-<td>Étape REPLENISH</td>
-<td>Q = Max − stock pour chaque SKU</td>
-</tr>
-<tr>
-<td>Pipeline CC</td>
-<td>CC confirmatoire puis REPLENISH</td>
+<td>Étapes actives</td>
+<td><strong>REPLENISH</strong> puis <strong>COMPLIANCE_M3</strong></td>
 </tr>
 </tbody></table>
-<h3>KPI / données à lire</h3>
+<h3>Ce que vous devez comprendre</h3>
 <table>
 <thead>
 <tr>
@@ -1656,7 +1530,7 @@
 <tbody><tr>
 <td><strong>Stock actuel SKU-004 (30)</strong></td>
 <td>Primaire</td>
-<td>Sous Min 50 et proche SS 25</td>
+<td>Sous Min 50 (proche SS 25)</td>
 </tr>
 <tr>
 <td><strong>Stock actuel SKU-005 (40)</strong></td>
@@ -1671,59 +1545,27 @@
 <tr>
 <td><strong>Q = Max − stock</strong></td>
 <td>Primaire</td>
-<td>SKU-004 : 200−30=170 · SKU-005 : 300−40=260</td>
+<td>SKU-004 : <strong>170</strong> · SKU-005 : <strong>260</strong></td>
 </tr>
 </tbody></table>
-<h3>Mots-clés — où et comment les utiliser</h3>
-<table>
-<thead>
-<tr>
-<th>Étape</th>
-<th>Mots à privilégier</th>
-<th>Où les placer</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Diagnostic</td>
-<td><code>sous seuil</code>, <code>Min</code>, <code>Max</code>, <code>SS</code>, <code>stock de sécurité</code>, <code>SKU-004</code>, <code>SKU-005</code>, <code>rupture</code></td>
-<td>Analyse niveaux</td>
-</tr>
-<tr>
-<td>Calcul</td>
-<td><code>Q = Max − stock</code>, <code>réapprovisionnement</code>, <code>170 u.</code>, <code>260 u.</code>, <code>Min-Max</code>, <code>besoin</code></td>
-<td>REPLENISH</td>
-</tr>
-<tr>
-<td>Paramètres</td>
-<td><code>lead time</code>, <code>MD04</code>, <code>reorder point</code>, <code>ROP</code></td>
-<td>Contexte planification</td>
-</tr>
-<tr>
-<td>Conformité</td>
-<td><code>COMPLIANCE_M3</code>, <code>recommandations</code>, <code>seuils respectés</code></td>
-<td>Clôture capstone M3</td>
-</tr>
-</tbody></table>
-<p><strong>Mots à éviter :</strong> <code>réappro partiel</code>, <code>ignorer SS</code>, <code>Q = Min − stock</code> (formule incorrecte), <code>GR fantôme</code>, <code>FIFO</code>, <code>overflow</code>, vocabulaire KPI M4 (<code>rotation</code>, <code>OTIF</code>).</p>
-<h3>Structure de réponse</h3>
+<h3>Ce que vous devez faire</h3>
 <ol>
-<li><strong>CC pipeline</strong> — Confirmer niveaux SKU-004 (30) et SKU-005 (40).</li>
-<li><strong>Comparer seuils</strong> — Min (50/80) · Max (200/300) · SS (25/30).</li>
-<li><strong>REPLENISH</strong> — Proposer Q = Max − stock : 170 u. SKU-004 · 260 u. SKU-005.</li>
-<li><strong>COMPLIANCE_M3</strong> — Valider recommandations conformes.</li>
+<li><strong>Comparer les seuils</strong> — Min (50/80) · Max (200/300) · SS (25/30).</li>
+<li><strong>REPLENISH</strong> — Proposer Q = Max − stock : <strong>170</strong> (SKU-004) et <strong>260</strong> (SKU-005).</li>
+<li><strong>COMPLIANCE_M3</strong> — Valider les recommandations.</li>
 </ol>
-<h3>Erreurs fréquentes</h3>
+<h3>Ce que vous devez vérifier</h3>
 <ul>
-<li>Calcul <strong>Q = Min − stock</strong> au lieu de <strong>Max − stock</strong>.</li>
-<li>Sous-réapprovisionner (quantité inférieure au besoin calculé).</li>
-<li>Ignorer <strong>stock de sécurité</strong> dans l&#39;analyse d&#39;urgence.</li>
-<li>Oublier l&#39;un des <strong>deux SKU</strong> — les deux sont sous Min.</li>
+<li>Formule <strong>Q = Max − stock</strong> (pas Min − stock).</li>
+<li>Traiter <strong>les deux SKU</strong>.</li>
+<li>Ne pas chercher un pipeline de cycle count : hors contrat SCN-011.</li>
+<li>Nommer Min et SS dans l’analyse d’urgence (SKU-004 à 30 avec SS 25).</li>
 </ul>
 <h3>Pièges pédagogiques</h3>
 <ul>
-<li><strong>Capstone M3 :</strong> combine inventaire (SCN-009/010) + planification — validation enseignant avant M4.</li>
-<li><strong>SS vs Min :</strong> SKU-004 à 30 u. avec SS 25 — urgence élevée ; nommer les deux seuils.</li>
-<li><strong>Formule Min-Max évaluée :</strong> Q = Stock max − Stock actuel — pas de raccourci arbitraire.</li>
+<li><strong>Capstone M3 planification :</strong> distinct des scénarios de comptage 009/010.</li>
+<li><strong>SS vs Min :</strong> urgence élevée sur SKU-004 — nommer les deux seuils.</li>
+<li><strong>Validation enseignant</strong> avant M4 reste le gate pédagogique de cohorte.</li>
 </ul>
 <div class="page-break"></div><h2>Tableau récapitulatif — Données opérationnelles clés</h2>
 <table>
@@ -1760,15 +1602,15 @@
 <tr>
 <td>SCN-004</td>
 <td>SKU-006</td>
-<td>Écart −15</td>
-<td>CC qty physique + ADJ MI07</td>
+<td>Écart −15 (audit après putaway)</td>
+<td>CC qty physique + ADJ · <strong>pas SO/GI</strong></td>
 <td>60/100</td>
 </tr>
 <tr>
 <td>SCN-005</td>
 <td>SKU-004/005</td>
 <td>GR-2025-004 + écart −8</td>
-<td>Ordre : docs → physique → expédition</td>
+<td>Docs → putaway → inventaire · <strong>pas expédition</strong></td>
 <td>60/100</td>
 </tr>
 <tr>
@@ -1781,8 +1623,8 @@
 <tr>
 <td>SCN-007</td>
 <td>SKU-002</td>
-<td>600 u. · max 500/bin</td>
-<td>Split putaway sans overflow</td>
+<td>600 u. · max 500</td>
+<td><strong>500 @ L1 + 100 @ L2</strong> exact</td>
 <td>60/100</td>
 </tr>
 <tr>
@@ -1796,21 +1638,21 @@
 <td>SCN-009</td>
 <td>SKU-001/003</td>
 <td>Écart −3 SKU-001</td>
-<td>CC_RECON + ADJ MI07</td>
+<td>CC_RECON + 1 ajustement cohérent</td>
 <td>70/100</td>
 </tr>
 <tr>
 <td>SCN-010</td>
 <td>SKU-006</td>
 <td>Écart −28 &gt; seuil 20</td>
-<td>Justification + ADJ MI07</td>
+<td>Justification + ADJ</td>
 <td>70/100</td>
 </tr>
 <tr>
 <td>SCN-011</td>
 <td>SKU-004/005</td>
 <td>Sous Min</td>
-<td>REPLENISH Q = Max − stock</td>
+<td><strong>REPLENISH only</strong> · Q=170/260</td>
 <td>70/100</td>
 </tr>
 </tbody></table>
@@ -1820,18 +1662,18 @@
   SCN-001  Cycle nominal           → séquence PO→GR→Putaway→GI→CC
   SCN-002  GR fantôme              → poster document existant
   SCN-003  Stock insuffisant       → putaway + réappro avant GI
-  SCN-004  Écart inventaire        → qty physique + ADJ
-  SCN-005  Capstone M1             → multi-anomalie, ordre strict
+  SCN-004  Écart inventaire        → audit après putaway + ADJ
+  SCN-005  Capstone M1             → docs → putaway → inventaire
 
 MODULE 2 — Entrepôt (GR pré-postée, règles emplacement/lots)
   SCN-006  Putaway structuré       → REC-01 → STOCKAGE
-  SCN-007  Capacité overflow       → split multi-bins
+  SCN-007  Capacité overflow       → 500@L1 + 100@L2 exact
   SCN-008  FIFO multi-lots         → lot oldest first, pas de putaway
 
 MODULE 3 — Inventaire et réappro (seuil 70/100)
-  SCN-009  Comptage cyclique       → écart −3 + ADJ
+  SCN-009  Comptage cyclique       → écart −3 + 1 ajustement
   SCN-010  Variance significative  → justification + ADJ
-  SCN-011  Capstone M3             → Min/Max Q = Max − stock
+  SCN-011  Capstone M3             → REPLENISH only · Q=170/260
 </code></pre>
 <table>
 <thead>
@@ -1910,13 +1752,13 @@ MODULE 3 — Inventaire et réappro (seuil 70/100)
 </tbody></table>
 <hr>
 <h3>Rappel par module</h3>
-<p><strong>Module 1 —</strong> Cycle complet PO→GR→Putaway→SO→GI→CC→[ADJ]→Conformité. Seuil 60/100. SCN-001 à SCN-005 requis pour <strong>Silver</strong>. Ordre Documents → Physique → Expédition en crise (SCN-005).</p>
-<p><strong>Module 2 —</strong> GR pré-postée (sauf SCN-008). PUTAWAY obligatoire si stock au quai. Capacité max = contrainte hard (SCN-007). FIFO = lot oldest first (SCN-008).</p>
-<p><strong>Module 3 —</strong> Seuil <strong>70/100</strong>. ADJ (MI07) obligatoire si écart. SCN-010 : justification si écart &gt; 20 u. SCN-011 : Q = Max − stock. Validation enseignant avant M4.</p>
+<p><strong>Module 1 —</strong> Flux opérationnel PO→GR→Putaway ; SCN-004/005 = <strong>audit inventaire</strong> (CC→[ADJ]→Conformité) <strong>sans</strong> SO/picking/GI. Seuil 60/100. SCN-001 à SCN-005 requis pour <strong>Silver</strong>. Ordre Documents → Physique → Inventaire en crise (SCN-005).</p>
+<p><strong>Module 2 —</strong> GR pré-postée (sauf SCN-008). PUTAWAY obligatoire si stock au quai. SCN-007 = split <strong>exact</strong> 500@L1 + 100@L2. FIFO = lot oldest first (SCN-008 uniquement).</p>
+<p><strong>Module 3 —</strong> Seuil <strong>70/100</strong>. SCN-009/010 : ADJ si écart. SCN-010 : justification si écart &gt; 20 u. <strong>SCN-011 : REPLENISH → COMPLIANCE uniquement</strong> (Q = Max − stock). Validation enseignant avant M4.</p>
 <hr>
 <h3>Question finale</h3>
 <p><em>« Ma séquence est-elle complète, mes documents postés, mes écarts résolus et ma conformité cohérente avec le scénario et le module ? »</em></p>
-</div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juin 2026 · Guidance pédagogique uniquement</div>
+</div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026 · Guidance pédagogique uniquement</div>
 
 </body>
 </html>

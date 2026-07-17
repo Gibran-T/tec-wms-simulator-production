@@ -1,23 +1,24 @@
 #!/usr/bin/env node
 /**
- * Generate TECWMS_GUIDE_M4_M5.pdf from the PDF-ready markdown source.
- * Uses Puppeteer for print CSS (cover, page breaks, tables, UTF-8 accents).
+ * Generate TECWMS_GUIDE_M1_M3.pdf and TECWMS_GUIDE_M1_M3.docx
+ * from the PDF-ready markdown source.
  */
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import fsSync from "node:fs";
+import { execSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
 const inputMd = path.join(
   root,
-  "TECWMS_GUIDE_ETUDIANT_M4_M5_PREPARATION_CERTIFICATION_PDF_READY.md"
+  "TECWMS_GUIDE_ETUDIANT_M1_M3_PREPARATION_CERTIFICATION_PDF_READY.md"
 );
-const outputPdf = path.join(root, "TECWMS_GUIDE_M4_M5.pdf");
-const outputDocx = path.join(root, "TECWMS_GUIDE_M4_M5.docx");
-
-import fsSync from "node:fs";
+const outputPdf = path.join(root, "TECWMS_GUIDE_M1_M3.pdf");
+const outputDocx = path.join(root, "TECWMS_GUIDE_M1_M3.docx");
+const outputHtml = path.join(root, "TECWMS_GUIDE_M1_M3.html");
 
 const toolsDir = path.join(__dirname, ".pdf-tools");
 fsSync.mkdirSync(toolsDir, { recursive: true });
@@ -31,18 +32,18 @@ if (!fsSync.existsSync(toolsPkg)) {
 const require = createRequire(toolsPkg);
 
 async function ensureDeps() {
-  try {
-    require.resolve("puppeteer");
-    require.resolve("marked");
-    require.resolve("pdf-lib");
-    require.resolve("html-to-docx");
-  } catch {
-    const { execSync } = await import("node:child_process");
-    console.log("Installing puppeteer, marked, pdf-lib, html-to-docx (isolated)...");
-    execSync("npm install puppeteer marked pdf-lib html-to-docx", {
-      cwd: toolsDir,
-      stdio: "inherit",
-    });
+  const needed = ["puppeteer", "marked", "pdf-lib", "html-to-docx"];
+  const missing = needed.filter((pkg) => {
+    try {
+      require.resolve(pkg);
+      return false;
+    } catch {
+      return true;
+    }
+  });
+  if (missing.length) {
+    console.log(`Installing ${missing.join(", ")} (isolated)...`);
+    execSync(`npm install ${missing.join(" ")}`, { cwd: toolsDir, stdio: "inherit" });
   }
 }
 
@@ -70,7 +71,7 @@ function buildHtmlDocument(bodyHtml, embeddedStyles) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TEC.WMS — Guide de Préparation Modules M4 et M5</title>
+  <title>TEC.WMS — Guide de Préparation Modules M1, M2 et M3</title>
   <style>
     @page {
       size: A4;
@@ -86,9 +87,6 @@ function buildHtmlDocument(bodyHtml, embeddedStyles) {
       line-height: 1.45;
       color: #1a1a1a;
       margin: 0;
-      padding: 0;
-    }
-    .content-pages {
       padding: 0;
     }
     h1, h2, h3, h4 {
@@ -195,9 +193,7 @@ function buildHtmlDocument(bodyHtml, embeddedStyles) {
       color: #555;
       line-height: 1.6;
     }
-    .doc-footer {
-      display: none;
-    }
+    .doc-footer { display: none; }
     .checklist-page h1 { border-bottom-color: #0f2d52; }
     .checklist-page table td:first-child {
       width: 2.2em;
@@ -224,7 +220,6 @@ async function generatePdf(html, outPath) {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
 
-    // Cover only (no header/footer)
     const coverHeight = await page.evaluate(() => {
       const cover = document.querySelector(".cover-page");
       return cover ? cover.offsetHeight : 1122;
@@ -238,7 +233,6 @@ async function generatePdf(html, outPath) {
       margin: { top: 0, right: 0, bottom: 0, left: 0 },
     });
 
-    // Remaining pages with institutional header/footer + page numbers
     const bodyPdf = await page.pdf({
       pageRanges: "2-",
       format: "A4",
@@ -246,7 +240,7 @@ async function generatePdf(html, outPath) {
       displayHeaderFooter: true,
       headerTemplate: `
         <div style="width:100%;font-size:8pt;color:#444;padding:0 20mm;display:flex;justify-content:space-between;font-family:Segoe UI,Arial,sans-serif;">
-          <span>TEC.WMS — Guide étudiant M4/M5</span>
+          <span>TEC.WMS — Guide étudiant M1/M2/M3</span>
           <span>Collège de la Concorde</span>
         </div>`,
       footerTemplate: `
@@ -272,26 +266,35 @@ async function generatePdf(html, outPath) {
   }
 }
 
+async function generateDocx(html, outPath) {
+  const HTMLtoDOCX = require("html-to-docx");
+  const docxBuffer = await HTMLtoDOCX(html, null, {
+    table: { row: { cantSplit: true } },
+    footer: true,
+    pageNumber: true,
+    font: "Segoe UI",
+    fontSize: 22,
+    margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+  });
+  await fs.writeFile(outPath, docxBuffer);
+}
+
 async function verifyPdf(outPath) {
   const { PDFDocument } = require("pdf-lib");
   const bytes = await fs.readFile(outPath);
   const doc = await PDFDocument.load(bytes);
   const pageCount = doc.getPageCount();
   const stat = await fs.stat(outPath);
-
-  const checks = {
-    fileExists: true,
-    pageCount,
-    sizeKb: Math.round(stat.size / 1024),
-    minPages: pageCount >= 7,
-  };
-
-  // Extract text sample for accent verification via raw string search in PDF bytes
   const raw = bytes.toString("latin1");
   const accentSamples = ["é", "è", "à", "ô", "û", "ç", "É"];
   const accentsFound = accentSamples.filter((ch) => raw.includes(ch));
-
-  return { ...checks, accentsFound, accentSampleCount: accentsFound.length };
+  return {
+    pageCount,
+    sizeKb: Math.round(stat.size / 1024),
+    minPages: pageCount >= 20,
+    accentsFound,
+    accentSampleCount: accentsFound.length,
+  };
 }
 
 async function main() {
@@ -301,50 +304,31 @@ async function main() {
   marked.setOptions({ gfm: true, breaks: false });
 
   const raw = await fs.readFile(inputMd, "utf8");
-
-  // Extract embedded <style> from source for cover/checklist rules
   const styleMatch = raw.match(/<style>([\s\S]*?)<\/style>/);
   const embeddedStyles = styleMatch ? styleMatch[1] : "";
 
   const md = preprocessMarkdown(raw);
   const bodyHtml = marked.parse(md);
   const html = buildHtmlDocument(bodyHtml, embeddedStyles);
-
-  const htmlDebug = path.join(root, "TECWMS_GUIDE_M4_M5.html");
-  await fs.writeFile(htmlDebug, html, "utf8");
+  await fs.writeFile(outputHtml, html, "utf8");
 
   console.log("Generating PDF...");
   await generatePdf(html, outputPdf);
 
-  const HTMLtoDOCX = require("html-to-docx");
   console.log("Generating DOCX...");
-  const docxBuffer = await HTMLtoDOCX(html, null, {
-    table: { row: { cantSplit: true } },
-    footer: true,
-    pageNumber: true,
-    font: "Segoe UI",
-    fontSize: 22,
-    margins: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-  });
-  await fs.writeFile(outputDocx, docxBuffer);
+  await generateDocx(html, outputDocx);
 
   const verification = await verifyPdf(outputPdf);
   const docxStat = await fs.stat(outputDocx);
-  console.log("\n=== PDF Verification ===");
-  console.log(`Output PDF: ${outputPdf}`);
-  console.log(`Output DOCX: ${outputDocx} (${Math.round(docxStat.size / 1024)} KB)`);
-  console.log(`Pages: ${verification.pageCount}`);
-  console.log(`Size: ${verification.sizeKb} KB`);
-  console.log(`Minimum page count (≥7): ${verification.minPages ? "PASS" : "FAIL"}`);
-  console.log(`French accents detected in PDF stream: ${verification.accentSampleCount}/7 (${verification.accentsFound.join(", ") || "none"})`);
-  console.log("\nStructural checks (manual layout):");
-  console.log("  [x] Cover page — page 1, no header/footer");
-  console.log("  [x] Table of contents — starts page 2");
-  console.log("  [x] Page breaks — CSS .page-break between scenarios");
-  console.log("  [x] Headers — TEC.WMS / Collège de la Concorde (pages 2+)");
-  console.log("  [x] Footers — institutional text + page numbers (pages 2+)");
-  console.log("  [x] Tables — GFM rendering with borders");
-  console.log(`\nDone: ${outputPdf}`);
+
+  console.log("\n=== Output Verification ===");
+  console.log(`PDF:  ${outputPdf}`);
+  console.log(`      Pages: ${verification.pageCount} | Size: ${verification.sizeKb} KB`);
+  console.log(`      Min pages (≥20): ${verification.minPages ? "PASS" : "FAIL"}`);
+  console.log(`      Accents: ${verification.accentSampleCount}/7`);
+  console.log(`DOCX: ${outputDocx}`);
+  console.log(`      Size: ${Math.round(docxStat.size / 1024)} KB`);
+  console.log("\nDone.");
 }
 
 main().catch((err) => {
