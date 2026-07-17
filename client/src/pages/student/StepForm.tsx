@@ -11,7 +11,15 @@ import { buildReplenishmentParamRows, computeCcReconProgress } from "@/lib/m3Ope
 import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
-import { getAnalyticalQuestionText, isAnalyticalAnswerStep } from "@/data/analyticalStepQuestions";
+import {
+  getAnalyticalQuestionText,
+  getM5DecisionStepTitle,
+  getStepChromeCodeLabel,
+  getStepSubmitLabel,
+  isAnalyticalAnswerStep,
+  isM4AnalyticalStep,
+  M4_KPI_DATA_TITLE,
+} from "@/data/analyticalStepQuestions";
 import { resolveScenarioScnCode } from "@/lib/scenarioCatalog";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
@@ -437,71 +445,71 @@ const STEP_CONFIG: Record<string, {
 
   // ── Module 4 ──────────────────────────────────────────────────────────────
   kpi_data: {
-    titleFr: "Saisie données KPI", titleEn: "KPI Data Entry", code: "KPI_DATA", txCode: "MB52", tCode: "MB52",
+    titleFr: "Lecture des données KPI", titleEn: "KPI data review", code: "KPI_DATA", txCode: "MB52", tCode: "MB52",
     etapeFr: "Étape 1 sur 5", etapeEn: "Step 1 of 5",
-    objectiveFr: "Reconnaître les données KPI fournies pour le module 4. Les données de référence sont : consommation annuelle 2400 unités, stock moyen 400, commandes livrées 285/300, erreurs 12/300 opérations.",
-    objectiveEn: "Acknowledge the KPI data provided for Module 4. Reference data: annual consumption 2400 units, average stock 400, orders delivered 285/300, errors 12/300 operations.",
+    objectiveFr: "Repérer les données KPI du portefeuille : consommation annuelle, stock moyen, commandes livrées, erreurs opérationnelles. Aucune transaction physique n'est attendue.",
+    objectiveEn: "Identify portfolio KPI data: annual consumption, average stock, orders delivered, operational errors. No physical transaction is expected.",
     fields: [],
     pedagogicalDeep: {
-      whyFr: "Les KPI logistiques (Key Performance Indicators) sont les indicateurs clés qui mesurent la performance d'un entrepôt. Ils permettent d'identifier les axes d'amélioration.",
-      whyEn: "Logistics KPIs (Key Performance Indicators) are the key indicators that measure warehouse performance. They allow identifying areas for improvement.",
-      realSAPFr: "Dans SAP, les KPI sont extraits via des rapports standard (MB52, VL06O, ME2M) ou des tableaux de bord personnalisés dans SAP Analytics Cloud.",
-      realSAPEn: "In SAP, KPIs are extracted via standard reports (MB52, VL06O, ME2M) or custom dashboards in SAP Analytics Cloud.",
-      dependencyFr: "Les KPI dépendent de la qualité et de l'exhaustivité des transactions enregistrées dans le WMS. Des transactions manquantes faussent les indicateurs.",
-      dependencyEn: "KPIs depend on the quality and completeness of transactions recorded in the WMS. Missing transactions distort indicators.",
-      realErrorFr: "Des KPI calculés sur des données incomplètes conduisent à de mauvaises décisions managériales et à des investissements mal ciblés.",
-      realErrorEn: "KPIs calculated on incomplete data lead to poor management decisions and poorly targeted investments.",
+      whyFr: "Les KPI logistiques mesurent la performance. Observer les données avant de classer et décider.",
+      whyEn: "Logistics KPIs measure performance. Observe the data before classifying and deciding.",
+      realSAPFr: "Dans SAP, les KPI sont extraits via des rapports standard (MB52, VL06O, ME2M) ou des tableaux de bord dans SAP Analytics Cloud.",
+      realSAPEn: "In SAP, KPIs are extracted via standard reports (MB52, VL06O, ME2M) or dashboards in SAP Analytics Cloud.",
+      dependencyFr: "Chaîne M4 : Observer → Classifier → Décider → Suivre.",
+      dependencyEn: "M4 chain: Observe → Classify → Decide → Follow up.",
+      realErrorFr: "Décider sans avoir lu les données brutes conduit à des recommandations non fondées.",
+      realErrorEn: "Deciding without reading raw data leads to unsupported recommendations.",
     }
   },
   kpi_rotation: {
     titleFr: "Taux de rotation (DSI)", titleEn: "Rotation Rate (DSI)", code: "KPI_ROTATION", txCode: "MB52", tCode: "MB52",
     etapeFr: "Étape 2 sur 5", etapeEn: "Step 2 of 5",
-    objectiveFr: "Interpréter le taux de rotation des stocks. Données : consommation annuelle 2400, stock moyen 400. Taux = 2400/400 = 6. Analysez si ce résultat indique un surstock, une performance normale ou une sous-performance.",
-    objectiveEn: "Interpret the stock rotation rate. Data: annual consumption 2400, average stock 400. Rate = 2400/400 = 6. Analyze whether this result indicates overstock, normal performance, or underperformance.",
+    objectiveFr: "Consommation annuelle : 2 400 unités. Stock moyen : 400 unités. Calculez le taux de rotation, classifiez le résultat et recommandez une action avec suivi.",
+    objectiveEn: "Annual consumption: 2,400 units. Average stock: 400 units. Calculate turnover, classify the result, and recommend an action with follow-up.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
-      whyFr: "Le taux de rotation (Inventory Turnover) mesure combien de fois le stock est renouvelé par an. Un taux élevé indique une gestion efficace ; un taux faible indique un surstock coûteux.",
-      whyEn: "The rotation rate (Inventory Turnover) measures how many times stock is renewed per year. A high rate indicates efficient management; a low rate indicates costly overstock.",
-      realSAPFr: "Dans SAP, le taux de rotation est calculé via MB52 (stock moyen) et MB51 (consommation). Le DSI (Days of Supply) = 365 / taux de rotation.",
-      realSAPEn: "In SAP, the rotation rate is calculated via MB52 (average stock) and MB51 (consumption). DSI (Days of Supply) = 365 / rotation rate.",
-      dependencyFr: "Le taux de rotation dépend de la précision du stock moyen (MB52) et de la consommation réelle (MB51). Des erreurs d'inventaire faussent ce KPI.",
-      dependencyEn: "The rotation rate depends on the accuracy of average stock (MB52) and actual consumption (MB51). Inventory errors distort this KPI.",
-      realErrorFr: "Un taux de rotation de 6 dans la bande 4–12 indique une performance normale. En pratique, DSI ≈ 60 jours — surveiller les SKU sous 4×.",
-      realErrorEn: "A rotation rate of 6 in the 4–12 band indicates normal performance. In practice, DSI ≈ 60 days — watch SKUs below 4×.",
+      whyFr: "Le taux de rotation mesure combien de fois le stock est renouvelé par an. La classification guide la politique stock.",
+      whyEn: "Turnover measures how many times stock is renewed per year. Classification guides stock policy.",
+      realSAPFr: "Dans SAP, le taux de rotation s'appuie sur MB52 (stock moyen) et MB51 (consommation). DSI = 365 / taux.",
+      realSAPEn: "In SAP, turnover uses MB52 (average stock) and MB51 (consumption). DSI = 365 / rate.",
+      dependencyFr: "Consultez la bande de référence dans l'aide si besoin — calculez et classifiez vous-même.",
+      dependencyEn: "Check the reference band in help if needed — calculate and classify yourself.",
+      realErrorFr: "Confondre une rotation dans la bande normale avec un surstock conduit à des décisions de destock injustifiées.",
+      realErrorEn: "Confusing normal-band turnover with overstock leads to unjustified destock decisions.",
     }
   },
   kpi_service: {
     titleFr: "Taux de service (OTIF)", titleEn: "Service Level (OTIF)", code: "KPI_SERVICE", txCode: "VL06O", tCode: "VL06O",
     etapeFr: "Étape 3 sur 5", etapeEn: "Step 3 of 5",
-    objectiveFr: "Interpréter le taux de service. Données : 285 commandes livrées sur 300 = 95%. Analysez si ce résultat est excellent, acceptable ou insuffisant selon les standards industrie.",
-    objectiveEn: "Interpret the service level. Data: 285 orders delivered out of 300 = 95%. Analyze whether this result is excellent, acceptable, or insufficient according to industry standards.",
+    objectiveFr: "Données : 285 commandes livrées sur 300 ; erreurs opérationnelles disponibles dans le tour de contrôle. Calculez et classifiez l'OTIF, puis reliez-le au contexte d'erreurs si pertinent.",
+    objectiveEn: "Data: 285 orders delivered out of 300; operational errors available in the control tower. Calculate and classify OTIF, then relate it to the error context if relevant.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
-      whyFr: "Le taux de service (OTIF - On Time In Full) mesure le pourcentage de commandes livrées complètement et à temps. C'est le KPI client le plus important.",
-      whyEn: "The service level (OTIF - On Time In Full) measures the percentage of orders delivered completely and on time. It is the most important customer KPI.",
-      realSAPFr: "Dans SAP, le taux de service est calculé via VL06O (liste des livraisons) et SD-BIL (facturation). Le Fill Rate mesure la complétude des livraisons.",
-      realSAPEn: "In SAP, the service level is calculated via VL06O (delivery list) and SD-BIL (billing). Fill Rate measures delivery completeness.",
-      dependencyFr: "Le taux de service dépend de la disponibilité du stock (ATP), de la précision du picking et de la performance logistique des transporteurs.",
-      dependencyEn: "The service level depends on stock availability (ATP), picking accuracy, and carrier logistics performance.",
-      realErrorFr: "Un taux de service de 95% signifie 15 commandes non livrées sur 300. En B2B, chaque commande manquée peut entraîner des pénalités contractuelles de 1-5% de la valeur.",
-      realErrorEn: "A 95% service level means 15 undelivered orders out of 300. In B2B, each missed order can incur contractual penalties of 1-5% of the value.",
+      whyFr: "L'OTIF mesure les commandes livrées complètement et à temps. Il doit être lu avec le taux d'erreur, pas isolément.",
+      whyEn: "OTIF measures orders delivered complete and on time. Read it with the error rate, not in isolation.",
+      realSAPFr: "Dans SAP, l'OTIF s'appuie sur VL06O et les indicateurs SD.",
+      realSAPEn: "In SAP, OTIF relies on VL06O and SD indicators.",
+      dependencyFr: "Chaîne : Observer les données → Classifier → Décider → Suivre.",
+      dependencyEn: "Chain: Observe data → Classify → Decide → Follow up.",
+      realErrorFr: "Classer un OTIF élevé comme faible, ou ignorer le taux d'erreur, fausse le diagnostic.",
+      realErrorEn: "Calling a high OTIF weak, or ignoring the error rate, distorts the diagnosis.",
     }
   },
   kpi_diagnostic: {
-    titleFr: "Diagnostic opérationnel", titleEn: "Operational Diagnostic", code: "KPI_DIAGNOSTIC", txCode: "LT23", tCode: "LT23",
+    titleFr: "Synthèse décisionnelle multi-KPI", titleEn: "Multi-KPI decision synthesis", code: "KPI_DIAGNOSTIC", txCode: "LT23", tCode: "LT23",
     etapeFr: "Étape 4 sur 5", etapeEn: "Step 4 of 5",
-    objectiveFr: "Formuler un diagnostic global basé sur tous les KPIs. Taux de rotation 6 (normal), service 95% (excellent), erreurs 4% (acceptable). Proposez un plan d'action prioritaire.",
-    objectiveEn: "Formulate a global diagnostic based on all KPIs. Rotation rate 6 (normal), service 95% (excellent), errors 4% (acceptable). Propose a priority action plan.",
+    objectiveFr: "Formulez une synthèse courte à partir des KPI : classification, décision et suivi. Utilisez vos propres mots — une phrase unique n'est pas exigée.",
+    objectiveEn: "Write a short synthesis from the KPIs: classification, decision, and follow-up. Use your own words — no single phrase is required.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
-      whyFr: "Le diagnostic opérationnel synthétise tous les KPIs pour identifier les priorités d'amélioration. Il doit être structuré (problème → cause → solution → impact).",
-      whyEn: "The operational diagnostic synthesizes all KPIs to identify improvement priorities. It must be structured (problem → cause → solution → impact).",
-      realSAPFr: "Dans SAP, les tableaux de bord KPI sont disponibles dans SAP Analytics Cloud ou via des requêtes BW/BI personnalisées. Le Balanced Scorecard structure les KPIs en 4 axes.",
-      realSAPEn: "In SAP, KPI dashboards are available in SAP Analytics Cloud or via custom BW/BI queries. The Balanced Scorecard structures KPIs across 4 axes.",
-      dependencyFr: "Le diagnostic dépend de la compréhension de tous les KPIs précédents (rotation, service, erreurs). Un bon diagnostic identifie les causes racines, pas seulement les symptômes.",
-      dependencyEn: "The diagnostic depends on understanding all previous KPIs (rotation, service, errors). A good diagnostic identifies root causes, not just symptoms.",
-      realErrorFr: "Un diagnostic superficiel (ex: 'améliorer le service') sans analyse de cause racine conduit à des actions correctives inefficaces et coûteuses.",
-      realErrorEn: "A superficial diagnostic (e.g., 'improve service') without root cause analysis leads to ineffective and costly corrective actions.",
+      whyFr: "La synthèse relie les indicateurs pour une décision actionnable : Observer → Classifier → Décider → Suivre.",
+      whyEn: "Synthesis links indicators into an actionable decision: Observe → Classify → Decide → Follow up.",
+      realSAPFr: "Les revues de direction s'appuient sur des tableaux de bord, pas sur une transaction magasin.",
+      realSAPEn: "Management reviews rely on dashboards, not a warehouse transaction.",
+      dependencyFr: "Appuyez-vous sur vos interprétations précédentes ; ne recopiez pas une réponse modèle.",
+      dependencyEn: "Build on your prior interpretations; do not copy a model answer.",
+      realErrorFr: "Une synthèse sans décision ou sans suivi reste incomplète pour le comité.",
+      realErrorEn: "A synthesis without a decision or follow-up remains incomplete for the committee.",
     }
   },
   compliance_m4: {
@@ -630,20 +638,20 @@ const STEP_CONFIG: Record<string, {
     }
   },
   m5_decision: {
-    titleFr: "Décision stratégique M5", titleEn: "M5 Strategic Decision", code: "M5_DECISION", txCode: "LT23", tCode: "LT23",
+    titleFr: "Décision tactique", titleEn: "Tactical decision", code: "M5_DECISION", txCode: "LT23", tCode: "LT23",
     etapeFr: "Étape 6 sur 7", etapeEn: "Step 6 of 7",
-    objectiveFr: "Simulation intégrée M5 — Étape 6 : Formuler une décision stratégique basée sur les KPIs calculés. Analysez les résultats et proposez un plan d'action pour améliorer la performance.",
-    objectiveEn: "M5 Integrated Simulation — Step 6: Formulate a strategic decision based on calculated KPIs. Analyze results and propose an action plan to improve performance.",
+    objectiveFr: "Formuler une décision à partir des KPI et du stock du run. Distinguez niveau tactique et stratégique selon le scénario.",
+    objectiveEn: "Formulate a decision from run KPIs and stock. Distinguish tactical vs strategic level per scenario.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
-      whyFr: "La décision stratégique M5 est l'exercice de synthèse final. Elle évalue la capacité de l'étudiant à transformer des données KPI en décisions opérationnelles concrètes.",
-      whyEn: "The M5 strategic decision is the final synthesis exercise. It evaluates the student's ability to transform KPI data into concrete operational decisions.",
-      realSAPFr: "Dans SAP, les décisions stratégiques sont supportées par SAP S/4HANA Embedded Analytics et SAP Analytics Cloud. Les tableaux de bord temps réel facilitent la prise de décision.",
-      realSAPEn: "In SAP, strategic decisions are supported by SAP S/4HANA Embedded Analytics and SAP Analytics Cloud. Real-time dashboards facilitate decision-making.",
-      dependencyFr: "La décision M5 dépend de la compréhension de tous les KPIs calculés. Une bonne décision identifie les priorités, les ressources nécessaires et les délais.",
-      dependencyEn: "M5 decision depends on understanding all calculated KPIs. A good decision identifies priorities, required resources, and timelines.",
-      realErrorFr: "Une décision stratégique sans justification KPI est rejetée par la direction. En entreprise, toute décision d'investissement doit être étayée par des données.",
-      realErrorEn: "A strategic decision without KPI justification is rejected by management. In business, every investment decision must be supported by data.",
+      whyFr: "Après Exécuter → Vérifier → Corriger si nécessaire, la décision s'appuie sur les preuves du run — pas sur les valeurs du Module 4.",
+      whyEn: "After Execute → Verify → Correct if needed, the decision relies on run evidence — not Module 4 values.",
+      realSAPFr: "Les décisions s'appuient sur des indicateurs runtime (Embedded Analytics / SAC), pas sur une annexe statique.",
+      realSAPEn: "Decisions rely on runtime indicators (Embedded Analytics / SAC), not a static annex.",
+      dependencyFr: "Utilisez le snapshot M5_KPI de votre session. Q = 0 peut être une décision professionnelle complète.",
+      dependencyEn: "Use your session M5_KPI snapshot. Q = 0 can be a complete professional decision.",
+      realErrorFr: "Recopier les KPI du Module 4 ou inventer un problème sur un cycle nominal fausse la décision.",
+      realErrorEn: "Copying Module 4 KPIs or inventing a problem on a nominal cycle distorts the decision.",
     }
   },
   compliance_m5: {
@@ -1014,7 +1022,7 @@ export default function StepForm() {
   }, [scnCode, cfg.code]);
 
   /** SCN-007 localized copy — capacity split only; never FIFO / "4 sur 5" / partial recovery. */
-  const displayCfg = useMemo(() => {
+  const scn007DisplayCfg = useMemo(() => {
     if (scnCode !== "SCN-007") return cfg;
     const etape = scn007Etape;
     if (cfg.code === "PUTAWAY") {
@@ -1096,9 +1104,48 @@ export default function StepForm() {
     return cfg;
   }, [scnCode, cfg, scn007Etape]);
 
+  /** M4 analytical titles + M5 tactical/strategic decision labels (SCN-aware). */
+  const displayCfg = useMemo(() => {
+    let next = scn007DisplayCfg;
+    if (cfg.code === "KPI_DATA") {
+      next = {
+        ...next,
+        titleFr: M4_KPI_DATA_TITLE.fr,
+        titleEn: M4_KPI_DATA_TITLE.en,
+      };
+    }
+    if (cfg.code === "M5_DECISION") {
+      const titles = getM5DecisionStepTitle(scnCode, isM5Strategic);
+      const objective =
+        scnCode === "SCN-016"
+          ? {
+              fr: "Réconcilier d'abord, décider ensuite. Basez votre décision sur le stock corrigé et les KPI du run.",
+              en: "Reconcile first, decide afterward. Base your decision on corrected stock and run KPIs.",
+            }
+          : isM5Strategic || scnCode === "SCN-017"
+            ? {
+                fr: "Décision stratégique : citez ≥2 KPI du snapshot de session, une priorité, un compromis et un horizon de revue.",
+                en: "Strategic decision: cite ≥2 KPIs from the session snapshot, one priority, one trade-off, and a review horizon.",
+              }
+            : {
+                fr: "Décision tactique : le cycle est-il conforme ? Un réapprovisionnement est-il nécessaire ? Que maintenir ou surveiller ?",
+                en: "Tactical decision: is the cycle compliant? Is replenishment required? What to maintain or monitor?",
+              };
+      next = {
+        ...next,
+        titleFr: titles.fr,
+        titleEn: titles.en,
+        objectiveFr: objective.fr,
+        objectiveEn: objective.en,
+      };
+    }
+    return next;
+  }, [scn007DisplayCfg, cfg.code, scnCode, isM5Strategic]);
+
   const isScn007FifoNotInScenario = scnCode === "SCN-007" && cfg.code === "FIFO_PICK";
 
   const isAnalyticalStep = isAnalyticalAnswerStep(step);
+  const useM4AnalyticalChrome = isM4AnalyticalStep(step, runData?.moduleId);
   const analyticalQuestionText = useMemo(
     () => getAnalyticalQuestionText(step ?? "", scnCode, language, isM5Strategic),
     [step, scnCode, language, isM5Strategic],
@@ -1702,7 +1749,7 @@ export default function StepForm() {
 
   return (
     <FioriShell
-      title={`${t("Transaction", "Transaction")}: ${t(cfg.titleFr, cfg.titleEn)} (${cfg.code}) | ${t(displayCfg.etapeFr, displayCfg.etapeEn)}`}
+      title={`${useM4AnalyticalChrome ? t("Analyse", "Analysis") : t("Transaction", "Transaction")}: ${t(displayCfg.titleFr, displayCfg.titleEn)} (${cfg.code}) | ${t(displayCfg.etapeFr, displayCfg.etapeEn)}`}
       breadcrumbs={[
         { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
         { label: "Mission Control", href: `/student/run/${runId}` },
@@ -1838,8 +1885,10 @@ export default function StepForm() {
         {/* Transaction Header */}
         <div className={`rounded-t-md px-5 py-3 flex items-center justify-between ${isDemo ? "bg-indigo-900" : "bg-primary"}`}>
           <div>
-            <p className="text-white/60 text-xs">{t("Code Transaction", "Transaction Code")}</p>
-            <p className="text-white font-bold text-sm">{cfg.tCode} — {t(cfg.titleFr, cfg.titleEn)}</p>
+            <p className="text-white/60 text-xs">
+              {getStepChromeCodeLabel(runData?.moduleId, step, language)}
+            </p>
+            <p className="text-white font-bold text-sm">{cfg.tCode} — {t(displayCfg.titleFr, displayCfg.titleEn)}</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -2688,6 +2737,7 @@ export default function StepForm() {
                       step={step ?? ""}
                       t={t}
                       isM5Strategic={isM5Strategic}
+                      scnCode={scnCode}
                     />
                   }
                 />
@@ -2811,11 +2861,10 @@ export default function StepForm() {
                   ) : (
                     <>
                       <CheckCircle size={14} />
-                      {isGrRegularization
-                        ? t("Poster (MIGO)", "Post (MIGO)")
-                        : selectedCcReconVariance === 0
-                          ? t("Confirmer l'écart nul", "Confirm zero variance")
-                          : t("Valider la transaction", "Validate transaction")}
+                      {getStepSubmitLabel(runData?.moduleId, step, language, {
+                        isGrRegularization,
+                        isZeroVarianceConfirm: selectedCcReconVariance === 0,
+                      })}
                     </>
                   )}
                 </button>

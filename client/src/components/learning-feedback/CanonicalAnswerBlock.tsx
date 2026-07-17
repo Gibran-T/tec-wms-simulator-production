@@ -7,6 +7,10 @@ type Props = {
   t: (fr: string, en: string) => string;
 };
 
+/**
+ * Post-run pedagogical example — not a mandatory keyword answer key.
+ * Literal validator synonym chips are not rendered.
+ */
 export default function CanonicalAnswerBlock({ step, language, t }: Props) {
   const { canonicalAnswer } = step;
   return (
@@ -17,7 +21,13 @@ export default function CanonicalAnswerBlock({ step, language, t }: Props) {
       aria-labelledby={`canonical-answer-${step.stepCode}`}
     >
       <p id={`canonical-answer-${step.stepCode}`} className="text-[10px] font-semibold uppercase tracking-wider text-foreground">
-        {t("Réponse canonique", "Canonical answer")}
+        {t("Exemple de raisonnement", "Example of reasoning")}
+      </p>
+      <p className="text-[10px] text-muted-foreground leading-relaxed" data-testid="learning-example-disclaimer">
+        {t(
+          "Cette formulation est un exemple. Une autre réponse peut être correcte si elle démontre le même raisonnement. Utilisez vos propres mots.",
+          "This wording is an example. Another answer can be correct if it shows the same reasoning. Use your own words.",
+        )}
       </p>
       <p className="text-xs font-semibold text-foreground">
         {t("Courte :", "Short:")} {pickBilingual(canonicalAnswer.short, language)}
@@ -25,20 +35,10 @@ export default function CanonicalAnswerBlock({ step, language, t }: Props) {
       <p className="text-xs text-foreground leading-relaxed border-t border-slate-200 dark:border-slate-700 pt-2">
         {pickBilingual(canonicalAnswer.full, language)}
       </p>
-      {canonicalAnswer.keywords.length > 0 && (
-        <div className="flex flex-wrap gap-1">
-          <span className="text-[10px] text-muted-foreground mr-1">{t("Mots-clés :", "Keywords:")}</span>
-          {canonicalAnswer.keywords.map((kw) => (
-            <span key={kw} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {kw}
-            </span>
-          ))}
-        </div>
-      )}
       {canonicalAnswer.whyCorrect.length > 0 && (
         <div className="border-t border-slate-200 dark:border-slate-700 pt-2 space-y-1">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase">
-            {t("Pourquoi c'est correct", "Why correct")}
+            {t("Idées de raisonnement", "Reasoning ideas")}
           </p>
           <ul className="list-disc list-inside space-y-0.5">
             {canonicalAnswer.whyCorrect.map((item, i) => (
@@ -50,7 +50,7 @@ export default function CanonicalAnswerBlock({ step, language, t }: Props) {
       {canonicalAnswer.variants && canonicalAnswer.variants.length > 0 && (
         <div className="border-t border-slate-200 dark:border-slate-700 pt-2 space-y-2">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase">
-            {t("Exemplaires acceptés — choisir une orientation", "Accepted exemplars — choose one orientation")}
+            {t("Autres formulations possibles", "Other possible formulations")}
           </p>
           {canonicalAnswer.variants.map((variant) => (
             <div key={variant.id} className="p-2 rounded border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/30">
