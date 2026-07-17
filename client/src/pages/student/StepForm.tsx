@@ -1644,20 +1644,7 @@ export default function StepForm() {
     submitM5Reception, submitM5Putaway, submitM5CycleCount, submitM5Adj, submitM5Replenish, submitM5Kpi, submitM5Decision, submitComplianceM5,
   ].some(m => m.isPending);
 
-  if (isLoading) {
-    return (
-      <FioriShell title={t(cfg.titleFr, cfg.titleEn)} breadcrumbs={[
-        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
-        { label: "Mission Control", href: `/student/run/${runId}` },
-        { label: t(cfg.titleFr, cfg.titleEn) }
-      ]}>
-        <div className="flex items-center justify-center py-20">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        </div>
-      </FioriShell>
-    );
-  }
-
+  // Hooks must run unconditionally — never after an early return (React #310).
   const nextStep = (runData?.nextStep as any)?.code;
   const atpShortage = (runData as { atpShortage?: { active: boolean } | null })?.atpShortage;
   const isBlockedByScn003Shortage =
@@ -1769,6 +1756,20 @@ export default function StepForm() {
       .filter((r, idx, arr) => arr.findIndex((x) => x.lotNumber === r.lotNumber && x.bin === r.bin) === idx)
       .sort((a, b) => (lotOrder.get(a.lotNumber) ?? 99) - (lotOrder.get(b.lotNumber) ?? 99));
   }, [isFifoPickStep, runData]);
+
+  if (isLoading) {
+    return (
+      <FioriShell title={t(cfg.titleFr, cfg.titleEn)} breadcrumbs={[
+        { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+        { label: "Mission Control", href: `/student/run/${runId}` },
+        { label: t(cfg.titleFr, cfg.titleEn) }
+      ]}>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      </FioriShell>
+    );
+  }
 
   // Determine if this is a compliance/auto step (no real form)
   const isAutoStep = ["stock", "compliance", "compliance_adv", "compliance_m3", "compliance_m4", "compliance_m5", "kpi_data"].includes(step?.toLowerCase() ?? "");
