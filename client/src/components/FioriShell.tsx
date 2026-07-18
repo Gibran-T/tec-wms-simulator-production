@@ -148,7 +148,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
             alt="Collège de la Concorde"
             className="h-7 object-contain brightness-0 invert"
           />
-          <div className="hidden lg:block border-l border-white/20 pl-3">
+          <div className="hidden 2xl:block border-l border-white/20 pl-3">
             <p className="text-xs font-semibold text-white leading-tight">Collège de la Concorde — Montréal</p>
             <p className="text-[10px] text-white/60 leading-tight">
               {t("Simulateur pédagogique ERP/WMS", "ERP/WMS Pedagogical Simulator")}
@@ -156,22 +156,22 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           </div>
         </div>
 
-        {/* Course name badge — hidden on small screens */}
-        <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-md shrink-0 mr-2" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}>
+        {/* Course name badge — long title only when space allows (after nav icons) */}
+        <div className="hidden 2xl:flex items-center gap-2 px-3 py-1.5 rounded-md shrink-0 mr-2" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}>
           <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">{PROGRAMME_CODE}</span>
           <span className="text-white/40 text-[10px]">—</span>
           <span className="text-[11px] font-semibold text-white">{COURSE_NAME}</span>
         </div>
 
-        {/* Course badge — compact for md-xl */}
-        <div className="hidden md:flex xl:hidden items-center gap-2 px-2.5 py-1 rounded-md shrink-0 mr-2" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}>
+        {/* Course badge — TEC.LOG identifier from md until 2xl (never hide TEC.LOG for programme text) */}
+        <div className="hidden md:flex 2xl:hidden items-center gap-2 px-2.5 py-1 rounded-md shrink-0 mr-2" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}>
           <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">TEC.LOG</span>
         </div>
 
-        {/* Nav — desktop: icon-first, labels collapse, icons always visible */}
+        {/* Nav — desktop/tablet: icon-only; labels via tooltip + aria-label */}
         {!navCollapsed && (
           <nav
-            className="hidden md:flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto scrollbar-none"
+            className="hidden md:flex items-center gap-0.5 flex-1 min-w-0"
             aria-label={t("Navigation principale", "Main navigation")}
           >
             {navItems.map((item) => {
@@ -187,14 +187,13 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
                       href={item.href}
                       aria-label={item.label}
                       aria-current={active ? "page" : undefined}
-                      className={`flex items-center justify-center gap-1 min-w-[2rem] px-2 py-1.5 rounded text-[10px] font-medium transition-colors shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                      className={`flex items-center justify-center w-8 h-8 rounded transition-colors shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
                         active
                           ? "bg-white/20 text-white ring-1 ring-white/40"
                           : "text-white/70 hover:text-white hover:bg-white/10"
                       }`}
                     >
-                      <Icon size={14} className="shrink-0" aria-hidden="true" />
-                      <span className="hidden xl:inline max-w-[7.5rem] truncate">{item.label}</span>
+                      <Icon size={15} className="shrink-0" aria-hidden="true" />
                       {active && (
                         <span className="sr-only">
                           {t("(page active)", "(active page)")}
@@ -202,7 +201,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
                       )}
                     </Link>
                   </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs">
+                  <TooltipContent side="bottom" sideOffset={6} className="text-xs z-[60]">
                     {item.label}
                   </TooltipContent>
                 </Tooltip>
@@ -404,17 +403,22 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           <nav className="flex flex-col py-1">
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = location === item.href || location.startsWith(item.href + "/");
+              const active =
+                location === item.href ||
+                (item.href !== "/" && location.startsWith(item.href + "/")) ||
+                (item.href === "/teacher" && location === "/teacher");
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label={item.label}
+                  aria-current={active ? "page" : undefined}
                   onClick={() => setMobileMenuOpen(false)}
                   className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
                     active ? "bg-white/15 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
                   }`}
                 >
-                  <Icon size={15} />
+                  <Icon size={15} aria-hidden="true" />
                   {item.label}
                 </Link>
               );
