@@ -138,22 +138,6 @@
       text-align: center;
     }
     
-@media print {
-  @page {
-    size: A4;
-    margin: 2.5cm;
-    @bottom-center {
-      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026";
-      font-size: 9pt;
-      color: #444;
-    }
-    @bottom-right {
-      content: counter(page);
-      font-size: 9pt;
-      color: #444;
-    }
-  }
-}
 .page-break {
   page-break-after: always;
   break-after: page;
@@ -213,22 +197,6 @@
 </head>
 <body>
 <style>
-@media print {
-  @page {
-    size: A4;
-    margin: 2.5cm;
-    @bottom-center {
-      content: "Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026";
-      font-size: 9pt;
-      color: #444;
-    }
-    @bottom-right {
-      content: counter(page);
-      font-size: 9pt;
-      color: #444;
-    }
-  }
-}
 .page-break {
   page-break-after: always;
   break-after: page;
@@ -286,8 +254,10 @@
 </style><div class="cover-page"><p class="brand">TEC.WMS</p><div class="title-block"><h1>Guide de Préparation</h1>
 <h1>Modules M4 et M5</h1>
 <h1>Raisonnement KPI et décision professionnelle</h1>
-</div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong><br>Simulateur pédagogique ERP/WMS</p>
-</div><div class="meta"><p>Scénarios SCN-012 à SCN-017 · Seuil de réussite : 70 / 100<br>Version juillet 2026 · Document étudiant</p>
+</div><div class="subtitle-block"><p><strong>Collège de la Concorde</strong>
+Simulateur pédagogique ERP/WMS</p>
+</div><div class="meta"><p>Scénarios SCN-012 à SCN-017 · Seuil de réussite : 70 / 100
+Version mise à jour — juillet 2026 · Document étudiant</p>
 </div></div><h1>Table des matières</h1>
 <ol>
 <li><a href="#pr%C3%A9sentation-du-guide">Présentation du guide</a></li>
@@ -301,7 +271,11 @@
 </ol>
 <div class="page-break"></div><div class="doc-footer">Collège de la Concorde · TEC.WMS · Simulateur pédagogique ERP/WMS · juillet 2026</div><hr>
 <h2>Présentation du guide</h2>
-<p><strong>Programme :</strong> TEC.LOG — Simulation WMS intégrée<br><strong>Public :</strong> étudiants en préparation à l&#39;évaluation<br><strong>Scénarios couverts :</strong> SCN-012 à SCN-017<br><strong>Seuil de réussite :</strong> 70 / 100 par scénario<br><strong>Version :</strong> juillet 2026</p>
+<p><strong>Programme :</strong> TEC.LOG — Simulation WMS intégrée
+<strong>Public :</strong> étudiants en préparation à l&#39;évaluation
+<strong>Scénarios couverts :</strong> SCN-012 à SCN-017
+<strong>Seuil de réussite :</strong> 70 / 100 par scénario
+<strong>Version :</strong> mise à jour — juillet 2026</p>
 <blockquote>
 <p><strong>Utilisez vos propres mots.</strong> Une réponse correcte démontre le raisonnement attendu ; elle ne dépend pas d’une phrase unique.</p>
 </blockquote>
@@ -368,9 +342,11 @@
 <td>Contexte supply chain</td>
 </tr>
 </tbody></table>
-<p><strong>Module 4</strong> — données portefeuille fournies par le tour de contrôle analytique (pas de transaction physique).<br><strong>Module 5</strong> — KPI issus de <strong>votre run</strong> (ledger / snapshot).  </p>
+<p><strong>Module 4</strong> — données portefeuille fournies par le tour de contrôle analytique (pas de transaction physique).
+<strong>Module 5</strong> — résultats et KPI issus de <strong>votre propre session de simulation</strong>.</p>
 <blockquote>
-<p><strong>Les KPI du Module 5 proviennent de votre session. Ne recopiez pas les valeurs du Module 4, sauf si elles apparaissent réellement dans votre snapshot.</strong></p>
+<p><strong>Dans le Module 5, les résultats présentés dans le panneau de décision proviennent de votre propre session. Vous devez utiliser ces données pour expliquer la situation et formuler une décision professionnelle.</strong></p>
+<p>Le panneau présente des <strong>preuves</strong>. C’est à vous de produire le diagnostic. Le système ne fournit pas la conclusion finale. Des réponses courtes sont acceptées lorsque le raisonnement est complet.</p>
 </blockquote>
 <hr>
 <h2>Deux paradigmes à distinguer</h2>
@@ -385,17 +361,22 @@
 <tbody><tr>
 <td><strong>Chaîne</strong></td>
 <td>Observer → Classifier → Décider → Suivre</td>
-<td>Exécuter → Vérifier → Corriger si nécessaire → Décider</td>
+<td>Exécuter → Vérifier → Interpréter → Décider</td>
 </tr>
 <tr>
-<td><strong>Source KPI</strong></td>
+<td><strong>Source</strong></td>
 <td>Portefeuille / tour de contrôle</td>
-<td>Snapshot de votre session</td>
+<td>Résultats de votre session</td>
 </tr>
 <tr>
 <td><strong>Moniteur</strong></td>
 <td>Vide de transactions physiques — normal</td>
-<td>Transactions ops du run</td>
+<td>Opérations exécutées dans le run</td>
+</tr>
+<tr>
+<td><strong>Boutons</strong></td>
+<td>Valider l’analyse</td>
+<td>Valider les résultats · Soumettre la décision</td>
 </tr>
 <tr>
 <td><strong>Niveau décision</strong></td>
@@ -408,40 +389,43 @@
 <td>70/100</td>
 </tr>
 </tbody></table>
-<div class="page-break"></div><h1>MODULE 4 — Tour de contrôle KPI</h1>
+<h1>MODULE 4 — Tour de contrôle KPI</h1>
 <blockquote>
 <p>Aucune transaction magasin. Interface : <strong>référence analytique</strong> · <strong>valider l’analyse</strong> · <strong>lecture des données KPI</strong>.</p>
 </blockquote>
 <hr>
 <h2>SCN-012 — Rotation et politique stock</h2>
-<p><strong>Rôle :</strong> analyste stock / revue CFO<br><strong>Longueur recommandée :</strong> 2–3 phrases courtes</p>
+<p><strong>Rôle :</strong> analyste stock / revue CFO
+<strong>Longueur recommandée :</strong> 2–3 phrases courtes</p>
 <h3>Ce que vous observez</h3>
 <p>Consommation annuelle et stock moyen dans le tour de contrôle.</p>
 <h3>Ce que vous devez comprendre</h3>
-<p>Formule : consommation ÷ stock moyen. Placer le résultat dans la bande 4–12× (ou hors bande).<br>Ne pas classer une rotation dans la bande normale comme un surstock.</p>
+<p>Formule : consommation ÷ stock moyen. Placer le résultat dans la bande 4–12× (ou hors bande).
+Ne pas classer une rotation dans la bande normale comme un surstock.</p>
 <h3>Ce que vous devez décider</h3>
 <p>Politique globale : maintenir / ne pas réduire massivement ; suivi des articles lents ou revue périodique.</p>
 <h3>Ce que votre réponse doit démontrer</h3>
 <ol>
-<li>Classification cohérente du taux  </li>
-<li>Maintien (ou absence de réduction globale)  </li>
+<li>Classification cohérente du taux</li>
+<li>Maintien (ou absence de réduction globale)</li>
 <li>Suivi / surveillance</li>
 </ol>
 <p>Exemples d’idées (pas de phrase unique) :</p>
 <ul>
-<li><em>« La rotation est normale. Je maintiens la politique et je surveille les articles qui tournent lentement. »</em>  </li>
+<li><em>« La rotation est normale. Je maintiens la politique et je surveille les articles qui tournent lentement. »</em></li>
 <li><em>« Résultat équilibré : conserver le niveau global avec un contrôle régulier des produits. »</em></li>
 </ul>
 <p>Ces formulations illustrent le raisonnement. <strong>Rédigez votre réponse avec vos propres mots.</strong></p>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>Classer 6× (bande normale) comme surstock  </li>
-<li>Liquidation / destock global  </li>
+<li>Classer 6× (bande normale) comme surstock</li>
+<li>Liquidation / destock global</li>
 <li>« Rien à faire / aucun suivi »</li>
 </ul>
 <hr>
 <h2>SCN-013 — Service, erreurs et SLA</h2>
-<p><strong>Rôle :</strong> responsable service client / qualité<br><strong>Longueur recommandée :</strong> 2–4 phrases</p>
+<p><strong>Rôle :</strong> responsable service client / qualité
+<strong>Longueur recommandée :</strong> 2–4 phrases</p>
 <h3>Ce que vous observez</h3>
 <p>Commandes livrées / total et erreurs opérationnelles ; horizon SLA à court terme.</p>
 <h3>Ce que vous devez comprendre</h3>
@@ -450,21 +434,22 @@
 <p>Action qualité simple (formation, checklist, revue picking/réception, audit, contrôle) + suivi avant le SLA.</p>
 <h3>Ce que votre réponse doit démontrer</h3>
 <ol>
-<li>OTIF classé correctement  </li>
-<li>Erreurs acceptables mais à améliorer / surveiller  </li>
-<li>Action qualité  </li>
+<li>OTIF classé correctement</li>
+<li>Erreurs acceptables mais à améliorer / surveiller</li>
+<li>Action qualité</li>
 <li>Horizon court terme / SLA / revue</li>
 </ol>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>OTIF 95 % classé faible  </li>
-<li>Erreurs 4 % présentées comme excellentes  </li>
-<li>Destock comme levier principal  </li>
+<li>OTIF 95 % classé faible</li>
+<li>Erreurs 4 % présentées comme excellentes</li>
+<li>Destock comme levier principal</li>
 <li>« Rien à faire »</li>
 </ul>
 <hr>
 <h2>SCN-014 — Arbitrage S&amp;OP (capstone M4)</h2>
-<p><strong>Rôle :</strong> comité S&amp;OP — une seule initiative financée<br><strong>Longueur recommandée :</strong> 3–5 phrases (réponse board concise)</p>
+<p><strong>Rôle :</strong> comité S&amp;OP — une seule initiative financée
+<strong>Longueur recommandée :</strong> 3–5 phrases (réponse board concise)</p>
 <h3>Ce que vous observez</h3>
 <p>Ensemble des KPI (rotation, service, erreurs, délai).</p>
 <h3>Ce que vous devez comprendre</h3>
@@ -473,77 +458,154 @@
 <p>Une priorité ; ce qui est protégé, maintenu ou reporté ; quand réévaluer.</p>
 <h3>Ce que votre réponse doit démontrer</h3>
 <ol>
-<li>Lecture globale stable  </li>
-<li>Une priorité claire  </li>
-<li>Compromis explicite  </li>
+<li>Lecture globale stable</li>
+<li>Une priorité claire</li>
+<li>Compromis explicite</li>
 <li>Horizon de revue</li>
 </ol>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>Liste de souhaits sans priorité  </li>
-<li>Aucun compromis  </li>
-<li>Aucun horizon  </li>
+<li>Liste de souhaits sans priorité</li>
+<li>Aucun compromis</li>
+<li>Aucun horizon</li>
 <li>Copier une longue rédaction modèle</li>
 </ul>
-<div class="page-break"></div><h1>MODULE 5 — Simulation intégrée</h1>
+<h1>MODULE 5 — Simulation intégrée</h1>
 <blockquote>
-<p>Chaîne : <strong>Exécuter → Vérifier → Corriger si nécessaire → Décider</strong>.<br>KPI = <strong>snapshot de votre session</strong>.</p>
+<p>Chaîne : <strong>Exécuter → Vérifier → Interpréter → Décider</strong>.</p>
+<p>Après les opérations, vous <strong>validez les résultats</strong>, puis vous <strong>soumettez la décision</strong>.
+Les données du panneau de décision viennent de <strong>votre session</strong> — pas du portefeuille M4.</p>
 </blockquote>
+<p>Dans le Module 5, les résultats présentés dans le panneau de décision proviennent de votre propre session. Vous devez utiliser ces données pour expliquer la situation et formuler une décision professionnelle.</p>
+<ul>
+<li>Le panneau présente des <strong>preuves</strong> opérationnelles et des indicateurs.</li>
+<li><strong>Vous</strong> produisez le diagnostic et la décision.</li>
+<li>Le système <strong>ne déclare pas</strong> la conclusion finale à votre place.</li>
+<li><strong>2 à 3 phrases</strong> suffisent souvent si le raisonnement est complet (4 à 6 pour SCN-017).</li>
+</ul>
 <hr>
-<h2>SCN-015 — Cycle nominal (décision tactique)</h2>
-<p><strong>Longueur recommandée :</strong> 2–3 phrases</p>
-<h3>Ce que vous observez</h3>
-<p>Preuves du run (réception, putaway, comptage, réappro, KPI).</p>
+<h2>SCN-015 — Décision tactique à partir d’un cycle nominal</h2>
+<p><strong>Niveau :</strong> Décision tactique
+<strong>Longueur recommandée :</strong> 2 à 3 phrases suffisent si le raisonnement est complet.</p>
+<h3>Ce que le panneau peut afficher</h3>
+<p>État des opérations · réception · rangement · variance ouverte · stock final · minimum · maximum · quantité de réapprovisionnement <strong>Q</strong> · KPI sélectionné.</p>
+<p>Ces faits sont des <strong>preuves</strong>. Le panneau <strong>ne déclare pas</strong> le cycle « conforme » pour vous : c’est à vous de déterminer la conformité à partir des opérations et du stock.</p>
 <h3>Ce que vous devez comprendre</h3>
-<p>Un cycle conforme peut aboutir à <strong>Q = 0</strong> si le stock est ≥ minimum.</p>
-<h3>Ce que vous devez décider</h3>
-<p>Confirmer conformité ; indiquer si réappro est requis ; maintenir / surveiller.</p>
-<h3>Ce que votre réponse doit démontrer</h3>
-<p>Conformité nominale · décision de réappro (souvent Q = 0) · suivi léger  </p>
-<p><strong>N’inventez pas</strong> formation, audit ou problème fictif.</p>
+<ol>
+<li>Vérifier les opérations (réception, rangement, variance).</li>
+<li>Comparer le stock final au minimum.</li>
+<li>Déterminer si un réapprovisionnement est nécessaire.</li>
+<li>Formuler une <strong>décision tactique</strong>.</li>
+<li>Indiquer un suivi si pertinent.</li>
+</ol>
+<p><strong>Q = 0</strong> est un résultat valide lorsque le stock est suffisant. N’inventez pas un besoin de réapprovisionnement.</p>
+<h3>Structure de raisonnement</h3>
+<p>Opérations → stock vs minimum → réappro (ou Q = 0) → décision tactique → suivi</p>
+<h3>Exemple de raisonnement</h3>
+<p><em>« Les opérations sont complétées et aucune variance n’est ouverte. Le stock reste supérieur au minimum, donc aucun réapprovisionnement n’est nécessaire et Q = 0. Je recommande de maintenir le processus et de suivre le prochain cycle. »</em></p>
+<p>Ce texte illustre le raisonnement. <strong>Rédigez avec vos propres mots.</strong> Ce n’est pas une réponse obligatoire.</p>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>Forcer une action corrective sans écart  </li>
+<li>Forcer une action corrective sans écart</li>
+<li>Inventer un réapprovisionnement alors que Q = 0</li>
 <li>Recopier les KPI du Module 4</li>
 </ul>
 <hr>
-<h2>SCN-016 — Écart puis décision tactique</h2>
-<p><strong>Règle :</strong> <strong>Réconcilier d’abord, décider ensuite.</strong><br><strong>Longueur recommandée :</strong> 2–4 phrases</p>
-<h3>Ce que vous observez</h3>
-<p>Écart au comptage ; ajustement ; stock corrigé.</p>
-<h3>Ce que vous devez comprendre</h3>
-<p>Réappro et KPI se basent sur le stock <strong>après</strong> correction.</p>
-<h3>Ce que vous devez décider</h3>
-<p>Sur stock corrigé : réappro ou Q = 0 ; suivi éventuel.</p>
-<h3>Ce que votre réponse doit démontrer</h3>
-<p>Reconnaissance de l’écart / correction · décision sur stock réconcilié  </p>
-<p>La prévention est utile mais <strong>pas obligatoire</strong> sauf si la question le demande.</p>
+<h2>SCN-016 — Décision tactique après réconciliation</h2>
+<p><strong>Règle :</strong> <strong>Réconcilier d’abord, décider ensuite.</strong>
+<strong>Niveau :</strong> Décision tactique après réconciliation
+<strong>Longueur recommandée :</strong> 2 à 3 phrases suffisent si la décision est basée sur le stock réconcilié.</p>
+<h3>Contrat de production (valeurs exactes)</h3>
+<table>
+<thead>
+<tr>
+<th>Donnée</th>
+<th>Valeur</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Stock système</td>
+<td><strong>50 u.</strong></td>
+</tr>
+<tr>
+<td>Stock physique</td>
+<td><strong>45 u.</strong></td>
+</tr>
+<tr>
+<td>Écart</td>
+<td><strong>−5</strong></td>
+</tr>
+<tr>
+<td>Stock corrigé (après ADJ)</td>
+<td><strong>45 u.</strong></td>
+</tr>
+<tr>
+<td>Min / Max / SS</td>
+<td><strong>10 / 100 / 5</strong></td>
+</tr>
+<tr>
+<td>Q de réapprovisionnement</td>
+<td><strong>0</strong> (stock corrigé ≥ Min)</td>
+</tr>
+</tbody></table>
+<h3>Deux états de l’interface</h3>
+<p><strong>Avant réconciliation</strong></p>
+<ul>
+<li>Stock système <strong>50</strong> · stock physique <strong>45</strong> · écart <strong>−5</strong></li>
+<li>Réconciliation en attente · ajustement requis</li>
+<li>Pas encore de base de décision sur stock corrigé</li>
+</ul>
+<p><strong>Après réconciliation</strong></p>
+<ul>
+<li>Stock corrigé <strong>45</strong> · ADJ <strong>−5</strong> posté</li>
+<li>Base de décision de réapprovisionnement (Min 10 → <strong>Q = 0</strong>)</li>
+<li>Décision finale fondée sur l’inventaire corrigé</li>
+</ul>
+<p>Tant qu’un ajustement requis n’est pas résolu, la décision reste <strong>bloquée</strong>. Ne basez pas votre décision sur le stock avant correction.</p>
+<p>Si l’écart est nul, l’interface peut indiquer <strong>ADJ non requis</strong> : cela ne signifie pas qu’un ajustement a eu lieu.</p>
+<h3>Structure de raisonnement</h3>
+<ol>
+<li>Identifier la variance (−5)</li>
+<li>Confirmer la réconciliation / ADJ</li>
+<li>Utiliser le <strong>stock corrigé (45)</strong></li>
+<li>Comparer au minimum (10)</li>
+<li>Déterminer le réapprovisionnement (<strong>Q = 0</strong>)</li>
+<li>Recommander l’action tactique</li>
+</ol>
+<h3>Exemple de raisonnement</h3>
+<p><em>« L’écart a été réconcilié et le stock corrigé (45) constitue maintenant la base de décision. Le niveau corrigé reste suffisant par rapport au minimum ; aucun réapprovisionnement n’est requis. Je recommande de poursuivre le suivi des comptages. »</em></p>
+<p><strong>Avec vos propres mots.</strong> Ce n’est pas une phrase exacte requise.</p>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>Décider avant l’ajustement  </li>
-<li>Ignorer l’écart ouvert</li>
+<li>Décider avant la réconciliation / l’ajustement</li>
+<li>Ignorer un écart ouvert</li>
+<li>Calculer Q = Max − stock (55) sans tenir compte du seuil Min</li>
+<li>Traiter « ADJ non requis » comme si un ajustement avait été posté</li>
 </ul>
 <hr>
-<h2>SCN-017 — Décision stratégique (capstone)</h2>
-<p><strong>Structure :</strong> Preuves → Priorité → Compromis → Horizon<br><strong>Longueur recommandée :</strong> 4–6 phrases</p>
-<h3>Ce que vous observez</h3>
-<p>Snapshot M5_KPI <strong>de votre session</strong> (pas l’Annexe M4).</p>
-<h3>Ce que vous devez comprendre</h3>
-<p>Niveau stratégique : arbitrage durable, pas une transaction ops.</p>
-<h3>Ce que vous devez décider</h3>
-<p>Priorité stratégique + compromis + horizon 90–180 j (ou équivalent).</p>
-<h3>Ce que votre réponse doit démontrer</h3>
+<h2>SCN-017 — Décision stratégique à partir des KPI de la session</h2>
+<p><strong>Niveau :</strong> Décision stratégique
+<strong>Structure :</strong> Preuves → Priorité → Compromis → Horizon
+<strong>Longueur recommandée :</strong> 4 à 6 phrases suffisent si les quatre blocs du raisonnement sont présents.</p>
+<h3>Ce que le panneau peut afficher</h3>
+<p>Rotation · service · taux d’erreur · délai moyen · valeur du stock · autres KPI de session disponibles.</p>
+<p>Les valeurs viennent du <strong>run courant</strong>. Une valeur manquante peut apparaître comme <strong>—</strong>. Un zéro légitime reste affiché comme <strong>0</strong>. Aucune orientation stratégique n’est présélectionnée.</p>
+<h3>Ce que vous devez démontrer</h3>
 <ol>
-<li>≥ 2 KPI chiffrés du snapshot  </li>
-<li>Une priorité  </li>
-<li>Un compromis (même sans le mot « trade-off »)  </li>
-<li>Un horizon de revue</li>
+<li>Citer <strong>au moins deux KPI</strong> disponibles</li>
+<li>Choisir une <strong>priorité stratégique</strong></li>
+<li>Expliquer le <strong>compromis</strong></li>
+<li>Indiquer l’<strong>horizon de suivi</strong></li>
 </ol>
+<h3>Exemple de raisonnement</h3>
+<p><em>« Le taux de service est élevé, mais le taux d’erreur reste à surveiller. Je recommande de prioriser la qualité d’exécution afin de réduire les erreurs sans dégrader le service. Cette orientation peut reporter une réduction immédiate du stock. Les résultats seront réévalués dans 90 jours. »</em></p>
+<p>Idées de raisonnement — <strong>rédigez avec vos propres mots.</strong></p>
 <h3>Erreurs de raisonnement à éviter</h3>
 <ul>
-<li>Recopier 6× / 95 % / 48 000 $ du Module 4  </li>
-<li>Réponse purement opérationnelle (poster réception, putaway…)  </li>
+<li>Recopier les valeurs du portefeuille Module 4</li>
+<li>Réponse purement opérationnelle (poster une réception, un putaway…)</li>
 <li>Pas de compromis / pas d’horizon</li>
+<li>S’appuyer sur un seul KPI alors que d’autres sont disponibles</li>
 </ul>
 <div class="page-break"></div><h2>Tableau récapitulatif</h2>
 <table>
@@ -575,28 +637,30 @@
 </tr>
 <tr>
 <td>015</td>
-<td>Tactique</td>
-<td>Cycle nominal · Q = 0 possible</td>
+<td>Décision tactique</td>
+<td>Preuves session · Q = 0 possible</td>
 <td>2–3 phrases</td>
 </tr>
 <tr>
 <td>016</td>
-<td>Tactique</td>
-<td>Réconcilier puis décider</td>
-<td>2–4 phrases</td>
+<td>Décision tactique après réconciliation</td>
+<td>Réconcilier puis décider sur stock corrigé</td>
+<td>2–3 phrases</td>
 </tr>
 <tr>
 <td>017</td>
-<td>Stratégique</td>
-<td>Preuves session → priorité → compromis → horizon</td>
+<td>Décision stratégique</td>
+<td>Preuves → priorité → compromis → horizon</td>
 <td>4–6 phrases</td>
 </tr>
 </tbody></table>
 <hr>
 <h2>Préparation aux évaluations de consolidation</h2>
 <p>Sans décrire le calendrier ni le nombre de tentatives (fonctions à venir) :</p>
-<p><strong>Évaluation de consolidation M1–M3</strong><br>Compréhension des processus et séquences (POSTED/PENDING, putaway, capacité, FIFO, inventaire, ADJ, Min/Max, réappro).</p>
-<p><strong>Évaluation de consolidation M4–M5</strong><br>Interprétation KPI, distinction tactique / stratégique, snapshot de session, compromis — <strong>avec vos propres mots</strong>.</p>
+<p><strong>Évaluation de consolidation M1–M3</strong>
+Compréhension des processus et séquences (POSTED/PENDING, putaway, capacité, FIFO, inventaire, ADJ, Min/Max, réappro).</p>
+<p><strong>Évaluation de consolidation M4–M5</strong>
+Interprétation KPI, distinction tactique / stratégique, résultats de session, compromis — <strong>avec vos propres mots</strong>.</p>
 <p>L’évaluation valorise la <strong>compréhension</strong>, pas les phrases mémorisées.</p>
 <hr>
 <h2>Checklist finale</h2>

@@ -245,7 +245,7 @@ async function generatePdf(html, outPath) {
         </div>`,
       footerTemplate: `
         <div style="width:100%;font-size:8pt;color:#555;padding:0 20mm;display:flex;justify-content:space-between;font-family:Segoe UI,Arial,sans-serif;">
-          <span>Collège de la Concorde · Simulateur pédagogique ERP/WMS · juin 2026</span>
+          <span>Collège de la Concorde · Simulateur pédagogique ERP/WMS · juillet 2026</span>
           <span>Page <span class="pageNumber"></span></span>
         </div>`,
       margin: { top: "18mm", bottom: "20mm", left: "20mm", right: "20mm" },
