@@ -220,6 +220,36 @@ export const assessmentsRouter = router({
       return professorAssessmentAnalysis(input.assessmentId);
     }),
 
+  /**
+   * RC13.1 — Read-only professor preview of the full assessment (no attempts created).
+   */
+  professorPreview: teacherProcedure
+    .input(z.object({ assessmentId: z.number() }))
+    .query(async ({ input }) => {
+      const { professorPreviewAssessment } = await import("./assessmentService");
+      const data = await professorPreviewAssessment(input.assessmentId);
+      if (!data) throw new TRPCError({ code: "NOT_FOUND" });
+      return data;
+    }),
+
+  /**
+   * RC13.1 — Read-only question bank browser (no edits).
+   */
+  professorQuestionBank: teacherProcedure
+    .input(
+      z
+        .object({
+          assessmentId: z.number().optional(),
+        })
+        .optional()
+    )
+    .query(async ({ input }) => {
+      const { professorQuestionBank } = await import("./assessmentService");
+      return professorQuestionBank({
+        assessmentId: input?.assessmentId,
+      });
+    }),
+
   professorConfirmResult: teacherProcedure
     .input(z.object({ attemptId: z.number(), note: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {

@@ -1542,3 +1542,183 @@ export async function professorAssessmentRoster(args: {
   }
   return result;
 }
+
+/**
+ * RC13.1 — Professor preview (read-only).
+ * Loads the full assessment + question bank for inspection.
+ * MUST NOT create attempts, responses, logs, analytics writes, or mutate releases/scores.
+ */
+export async function professorPreviewAssessment(assessmentId: number) {
+  await ensureAssessmentSchemaSeeded();
+  const db = await getDb();
+  if (!db) return null;
+  const { integratedAssessments } = await import("../drizzle/schema");
+
+  const [assessment] = await db
+    .select()
+    .from(integratedAssessments)
+    .where(eq(integratedAssessments.id, assessmentId))
+    .limit(1);
+  if (!assessment) return null;
+
+  const questions = await getQuestionsForAssessment(assessmentId);
+  // Reuse analysis computation (SELECT-only aggregates — no writes).
+  const analysis = await professorAssessmentAnalysis(assessmentId);
+  const statsById = new Map(
+    (analysis?.questionStats ?? []).map((s) => [s.questionId, s])
+  );
+
+  const lastRevisionCandidates = [
+    assessment.updatedAt,
+    ...questions.map((q) => q.lastRevisedAt).filter(Boolean),
+  ].filter((d): d is Date => d != null);
+  const lastRevision =
+    lastRevisionCandidates.length === 0
+      ? assessment.updatedAt
+      : new Date(
+          Math.max(...lastRevisionCandidates.map((d) => new Date(d).getTime()))
+        );
+
+  return {
+    assessment: {
+      id: assessment.id,
+      code: assessment.code,
+      titleFr: assessment.titleFr,
+      titleEn: assessment.titleEn,
+      modulesCovered: assessment.modulesCovered as string[],
+      durationMinutes: assessment.durationMinutes,
+      passingScore: assessment.passingScore,
+      questionCount: assessment.questionCount,
+      totalPoints: assessment.totalPoints,
+      status: assessment.status,
+      purposeFr: assessment.purposeFr,
+      purposeEn: assessment.purposeEn,
+      version: `v1 · ${assessment.code}`,
+      lastRevision,
+      createdAt: assessment.createdAt,
+      updatedAt: assessment.updatedAt,
+    },
+    questions: questions.map((q, idx) => {
+      const options =
+        (q.optionsJson as Array<{ id: string; fr: string; en: string }>) || [];
+      const st = statsById.get(q.id);
+      const answered = st?.answered ?? 0;
+      const correctRate = st?.correctRate ?? 0;
+      return {
+        id: q.id,
+        number: idx + 1,
+        code: q.code,
+        moduleCode: q.moduleCode,
+        scenarioOrProcess: q.scenarioOrProcess,
+        competency: q.competency,
+        difficulty: q.difficulty,
+        questionType: q.questionType,
+        promptFr: q.promptFr,
+        promptEn: q.promptEn,
+        options,
+        points: q.points,
+        correctOptionId: q.correctOptionId,
+        explanationFr: q.explanationFr,
+        explanationEn: q.explanationEn,
+        learningObjectiveFr: q.learningObjectiveFr,
+        learningObjectiveEn: q.learningObjectiveEn,
+        estimatedTimeSeconds: q.estimatedTimeSeconds,
+        lastRevisedAt: q.lastRevisedAt,
+        revision: q.lastRevisedAt ?? q.createdAt,
+        active: q.active,
+        annulled: q.annulled,
+        bankScope: q.bankScope,
+        status: q.annulled ? "annulled" : q.active ? "active" : "inactive",
+        // Professor-only notes — reuse learning objective / explanation (no schema change).
+        professorNotesFr:
+          q.learningObjectiveFr ||
+          q.explanationFr ||
+          null,
+        professorNotesEn:
+          q.learningObjectiveEn ||
+          q.explanationEn ||
+          null,
+        stats: {
+          attempts: answered || null,
+          correctPct: answered > 0 ? Math.round(correctRate * 100) : null,
+          averageScore:
+            answered > 0
+              ? Math.round(correctRate * q.points * 10) / 10
+              : null,
+          averageTimeMs: q.avgResponseTimeMs ?? null,
+          mostSelectedDistractor: st?.mostSelectedDistractor ?? null,
+        },
+      };
+    }),
+  };
+}
+
+/**
+ * RC13.1 — Professor question bank browser (read-only, no edits).
+ */
+export async function professorQuestionBank(args: {
+  assessmentId?: number;
+}) {
+  await ensureAssessmentSchemaSeeded();
+  const db = await getDb();
+  if (!db) return { assessments: [], questions: [] };
+  const { integratedAssessments, assessmentQuestions } = await import(
+    "../drizzle/schema"
+  );
+
+  const assessments = await db.select().from(integratedAssessments);
+  let qRows = await db
+    .select()
+    .from(assessmentQuestions)
+    .orderBy(
+      asc(assessmentQuestions.assessmentId),
+      asc(assessmentQuestions.orderIndex)
+    );
+  if (args.assessmentId != null) {
+    qRows = qRows.filter((q) => q.assessmentId === args.assessmentId);
+  }
+
+  const assessmentById = new Map(assessments.map((a) => [a.id, a]));
+
+  return {
+    assessments: assessments.map((a) => ({
+      id: a.id,
+      code: a.code,
+      titleFr: a.titleFr,
+      titleEn: a.titleEn,
+      status: a.status,
+      questionCount: a.questionCount,
+    })),
+    questions: qRows.map((q) => {
+      const a = assessmentById.get(q.assessmentId);
+      return {
+        id: q.id,
+        assessmentId: q.assessmentId,
+        assessmentCode: a?.code ?? null,
+        assessmentTitleFr: a?.titleFr ?? null,
+        code: q.code,
+        moduleCode: q.moduleCode,
+        scenarioOrProcess: q.scenarioOrProcess,
+        competency: q.competency,
+        difficulty: q.difficulty,
+        questionType: q.questionType,
+        promptFr: q.promptFr,
+        promptEn: q.promptEn,
+        points: q.points,
+        correctOptionId: q.correctOptionId,
+        explanationFr: q.explanationFr,
+        explanationEn: q.explanationEn,
+        learningObjectiveFr: q.learningObjectiveFr,
+        learningObjectiveEn: q.learningObjectiveEn,
+        options:
+          (q.optionsJson as Array<{ id: string; fr: string; en: string }>) ||
+          [],
+        active: q.active,
+        annulled: q.annulled,
+        status: q.annulled ? "annulled" : q.active ? "active" : "inactive",
+        lastRevisedAt: q.lastRevisedAt,
+        bankScope: q.bankScope,
+      };
+    }),
+  };
+}

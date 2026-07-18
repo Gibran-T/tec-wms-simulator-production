@@ -18,22 +18,30 @@ import {
   Users,
   BarChart2,
   Settings,
-  ChevronRight,
-  CheckCircle2,
-  XCircle,
-  Clock,
   RefreshCcw,
   Eye,
   BookOpen,
   AlertTriangle,
   Send,
-  ShieldCheck,
   Layers,
+  FileCheck2,
+  Library,
 } from "lucide-react";
+import {
+  ProfessorPreviewPanel,
+  QuestionBankPanel,
+} from "./AssessmentPreviewPanel";
 
 /* ─── types ───────────────────────────────────────────────────── */
 
-type TabKey = "overview" | "releases" | "roster" | "analysis";
+type TabKey =
+  | "overview"
+  | "releases"
+  | "roster"
+  | "analysis"
+  | "preview"
+  | "correction"
+  | "bank";
 
 type Release = {
   id: number;
@@ -449,6 +457,9 @@ export default function AssessmentsManagerPage() {
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
     { key: "overview", label: t("Vue d'ensemble", "Overview"), icon: <Layers className="size-4" /> },
+    { key: "preview", label: t("Prévisualisation", "Preview"), icon: <Eye className="size-4" /> },
+    { key: "correction", label: t("Corrigé", "Correction"), icon: <FileCheck2 className="size-4" /> },
+    { key: "bank", label: t("Banque", "Question Bank"), icon: <Library className="size-4" /> },
     { key: "releases", label: t("Libérations", "Releases"), icon: <Settings className="size-4" /> },
     { key: "roster", label: t("Registre", "Roster"), icon: <Users className="size-4" /> },
     { key: "analysis", label: t("Analyse", "Analysis"), icon: <BarChart2 className="size-4" /> },
@@ -474,7 +485,15 @@ export default function AssessmentsManagerPage() {
         { label: t("Évaluations", "Assessments") },
       ]}
     >
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div
+        className={`mx-auto px-4 py-6 space-y-6 ${
+          activeTab === "preview" ||
+          activeTab === "correction" ||
+          activeTab === "bank"
+            ? "max-w-6xl"
+            : "max-w-5xl"
+        }`}
+      >
         {/* Page header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -703,6 +722,43 @@ export default function AssessmentsManagerPage() {
                 </CardHeader>
                 <CardContent>
                   <AnalysisPanel assessmentId={selectedAssessment.id} />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* RC13.1 — Prévisualisation (read-only, no attempt) */}
+            {activeTab === "preview" && (
+              <ProfessorPreviewPanel
+                assessmentId={selectedAssessment.id}
+                mode="preview"
+              />
+            )}
+
+            {/* RC13.1 — Corrigé officiel (professor only) */}
+            {activeTab === "correction" && (
+              <ProfessorPreviewPanel
+                assessmentId={selectedAssessment.id}
+                mode="correction"
+              />
+            )}
+
+            {/* RC13.1 — Question Bank (browse only) */}
+            {activeTab === "bank" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                    <Library className="size-4" />
+                    {t("Banque de questions", "Question Bank")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t(
+                      "Inspection des questions — aucune édition.",
+                      "Inspect questions — no editing."
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QuestionBankPanel assessmentId={selectedAssessment.id} />
                 </CardContent>
               </Card>
             )}

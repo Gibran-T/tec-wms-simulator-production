@@ -304,3 +304,45 @@
     page-break-inside: avoid;
   }
 }
+
+/* ─── RC13.1 Professor assessment preview print ─────────────────────────── */
+@media print {
+  body.assessment-prof-print {
+    background: white !important;
+  }
+
+  body.assessment-prof-print .fiori-shell-bar,
+  body.assessment-prof-print nav,
+  body.assessment-prof-print aside,
+  body.assessment-prof-print .assessment-prof-no-print {
+    display: none !important;
+  }
+
+  body.assessment-prof-print .assessment-prof-screen-only {
+    display: none !important;
+  }
+
+  body.assessment-prof-print .assessment-prof-print-all {
+    display: block !important;
+  }
+
+  body.assessment-prof-print .assessment-prof-question-card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    margin-bottom: 1rem;
+    box-shadow: none !important;
+  }
+
+  body.assessment-prof-print:not(.assessment-prof-print-correction)
+    .assessment-prof-correction-block,
+  body.assessment-prof-print:not(.assessment-prof-print-correction)
+    .assessment-prof-notes,
+  body.assessment-prof-print:not(.assessment-prof-print-correction)
+    .assessment-prof-answer-key {
+    display: none !important;
+  }
+
+  body.assessment-prof-print .assessment-prof-stats {
+    break-inside: avoid;
+  }
+}
