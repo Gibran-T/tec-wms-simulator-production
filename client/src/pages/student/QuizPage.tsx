@@ -53,14 +53,19 @@ export default function QuizPage() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [immediateResult, setImmediateResult] = useState<{
     isCorrect: boolean;
-    correctIndex: number;
-    explanationFr: string;
-    explanationEn: string;
   } | null>(null);
   const [results, setResults] = useState<{
     score: number; passed: boolean; correct: number; total: number;
     passingScore: number;
-    feedback: Array<{ questionId: number; chosen: number; correctIndex: number; isCorrect: boolean; explanationFr: string; explanationEn: string }>;
+    feedback: Array<{
+      questionId: number;
+      chosen: string | number | null;
+      correctOptionId?: string;
+      correctIndex?: number;
+      isCorrect: boolean;
+      explanationFr: string;
+      explanationEn: string;
+    }>;
   } | null>(null);
 
   const { data: quiz, isLoading } = trpc.quiz.getByModule.useQuery({ moduleId });
@@ -242,13 +247,13 @@ export default function QuizPage() {
               <div className="space-y-3">
                 {options.map((option, idx) => {
                   let optionClass = "w-full text-left p-4 rounded-lg border-2 transition-all duration-150 text-sm ";
-                    if (!showFeedback) {
+                  if (!showFeedback) {
                     optionClass += selectedOption === idx
                       ? "border-primary bg-primary/10 text-foreground font-medium"
                       : "border-border hover:border-primary/50 hover:bg-secondary/50 text-foreground cursor-pointer";
                   } else if (immediateResult) {
-                    // Show correct/incorrect with color coding
-                    if (idx === immediateResult.correctIndex) {
+                    // Integrity: do not reveal the correct letter — only mark the chosen option
+                    if (idx === selectedOption && immediateResult.isCorrect) {
                       optionClass += "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-800 dark:text-green-300 font-medium";
                     } else if (idx === selectedOption && !immediateResult.isCorrect) {
                       optionClass += "border-red-500 bg-red-50 dark:bg-red-950/30 text-red-800 dark:text-red-300 font-medium";
@@ -276,7 +281,7 @@ export default function QuizPage() {
                           {String.fromCharCode(65 + idx)}
                         </span>
                         <span className="leading-relaxed">{option}</span>
-                        {showFeedback && immediateResult && idx === immediateResult.correctIndex && (
+                        {showFeedback && immediateResult && idx === selectedOption && immediateResult.isCorrect && (
                           <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 ml-auto mt-0.5" />
                         )}
                         {showFeedback && immediateResult && idx === selectedOption && !immediateResult.isCorrect && (
@@ -298,15 +303,16 @@ export default function QuizPage() {
                     onClick={async () => {
                       if (selectedOption === null) return;
                       try {
+                        const optionIds = (currentQuestion as { optionIds?: string[] }).optionIds;
                         const result = await checkAnswerMutation.mutateAsync({
                           moduleId,
                           questionIndex: currentQ,
                           chosenIndex: selectedOption,
+                          selectedOptionId: optionIds?.[selectedOption],
                         });
-                        setImmediateResult(result);
+                        setImmediateResult({ isCorrect: result.isCorrect });
                         setShowFeedback(true);
                       } catch (e) {
-                        // Fallback: show feedback without server result
                         setShowFeedback(true);
                       }
                     }}
@@ -329,10 +335,17 @@ export default function QuizPage() {
                         setShowFeedback(false);
                         setImmediateResult(null);
                       } else {
-                        // Submit all answers
                         try {
-                          const res = await submitMutation.mutateAsync({ moduleId, answers: newAnswers });
-                          setResults(res);
+                          const selectedOptionIds = newAnswers.map((ans, qi) => {
+                            const q = questions[qi] as { optionIds?: string[] };
+                            return q.optionIds?.[ans] ?? null;
+                          });
+                          const res = await submitMutation.mutateAsync({
+                            moduleId,
+                            answers: newAnswers,
+                            selectedOptionIds,
+                          });
+                          setResults(res as typeof results);
                           setQuizState("results");
                         } catch (e) {
                           console.error("Quiz submit error:", e);
@@ -371,12 +384,15 @@ export default function QuizPage() {
                       }
                     </p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
-                      {immediateResult
-                        ? (lang === 'fr' ? immediateResult.explanationFr : immediateResult.explanationEn)
+                      {immediateResult?.isCorrect
+                        ? t(
+                            "Continuez — les explications détaillées apparaîtront à la fin du quiz.",
+                            "Continue — detailed explanations will appear at the end of the quiz."
+                          )
                         : t(
-                        "L'explication complète sera affichée dans les résultats finaux avec la bonne réponse.",
-                        "The complete explanation will be shown in the final results with the correct answer."
-                      )}
+                            "Notez cette question pour révision. L'explication complète s'affichera dans les résultats finaux.",
+                            "Note this question for review. The full explanation will appear in the final results."
+                          )}
                     </p>
                   </div>
                 </div>
@@ -429,8 +445,24 @@ export default function QuizPage() {
           </h3>
           <div className="space-y-3 mb-8">
             {results.feedback.map((fb, i) => {
-              const q = questions[i];
+              const q = questions[i] as {
+                questionFr: string;
+                questionEn: string;
+                optionsFr: unknown;
+                optionsEn: unknown;
+                optionIds?: string[];
+              };
               const opts: string[] = lang === "fr" ? parseOpts(q.optionsFr) : parseOpts(q.optionsEn);
+              const optionIds = q.optionIds ?? opts.map((_, idx) => `legacy_${idx}`);
+              const chosenLabel =
+                typeof fb.chosen === "number"
+                  ? opts[fb.chosen]
+                  : opts[optionIds.indexOf(String(fb.chosen))];
+              const correctIdx =
+                fb.correctOptionId != null
+                  ? optionIds.indexOf(fb.correctOptionId)
+                  : fb.correctIndex ?? -1;
+              const correctLabel = correctIdx >= 0 ? opts[correctIdx] : "—";
               return (
                 <Card key={fb.questionId} className={`border ${fb.isCorrect ? "border-green-500/30" : "border-red-500/30"}`}>
                   <CardContent className="pt-4 pb-4">
@@ -445,10 +477,10 @@ export default function QuizPage() {
                     {!fb.isCorrect && (
                       <div className="ml-6 space-y-1 text-xs">
                         <p className="text-red-600 dark:text-red-400">
-                          {t("Votre réponse : ", "Your answer: ")}<span className="font-medium">{opts[fb.chosen]}</span>
+                          {t("Votre réponse : ", "Your answer: ")}<span className="font-medium">{chosenLabel ?? "—"}</span>
                         </p>
                         <p className="text-green-600 dark:text-green-400">
-                          {t("Bonne réponse : ", "Correct answer: ")}<span className="font-medium">{opts[fb.correctIndex]}</span>
+                          {t("Bonne réponse : ", "Correct answer: ")}<span className="font-medium">{correctLabel}</span>
                         </p>
                       </div>
                     )}

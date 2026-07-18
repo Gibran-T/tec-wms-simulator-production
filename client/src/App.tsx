@@ -49,6 +49,10 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import CertificateVerifyPage from "./pages/verify/CertificateVerifyPage";
 import EmployeeProfilePage from "./pages/student/EmployeeProfilePage";
+import EvaluationsHubPage from "./pages/student/EvaluationsHubPage";
+import AssessmentAttemptPage from "./pages/student/AssessmentAttemptPage";
+import AssessmentsManagerPage from "./pages/teacher/AssessmentsManagerPage";
+import AssessmentAttemptReviewPage from "./pages/teacher/AssessmentAttemptReviewPage";
 
 /** Legacy path used by ScenarioList before Mission Control migration. */
 function RunReportRedirect() {
@@ -94,6 +98,9 @@ function Router() {
       {/* Glossary route */}
       <Route path="/student/glossary" component={() => <GlossaryPage />} />
       <Route path="/student/certifications" component={() => <CertificationsPage />} />
+      {/* Evaluations routes */}
+      <Route path="/student/evaluations" component={EvaluationsHubPage} />
+      <Route path="/student/evaluations/attempt/:attemptId" component={AssessmentAttemptPage} />
       <Route path="/student/certifications/silver" component={SilverCertificatePreview} />
       <Route path="/student/certifications/gold" component={GoldCertificatePreview} />
       {/* Slides routes — requires authentication (handled by SlideViewer via FioriShell guard) */}
@@ -108,6 +115,8 @@ function Router() {
       <Route path="/teacher/analytics" component={AnalyticsDashboard} />
       <Route path="/teacher/slides" component={TeacherSlidesHub} />
       <Route path="/teacher/students" component={StudentManager} />
+      <Route path="/teacher/evaluations" component={AssessmentsManagerPage} />
+      <Route path="/teacher/evaluations/attempt/:attemptId" component={AssessmentAttemptReviewPage} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />
       {/* Auth / Legal */}

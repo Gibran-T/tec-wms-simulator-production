@@ -203,6 +203,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { mentorRouter } from "./aiMentor/router";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
+import { assessmentsRouter } from "./assessmentsRouter";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
 
@@ -4092,9 +4093,12 @@ export const appRouter = router({
       }),
   }),
 
+  // ── INTEGRATED ASSESSMENTS ──────────────────────────────────────────────────
+  assessments: assessmentsRouter,
+
   // ── QUIZ ROUTER ─────────────────────────────────────────────────────────────
   quiz: router({
-    /** Get quiz for a module (correctIndex hidden from student) */
+    /** Get quiz for a module (correct answers hidden from student) */
     getByModule: protectedProcedure
       .input(z.object({ moduleId: z.number() }))
       .query(async ({ input }) => {
@@ -4102,21 +4106,38 @@ export const appRouter = router({
         if (!quiz) return null;
         const full = await getQuizWithQuestions(quiz.id);
         if (!full) return null;
+        const { seededShuffle } = await import("../shared/assessmentCore");
         return {
           id: full.id,
           moduleId: full.moduleId,
           titleFr: full.titleFr,
           titleEn: full.titleEn,
           passingScore: full.passingScore,
-          questions: full.questions.map(q => ({
-            id: q.id,
-            questionFr: q.questionFr,
-            questionEn: q.questionEn,
-            optionsFr: (typeof q.optionsFr === 'string' ? JSON.parse(q.optionsFr) : q.optionsFr) as string[],
-            optionsEn: (typeof q.optionsEn === 'string' ? JSON.parse(q.optionsEn) : q.optionsEn) as string[],
-            difficulty: q.difficulty,
-            orderIndex: q.orderIndex,
-          })),
+          questions: full.questions.map(q => {
+            let optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
+            let optionsEn = (typeof q.optionsEn === "string" ? JSON.parse(q.optionsEn as string) : q.optionsEn) as string[];
+            let optionIds: string[] = optionsFr.map((_, i) => `legacy_${q.id}_${i}`);
+            const payload = q.optionsPayload as Array<{ id: string; fr: string; en: string }> | null;
+            if (payload && Array.isArray(payload) && payload.length) {
+              optionsFr = payload.map(o => o.fr);
+              optionsEn = payload.map(o => o.en);
+              optionIds = payload.map(o => o.id);
+            }
+            const order = seededShuffle(
+              optionIds.map((_, i) => i),
+              `quiz-${quiz.id}-q${q.id}-display`
+            );
+            return {
+              id: q.id,
+              questionFr: q.questionFr,
+              questionEn: q.questionEn,
+              optionsFr: order.map(i => optionsFr[i]),
+              optionsEn: order.map(i => optionsEn[i]),
+              optionIds: order.map(i => optionIds[i]),
+              difficulty: q.difficulty,
+              orderIndex: q.orderIndex,
+            };
+          }),
         };
       }),
 
@@ -4135,11 +4156,12 @@ export const appRouter = router({
         return getQuizAttemptsByUser(ctx.user.id, input.moduleId);
       }),
 
-    /** Submit quiz answers — returns score, passed, and per-question feedback */
+    /** Submit quiz answers — prefers option IDs; falls back to display indices */
     submit: protectedProcedure
       .input(z.object({
         moduleId: z.number(),
-        answers: z.array(z.number()),
+        answers: z.array(z.number()).optional(),
+        selectedOptionIds: z.array(z.string().nullable()).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const quiz = await getQuizByModule(input.moduleId);
@@ -4147,17 +4169,36 @@ export const appRouter = router({
         const full = await getQuizWithQuestions(quiz.id);
         if (!full) throw new TRPCError({ code: "NOT_FOUND" });
         const questions = full.questions;
-        if (input.answers.length !== questions.length) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: `Expected ${questions.length} answers, got ${input.answers.length}` });
-        }
+        const { seededShuffle } = await import("../shared/assessmentCore");
+
         let correct = 0;
         const feedback = questions.map((q, i) => {
-          const isCorrect = input.answers[i] === q.correctIndex;
+          const payload = q.optionsPayload as Array<{ id: string }> | null;
+          let optionIds = payload?.map(o => o.id) ?? null;
+          if (!optionIds) {
+            const optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
+            optionIds = optionsFr.map((_, idx) => `legacy_${q.id}_${idx}`);
+          }
+          const order = seededShuffle(
+            optionIds.map((_, idx) => idx),
+            `quiz-${quiz.id}-q${q.id}-display`
+          );
+          const displayedIds = order.map(idx => optionIds![idx]);
+
+          let selectedId: string | null = null;
+          if (input.selectedOptionIds && input.selectedOptionIds[i] != null) {
+            selectedId = input.selectedOptionIds[i];
+          } else if (input.answers && input.answers[i] != null) {
+            selectedId = displayedIds[input.answers[i]] ?? null;
+          }
+
+          const correctId = q.correctOptionId ?? optionIds[q.correctIndex];
+          const isCorrect = !!selectedId && selectedId === correctId;
           if (isCorrect) correct++;
           return {
             questionId: q.id,
-            chosen: input.answers[i],
-            correctIndex: q.correctIndex,
+            chosen: selectedId,
+            correctOptionId: correctId,
             isCorrect,
             explanationFr: q.explanationFr,
             explanationEn: q.explanationEn,
@@ -4165,11 +4206,12 @@ export const appRouter = router({
         });
         const score = Math.round((correct / questions.length) * 100);
         const passed = score >= quiz.passingScore;
+        // Persist legacy index array when provided (historical compatibility)
         await saveQuizAttempt({
           userId: ctx.user.id,
           quizId: quiz.id,
           moduleId: input.moduleId,
-          answers: input.answers,
+          answers: input.answers ?? feedback.map(() => -1),
           score,
           passed,
         });
@@ -4184,12 +4226,13 @@ export const appRouter = router({
         return { score, passed, correct, total: questions.length, passingScore: quiz.passingScore, feedback };
       }),
 
-    /** Check a single answer for immediate feedback (does NOT save to DB) */
+    /** Soft check — does NOT reveal correct option or explanation (integrity) */
     checkAnswer: protectedProcedure
       .input(z.object({
         moduleId: z.number(),
         questionIndex: z.number(),
-        chosenIndex: z.number(),
+        chosenIndex: z.number().optional(),
+        selectedOptionId: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const quiz = await getQuizByModule(input.moduleId);
@@ -4198,13 +4241,25 @@ export const appRouter = router({
         if (!full) throw new TRPCError({ code: "NOT_FOUND" });
         const q = full.questions[input.questionIndex];
         if (!q) throw new TRPCError({ code: "BAD_REQUEST", message: "Question introuvable" });
-        const isCorrect = input.chosenIndex === q.correctIndex;
-        return {
-          isCorrect,
-          correctIndex: q.correctIndex,
-          explanationFr: q.explanationFr,
-          explanationEn: q.explanationEn,
-        };
+        const { seededShuffle } = await import("../shared/assessmentCore");
+        const payload = q.optionsPayload as Array<{ id: string }> | null;
+        let optionIds = payload?.map(o => o.id) ?? null;
+        if (!optionIds) {
+          const optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
+          optionIds = optionsFr.map((_, idx) => `legacy_${q.id}_${idx}`);
+        }
+        const order = seededShuffle(
+          optionIds.map((_, idx) => idx),
+          `quiz-${quiz.id}-q${q.id}-display`
+        );
+        const displayedIds = order.map(idx => optionIds![idx]);
+        const selectedId =
+          input.selectedOptionId ??
+          (input.chosenIndex != null ? displayedIds[input.chosenIndex] : null);
+        const correctId = q.correctOptionId ?? optionIds[q.correctIndex];
+        const isCorrect = !!selectedId && selectedId === correctId;
+        // No correctIndex / explanation leakage before final submit
+        return { isCorrect };
       }),
   }),
 });

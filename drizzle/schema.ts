@@ -399,7 +399,10 @@ export const quizQuestions = mysqlTable("quiz_questions", {
   questionEn: text("questionEn").notNull(),
   optionsFr: json("optionsFr").notNull(), // string[]
   optionsEn: json("optionsEn").notNull(), // string[]
-  correctIndex: int("correctIndex").notNull(), // 0-based index of correct answer
+  correctIndex: int("correctIndex").notNull(), // 0-based index of correct answer (legacy + synced)
+  /** Stable option objects: [{ id, fr, en }] — preferred for scoring */
+  optionsPayload: json("optionsPayload"),
+  correctOptionId: varchar("correctOptionId", { length: 32 }),
   explanationFr: text("explanationFr").notNull(),
   explanationEn: text("explanationEn").notNull(),
   difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard"]).default("medium").notNull(),
@@ -415,7 +418,7 @@ export const quizAttempts = mysqlTable("quiz_attempts", {
   userId: int("userId").notNull(),
   quizId: int("quizId").notNull(),
   moduleId: int("moduleId").notNull(),
-  answers: json("answers").notNull(), // number[] — index of chosen answer per question
+  answers: json("answers").notNull(), // number[] — index of chosen answer per question (legacy)
   score: int("score").notNull(), // 0-100 percentage
   passed: boolean("passed").notNull(),
   completedAt: timestamp("completedAt").defaultNow().notNull(),
@@ -423,3 +426,220 @@ export const quizAttempts = mysqlTable("quiz_attempts", {
 
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
 export type InsertQuizAttempt = typeof quizAttempts.$inferInsert;
+
+// ── INTEGRATED ASSESSMENTS ──────────────────────────────────────────────────
+
+export const integratedAssessments = mysqlTable("integrated_assessments", {
+  id: int("id").autoincrement().primaryKey(),
+  code: varchar("code", { length: 64 }).notNull().unique(),
+  titleFr: varchar("titleFr", { length: 255 }).notNull(),
+  titleEn: varchar("titleEn", { length: 255 }).notNull(),
+  modulesCovered: json("modulesCovered").notNull(),
+  questionCount: int("questionCount").default(20).notNull(),
+  durationMinutes: int("durationMinutes").default(40).notNull(),
+  passingScore: int("passingScore").default(70).notNull(),
+  totalPoints: int("totalPoints").default(100).notNull(),
+  purposeFr: text("purposeFr").notNull(),
+  purposeEn: text("purposeEn").notNull(),
+  status: mysqlEnum("status", ["draft", "ready", "retired"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type IntegratedAssessment = typeof integratedAssessments.$inferSelect;
+
+export const assessmentQuestions = mysqlTable("assessment_questions", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull(),
+  code: varchar("code", { length: 64 }).notNull(),
+  moduleCode: varchar("moduleCode", { length: 8 }).notNull(),
+  scenarioOrProcess: varchar("scenarioOrProcess", { length: 128 }).notNull(),
+  competency: varchar("competency", { length: 128 }).notNull(),
+  difficulty: mysqlEnum("difficulty", ["easy", "medium", "hard"]).default("medium").notNull(),
+  questionType: mysqlEnum("questionType", [
+    "conceptual",
+    "scenario",
+    "sequencing",
+    "data_interpretation",
+    "diagnosis",
+  ]).notNull(),
+  promptFr: text("promptFr").notNull(),
+  promptEn: text("promptEn").notNull(),
+  optionsJson: json("optionsJson").notNull(),
+  correctOptionId: varchar("correctOptionId", { length: 32 }).notNull(),
+  explanationFr: text("explanationFr").notNull(),
+  explanationEn: text("explanationEn").notNull(),
+  learningObjectiveFr: text("learningObjectiveFr"),
+  learningObjectiveEn: text("learningObjectiveEn"),
+  estimatedTimeSeconds: int("estimatedTimeSeconds").default(120).notNull(),
+  avgSuccessRate: varchar("avgSuccessRate", { length: 16 }),
+  avgResponseTimeMs: int("avgResponseTimeMs"),
+  lastRevisedAt: timestamp("lastRevisedAt"),
+  points: int("points").default(5).notNull(),
+  orderIndex: int("orderIndex").default(0).notNull(),
+  active: boolean("active").default(true).notNull(),
+  annulled: boolean("annulled").default(false).notNull(),
+  /** Reusable bank scope: WMS now; ERP later without redesign. */
+  bankScope: varchar("bankScope", { length: 32 }).default("WMS").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+
+export const assessmentReleases = mysqlTable("assessment_releases", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull(),
+  cohortId: int("cohortId"),
+  releaseLevel: mysqlEnum("releaseLevel", [
+    "unpublished",
+    "visible_pending",
+    "released_cohort",
+    "released_students",
+    "scheduled",
+    "closed",
+    "cancelled",
+  ]).default("unpublished").notNull(),
+  studentUserIds: json("studentUserIds"),
+  opensAt: timestamp("opensAt"),
+  closesAt: timestamp("closesAt"),
+  releasedByUserId: int("releasedByUserId"),
+  configJson: json("configJson"),
+  note: text("note"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AssessmentRelease = typeof assessmentReleases.$inferSelect;
+
+export const assessmentReleaseLogs = mysqlTable("assessment_release_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  releaseId: int("releaseId").notNull(),
+  assessmentId: int("assessmentId").notNull(),
+  actorUserId: int("actorUserId").notNull(),
+  action: varchar("action", { length: 64 }).notNull(),
+  beforeJson: json("beforeJson"),
+  afterJson: json("afterJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const assessmentAttempts = mysqlTable("assessment_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull(),
+  userId: int("userId").notNull(),
+  cohortId: int("cohortId"),
+  attemptNumber: int("attemptNumber").default(1).notNull(),
+  status: mysqlEnum("status", [
+    "in_progress",
+    "submitted",
+    "expired_submitted",
+    "cancelled",
+    "annulled_technical",
+  ]).default("in_progress").notNull(),
+  authorizedByUserId: int("authorizedByUserId"),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  submittedAt: timestamp("submittedAt"),
+  durationSeconds: int("durationSeconds"),
+  questionOrderJson: json("questionOrderJson").notNull(),
+  optionOrderJson: json("optionOrderJson").notNull(),
+  responsesJson: json("responsesJson"),
+  autoScore: int("autoScore"),
+  finalScore: int("finalScore"),
+  passed: boolean("passed"),
+  competencyBreakdownJson: json("competencyBreakdownJson"),
+  warn30Sent: boolean("warn30Sent").default(false).notNull(),
+  warn35Sent: boolean("warn35Sent").default(false).notNull(),
+  m4UnlockStatus: mysqlEnum("m4UnlockStatus", [
+    "locked",
+    "pending_practical",
+    "unlocked",
+  ]).default("locked").notNull(),
+  practicalValidationStatus: mysqlEnum("practicalValidationStatus", [
+    "not_applicable",
+    "pending",
+    "satisfied",
+    "waived",
+  ]).default("pending").notNull(),
+  professorReviewStatus: mysqlEnum("professorReviewStatus", [
+    "none",
+    "pending",
+    "confirmed",
+    "adjusted",
+  ]).default("none").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AssessmentAttempt = typeof assessmentAttempts.$inferSelect;
+
+export const assessmentAttemptResponses = mysqlTable("assessment_attempt_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  attemptId: int("attemptId").notNull(),
+  questionId: int("questionId").notNull(),
+  selectedOptionId: varchar("selectedOptionId", { length: 32 }),
+  isCorrect: boolean("isCorrect"),
+  pointsAwarded: int("pointsAwarded"),
+  flagged: boolean("flagged").default(false).notNull(),
+  annulled: boolean("annulled").default(false).notNull(),
+  professorComment: text("professorComment"),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export const assessmentRetakeAuthorizations = mysqlTable("assessment_retake_authorizations", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull(),
+  userId: int("userId").notNull(),
+  authorizedByUserId: int("authorizedByUserId").notNull(),
+  opensAt: timestamp("opensAt"),
+  closesAt: timestamp("closesAt"),
+  note: text("note"),
+  consumedAttemptId: int("consumedAttemptId"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const assessmentGradeAudits = mysqlTable("assessment_grade_audits", {
+  id: int("id").autoincrement().primaryKey(),
+  attemptId: int("attemptId").notNull(),
+  actorUserId: int("actorUserId").notNull(),
+  previousScore: int("previousScore"),
+  updatedScore: int("updatedScore"),
+  reason: text("reason").notNull(),
+  detailsJson: json("detailsJson"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const assessmentPracticalEvidence = mysqlTable("assessment_practical_evidence", {
+  id: int("id").autoincrement().primaryKey(),
+  assessmentId: int("assessmentId").notNull(),
+  userId: int("userId").notNull(),
+  cohortId: int("cohortId"),
+  taskFr: varchar("taskFr", { length: 255 }).notNull(),
+  resultFr: varchar("resultFr", { length: 255 }).notNull(),
+  note: text("note"),
+  recordedByUserId: int("recordedByUserId").notNull(),
+  recordedAt: timestamp("recordedAt").defaultNow().notNull(),
+});
+
+export const studentAssessmentProgress = mysqlTable("student_assessment_progress", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  assessmentId: int("assessmentId").notNull(),
+  bestScore: int("bestScore"),
+  latestScore: int("latestScore"),
+  firstScore: int("firstScore"),
+  attemptCount: int("attemptCount").default(0).notNull(),
+  passed: boolean("passed").default(false).notNull(),
+  m4UnlockStatus: mysqlEnum("m4UnlockStatus", [
+    "locked",
+    "pending_practical",
+    "unlocked",
+  ]).default("locked").notNull(),
+  practicalValidationStatus: mysqlEnum("practicalValidationStatus", [
+    "not_applicable",
+    "pending",
+    "satisfied",
+    "waived",
+  ]).default("pending").notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});

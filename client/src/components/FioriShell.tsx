@@ -7,7 +7,7 @@ import {
   BarChart2, Settings, ChevronRight, Menu, X, ChevronLeft,
   ChevronRight as ChevronRightIcon, MonitorPlay, Moon, Sun, Globe,
   Presentation, UserCircle, ShieldCheck, GraduationCap, TrendingUp, UserCog,
-  BookMarked,
+  BookMarked, ClipboardCheck,
 } from "lucide-react";
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -15,6 +15,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useCohort } from "@/contexts/CohortContext";
 import { isConcordeConnectEnabled, getStudentEntryPath } from "@/lib/concordeConnect";
 import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/KgVchfh3nwnwCSCPgkNzAq/concorde-logo_73f38483.png";
 const APP_VERSION = "v1.0";
@@ -91,6 +96,7 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         { href: "/teacher/cohorts", label: t("Cohortes", "Cohorts"), icon: Users },
         { href: "/teacher/scenarios", label: t("Scénarios", "Scenarios"), icon: BookOpen },
         { href: "/teacher/assignments", label: t("Assignments", "Assignments"), icon: ClipboardList },
+        { href: "/teacher/evaluations", label: t("Évaluations", "Assessments"), icon: ClipboardCheck },
         { href: "/teacher/students", label: t("Étudiants", "Students"), icon: UserCog },
         { href: "/teacher/monitor", label: t("Monitoring", "Monitoring"), icon: BarChart2 },
         { href: "/teacher/analytics", label: t("Analytics", "Analytics"), icon: TrendingUp },
@@ -107,7 +113,8 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           : []),
         { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
         { href: "/student/glossary", label: t("Glossaire", "Glossary"), icon: BookMarked },
-        { href: "/student/certifications", label: t("Mes Certifications", "My Certifications"), icon: ShieldCheck },
+        { href: "/student/evaluations", label: t("Évaluations", "Assessments"), icon: ClipboardCheck },
+        { href: "/student/certifications", label: t("Certification", "Certification"), icon: ShieldCheck },
       ];
 
   if (isAdmin) {
@@ -161,24 +168,44 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">TEC.LOG</span>
         </div>
 
-        {/* Nav — desktop (collapsible) */}
+        {/* Nav — desktop: icon-first, labels collapse, icons always visible */}
         {!navCollapsed && (
-          <nav className="hidden md:flex items-center gap-0.5 flex-1 overflow-x-auto scrollbar-none min-w-0">
+          <nav
+            className="hidden md:flex items-center gap-0.5 flex-1 min-w-0 overflow-x-auto scrollbar-none"
+            aria-label={t("Navigation principale", "Main navigation")}
+          >
             {navItems.map((item) => {
               const Icon = item.icon;
-              const active = location === item.href || location.startsWith(item.href + "/");
+              const active =
+                location === item.href ||
+                (item.href !== "/" && location.startsWith(item.href + "/")) ||
+                (item.href === "/teacher" && location === "/teacher");
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  title={item.label}
-                  className={`flex items-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium transition-colors whitespace-nowrap shrink-0 ${
-                    active ? "bg-white/20 text-white" : "text-white/70 hover:text-white hover:bg-white/10"
-                  }`}
-                >
-                  <Icon size={12} className="shrink-0" />
-                  <span className="hidden lg:inline">{item.label}</span>
-                </Link>
+                <Tooltip key={item.href} delayDuration={200}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      href={item.href}
+                      aria-label={item.label}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex items-center justify-center gap-1 min-w-[2rem] px-2 py-1.5 rounded text-[10px] font-medium transition-colors shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
+                        active
+                          ? "bg-white/20 text-white ring-1 ring-white/40"
+                          : "text-white/70 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      <Icon size={14} className="shrink-0" aria-hidden="true" />
+                      <span className="hidden xl:inline max-w-[7.5rem] truncate">{item.label}</span>
+                      {active && (
+                        <span className="sr-only">
+                          {t("(page active)", "(active page)")}
+                        </span>
+                      )}
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
               );
             })}
           </nav>

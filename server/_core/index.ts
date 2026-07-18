@@ -60,8 +60,15 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
-    // Seed quiz data on startup (idempotent — skips if already seeded)
-    seedQuizData().catch(e => console.error("[Quiz Seed] Error:", e));
+    seedQuizData()
+      .then(async () => {
+        const { reconcileQuizIntegrity, ensureAssessmentSchemaSeeded } = await import(
+          "../assessmentService"
+        );
+        await reconcileQuizIntegrity();
+        await ensureAssessmentSchemaSeeded();
+      })
+      .catch((e) => console.error("[Assessment/Quiz Seed] Error:", e));
   });
 }
 
