@@ -291,10 +291,47 @@ export function studentAttemptStatusLabel(args: {
   return "À venir";
 }
 
+/**
+ * Untimed assessments are stored as `durationMinutes = 0` (DB NOT NULL).
+ * Application contract: null / undefined / <= 0 ⇒ untimed.
+ */
+export const UNTIMED_DURATION_MINUTES = 0;
+
+/** DB placeholder for attempt.expiresAt when untimed (column NOT NULL; MySQL TIMESTAMP max ≈ 2038). */
+export const UNTIMED_EXPIRES_AT_SENTINEL = new Date("2037-12-31T23:59:59.000Z");
+
+export function isUntimedDuration(
+  durationMinutes: number | null | undefined
+): boolean {
+  return durationMinutes == null || durationMinutes <= 0;
+}
+
+/** Persistable INT for integrated_assessments.durationMinutes. */
+export function toStoredDurationMinutes(
+  durationMinutes: number | null | undefined
+): number {
+  return isUntimedDuration(durationMinutes)
+    ? UNTIMED_DURATION_MINUTES
+    : durationMinutes!;
+}
+
+export function formatAssessmentDurationLabel(
+  durationMinutes: number | null | undefined,
+  language: "FR" | "EN" = "FR"
+): string {
+  if (isUntimedDuration(durationMinutes)) {
+    return language === "FR" ? "Sans limite de temps" : "No time limit";
+  }
+  return `${durationMinutes} min`;
+}
+
 export function warnThresholds(durationMinutes: number): {
   warn30AtSeconds: number;
   warn35AtSeconds: number;
 } {
+  if (isUntimedDuration(durationMinutes)) {
+    return { warn30AtSeconds: 0, warn35AtSeconds: 0 };
+  }
   const total = durationMinutes * 60;
   return {
     warn30AtSeconds: Math.max(0, total - 10 * 60), // after 30 min of 40

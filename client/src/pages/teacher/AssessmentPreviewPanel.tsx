@@ -253,7 +253,11 @@ export function ProfessorPreviewPanel({
           />
           <MetaChip
             label={t("Durée", "Duration")}
-            value={`${assessment.durationMinutes} min`}
+            value={
+              assessment.durationMinutes == null || assessment.durationMinutes <= 0
+                ? t("Sans limite de temps", "No time limit")
+                : `${assessment.durationMinutes} min`
+            }
           />
           <MetaChip
             label={t("Seuil", "Passing")}

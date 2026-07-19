@@ -298,7 +298,15 @@ export default function AssessmentAttemptPage() {
   // Seed local answers from server on first load
   useEffect(() => {
     if (!data) return;
-    const d = data as unknown as { attempt: { remainingSeconds: number; status: string }; questions: Question[] };
+    const d = data as unknown as {
+      attempt: {
+        remainingSeconds: number | null;
+        status: string;
+        isTimed?: boolean;
+      };
+      questions: Question[];
+      assessment?: { durationMinutes?: number };
+    };
     const initial: Record<number, string | null> = {};
     for (const q of d.questions) {
       if (q.selectedOptionId !== undefined) {
@@ -306,13 +314,18 @@ export default function AssessmentAttemptPage() {
       }
     }
     setLocalAnswers(initial);
-    const remaining = d.attempt.remainingSeconds;
-    if (d.attempt.status === "in_progress") {
-      setCountdown(remaining);
+    const timed =
+      d.attempt.isTimed !== false &&
+      d.attempt.remainingSeconds != null &&
+      (d.assessment?.durationMinutes == null || d.assessment.durationMinutes > 0);
+    if (d.attempt.status === "in_progress" && timed) {
+      setCountdown(d.attempt.remainingSeconds);
+    } else {
+      setCountdown(null);
     }
   }, [data?.attempt.id]);
 
-  // Countdown timer
+  // Countdown timer (timed assessments only)
   useEffect(() => {
     if (countdown === null || submitted) return;
     if (countdown <= 0) {
@@ -453,7 +466,7 @@ export default function AssessmentAttemptPage() {
             </div>
             <Progress value={progress} className="h-2" />
           </div>
-          {countdown !== null && (
+          {countdown !== null ? (
             <div
               className={`flex items-center gap-1.5 text-sm font-mono font-semibold shrink-0 ${
                 urgent ? "text-red-600 animate-pulse" : "text-foreground"
@@ -461,6 +474,11 @@ export default function AssessmentAttemptPage() {
             >
               <Clock className={`size-4 ${urgent ? "text-red-600" : "text-muted-foreground"}`} />
               {fmtTime(countdown)}
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 text-sm font-medium shrink-0 text-muted-foreground">
+              <Clock className="size-4" />
+              {t("Sans limite de temps", "No time limit")}
             </div>
           )}
         </div>

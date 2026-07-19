@@ -23,6 +23,7 @@ import {
   AlertCircle,
   ChevronRight,
 } from "lucide-react";
+import { formatAssessmentDurationLabel } from "@shared/assessmentCore";
 
 function statusVariant(
   releaseLevel: string,
@@ -190,7 +191,10 @@ export default function EvaluationsHubPage() {
                       </span>
                       <span className="font-medium flex items-center gap-1">
                         <Clock className="size-3.5 text-muted-foreground" />
-                        {item.durationMinutes} min
+                        {formatAssessmentDurationLabel(
+                          item.durationMinutes,
+                          language === "FR" ? "FR" : "EN"
+                        )}
                       </span>
                     </div>
                     <div className="flex flex-col gap-0.5">

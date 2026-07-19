@@ -31,7 +31,12 @@ export type Eval1QuestionDef = {
 
 export const EVAL1_ASSESSMENT_CODE = "EVAL_INTEGREE_1";
 export const EVAL1_PASSING_SCORE = 70;
-export const EVAL1_DURATION_MINUTES = 40;
+/**
+ * Canonical Eval 1 duration contract.
+ * `null` = untimed (no countdown, no wall-clock expiry, no auto-submit).
+ * Persisted in DB as `durationMinutes = 0` (column is NOT NULL).
+ */
+export const EVAL1_DURATION_MINUTES: number | null = null;
 export const EVAL1_TOTAL_POINTS = 100;
 
 export const EVAL1_QUESTIONS: Eval1QuestionDef[] = [

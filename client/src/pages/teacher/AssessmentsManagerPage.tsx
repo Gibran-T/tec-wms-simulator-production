@@ -589,7 +589,10 @@ export default function AssessmentsManagerPage() {
                         {t("Durée", "Duration")}
                       </p>
                       <p className="font-medium">
-                        {selectedAssessment.durationMinutes} min
+                        {selectedAssessment.durationMinutes == null ||
+                        selectedAssessment.durationMinutes <= 0
+                          ? t("Sans limite de temps", "No time limit")
+                          : `${selectedAssessment.durationMinutes} min`}
                       </p>
                     </div>
                     <div>

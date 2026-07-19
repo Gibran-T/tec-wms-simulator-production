@@ -8,6 +8,7 @@ import {
   COHORTE_B_ID,
   computeM4UnlockStatus,
   isDemoAccount,
+  isUntimedDuration,
   isWithinWindow,
   progressionPolicyForCohort,
   resolveCompetencyLevel,
@@ -15,6 +16,8 @@ import {
   seededShuffle,
   shouldIncludeInOfficialAssessmentStats,
   studentAttemptStatusLabel,
+  toStoredDurationMinutes,
+  UNTIMED_EXPIRES_AT_SENTINEL,
   type M4UnlockStatus,
   type PracticalValidationStatus,
 } from "../shared/assessmentCore";
@@ -56,7 +59,7 @@ export async function ensureAssessmentSchemaSeeded() {
           "Integrated Assessment 1 — Receiving, storage and inventory control",
         modulesCovered: ["M1", "M2", "M3"],
         questionCount: 20,
-        durationMinutes: EVAL1_DURATION_MINUTES,
+        durationMinutes: toStoredDurationMinutes(EVAL1_DURATION_MINUTES),
         passingScore: EVAL1_PASSING_SCORE,
         totalPoints: EVAL1_TOTAL_POINTS,
         purposeFr:
@@ -110,6 +113,15 @@ export async function ensureAssessmentSchemaSeeded() {
     });
   } else {
     eval1Id = existing[0].id;
+    // Hotfix sync: Eval 1 is canonically untimed (durationMinutes = 0).
+    // Do not touch questions, scoring, threshold, or release rows.
+    const stored = toStoredDurationMinutes(EVAL1_DURATION_MINUTES);
+    if (existing[0].durationMinutes !== stored) {
+      await db
+        .update(integratedAssessments)
+        .set({ durationMinutes: stored })
+        .where(eq(integratedAssessments.id, eval1Id));
+    }
   }
 
   const existing2 = await db
@@ -534,9 +546,15 @@ export async function startAssessmentAttempt(args: {
     );
   }
 
-  const duration = card.durationMinutes || 40;
+  const untimed = isUntimedDuration(card.durationMinutes);
   const startedAt = new Date();
-  const expiresAt = new Date(startedAt.getTime() + duration * 60 * 1000);
+  // Untimed: DB expiresAt is NOT NULL — store sentinel; never enforce wall-clock expiry.
+  const expiresAt = untimed
+    ? UNTIMED_EXPIRES_AT_SENTINEL
+    : new Date(
+        startedAt.getTime() +
+          (card.durationMinutes > 0 ? card.durationMinutes : 40) * 60 * 1000
+      );
 
   const [row] = await db
     .insert(assessmentAttempts)
@@ -645,7 +663,23 @@ export async function getAttemptForStudent(args: {
   });
 
   const now = new Date();
-  const remainingMs = Math.max(0, attempt.expiresAt.getTime() - now.getTime());
+  const untimed = isUntimedDuration(assessment?.durationMinutes);
+  // Live-class recovery: if assessment became untimed while attempt is open,
+  // heal expiresAt so leftover timers cannot expire the student.
+  if (
+    untimed &&
+    attempt.status === "in_progress" &&
+    attempt.expiresAt.getTime() < UNTIMED_EXPIRES_AT_SENTINEL.getTime()
+  ) {
+    await db
+      .update(assessmentAttempts)
+      .set({ expiresAt: UNTIMED_EXPIRES_AT_SENTINEL })
+      .where(eq(assessmentAttempts.id, attempt.id));
+    attempt.expiresAt = UNTIMED_EXPIRES_AT_SENTINEL;
+  }
+  const remainingMs = untimed
+    ? null
+    : Math.max(0, attempt.expiresAt.getTime() - now.getTime());
 
   return {
     attempt: {
@@ -654,10 +688,11 @@ export async function getAttemptForStudent(args: {
       attemptNumber: attempt.attemptNumber,
       status: attempt.status,
       startedAt: attempt.startedAt,
-      expiresAt: attempt.expiresAt,
+      expiresAt: untimed ? null : attempt.expiresAt,
       submittedAt: attempt.submittedAt,
       durationSeconds: attempt.durationSeconds,
-      remainingSeconds: Math.floor(remainingMs / 1000),
+      remainingSeconds: remainingMs === null ? null : Math.floor(remainingMs / 1000),
+      isTimed: !untimed,
       autoScore: attempt.autoScore,
       finalScore: attempt.finalScore,
       passed: attempt.passed,
@@ -714,6 +749,7 @@ export async function submitAssessmentAttempt(args: {
     assessmentAttemptResponses,
     studentAssessmentProgress,
     assessmentPracticalEvidence,
+    integratedAssessments,
   } = await import("../drizzle/schema");
 
   const [attempt] = await db
@@ -750,6 +786,13 @@ export async function submitAssessmentAttempt(args: {
     throw Object.assign(new Error("INVALID_STATUS"), { code: "CONFLICT" });
   }
 
+  const [assessmentRow] = await db
+    .select()
+    .from(integratedAssessments)
+    .where(eq(integratedAssessments.id, attempt.assessmentId))
+    .limit(1);
+  const untimed = isUntimedDuration(assessmentRow?.durationMinutes);
+
   const questions = await getQuestionsForAssessment(attempt.assessmentId);
   const responsesMap =
     (attempt.responsesJson as Record<string, string | null>) || {};
@@ -770,9 +813,14 @@ export async function submitAssessmentAttempt(args: {
   });
 
   const now = new Date();
-  const expired = now > attempt.expiresAt || !!args.forceExpire;
+  // Untimed assessments never expire by wall clock (even if forceExpire is passed).
+  const expired =
+    !untimed && (now > attempt.expiresAt || !!args.forceExpire);
   const durationSeconds = Math.floor(
-    (Math.min(now.getTime(), attempt.expiresAt.getTime()) -
+    (Math.min(
+      now.getTime(),
+      untimed ? now.getTime() : attempt.expiresAt.getTime()
+    ) -
       attempt.startedAt.getTime()) /
       1000
   );
