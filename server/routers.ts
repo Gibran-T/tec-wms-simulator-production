@@ -81,7 +81,9 @@ import {
   addKpiSnapshot,
   addKpiInterpretation,
   getKpiInterpretationsByRun,
+  pickLatestKpiInterpretationsByKey,
   getKpiSnapshotByRun,
+  abandonAllInProgressRunsForUser,
 } from "./db";
 import {
   computeModuleCheckpointSnapshot,
@@ -861,6 +863,63 @@ export const appRouter = router({
         await upsertProfile(user.id, { silverCertified: false, goldCertified: false });
         return { success: true, message: `Certification reset for ${input.email}` };
       }),
+
+    /**
+     * James / institutional demo readiness.
+     * Abandons all in_progress runs for a demo account so class demos start clean.
+     * Preserves completed history. Allowed for admin + teacher. Default target: James Timothy (222).
+     */
+    prepareDemoReadiness: protectedProcedure
+      .input(
+        z.object({
+          userId: z.number().optional(),
+          email: z.string().email().optional(),
+          dryRun: z.boolean().optional().default(false),
+        }),
+      )
+      .mutation(async ({ ctx, input }) => {
+        if (ctx.user.role !== "admin" && ctx.user.role !== "teacher") {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Admin or teacher only" });
+        }
+        const { DEMO_ACCOUNT_USER_IDS } = await import("../shared/assessmentCore");
+        let targetId = input.userId ?? null;
+        if (!targetId && input.email) {
+          const u = await getUserByEmail(input.email);
+          if (!u) throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+          targetId = u.id;
+        }
+        if (!targetId) targetId = [...DEMO_ACCOUNT_USER_IDS][0] ?? 222;
+        if (!DEMO_ACCOUNT_USER_IDS.has(targetId) && ctx.user.role !== "admin") {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Teachers may only prepare registered demo accounts (James). Admins required otherwise.",
+          });
+        }
+        const before = await getRunsByUser(targetId);
+        const activeBefore = before.filter((r) => r.status === "in_progress").map((r) => r.id);
+        if (input.dryRun) {
+          return {
+            success: true,
+            dryRun: true,
+            userId: targetId,
+            activeRunIds: activeBefore,
+            abandonedRunIds: [] as number[],
+            verdict: activeBefore.length === 0 ? "READY FOR CLASS" : "HOLD — active runs present",
+          };
+        }
+        const { abandonedRunIds } = await abandonAllInProgressRunsForUser(targetId);
+        const after = await getRunsByUser(targetId);
+        const activeAfter = after.filter((r) => r.status === "in_progress").map((r) => r.id);
+        return {
+          success: true,
+          dryRun: false,
+          userId: targetId,
+          activeRunIdsBefore: activeBefore,
+          abandonedRunIds,
+          activeRunIdsAfter: activeAfter,
+          verdict: activeAfter.length === 0 ? "READY FOR CLASS" : "HOLD — residual active runs",
+        };
+      }),
     
     // Comprehensive admin cleanup: recalculate certifications and generate audit report
     cleanupAndAudit: protectedProcedure
@@ -1400,7 +1459,7 @@ export const appRouter = router({
           }));
 
         const kpiInterpretations = moduleId === 4 || moduleId === 5
-          ? (await getKpiInterpretationsByRun(input.runId)).map((r) => ({
+          ? pickLatestKpiInterpretationsByKey(await getKpiInterpretationsByRun(input.runId)).map((r) => ({
               kpiKey: r.kpiKey,
               studentAnswer: r.studentAnswer,
               isCorrect: r.isCorrect,
@@ -1522,7 +1581,7 @@ export const appRouter = router({
           : [];
         const scoringEventsForSteps = moduleId === 3 ? await getScoringEventsByRun(input.runId) : [];
         const kpiInterpretations = moduleId === 4
-          ? (await getKpiInterpretationsByRun(input.runId)).map((r) => ({
+          ? pickLatestKpiInterpretationsByKey(await getKpiInterpretationsByRun(input.runId)).map((r) => ({
               kpiKey: r.kpiKey,
               studentAnswer: r.studentAnswer,
               isCorrect: r.isCorrect,
@@ -3618,7 +3677,9 @@ export const appRouter = router({
         const scnCode = resolveScenarioScnCode(scenario);
         const kpiData = resolveM4KpiDataForScenario(scenario);
         const kpiResult = calculateKpis(kpiData);
-        const interpretations = await getKpiInterpretationsByRun(input.runId);
+        const interpretations = pickLatestKpiInterpretationsByKey(
+          await getKpiInterpretationsByRun(input.runId),
+        );
         const compliance = validateM4Compliance({
           scnCode,
           completedSteps: state.completedSteps,

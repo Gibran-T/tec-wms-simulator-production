@@ -4,6 +4,7 @@ import M4KpiTiles from "./M4KpiTiles";
 import M4KpiInterpretationTrail from "./M4KpiInterpretationTrail";
 import M4KpiAmberAlerts from "./M4KpiAmberAlerts";
 import M4KpiSnapshotHeader from "./M4KpiSnapshotHeader";
+import PedagogicalAnalyticsPanel from "@/components/analytical/PedagogicalAnalyticsPanel";
 
 export default function M4EvidenceLayer({
   scnCode,
@@ -30,6 +31,7 @@ export default function M4EvidenceLayer({
         <M4KpiSnapshotHeader snapshot={snapshot} scnCode={scnCode} language={language} t={t} variant="cockpit" />
       )}
       <M4KpiTiles snapshot={snapshot} scnCode={scnCode} language={language} t={t} />
+      <PedagogicalAnalyticsPanel scnCode={scnCode} language={language} t={t} />
       <M4KpiInterpretationTrail
         completedSteps={completedSteps}
         kpiInterpretations={kpiInterpretations}

@@ -1651,6 +1651,14 @@ export default function StepForm() {
     !!atpShortage?.active && (cfg.code === "PICKING_M1" || cfg.code === "GI");
   const isCurrentStep = nextStep === cfg.code;
   const isCompleted = runData?.completedSteps.includes(cfg.code as any);
+  // M4 analytical recovery: allow re-submit of KPI answers before COMPLIANCE_M4
+  // so incorrect interpretations (session 000658 class) can be corrected on the same run.
+  const m4RecoverableCodes = ["KPI_DATA", "KPI_ROTATION", "KPI_SERVICE", "KPI_DIAGNOSTIC"];
+  const canRecoverM4Answer =
+    (runData?.moduleId === 4 || runData?.scenario?.moduleId === 4) &&
+    !!isCompleted &&
+    m4RecoverableCodes.includes(String(cfg.code)) &&
+    !(runData?.completedSteps as string[] | undefined)?.includes("COMPLIANCE_M4");
   const isLocked =
     isScn007FifoNotInScenario ||
     isBlockedByScn003Shortage ||
@@ -1976,8 +1984,8 @@ export default function StepForm() {
           </div>
         )}
 
-        {/* Completed State */}
-        {isCompleted && (
+        {/* Completed State — skip when M4 recovery re-opens the form */}
+        {isCompleted && !canRecoverM4Answer && (
           <div className="bg-card border border-border border-t-0 rounded-b-md p-6">
             <div className="alert-compliant flex items-start gap-3 mb-4">
               <CheckCircle size={16} className="flex-shrink-0 mt-0.5" />
@@ -1996,8 +2004,20 @@ export default function StepForm() {
         )}
 
         {/* Active Form */}
-        {(isCurrentStep || (isDemo && !isCompleted)) && !isLocked && (
+        {(isCurrentStep || (isDemo && !isCompleted) || canRecoverM4Answer) && !isLocked && (
           <div className="bg-card border border-border border-t-0 rounded-b-md">
+            {canRecoverM4Answer && (
+              <div className="bg-sky-50 dark:bg-sky-950/30 border-b border-sky-200 dark:border-sky-800 px-4 py-3 flex items-start gap-2">
+                <AlertTriangle size={14} className="text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5" />
+                <p className="text-xs text-sky-800 dark:text-sky-200">
+                  <strong>{t("Correction autorisée :", "Correction allowed:")}</strong>{" "}
+                  {t(
+                    "Vous pouvez réviser votre interprétation avant de valider la conformité M4. La nouvelle réponse remplace la précédente.",
+                    "You may revise your interpretation before M4 compliance validation. The new answer replaces the previous one.",
+                  )}
+                </p>
+              </div>
+            )}
             {/* Out-of-sequence warning */}
             {isDemo && isOutOfSequence && (
               <div className="bg-amber-50 dark:bg-amber-950/30 border-b border-amber-200 dark:border-amber-800 px-4 py-3 flex items-start gap-2">

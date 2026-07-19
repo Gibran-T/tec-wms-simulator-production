@@ -1,20 +1,22 @@
 /** Display-only M4 KPI control tower content (SCN-012–014). No scenario logic. */
 
-/** Annexe A — KPI interpretation reference guide (student-safe, no expected answers) */
+/** Annexe A — KPI interpretation reference guide (aligned with July 2026 student guide + calculateKpis). */
 export const ANNEXE_A_KPI_GUIDE = {
   titleFr: "Annexe A — Grille de lecture KPI",
   titleEn: "Annex A — KPI Interpretation Grid",
   rows: [
     {
       kpi: { fr: "Rotation des stocks", en: "Inventory Turnover" },
-      critical: { fr: "< 4× / an", en: "< 4×/yr" },
+      critical: { fr: "< 4× / an (surstock)", en: "< 4×/yr (overstock)" },
       normal: { fr: "4–12× / an", en: "4–12×/yr" },
-      excellent: { fr: "> 12× / an", en: "> 12×/yr" },
+      // July guide: >12 = sous-performance (trop rapide), NOT « excellent »
+      excellent: { fr: "> 12× / an (sous-performance)", en: "> 12×/yr (under-performance)" },
     },
     {
       kpi: { fr: "Taux de service (OTIF)", en: "Service Level (OTIF)" },
-      critical: { fr: "< 90 %", en: "< 90%" },
-      normal: { fr: "90–94 %", en: "90–94%" },
+      // Engine: <85 insuffisant · 85–94 acceptable · ≥95 excellent (guide: alerte <85)
+      critical: { fr: "< 85 %", en: "< 85%" },
+      normal: { fr: "85–94 %", en: "85–94%" },
       excellent: { fr: "≥ 95 %", en: "≥ 95%" },
     },
     {

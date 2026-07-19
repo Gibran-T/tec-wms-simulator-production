@@ -1787,7 +1787,14 @@ export function evaluateM4DiagnosticConcepts(
       issuesEn.push("SCN-012: keyword stuffing without coherent stance");
       issuesFr.push("SCN-012 : empilement de mots-clés sans raisonnement cohérent");
     }
-    if (!matchConceptGroup(n, CG_ACTION_VOCAB) && evalResult.matched.length < 2) {
+    // July guide: maintain + monitor stance IS the professional recommendation.
+    // Do not require literal « recommandation / action / stratégie / décision ».
+    const hasActionableStance =
+      matchConceptGroup(n, CG_ACTION_VOCAB) ||
+      (evalResult.matched.includes("maintain_policy") &&
+        evalResult.matched.includes("monitor_followup")) ||
+      evalResult.matched.length >= 2;
+    if (!hasActionableStance) {
       issuesEn.push("SCN-012: missing actionable recommendation");
       issuesFr.push("SCN-012 : recommandation actionnable manquante");
     }
@@ -2266,6 +2273,8 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
     };
   }
   // Diagnostic: concept blocks → existing KPI_DIAGNOSTIC budget (25)
+  // July student guide: accept professional stance without literal
+  // « recommandation / action / stratégie / décision » magic words.
   const hasAction = matchConceptGroup(answer, CG_ACTION_VOCAB);
   const hasInterpretation =
     matchConceptGroup(answer, CG_ROTATION_NORMAL) ||
@@ -2290,7 +2299,8 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
     (hasDecision ? ANALYTICAL_BLOCK_WEIGHTS.decision : 0) +
     (hasFollowUp ? ANALYTICAL_BLOCK_WEIGHTS.followUp : 0) +
     (answer.length > 15 ? ANALYTICAL_BLOCK_WEIGHTS.evidence : 0);
-  const hasRecommendation = hasAction && blockScore >= 0.5 && !stuffing;
+  const hasProfessionalStance = hasDecision && (hasFollowUp || hasAction || hasInterpretation);
+  const hasRecommendation = hasProfessionalStance && blockScore >= 0.5 && !stuffing;
   return {
     isCorrect: hasRecommendation,
     pointsDelta: hasRecommendation ? M4_STEP_MAX.KPI_DIAGNOSTIC : 0,

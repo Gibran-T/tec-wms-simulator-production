@@ -403,6 +403,27 @@ export async function abandonStaleInProgressRuns(userId: number, scenarioId: num
     );
 }
 
+/**
+ * Demo/QA readiness: abandon ALL in-progress runs for a user (e.g. James Timothy).
+ * Preserves completed runs, scoring history, and reports — only clears active/partial state.
+ * Idempotent.
+ */
+export async function abandonAllInProgressRunsForUser(userId: number): Promise<{ abandonedRunIds: number[] }> {
+  const db = await getDb();
+  if (!db) return { abandonedRunIds: [] };
+  const active = await db
+    .select({ id: scenarioRuns.id })
+    .from(scenarioRuns)
+    .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.status, "in_progress")));
+  const ids = active.map((r) => r.id);
+  if (ids.length === 0) return { abandonedRunIds: [] };
+  await db
+    .update(scenarioRuns)
+    .set({ status: "abandoned", completedAt: new Date() })
+    .where(and(eq(scenarioRuns.userId, userId), eq(scenarioRuns.status, "in_progress")));
+  return { abandonedRunIds: ids };
+}
+
 export async function startRun(userId: number, scenarioId: number, isDemo = false): Promise<number> {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
@@ -1095,12 +1116,20 @@ export async function getKpiSnapshotByRun(runId: number) {
 }
 
 // ─── M4: KPI Interpretations ─────────────────────────────────────────────────
+/**
+ * Upsert pedagogical answer for a KPI key (latest wins).
+ * Enables same-run recovery after incorrect interpretation without orphan rows
+ * that would poison compliance `.find()` (first-row) semantics.
+ */
 export async function addKpiInterpretation(data: {
   runId: number; kpiKey: string; studentAnswer: string; isCorrect: boolean; pointsDelta: number; feedback: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("DB not available");
   const { kpiInterpretations } = await import("../drizzle/schema");
+  await db
+    .delete(kpiInterpretations)
+    .where(and(eq(kpiInterpretations.runId, data.runId), eq(kpiInterpretations.kpiKey, data.kpiKey)));
   await db.insert(kpiInterpretations).values({
     runId: data.runId, kpiKey: data.kpiKey, studentAnswer: data.studentAnswer,
     isCorrect: data.isCorrect, pointsDelta: data.pointsDelta, feedback: data.feedback,
@@ -1110,7 +1139,21 @@ export async function getKpiInterpretationsByRun(runId: number) {
   const db = await getDb();
   if (!db) return [];
   const { kpiInterpretations } = await import("../drizzle/schema");
-  return db.select().from(kpiInterpretations).where(eq(kpiInterpretations.runId, runId));
+  // Ascending id so callers that still use `.find()` / last-wins reducers stay deterministic.
+  return db
+    .select()
+    .from(kpiInterpretations)
+    .where(eq(kpiInterpretations.runId, runId))
+    .orderBy(asc(kpiInterpretations.id));
+}
+
+/** Latest row per kpiKey (recovery-safe). */
+export function pickLatestKpiInterpretationsByKey<T extends { kpiKey: string; id?: number }>(
+  rows: T[],
+): T[] {
+  const map = new Map<string, T>();
+  for (const row of rows) map.set(row.kpiKey, row);
+  return [...map.values()];
 }
 
 // ─── QUIZ SYSTEM ─────────────────────────────────────────────────────────────

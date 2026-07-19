@@ -328,6 +328,19 @@ export const CG_ROTATION_OVERSTOCK: ConceptGroup = {
 export const CG_MAINTAIN_POLICY: ConceptGroup = {
   id: "maintain_policy",
   terms: [
+    // Stem "mainten" alone misses FR conjugations "maintiens" / "maintient"
+    // (official July student guide example: « Je maintiens la politique… »).
+    "maintenir",
+    "maintiens",
+    "maintient",
+    "maintenons",
+    "maintenez",
+    "maintiennent",
+    "maintenu",
+    "maintenue",
+    "maintenus",
+    "maintenues",
+    "maintenance",
     "mainten",
     "conserver",
     "conserv",

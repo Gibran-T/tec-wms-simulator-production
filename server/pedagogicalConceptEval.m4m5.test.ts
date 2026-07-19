@@ -65,6 +65,24 @@ describe("SCN-012 — concept evaluation", () => {
     expect(m4Compliance("SCN-012", rotOk, svcOk, diag).allowed).toBe(true);
   });
 
+  it("positive: July official guide example A — « Je maintiens » conjugaison", () => {
+    const diag =
+      "La rotation est normale. Je maintiens la politique et je surveille les articles qui tournent lentement.";
+    expect(scoreKpiInterpretation("rotationRate", "La rotation est normale.", kpiResult).isCorrect).toBe(true);
+    expect(scoreKpiInterpretation("serviceLevel", "OTIF excellent a 95%.", kpiResult).isCorrect).toBe(true);
+    expect(scoreKpiInterpretation("diagnostic", diag, kpiResult).isCorrect).toBe(true);
+    expect(m4Compliance("SCN-012", "La rotation est normale.", "OTIF excellent a 95%.", diag).allowed).toBe(true);
+  });
+
+  it("positive: July official guide example B — conserver/contrôle without magic words", () => {
+    const diag =
+      "Resultat equilibre : conserver le niveau global avec un controle regulier des produits.";
+    expect(scoreKpiInterpretation("diagnostic", diag, kpiResult).isCorrect).toBe(true);
+    expect(
+      m4Compliance("SCN-012", "Resultat equilibre dans la bande 4-12.", "Service excellent.", diag).allowed,
+    ).toBe(true);
+  });
+
   it("positive: synonym / no accents / different order", () => {
     const diag =
       "Il faut conserver la politique actuelle avec un controle regulier des produits. Le resultat est equilibre.";

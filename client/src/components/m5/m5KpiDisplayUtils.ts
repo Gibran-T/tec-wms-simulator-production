@@ -34,14 +34,16 @@ export function formatStockValue(value: number | null | undefined, language: str
 }
 
 export function getRotationBand(rate: number): KpiBand {
+  // July student guide + calculateKpis: >12 = sous-performance (critical), not excellent
   if (rate < 4) return "critical";
-  if (rate > 12) return "excellent";
+  if (rate > 12) return "critical";
   return "normal";
 }
 
 export function getServiceBand(serviceLevel: number): KpiBand {
   const pct = serviceLevel <= 1 ? serviceLevel * 100 : serviceLevel;
-  if (pct < 90) return "critical";
+  // Align with calculateKpis: <85 insuffisant · 85–94 acceptable · ≥95 excellent
+  if (pct < 85) return "critical";
   if (pct >= 95) return "excellent";
   return "normal";
 }

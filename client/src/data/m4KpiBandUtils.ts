@@ -91,8 +91,8 @@ export function rotationBandLabel(status: string, language: string): string {
 export function serviceBandLabel(status: string, language: string): string {
   const isFr = language === "FR";
   if (status === "excellent") return isFr ? "Excellent (≥ 95 %)" : "Excellent (≥ 95%)";
-  if (status === "acceptable") return isFr ? "Normal (90–94 %)" : "Normal (90–94%)";
-  if (status === "insuffisant") return isFr ? "Critique (< 90 %)" : "Critical (< 90%)";
+  if (status === "acceptable") return isFr ? "Acceptable (85–94 %)" : "Acceptable (85–94%)";
+  if (status === "insuffisant") return isFr ? "Critique (< 85 %)" : "Critical (< 85%)";
   return status;
 }
 
