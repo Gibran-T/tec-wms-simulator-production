@@ -422,7 +422,24 @@ export const CG_SERVICE_EXCELLENT: ConceptGroup = {
 
 export const CG_SERVICE_WEAK: ConceptGroup = {
   id: "service_weak",
-  terms: ["faible", "insuffisant", "mauvais", "mediocre", "médiocre", "critique", "inacceptable"],
+  // Do NOT use bare "faible" — it false-positives on « SKU à faible rotation ».
+  terms: [
+    "service faible",
+    "otif faible",
+    "taux de service faible",
+    "niveau faible",
+    "service insuffisant",
+    "otif insuffisant",
+    "service mauvais",
+    "service mediocre",
+    "service médiocre",
+    "service critique",
+    "service inacceptable",
+    "95% faible",
+    "95 % faible",
+    "95% insuffisant",
+    "95 % insuffisant",
+  ],
 };
 
 export const CG_ERRORS_ACCEPTABLE_IMPROVE: ConceptGroup = {
@@ -479,6 +496,9 @@ export const CG_SHORT_HORIZON: ConceptGroup = {
     "sla",
     "hebdo",
     "semaine",
+    "mensuel",
+    "mensuelle",
+    "suivi mensuel",
     "court terme",
     "prochaines semaines",
     "suivi court",

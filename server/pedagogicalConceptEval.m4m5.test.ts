@@ -31,17 +31,17 @@ function m4Compliance(scn: string, rotation: string, service: string, diagnostic
       {
         kpiKey: "rotationRate",
         studentAnswer: rotation,
-        isCorrect: scoreKpiInterpretation("rotationRate", rotation, kpiResult).isCorrect,
+        isCorrect: scoreKpiInterpretation("rotationRate", rotation, kpiResult, scn).isCorrect,
       },
       {
         kpiKey: "serviceLevel",
         studentAnswer: service,
-        isCorrect: scoreKpiInterpretation("serviceLevel", service, kpiResult).isCorrect,
+        isCorrect: scoreKpiInterpretation("serviceLevel", service, kpiResult, scn).isCorrect,
       },
       {
         kpiKey: "diagnostic",
         studentAnswer: diagnostic,
-        isCorrect: scoreKpiInterpretation("diagnostic", diagnostic, kpiResult).isCorrect,
+        isCorrect: scoreKpiInterpretation("diagnostic", diagnostic, kpiResult, scn).isCorrect,
       },
     ],
     kpiResult,

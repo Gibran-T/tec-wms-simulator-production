@@ -31,6 +31,9 @@ export default function AdminPanel() {
   const addPreAuth      = trpc.admin.addPreAuthorized.useMutation({ onSuccess: () => refetchPreAuth() });
   const removePreAuth   = trpc.admin.removePreAuthorized.useMutation({ onSuccess: () => refetchPreAuth() });
 
+  const prepareDemo = trpc.admin.prepareDemoReadiness.useMutation();
+  const [jamesMsg, setJamesMsg] = useState("");
+
   // ── Local state ───────────────────────────────────────────────────────────
   const [confirmPending, setConfirmPending] = useState<{ userId: number; name: string; newRole: Role } | null>(null);
   const [processing, setProcessing]         = useState<number | null>(null);
@@ -39,6 +42,7 @@ export default function AdminPanel() {
   const [newNote, setNewNote]               = useState("");
   const [addingEmail, setAddingEmail]       = useState(false);
   const [addError, setAddError]             = useState("");
+  const [preparingJames, setPreparingJames] = useState(false);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleRoleChange = async (userId: number, role: Role) => {
@@ -70,6 +74,26 @@ export default function AdminPanel() {
     }
   };
 
+  const handlePrepareJames = async () => {
+    setPreparingJames(true);
+    setJamesMsg("");
+    try {
+      const r = await prepareDemo.mutateAsync({
+        email: "jamesnns3@gmail.com",
+        dryRun: false,
+      });
+      setJamesMsg(
+        r.verdict === "READY FOR CLASS"
+          ? t("James Timothy — Prêt pour démonstration", "James Timothy — Ready for demonstration")
+          : t(`James — ${r.verdict}`, `James — ${r.verdict}`),
+      );
+    } catch {
+      setJamesMsg(t("Échec de la préparation James.", "Failed to prepare James."));
+    } finally {
+      setPreparingJames(false);
+    }
+  };
+
   // ── Stats ─────────────────────────────────────────────────────────────────
   const stats = [
     { icon: BookOpen,  label: t("Scénarios", "Scenarios"),                    value: scenarios?.length ?? 0, color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-50 dark:bg-blue-950/40" },
@@ -96,6 +120,37 @@ export default function AdminPanel() {
               <p className="text-xs text-muted-foreground mt-0.5">{card.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* ── James Demo Readiness ── */}
+        <div className="bg-card border border-border rounded-md p-4 flex flex-wrap items-center justify-between gap-3" data-testid="admin-james-demo-readiness">
+          <div>
+            <p className="text-sm font-bold text-foreground">
+              {t("Préparer James pour démonstration", "Prepare James for demonstration")}
+            </p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {t(
+                "Abandonne les runs actives de James Timothy (compte QA). Préserve scores et rapports.",
+                "Abandons James Timothy active runs (QA account). Preserves scores and reports.",
+              )}
+            </p>
+            {jamesMsg ? (
+              <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mt-1.5" data-testid="james-ready-message">
+                {jamesMsg}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={handlePrepareJames}
+            disabled={preparingJames}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground text-xs font-bold px-4 py-2.5 rounded-md hover:opacity-90 disabled:opacity-50"
+          >
+            <RefreshCw size={14} className={preparingJames ? "animate-spin" : ""} />
+            {preparingJames
+              ? t("Préparation…", "Preparing…")
+              : t("Préparer James pour démonstration", "Prepare James for demonstration")}
+          </button>
         </div>
 
         {/* ── How to authorize Nadia banner ── */}

@@ -12,6 +12,8 @@ export interface AnalyticalResponseFieldProps {
   minChars?: number;
   /** Pedagogical helper shown instead of bare “Min. N caractères” as primary guidance. */
   guidanceText?: string;
+  /** Short structure example (not a full grading key). */
+  exampleStructure?: string;
   hints?: React.ReactNode;
   testId?: string;
   className?: string;
@@ -23,10 +25,18 @@ export default function AnalyticalResponseField({
   t,
   minChars = 5,
   guidanceText,
+  exampleStructure,
   hints,
   testId = "analytical-response-field",
   className,
 }: AnalyticalResponseFieldProps) {
+  const placeholder =
+    guidanceText ||
+    t(
+      "Réponse courte : KPI, décision, suivi.",
+      "Short answer: KPI, decision, follow-up.",
+    );
+
   return (
     <div
       className={cn("rounded-md border border-border bg-card overflow-hidden", className)}
@@ -50,36 +60,30 @@ export default function AnalyticalResponseField({
         <label htmlFor={registerProps.name} className="fiori-field-label block">
           {t("Votre réponse", "Your answer")} <span className="text-destructive">*</span>
         </label>
-        {guidanceText ? (
-          <p className="text-[11px] text-muted-foreground leading-snug" data-testid={`${testId}-guidance`}>
-            {guidanceText}
+        <p className="text-[11px] text-muted-foreground leading-snug" data-testid={`${testId}-guidance`}>
+          {t(
+            "Répondez en 1 à 3 phrases courtes : 1. lecture du KPI ; 2. décision ; 3. action ou suivi.",
+            "Answer in 1 to 3 short sentences: 1. KPI reading; 2. decision; 3. action or follow-up.",
+          )}
+        </p>
+        {exampleStructure ? (
+          <p className="text-[10px] text-slate-500 italic" data-testid={`${testId}-example-structure`}>
+            {t("Structure", "Structure")} : {exampleStructure}
           </p>
-        ) : (
-          <p className="text-[10px] text-muted-foreground">
-            {t(`Min. ${minChars} caractères`, `Min. ${minChars} characters`)}
-          </p>
-        )}
+        ) : null}
         <Textarea
           id={registerProps.name}
           {...registerProps}
-          rows={6}
-          placeholder={
-            guidanceText ||
-            t(
-              "Rédigez votre analyse ici. Soyez précis et justifiez votre réponse avec des données.",
-              "Write your analysis here. Be precise and justify your answer with data.",
-            )
-          }
+          rows={4}
+          placeholder={placeholder}
           className={cn(
             "fiori-field-input fiori-field-active w-full text-sm leading-relaxed",
-            "min-h-[9rem] sm:min-h-[10rem] md:min-h-[11rem] resize-y",
+            "min-h-[6.5rem] sm:min-h-[7.5rem] resize-y",
           )}
         />
-        {guidanceText ? (
-          <p className="sr-only">
-            {t(`Minimum technique : ${minChars} caractères`, `Technical minimum: ${minChars} characters`)}
-          </p>
-        ) : null}
+        <p className="sr-only">
+          {t(`Minimum technique : ${minChars} caractères`, `Technical minimum: ${minChars} characters`)}
+        </p>
       </div>
     </div>
   );

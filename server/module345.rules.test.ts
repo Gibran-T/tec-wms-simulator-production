@@ -417,8 +417,9 @@ describe("Module 4 — M4_STEP_MAX alignment", () => {
     const kpiResult = calculateKpis(CANONICAL_M4_KPI_DATA);
     expect(scoreKpiInterpretation("rotationRate", "Rotation normale et equilibree", kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_ROTATION);
     expect(scoreKpiInterpretation("serviceLevel", "Service excellent optimal", kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_SERVICE);
-    const diag = "Je recommande une action strategique pour ameliorer le service avec decision claire.";
-    expect(scoreKpiInterpretation("diagnostic", diag.repeat(2), kpiResult).pointsDelta).toBe(M4_STEP_MAX.KPI_DIAGNOSTIC);
+    const diag =
+      "La rotation est normale. Je maintiens la politique et je surveille les SKU lents. Revue periodique du capital.";
+    expect(scoreKpiInterpretation("diagnostic", diag, kpiResult, "SCN-012").pointsDelta).toBe(M4_STEP_MAX.KPI_DIAGNOSTIC);
   });
 
   it("perfect-run event budget is 10+20+20+25+25", () => {
@@ -491,7 +492,7 @@ describe("Module 4 — validateM4Compliance", () => {
       kpiResult,
     });
     expect(result.allowed).toBe(false);
-    expect(result.reasonFr).toMatch(/surstock|normale/i);
+    expect(result.reasonFr).toMatch(/surstock|normale|rotation|incorrect/i);
   });
 
   it("SCN-013 rejects diagnostic without error/OTIF correlation", () => {

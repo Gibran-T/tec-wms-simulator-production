@@ -48,7 +48,7 @@ export type GuidedReadingStep = {
 export const M4_PORTFOLIO_ANALYTICS = {
   periodFr: "T2 2026 — portefeuille entrepôt pédagogique",
   periodEn: "Q2 2026 — pedagogical warehouse portfolio",
-  datasetLabelFr: "Jeu de données canonic TEC.WMS M4 (lecture seule)",
+  datasetLabelFr: "Jeu de données canonique TEC.WMS M4 (lecture seule)",
   datasetLabelEn: "TEC.WMS M4 canonical dataset (read-only)",
   cards: [
     {
@@ -206,17 +206,18 @@ export const M4_PORTFOLIO_ANALYTICS = {
 
 export function formatAnalyticsValue(card: PedagogicalKpiCard, language: string): string {
   const isFr = language === "FR" || language === "fr";
+  // Return numeric/display value WITHOUT unit — unit is rendered separately (avoids 6×× / 48 000 $$).
   if (card.id === "capital" && typeof card.value === "number") {
-    return isFr ? `${card.value.toLocaleString("fr-CA")} $` : `$${card.value.toLocaleString("en-CA")}`;
+    return isFr ? card.value.toLocaleString("fr-CA") : card.value.toLocaleString("en-CA");
   }
   if (typeof card.value === "number" && (card.id === "otif" || card.id === "errors")) {
-    return isFr ? `${card.value} %` : `${card.value}%`;
+    return String(card.value);
   }
   if (typeof card.value === "number" && card.id === "rotation") {
-    return `${card.value}×`;
+    return String(card.value);
   }
   if (typeof card.value === "number" && card.id === "leadTime") {
-    return isFr ? `${String(card.value).replace(".", ",")} j` : `${card.value} d`;
+    return isFr ? String(card.value).replace(".", ",") : String(card.value);
   }
   return String(card.value);
 }

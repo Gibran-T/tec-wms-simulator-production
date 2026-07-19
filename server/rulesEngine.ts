@@ -47,6 +47,12 @@ import {
   normalizePedagogicalText,
   type ConceptEvalResult,
 } from "../shared/pedagogicalConceptEval";
+import {
+  evalKpiDiagnosticShort,
+  evalKpiRotationShort,
+  evalKpiServiceShort,
+  evalM5DecisionShort,
+} from "../shared/m4m5ShortAnswerContract";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -1958,27 +1964,39 @@ export function validateM4Compliance(input: {
   const rotationRow = input.kpiInterpretations.find((r) => r.kpiKey === "rotationRate");
   const serviceRow = input.kpiInterpretations.find((r) => r.kpiKey === "serviceLevel");
   const diagnosticRow = input.kpiInterpretations.find((r) => r.kpiKey === "diagnostic");
+  const scn = input.scnCode?.toUpperCase() ?? "";
 
+  // Same canonical scorer as step mutations (re-score latest answers — do not trust stale isCorrect).
   if (!rotationRow) {
     issues.push("Missing rotation interpretation");
     issuesFr.push("Interprétation rotation manquante");
-  } else if (!rotationRow.isCorrect) {
-    issues.push("Incorrect rotation interpretation");
-    issuesFr.push("Interprétation rotation incorrecte");
-  } else if (input.kpiResult.rotationStatus === "normal") {
-    const ans = normalizePedagogicalText(rotationRow.studentAnswer);
-    if (matchConceptGroup(ans, CG_ROTATION_OVERSTOCK)) {
-      issues.push("Rotation classified as overstock when engine says normal (6×)");
-      issuesFr.push("Rotation classée surstock alors que la bande est normale (6×)");
+  } else {
+    const rotScore = scoreKpiInterpretation(
+      "rotationRate",
+      rotationRow.studentAnswer,
+      input.kpiResult,
+      scn,
+    );
+    if (!rotScore.isCorrect) {
+      issues.push("Incorrect rotation interpretation");
+      issuesFr.push(rotScore.feedback || "Interprétation rotation incorrecte");
     }
   }
 
   if (!serviceRow) {
     issues.push("Missing service interpretation");
     issuesFr.push("Interprétation service manquante");
-  } else if (!serviceRow.isCorrect) {
-    issues.push("Incorrect service interpretation");
-    issuesFr.push("Interprétation service incorrecte");
+  } else {
+    const svcScore = scoreKpiInterpretation(
+      "serviceLevel",
+      serviceRow.studentAnswer,
+      input.kpiResult,
+      scn,
+    );
+    if (!svcScore.isCorrect) {
+      issues.push("Incorrect service interpretation");
+      issuesFr.push(svcScore.feedback || "Interprétation service incorrecte");
+    }
   }
 
   if (!diagnosticRow) {
@@ -1986,27 +2004,46 @@ export function validateM4Compliance(input: {
     issuesFr.push("Diagnostic manquant");
   } else {
     const diag = diagnosticRow.studentAnswer.trim();
-    if (diag.length < 20) {
+    if (diag.length < 12) {
       issues.push("Diagnostic too short");
-      issuesFr.push("Diagnostic trop court");
+      issuesFr.push("Diagnostic trop court — 1 à 3 phrases professionnelles");
     }
 
-    const scn = input.scnCode?.toUpperCase() ?? "";
-
-    if (scn === "SCN-013" && input.kpiResult.serviceLevelStatus === "excellent") {
-      if (!matchConceptGroup(normalizePedagogicalText(serviceRow?.studentAnswer ?? ""), CG_SERVICE_EXCELLENT)) {
-        issues.push("SCN-013: service answer must acknowledge excellent status");
-        issuesFr.push("SCN-013 : reconnaissance du service excellent requise");
-      }
-      if (matchConceptGroup(normalizePedagogicalText(serviceRow?.studentAnswer ?? ""), CG_SERVICE_WEAK)) {
-        issues.push("SCN-013: OTIF 95% must not be classified as weak");
-        issuesFr.push("SCN-013 : OTIF 95 % ne doit pas être classé faible/insuffisant");
-      }
-    }
-
+    const short = evalKpiDiagnosticShort(scn, diag);
+    const diagScore = scoreKpiInterpretation("diagnostic", diag, input.kpiResult, scn);
     const concept = evaluateM4DiagnosticConcepts(scn, diag, input.kpiResult);
-    for (const r of concept.issuesEn) issues.push(r);
-    for (const r of concept.issuesFr) issuesFr.push(r);
+    const coherence = assessAnalyticalCoherence(diag);
+
+    // Canonical gate: scenario concept competence (authoritative) + coherence + no short-contract contradictions.
+    // Short professional answers must also satisfy concept groups (maintain/monitor/quality/etc.).
+    const allowed =
+      concept.competenceComplete &&
+      coherence.coherent &&
+      short.contradictions.length === 0 &&
+      diagScore.isCorrect;
+
+    if (!allowed) {
+      if (short.contradictions.length > 0 || !short.ok) {
+        issues.push(short.feedbackEn || short.feedbackFr);
+        issuesFr.push(short.feedbackFr);
+      }
+      if (!concept.competenceComplete) {
+        for (const r of concept.issuesEn) {
+          if (!issues.includes(r)) issues.push(r);
+        }
+        for (const r of concept.issuesFr) {
+          if (!issuesFr.includes(r)) issuesFr.push(r);
+        }
+      }
+      if (!coherence.coherent) {
+        issues.push("Diagnostic not analytically coherent");
+        issuesFr.push("Diagnostic non cohérent — phrases professionnelles requises (pas une liste de mots-clés)");
+      }
+      if (!diagScore.isCorrect && issuesFr.length === 0) {
+        issues.push(diagScore.feedback);
+        issuesFr.push(diagScore.feedback);
+      }
+    }
   }
 
   return {
@@ -2220,42 +2257,105 @@ export function calculateKpis(data) {
     errorRateStatus
   };
 }
-export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
+export function scoreKpiInterpretation(
+  kpiKey: string,
+  studentAnswer: string,
+  kpiResult: ReturnType<typeof calculateKpis>,
+  scnCode?: string | null,
+) {
   const answer = normalizePedagogicalText(studentAnswer);
   if (kpiKey === "rotationRate") {
     const correct = kpiResult.rotationStatus;
+    if (correct === "normal") {
+      const short = evalKpiRotationShort(studentAnswer);
+      if (short.ok) {
+        return {
+          isCorrect: true,
+          pointsDelta: M4_STEP_MAX.KPI_ROTATION,
+          feedback: short.feedbackFr,
+        };
+      }
+      // Step contract: lecture (normal / bande) is enough; reject contradictions.
+      const claimsNormal =
+        matchConceptGroup(answer, CG_ROTATION_NORMAL) ||
+        ((/\b6\s*x\b/.test(answer) || /\b6\s*fois\b/.test(answer)) &&
+          hasAnyTerm(answer, ["bande", "zone", "normal", "normale", "equilibr"]));
+      const lectureOk =
+        claimsNormal &&
+        !matchConceptGroup(answer, CG_ROTATION_OVERSTOCK) &&
+        !matchConceptGroup(answer, CG_GLOBAL_DESTOCK) &&
+        !matchConceptGroup(answer, CG_NO_ACTION) &&
+        !hasAnyTerm(answer, ["mauvais", "insuffisant", "critique", "liquider", "liquidation"]);
+      if (lectureOk) {
+        return {
+          isCorrect: true,
+          pointsDelta: M4_STEP_MAX.KPI_ROTATION,
+          feedback: `Correct — taux de rotation ${kpiResult.rotationRate}x → situation ${correct}`,
+        };
+      }
+      return {
+        isCorrect: false,
+        pointsDelta: -5,
+        feedback:
+          short.contradictions.length > 0
+            ? short.feedbackFr
+            : short.missing.includes("lecture")
+              ? `Incorrect — taux ${kpiResult.rotationRate}x indique une situation de ${correct}`
+              : short.feedbackFr,
+      };
+    }
     const isCorrect =
       (correct === "surstock" && matchConceptGroup(answer, CG_ROTATION_OVERSTOCK)) ||
-      (correct === "normal" && matchConceptGroup(answer, CG_ROTATION_NORMAL)) ||
       (correct === "sous-performance" &&
         hasAnyTerm(answer, ["sous", "rupture", "insuffisant", "trop rapide", "sous-performance"]));
-    // Contradiction: calling normal band "surstock"
-    const contradicted =
-      correct === "normal" && matchConceptGroup(answer, CG_ROTATION_OVERSTOCK);
     return {
-      isCorrect: isCorrect && !contradicted,
-      pointsDelta: isCorrect && !contradicted ? M4_STEP_MAX.KPI_ROTATION : -5,
-      feedback:
-        isCorrect && !contradicted
-          ? `Correct — taux de rotation ${kpiResult.rotationRate}x → situation ${correct}`
-          : `Incorrect — taux ${kpiResult.rotationRate}x indique une situation de ${correct}`,
+      isCorrect,
+      pointsDelta: isCorrect ? M4_STEP_MAX.KPI_ROTATION : -5,
+      feedback: isCorrect
+        ? `Correct — taux de rotation ${kpiResult.rotationRate}x → situation ${correct}`
+        : `Incorrect — taux ${kpiResult.rotationRate}x indique une situation de ${correct}`,
     };
   }
   if (kpiKey === "serviceLevel") {
     const correct = kpiResult.serviceLevelStatus;
+    if (correct === "excellent") {
+      const short = evalKpiServiceShort(studentAnswer);
+      if (short.ok) {
+        return {
+          isCorrect: true,
+          pointsDelta: M4_STEP_MAX.KPI_SERVICE,
+          feedback: short.feedbackFr,
+        };
+      }
+      // Step contract: classify as excellent; never accept weak false-positives (ex. « faible rotation »).
+      const lectureOk =
+        matchConceptGroup(answer, CG_SERVICE_EXCELLENT) &&
+        !matchConceptGroup(answer, CG_SERVICE_WEAK);
+      if (lectureOk) {
+        return {
+          isCorrect: true,
+          pointsDelta: M4_STEP_MAX.KPI_SERVICE,
+          feedback: `Correct — taux de service ${(kpiResult.serviceLevel * 100).toFixed(1)}% → ${correct}`,
+        };
+      }
+      return {
+        isCorrect: false,
+        pointsDelta: -5,
+        feedback: matchConceptGroup(answer, CG_SERVICE_WEAK)
+          ? "95 % doit être classé excellent — pas faible/insuffisant."
+          : short.feedbackFr ||
+            `Incorrect — ${(kpiResult.serviceLevel * 100).toFixed(1)}% indique un niveau ${correct}`,
+      };
+    }
     const isCorrect =
-      (correct === "excellent" && matchConceptGroup(answer, CG_SERVICE_EXCELLENT)) ||
       (correct === "acceptable" && hasAnyTerm(answer, ["acceptable", "moyen", "correct"])) ||
       (correct === "insuffisant" && matchConceptGroup(answer, CG_SERVICE_WEAK));
-    const contradicted =
-      correct === "excellent" && matchConceptGroup(answer, CG_SERVICE_WEAK);
     return {
-      isCorrect: isCorrect && !contradicted,
-      pointsDelta: isCorrect && !contradicted ? M4_STEP_MAX.KPI_SERVICE : -5,
-      feedback:
-        isCorrect && !contradicted
-          ? `Correct — taux de service ${(kpiResult.serviceLevel * 100).toFixed(1)}% → ${correct}`
-          : `Incorrect — ${(kpiResult.serviceLevel * 100).toFixed(1)}% indique un niveau ${correct}`,
+      isCorrect,
+      pointsDelta: isCorrect ? M4_STEP_MAX.KPI_SERVICE : -5,
+      feedback: isCorrect
+        ? `Correct — taux de service ${(kpiResult.serviceLevel * 100).toFixed(1)}% → ${correct}`
+        : `Incorrect — ${(kpiResult.serviceLevel * 100).toFixed(1)}% indique un niveau ${correct}`,
     };
   }
   if (kpiKey === "errorRate") {
@@ -2272,41 +2372,56 @@ export function scoreKpiInterpretation(kpiKey, studentAnswer, kpiResult) {
         : `Incorrect — ${(kpiResult.errorRate * 100).toFixed(2)}% est un niveau ${correct}`,
     };
   }
-  // Diagnostic: concept blocks → existing KPI_DIAGNOSTIC budget (25)
-  // July student guide: accept professional stance without literal
-  // « recommandation / action / stratégie / décision » magic words.
-  const hasAction = matchConceptGroup(answer, CG_ACTION_VOCAB);
-  const hasInterpretation =
-    matchConceptGroup(answer, CG_ROTATION_NORMAL) ||
-    matchConceptGroup(answer, CG_SERVICE_EXCELLENT) ||
-    hasAnyTerm(answer, ["erreur", "otif", "kpi", "situation"]);
-  const hasDecision =
-    matchConceptGroup(answer, CG_MAINTAIN_POLICY) ||
-    matchConceptGroup(answer, CG_QUALITY_ACTION) ||
-    matchConceptGroup(answer, CG_ONE_PRIORITY) ||
-    hasAction;
-  const hasFollowUp =
-    matchConceptGroup(answer, CG_MONITOR_FOLLOWUP) ||
-    matchConceptGroup(answer, CG_SHORT_HORIZON) ||
-    matchConceptGroup(answer, CG_HORIZON_90_180);
-  const stuffing = evaluateConceptGroups(
-    studentAnswer,
-    [CG_ACTION_VOCAB],
-    [CG_GLOBAL_DESTOCK, CG_NO_ACTION, CG_ROTATION_OVERSTOCK],
-  ).stuffingSuspected;
-  const blockScore =
-    (hasInterpretation ? ANALYTICAL_BLOCK_WEIGHTS.interpretation : 0) +
-    (hasDecision ? ANALYTICAL_BLOCK_WEIGHTS.decision : 0) +
-    (hasFollowUp ? ANALYTICAL_BLOCK_WEIGHTS.followUp : 0) +
-    (answer.length > 15 ? ANALYTICAL_BLOCK_WEIGHTS.evidence : 0);
-  const hasProfessionalStance = hasDecision && (hasFollowUp || hasAction || hasInterpretation);
-  const hasRecommendation = hasProfessionalStance && blockScore >= 0.5 && !stuffing;
+  // Diagnostic: same gates as COMPLIANCE_M4 (short contradictions + concept competence + coherence)
+  const scn = (scnCode ?? "SCN-012").toUpperCase();
+  const short = evalKpiDiagnosticShort(scn, studentAnswer);
+  if (short.contradictions.length > 0) {
+    return {
+      isCorrect: false,
+      pointsDelta: 0,
+      feedback: short.feedbackFr,
+    };
+  }
+  const coherence = assessAnalyticalCoherence(studentAnswer);
+  if (!coherence.coherent) {
+    return {
+      isCorrect: false,
+      pointsDelta: 0,
+      feedback:
+        coherence.reason === "too_short"
+          ? "Réponse trop courte — 1 à 3 phrases professionnelles."
+          : "Réponse non professionnelle — évitez la liste de mots-clés ; formulez lecture, décision et suivi.",
+    };
+  }
+  const concept = evaluateM4DiagnosticConcepts(scn, studentAnswer, kpiResult);
+  if (short.ok && concept.competenceComplete) {
+    return {
+      isCorrect: true,
+      pointsDelta: M4_STEP_MAX.KPI_DIAGNOSTIC,
+      feedback: short.feedbackFr,
+    };
+  }
+  if (concept.competenceComplete) {
+    return {
+      isCorrect: true,
+      pointsDelta: M4_STEP_MAX.KPI_DIAGNOSTIC,
+      feedback: "Bonne analyse stratégique — recommandation pertinente identifiée",
+    };
+  }
+  if (matchConceptGroup(answer, CG_NO_ACTION) || matchConceptGroup(answer, CG_GLOBAL_DESTOCK)) {
+    return {
+      isCorrect: false,
+      pointsDelta: 0,
+      feedback: short.feedbackFr || "Contradiction ou absence d'action rejetée.",
+    };
+  }
   return {
-    isCorrect: hasRecommendation,
-    pointsDelta: hasRecommendation ? M4_STEP_MAX.KPI_DIAGNOSTIC : 0,
-    feedback: hasRecommendation
-      ? "Bonne analyse stratégique — recommandation pertinente identifiée"
-      : "Analyse incomplète — une recommandation stratégique justifiée est attendue",
+    isCorrect: false,
+    pointsDelta: 0,
+    feedback:
+      concept.issuesFr[0] ||
+      short.feedbackFr ||
+      "Analyse incomplète — lecture, décision et suivi attendus (1 à 3 phrases).",
   };
 }
 export const MODULE5_STEPS = [
@@ -2845,8 +2960,25 @@ export function scoreM5Decision(
   kpiResult: { rotationRate?: number; serviceLevel?: number; errorRate?: number },
   options?: { decisionLevel?: "TACTICAL" | "STRATEGIC"; kpiSnapshot?: M5KpiSnapshotValues },
 ) {
+  // Always reject Q=0 vs positive replenishment contradictions first.
+  if (hasQ0VsReplenishmentContradiction(studentDecision)) {
+    return {
+      score: 10,
+      feedback:
+        "Contradiction — stock suffisant / Q=0 ne peut pas coexister avec une recommandation de commander une quantité positive.",
+      rejected: true,
+      rejectionReason: "CONTRADICTORY_REPLENISHMENT",
+    };
+  }
+
+  const level = options?.decisionLevel === "STRATEGIC" ? "STRATEGIC" : "TACTICAL";
+  const short = evalM5DecisionShort(level, studentDecision);
   if (options?.decisionLevel === "STRATEGIC" && options.kpiSnapshot) {
-    return scoreM5StrategicDecision(studentDecision, options.kpiSnapshot);
+    const strategic = scoreM5StrategicDecision(studentDecision, options.kpiSnapshot);
+    if (short.ok && !strategic.rejected) {
+      return { ...strategic, score: Math.max(strategic.score, 70), feedback: strategic.feedback };
+    }
+    return strategic;
   }
   const text = normalizePedagogicalText(studentDecision);
   let score = 0;
@@ -2903,15 +3035,10 @@ export function scoreM5Decision(
     (!hasSentencePunctuation && wordCount >= 8 && feedbackParts.length >= 3);
   if (stuffing) score = Math.min(score, 25);
 
-  // Q=0 / stock suffisant contradicted by positive replenishment recommendation.
-  if (hasQ0VsReplenishmentContradiction(studentDecision)) {
-    return {
-      score: Math.min(score, 10),
-      feedback:
-        "Contradiction — stock suffisant / Q=0 ne peut pas coexister avec une recommandation de commander une quantité positive.",
-      rejected: true,
-      rejectionReason: "CONTRADICTORY_REPLENISHMENT",
-    };
+  // Professional short answers: boost to pass threshold without erasing detailed feedback.
+  if (short.ok) {
+    score = Math.max(score, 70);
+    if (feedbackParts.length === 0) feedbackParts.push(short.feedbackFr);
   }
 
   return {
@@ -2919,7 +3046,8 @@ export function scoreM5Decision(
     feedback:
       feedbackParts.length > 0
         ? feedbackParts.join(" | ")
-        : "Décision insuffisamment justifiée — référencez les KPI observés ou le statut nominal du run",
+        : short.feedbackFr ||
+          "Décision insuffisamment justifiée — référencez les KPI observés ou le statut nominal du run",
     rejected: false,
   };
 }

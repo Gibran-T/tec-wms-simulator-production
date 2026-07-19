@@ -3612,12 +3612,16 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const scenario = await getScenarioById(run.scenarioId);
+        const scnCode = resolveScenarioScnCode(scenario);
         const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("rotationRate", input.studentAnswer, kpiResult);
+        const result = scoreKpiInterpretation("rotationRate", input.studentAnswer, kpiResult, scnCode);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "rotationRate", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
+        if (!result.isCorrect) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
+        }
         await markStepComplete(input.runId, "KPI_ROTATION");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_ROTATION_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de rotation: ${result.isCorrect ? "correct" : "incorrect"}` });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_ROTATION_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de rotation: correct` });
         return result;
       }),
 
@@ -3629,12 +3633,16 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const scenario = await getScenarioById(run.scenarioId);
+        const scnCode = resolveScenarioScnCode(scenario);
         const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("serviceLevel", input.studentAnswer, kpiResult);
+        const result = scoreKpiInterpretation("serviceLevel", input.studentAnswer, kpiResult, scnCode);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "serviceLevel", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
+        if (!result.isCorrect) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
+        }
         await markStepComplete(input.runId, "KPI_SERVICE");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_SERVICE_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de service: ${result.isCorrect ? "correct" : "incorrect"}` });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_SERVICE_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de service: correct` });
         return result;
       }),
 
@@ -3646,12 +3654,16 @@ export const appRouter = router({
         if (!run) throw new TRPCError({ code: "NOT_FOUND" });
         if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
         const scenario = await getScenarioById(run.scenarioId);
+        const scnCode = resolveScenarioScnCode(scenario);
         const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
         const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("diagnostic", input.studentAnswer, kpiResult);
+        const result = scoreKpiInterpretation("diagnostic", input.studentAnswer, kpiResult, scnCode);
         await addKpiInterpretation({ runId: input.runId, kpiKey: "diagnostic", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
+        if (!result.isCorrect) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
+        }
         await markStepComplete(input.runId, "KPI_DIAGNOSTIC");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_DIAGNOSTIC_COMPLETED", pointsDelta: result.pointsDelta, message: `Diagnostic: ${result.isCorrect ? "correct" : "incorrect"}` });
+        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_DIAGNOSTIC_COMPLETED", pointsDelta: result.pointsDelta, message: `Diagnostic: correct` });
         return result;
       }),
 

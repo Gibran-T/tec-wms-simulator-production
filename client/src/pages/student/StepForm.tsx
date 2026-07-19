@@ -465,7 +465,7 @@ const STEP_CONFIG: Record<string, {
     }
   },
   kpi_rotation: {
-    titleFr: "Taux de rotation (DSI)", titleEn: "Rotation Rate (DSI)", code: "KPI_ROTATION", txCode: "MB52", tCode: "MB52",
+    titleFr: "Taux de rotation des stocks", titleEn: "Inventory turnover rate", code: "KPI_ROTATION", txCode: "MB52", tCode: "MB52",
     etapeFr: "Étape 2 sur 5", etapeEn: "Step 2 of 5",
     objectiveFr: "Consommation annuelle : 2 400 unités. Stock moyen : 400 unités. Calculez le taux de rotation, classifiez le résultat et recommandez une action avec suivi.",
     objectiveEn: "Annual consumption: 2,400 units. Average stock: 400 units. Calculate turnover, classify the result, and recommend an action with follow-up.",
@@ -2807,6 +2807,29 @@ export default function StepForm() {
                       t={t}
                       minChars={5}
                       guidanceText={m5ResponseGuidance}
+                      exampleStructure={
+                        step === "KPI_ROTATION" || step === "KPI_SERVICE" || step === "KPI_DIAGNOSTIC" || isM5DecisionStep
+                          ? scnCode === "SCN-013"
+                            ? t(
+                                "OTIF 95%, excellent. Erreurs 4%, à surveiller. Action qualité.",
+                                "OTIF 95%, excellent. Errors 4%, monitor. Quality action.",
+                              )
+                            : scnCode === "SCN-014"
+                              ? t(
+                                  "Priorité qualité. Maintenir stock. Revue OTIF/erreurs dans 90 jours.",
+                                  "Priority quality. Maintain stock. Review OTIF/errors in 90 days.",
+                                )
+                              : isM5DecisionStep
+                                ? t(
+                                    "Lecture KPI. Décision. Suivi du prochain cycle.",
+                                    "KPI reading. Decision. Next-cycle follow-up.",
+                                  )
+                                : t(
+                                    "Rotation 6x, zone normale. Maintenir globalement. Surveiller les SKU lents.",
+                                    "Turnover 6x, normal zone. Maintain globally. Watch slow SKUs.",
+                                  )
+                          : undefined
+                      }
                       testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
                       hints={
                         <AnalyticalStepHints
