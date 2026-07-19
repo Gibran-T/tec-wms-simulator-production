@@ -307,7 +307,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       "Consulter KPI_DATA avant interprétation.",
       "Classifier la rotation dans la bande normale (6×).",
       "Recommander politique stock (maintien / réduction SKU / hausse).",
-      "Éviter complaisance sans surveillance SKU.",
+      "Éviter complaisance sans suivi des SKU.",
     ],
     studentActions: [
       "KPI_DATA : consulter le tour de contrôle KPI.",
@@ -315,7 +315,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       "KPI_SERVICE puis KPI_DIAGNOSTIC : synthèse politique stock.",
       "COMPLIANCE_M4 une fois diagnostic validé.",
     ],
-    expectedOutcome: "Politique stock recommandée avec surveillance SKU — pas de destock global injustifié.",
+    expectedOutcome: "Politique stock recommandée avec suivi des SKU — pas de destock global injustifié.",
     supervisorNotes: "M4 analytique — rotation normale @ 6×. Seuil 70/100. COMPLIANCE_M4 valide les interprétations, pas l'inventaire M1.",
     technicalSpecs: {
       sku: "N/A — analyse portefeuille",
@@ -325,7 +325,7 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
       expectedTransaction: "KPI_DATA → KPI_ROTATION → KPI_DIAGNOSTIC",
       status: "Rotation 6× — bande normale — revue politique stock",
     },
-    successCriteria: ["Bande normale identifiée", "Politique stock avec surveillance SKU"],
+    successCriteria: ["Bande normale identifiée", "Politique stock avec suivi des SKU"],
     failureConditions: ["Surstock déclaré à 6×", "Complaisance sans action"],
     wmsFunction: "KPI analytics",
     sapEquivalent: "MC$4, Inventory turnover reports",
@@ -333,14 +333,14 @@ export const EXTENDED_MISSIONS: Record<string, MissionData> = {
     industryRelevance: "Optimisation working capital sans sur-réaction.",
     demoGuidance: "Explorez les formules KPI en démo.",
     evalGuidance: "Seuil 70/100 — COMPLIANCE_M4 valide cohérence interprétation/decision.",
-    recoveryPaths: ["Reformuler avec maintien + surveillance SKU"],
+    recoveryPaths: ["Reformuler avec maintien + suivi des SKU"],
     alternativeActions: [
       "Déclarer surstock sans appliquer la bande 4–12×",
       "Conclure « rien à faire » sans plan de surveillance",
     ],
     wrongActionConsequences: [
       "Misclassification surstock → destock coûteux inutile",
-      "Complaisance sans monitoring SKU → dérive capital non détectée",
+      "Complaisance sans suivi des SKU → dérive capital non détectée",
     ],
   },
   "SCN-013": {

@@ -632,8 +632,8 @@ function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode,
         <div className="text-[10px] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-300">
           <p className="font-bold uppercase mb-1">{t("Mode évaluation M4", "M4 Evaluation Mode")}</p>
           <p>{isFr
-            ? "Rédigez votre diagnostic en vous appuyant sur les KPI observés. Justifiez votre décision avec les valeurs mesurées."
-            : "Write your diagnostic based on observed KPIs. Justify your decision with measured values."}</p>
+            ? "Réponse courte: KPI, décision, suivi. Structure : LECTURE → DÉCISION → SUIVI."
+            : "Short answer: KPI, decision, follow-up. Structure: READING → DECISION → FOLLOW-UP."}</p>
         </div>
       )}
       {scnCode && M5_DECISION_SCAFFOLD[scnCode] && isDemo && (

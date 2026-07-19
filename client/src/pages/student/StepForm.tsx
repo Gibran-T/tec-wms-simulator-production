@@ -2811,13 +2811,13 @@ export default function StepForm() {
                         step === "KPI_ROTATION" || step === "KPI_SERVICE" || step === "KPI_DIAGNOSTIC" || isM5DecisionStep
                           ? scnCode === "SCN-013"
                             ? t(
-                                "OTIF 95%, excellent. Erreurs 4%, à surveiller. Action qualité.",
-                                "OTIF 95%, excellent. Errors 4%, monitor. Quality action.",
+                                "Valeur + classification. Décision. Suivi.",
+                                "Value + classification. Decision. Follow-up.",
                               )
                             : scnCode === "SCN-014"
                               ? t(
-                                  "Priorité qualité. Maintenir stock. Revue OTIF/erreurs dans 90 jours.",
-                                  "Priority quality. Maintain stock. Review OTIF/errors in 90 days.",
+                                  "Valeur + classification. Décision. Suivi.",
+                                  "Value + classification. Decision. Follow-up.",
                                 )
                               : isM5DecisionStep
                                 ? t(
@@ -2825,8 +2825,8 @@ export default function StepForm() {
                                     "KPI reading. Decision. Next-cycle follow-up.",
                                   )
                                 : t(
-                                    "Rotation 6x, zone normale. Maintenir globalement. Surveiller les SKU lents.",
-                                    "Turnover 6x, normal zone. Maintain globally. Watch slow SKUs.",
+                                    "Valeur + classification. Décision. Suivi.",
+                                    "Value + classification. Decision. Follow-up.",
                                   )
                           : undefined
                       }

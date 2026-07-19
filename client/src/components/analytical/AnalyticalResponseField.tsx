@@ -33,7 +33,7 @@ export default function AnalyticalResponseField({
   const placeholder =
     guidanceText ||
     t(
-      "Réponse courte : KPI, décision, suivi.",
+      "Réponse courte: KPI, décision, suivi.",
       "Short answer: KPI, decision, follow-up.",
     );
 
@@ -60,17 +60,43 @@ export default function AnalyticalResponseField({
         <label htmlFor={registerProps.name} className="fiori-field-label block">
           {t("Votre réponse", "Your answer")} <span className="text-destructive">*</span>
         </label>
+
+        {/* Structure cue: LECTURE → DÉCISION → SUIVI */}
+        <div
+          className="flex flex-wrap items-center gap-1 text-[9px]"
+          data-testid={`${testId}-structure-cue`}
+          aria-label={t("Structure attendue", "Expected structure")}
+        >
+          {[
+            { fr: "LECTURE", en: "READING" },
+            { fr: "DÉCISION", en: "DECISION" },
+            { fr: "SUIVI", en: "FOLLOW-UP" },
+          ].map((step, i) => (
+            <span key={step.en} className="inline-flex items-center gap-1">
+              {i > 0 && <span className="text-muted-foreground" aria-hidden>→</span>}
+              <span className="px-1.5 py-0.5 border border-primary/30 bg-primary/5 text-primary rounded-sm font-bold tracking-wide">
+                {t(step.fr, step.en)}
+              </span>
+            </span>
+          ))}
+        </div>
+
         <p className="text-[11px] text-muted-foreground leading-snug" data-testid={`${testId}-guidance`}>
           {t(
-            "Répondez en 1 à 3 phrases courtes : 1. lecture du KPI ; 2. décision ; 3. action ou suivi.",
-            "Answer in 1 to 3 short sentences: 1. KPI reading; 2. decision; 3. action or follow-up.",
+            "Répondez en 1 à 3 phrases courtes avec vos propres mots.",
+            "Answer in 1 to 3 short sentences in your own words.",
           )}
         </p>
         {exampleStructure ? (
           <p className="text-[10px] text-slate-500 italic" data-testid={`${testId}-example-structure`}>
-            {t("Structure", "Structure")} : {exampleStructure}
+            {t("Exemple professionnel", "Professional example")} : {exampleStructure}
           </p>
-        ) : null}
+        ) : (
+          <p className="text-[10px] text-slate-500 italic" data-testid={`${testId}-example-structure`}>
+            {t("Structure attendue", "Expected structure")} :{" "}
+            {t("Valeur + classification. Décision. Suivi.", "Value + classification. Decision. Follow-up.")}
+          </p>
+        )}
         <Textarea
           id={registerProps.name}
           {...registerProps}

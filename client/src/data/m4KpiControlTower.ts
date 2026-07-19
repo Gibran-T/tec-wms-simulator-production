@@ -45,9 +45,9 @@ export const M4_KPI_CONTROL_TOWER: Record<string, M4KpiTowerEntry> = {
   "SCN-012": {
     kpiEvaluated: { fr: "Rotation des stocks (Inventory Turnover)", en: "Inventory Turnover" },
     target: { fr: "Classifier bande 4–12×/an et recommander politique stock (maintien / réduction / hausse)", en: "Classify 4–12×/yr band and recommend stock policy (maintain / reduce / increase)" },
-    diagnosticFocus: { fr: "6× = bande normale — jugement capital (48 000 $) vs surveillance SKU, pas chasse au surstock", en: "6× = normal band — capital judgment ($48k) vs SKU monitoring, not overstock hunt" },
-    alertRisk: { fr: "Misclassification surstock @ 6× · Complaisance sans monitoring SKU", en: "Misclassifying overstock @ 6× · Complacency without SKU monitoring" },
-    expectedOutput: { fr: "Politique stock + surveillance SKU (MC$4 / CO-PA)", en: "Stock policy + SKU monitoring (MC$4 / CO-PA)" },
+    diagnosticFocus: { fr: "6× = bande normale — jugement capital (48 000 $) vs suivi des SKU, pas chasse au surstock", en: "6× = normal band — capital judgment ($48k) vs SKU follow-up, not overstock hunt" },
+    alertRisk: { fr: "Misclassification surstock @ 6× · Complaisance sans suivi des SKU", en: "Misclassifying overstock @ 6× · Complacency without SKU follow-up" },
+    expectedOutput: { fr: "Politique stock + suivi des SKU (MC$4 / CO-PA)", en: "Stock policy + SKU follow-up (MC$4 / CO-PA)" },
   },
   "SCN-013": {
     kpiEvaluated: { fr: "Taux de service & taux d'erreur opérationnelle", en: "Service Level & Operational Error Rate" },
@@ -57,10 +57,10 @@ export const M4_KPI_CONTROL_TOWER: Record<string, M4KpiTowerEntry> = {
     expectedOutput: { fr: "Programme exécution picking/réception + cible chiffrée (VL06O / performance)", en: "Picking/receiving execution program + numeric target (VL06O / performance)" },
   },
   "SCN-014": {
-    kpiEvaluated: { fr: "Diagnostic multi-KPI (rotation + service + erreurs + lead time)", en: "Multi-KPI diagnosis (turnover + service + errors + lead time)" },
-    target: { fr: "S&OP — une initiative financée · intègre lentille capital (012) + exécution (013)", en: "S&OP — one funded initiative · integrates capital lens (012) + execution lens (013)" },
-    diagnosticFocus: { fr: "Arbitrage CFO/Ventes/Ops — nommer levier, trade-off, KPIs de suivi 90 j", en: "CFO/Sales/Ops arbitration — name lever, trade-off, 90-day follow-up KPIs" },
-    alertRisk: { fr: "Décision mono-KPI · Paragraphe board sans arbitrage explicite", en: "Single-KPI decision · Board paragraph without explicit trade-off" },
-    expectedOutput: { fr: "Paragraphe décisionnel board-ready avec sacrifice et priorités (SAC / embedded analytics)", en: "Board-ready decision paragraph with sacrifice and priorities (SAC / embedded analytics)" },
+    kpiEvaluated: { fr: "Diagnostic multi-KPI (rotation + service + erreurs + délai)", en: "Multi-KPI diagnosis (turnover + service + errors + lead time)" },
+    target: { fr: "S&OP — une initiative financée · intègre angle capital (012) + exécution (013)", en: "S&OP — one funded initiative · integrates capital angle (012) + execution angle (013)" },
+    diagnosticFocus: { fr: "Arbitrage CFO/Ventes/Ops — nommer levier, compromis, KPIs de suivi 90 j", en: "CFO/Sales/Ops arbitration — name lever, trade-off, 90-day follow-up KPIs" },
+    alertRisk: { fr: "Décision mono-KPI · Paragraphe comité sans arbitrage explicite", en: "Single-KPI decision · Board paragraph without explicit trade-off" },
+    expectedOutput: { fr: "Paragraphe décisionnel prêt pour le comité avec sacrifice et priorités (SAC / analytics embarquée)", en: "Board-ready decision paragraph with sacrifice and priorities (SAC / embedded analytics)" },
   },
 };

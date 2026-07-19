@@ -35,7 +35,9 @@ import { toScn007MonitorBusinessRows } from "../../../../server/scn007";
 import { getCockpitPedagogy, pickLang } from "@/data/scenarioCockpitPedagogy";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
 import M4KpiEvidenceFeed from "@/components/operational-intelligence/m4/M4KpiEvidenceFeed";
+import M4MissionDebrief from "@/components/operational-intelligence/m4/M4MissionDebrief";
 import { isM4EvidenceScn, type M4KpiInterpretationRow, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
+import { getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
 import {
   buildM3ResolutionChain,
   buildReplenishmentParamRows,
@@ -519,7 +521,19 @@ export default function MissionControl() {
               />
             )}
             
-            {/* Next Action Cockpit */}
+            {/* M4 concise professional debrief (completed) — does not repeat full mission page */}
+            {run.status === "completed" && showM4Evidence && scnCode ? (
+              <M4MissionDebrief
+                scnCode={scnCode}
+                score={typeof score === "number" ? score : Number(score) || 0}
+                passThreshold={getModuleScenarioPassThreshold(4)}
+                compliant={!!compliance?.compliant}
+                language={language}
+                t={t}
+                onViewReport={() => navigate(`/student/run/${runId}/report`)}
+              />
+            ) : (
+            /* Next Action Cockpit */
             <div className={`p-6 border-l-8 ${
               run.status === "completed" ? "bg-green-50 border-green-600 dark:bg-green-950/20" : 
               nextStep ? "bg-slate-50 border-primary dark:bg-slate-800/50" : "bg-red-50 border-red-600"
@@ -566,6 +580,7 @@ export default function MissionControl() {
                 ) : null}
               </div>
             </div>
+            )}
 
             {isM3 && m3Scn === "SCN-009" && m3ResolutionChain.length > 0 && (
               <M3ResolutionChainRow chips={m3ResolutionChain} language={language} />
