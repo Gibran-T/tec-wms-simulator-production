@@ -12,6 +12,8 @@ import { M3ReplenishmentParamsTable } from "@/components/operational-intelligenc
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
 import M5DecisionResultPanel from "@/components/m5/M5DecisionResultPanel";
+import M4KpiControlTower from "@/components/operational-intelligence/m4/M4KpiControlTower";
+import { isM4VisualScn } from "@shared/m4ScenarioVisualContract";
 import {
   getAnalyticalQuestionText,
   getM5DecisionStepTitle,
@@ -473,8 +475,8 @@ const STEP_CONFIG: Record<string, {
     pedagogicalDeep: {
       whyFr: "Le taux de rotation mesure combien de fois le stock est renouvelé par an. La classification guide la politique stock.",
       whyEn: "Turnover measures how many times stock is renewed per year. Classification guides stock policy.",
-      realSAPFr: "Dans SAP, le taux de rotation s'appuie sur MB52 (stock moyen) et MB51 (consommation). DSI = 365 / taux.",
-      realSAPEn: "In SAP, turnover uses MB52 (average stock) and MB51 (consumption). DSI = 365 / rate.",
+      realSAPFr: "Dans SAP, le taux de rotation s'appuie sur MB52 (stock moyen) et MB51 (consommation). Rotation et jours de couverture restent des concepts distincts.",
+      realSAPEn: "In SAP, turnover uses MB52 (average stock) and MB51 (consumption). Turnover and days-of-cover remain distinct concepts.",
       dependencyFr: "Consultez la bande de référence dans l'aide si besoin — calculez et classifiez vous-même.",
       dependencyEn: "Check the reference band in help if needed — calculate and classify yourself.",
       realErrorFr: "Confondre une rotation dans la bande normale avec un surstock conduit à des décisions de destock injustifiées.",
@@ -1164,6 +1166,10 @@ export default function StepForm() {
     if (!isM5DecisionStep) return undefined;
     return getM5ResponseGuidance(scnCode, isM5Strategic, language);
   }, [isM5DecisionStep, scnCode, isM5Strategic, language]);
+
+  /** M4 step pages must show the BI control tower (not only Mission Control OIL). */
+  const showM4StepControlTower =
+    useM4AnalyticalChrome && isM4VisualScn(scnCode);
   const m5Contract = useMemo(() => {
     const json = runData?.scenario?.initialStateJson as {
       m5Contract?: {
@@ -1791,7 +1797,7 @@ export default function StepForm() {
         { label: t(cfg.titleFr, cfg.titleEn) },
       ]}
     >
-      <div className="max-w-2xl mx-auto">
+      <div className={`${showM4StepControlTower ? "max-w-6xl" : "max-w-2xl"} mx-auto`}>
         {/* Demo Mode Banner */}
         {isDemo && (
           <div className="bg-indigo-950 border border-indigo-700 rounded-md px-4 py-2.5 mb-4 flex items-center gap-2">
@@ -1951,6 +1957,13 @@ export default function StepForm() {
         {/* Glossary Modal */}
         {showGlossary && (
           <GlossaryPage modal onClose={() => setShowGlossary(false)} />
+        )}
+
+        {/* M4 BI Control Tower — Level 1 decision view on every analytical step page */}
+        {showM4StepControlTower && scnCode && (
+          <div className="mb-4" data-testid="m4-step-control-tower">
+            <M4KpiControlTower scnCode={scnCode} language={language} t={t} />
+          </div>
         )}
 
         {/* Locked State */}

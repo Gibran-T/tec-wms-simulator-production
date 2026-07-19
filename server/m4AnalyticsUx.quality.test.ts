@@ -179,4 +179,13 @@ describe("M4 Control Tower UX source contracts", () => {
     expect(src).not.toMatch(/monitoring SKU/);
     expect(src).toMatch(/suivi des SKU/);
   });
+
+  it("StepForm mounts M4KpiControlTower on analytical step route", () => {
+    const src = readClient("pages/student/StepForm.tsx");
+    expect(src).toMatch(/M4KpiControlTower/);
+    expect(src).toMatch(/m4-step-control-tower/);
+    expect(src).toMatch(/showM4StepControlTower/);
+    expect(src).not.toMatch(/Taux de rotation \(DSI\)/);
+    expect(src).toMatch(/Taux de rotation des stocks/);
+  });
 });
