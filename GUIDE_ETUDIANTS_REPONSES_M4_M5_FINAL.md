@@ -38,7 +38,7 @@ Ce document vous aide à **comprendre** ce que chaque scénario évalue et **com
 
 | KPI | Bon signe | Zone normale / acceptable | Signal d’alerte |
 |-----|-----------|---------------------------|-----------------|
-| Rotation | 4 à 12×/an = **normal** | — | < 4× = surstock · > 12× = sous-performance |
+| Rotation | 4 à 12×/an = **normal** | — | < 4× = risque de surstock · > 12× = risque de stock trop serré |
 | Service (OTIF) | ≥ 95 % = **excellent** | 85–95 % = acceptable | < 85 % = insuffisant |
 | Erreurs | ≤ 1 % = excellent | 1–5 % = **acceptable** | > 5 % = critique |
 

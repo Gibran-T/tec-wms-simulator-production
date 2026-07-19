@@ -83,8 +83,15 @@ export function getBandClasses(color: BandColor): { border: string; bg: string; 
 export function rotationBandLabel(status: string, language: string): string {
   const isFr = language === "FR";
   if (status === "normal") return isFr ? "Normal (4–12×/an)" : "Normal (4–12×/yr)";
-  if (status === "surstock") return isFr ? "Critique (surstock)" : "Critical (overstock)";
-  if (status === "sous-performance") return isFr ? "Critique (sous-performance)" : "Critical (understock)";
+  if (status === "surstock") {
+    return isFr ? "Risque de surstock (<4×)" : "Overstock risk (<4×)";
+  }
+  // Internal engine status remains "sous-performance"; visible copy uses risk framing.
+  if (status === "sous-performance") {
+    return isFr
+      ? "Risque stock trop serré (>12×)"
+      : "Tight stock risk (>12×)";
+  }
   return status;
 }
 

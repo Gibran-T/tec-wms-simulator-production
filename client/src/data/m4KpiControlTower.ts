@@ -7,10 +7,10 @@ export const ANNEXE_A_KPI_GUIDE = {
   rows: [
     {
       kpi: { fr: "Rotation des stocks", en: "Inventory Turnover" },
-      critical: { fr: "< 4× / an (surstock)", en: "< 4×/yr (overstock)" },
+      // Risk framing (not automatic conclusion): <4× overstock risk · >12× tight-stock risk
+      critical: { fr: "< 4× / an (rotation faible — risque de surstock)", en: "< 4×/yr (low turnover — overstock risk)" },
       normal: { fr: "4–12× / an", en: "4–12×/yr" },
-      // July guide: >12 = sous-performance (trop rapide), NOT « excellent »
-      excellent: { fr: "> 12× / an (sous-performance)", en: "> 12×/yr (under-performance)" },
+      excellent: { fr: "> 12× / an (rotation élevée — risque stock trop serré)", en: "> 12×/yr (high turnover — tight stock risk)" },
     },
     {
       kpi: { fr: "Taux de service (OTIF)", en: "Service Level (OTIF)" },

@@ -473,14 +473,14 @@ const STEP_CONFIG: Record<string, {
     objectiveEn: "Annual consumption: 2,400 units. Average stock: 400 units. Calculate turnover, classify the result, and recommend an action with follow-up.",
     fields: ["studentAnswer"],
     pedagogicalDeep: {
-      whyFr: "Le taux de rotation mesure combien de fois le stock est renouvelé par an. La classification guide la politique stock.",
-      whyEn: "Turnover measures how many times stock is renewed per year. Classification guides stock policy.",
+      whyFr: "Le taux de rotation mesure combien de fois le stock est renouvelé par an. Bande 4–12× : normal ; <4× : risque de surstock ; >12× : rotation élevée — risque de stock trop serré à vérifier (OTIF, ruptures, lead time). Une rotation élevée n’est pas mauvaise en soi.",
+      whyEn: "Turnover measures how many times stock is renewed per year. Band 4–12×: normal; <4×: overstock risk; >12×: high turnover — tight-stock risk to verify (OTIF, stockouts, lead time). High turnover is not bad in itself.",
       realSAPFr: "Dans SAP, le taux de rotation s'appuie sur MB52 (stock moyen) et MB51 (consommation). Rotation et jours de couverture restent des concepts distincts.",
       realSAPEn: "In SAP, turnover uses MB52 (average stock) and MB51 (consumption). Turnover and days-of-cover remain distinct concepts.",
-      dependencyFr: "Consultez la bande de référence dans l'aide si besoin — calculez et classifiez vous-même.",
-      dependencyEn: "Check the reference band in help if needed — calculate and classify yourself.",
-      realErrorFr: "Confondre une rotation dans la bande normale avec un surstock conduit à des décisions de destock injustifiées.",
-      realErrorEn: "Confusing normal-band turnover with overstock leads to unjustified destock decisions.",
+      dependencyFr: "Consultez la bande Annexe A (4–12×) — calculez et classifiez vous-même. Formulez un risque, pas une conclusion automatique.",
+      dependencyEn: "Check the Annex A band (4–12×) — calculate and classify yourself. Frame a risk, not an automatic conclusion.",
+      realErrorFr: "Confondre une rotation dans la bande normale avec un surstock, ou conclure « sous-performance » dès que >12×, conduit à de mauvaises décisions.",
+      realErrorEn: "Confusing normal-band turnover with overstock, or concluding « underperformance » as soon as >12×, leads to poor decisions.",
     }
   },
   kpi_service: {

@@ -192,8 +192,8 @@ export default function M4KpiControlTower({
             </div>
             <p className="text-[8px] text-muted-foreground mt-2 italic">
               {t(
-                "Bande visuelle 4–12× — point actuel 6× (normal). Capital 48 000 $.",
-                "Visual band 4–12× — current point 6× (normal). Capital $48,000.",
+                "Bande visuelle 4–12× — point actuel 6× (normal). <4× : risque de surstock · >12× : risque de stock trop serré.",
+                "Visual band 4–12× — current point 6× (normal). <4×: overstock risk · >12×: tight-stock risk.",
               )}
             </p>
             {/* Accessible table twin */}

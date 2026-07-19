@@ -135,7 +135,7 @@ Parce que la compétence est l’interprétation, pas le posting.
 Formule · bande 4–12 · exemple 2 400 ÷ 400.
 
 **CE QUE DIT LE PROFESSEUR**  
-« Rotation = consommation annuelle divisée par stock moyen. Calculez avec moi : 2 400 divisé par 400 = 6. Six tours par an. Dans la bande industrielle 4 à 12, c’est **normal**. Moins de 4 : surstock. Plus de 12 : souvent trop juste, risque rupture. Attention : la moyenne du portefeuille peut cacher des SKU morts. Le CFO voit 48 000 $ immobilisés et demande si c’est justifié. Votre job n’est pas de paniquer : c’est de classer, puis de segmenter. »
+« Rotation = consommation annuelle divisée par stock moyen. Calculez avec moi : 2 400 divisé par 400 = 6. Six tours par an. Dans la bande industrielle 4 à 12, c’est **normal**. Moins de 4× : rotation faible — **risque** de surstock. Plus de 12× : rotation élevée — **risque** de stock trop serré ou de rupture à vérifier (OTIF, lead time, stock de sécurité). Une rotation élevée n’est pas mauvaise en soi : elle devient risquée si le stock ne protège plus le niveau de service. Attention : la moyenne du portefeuille peut cacher des SKU morts. Le CFO voit 48 000 $ immobilisés et demande si c’est justifié. Votre job n’est pas de paniquer : c’est de classer, puis de segmenter. »
 
 **EXEMPLE PROFESSIONNEL**  
 Grande distribution : un SKU promo qui tourne 20× à côté d’un SKU saisonnier à 2× — la moyenne 6× est saine, le SKU à 2× mérite une action ciblée, pas un destock global.
@@ -155,7 +155,7 @@ Grande distribution : un SKU promo qui tourne 20× à côté d’un SKU saisonni
 Oui au global ; surveiller les SKU lents.
 
 **PHRASE FORTE**  
-« 6× n’est pas un crime de cash. »
+« Une rotation élevée n’est pas mauvaise en soi. Elle devient risquée si le stock ne protège plus le niveau de service. »
 
 **TRANSITION**  
 « Deuxième lentille : le client — OTIF — et la qualité d’exécution. »

@@ -244,9 +244,9 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "4-2":
       return (
-        <VisualFrame title="Rotation des stocks" subtitle="SCN-012 · Bande normale 4–12×" accent={accent}>
+        <VisualFrame title="Rotation des stocks" subtitle="SCN-012 · 4–12× normal · risques hors bande" accent={accent}>
           <div className="flex justify-center py-2"><MiniGauge label="Turnover" value="6×" pct={50} accent={accent} /></div>
-          <p className="text-center text-[10px] text-muted-foreground">Normal @ 6× · Annexe A instructeur</p>
+          <p className="text-center text-[10px] text-muted-foreground">6× normal · &lt;4× risque surstock · &gt;12× risque stock trop serré</p>
         </VisualFrame>
       );
     case "4-3":

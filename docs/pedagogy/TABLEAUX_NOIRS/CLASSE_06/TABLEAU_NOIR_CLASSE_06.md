@@ -113,6 +113,7 @@ M4    : MESURER  → INTERPRÉTER → DÉCIDER → SUIVRE
 - « La moyenne cache les SKU lents. »
 - « Un KPI ne commande pas toute la décision. »
 - « Note système = Lecture + Décision + Suivi. »
+- « Une rotation élevée n’est pas mauvaise en soi. Elle devient risquée si le stock ne protège plus le niveau de service. »
 
 ### D5. Structure décision SCN-014
 
@@ -155,13 +156,13 @@ Voir le script oral complet : [`SCRIPT_PROFESSEUR_CLASSE_06.md`](./SCRIPT_PROFES
 | | |
 |--|--|
 | **Observer** | Formule Rotation = Consommation ÷ Stock moyen |
-| **Dire** | 2 400 ÷ 400 = 6× → bande normale |
+| **Dire** | 2 400 ÷ 400 = 6× → bande normale · <4× risque surstock · >12× risque stock trop serré |
 | **Exemple pro** | CD haut volume : 6× = stock qui travaille, pas un cimetière |
 | **Quantitatif** | INPUT 2400, 400 → FORMULE C÷S → RÉSULTAT 6× → CLASSIF. normale → DÉCISION maintenir → SUIVI SKU lents |
-| **Erreur** | Dire « surstock » à 6× |
+| **Erreur** | Dire « surstock » à 6× · conclure « sous-performance » dès que >12× |
 | **Question** | 48 000 $ sont-ils justifiés si rotation = 6× ? |
 | **Réponse** | Oui globalement — surveiller SKU < 4× |
-| **Phrase forte** | « 6× n’est pas un crime de cash. » |
+| **Phrase forte** | « Une rotation élevée n’est pas mauvaise en soi. Elle devient risquée si le stock ne protège plus le niveau de service. » |
 | **Scénario** | **SCN-012** |
 
 ### M4-S3 — OTIF & erreurs
@@ -213,7 +214,7 @@ Voir le script oral complet : [`SCRIPT_PROFESSEUR_CLASSE_06.md`](./SCRIPT_PROFES
 
 | Terme | Définition en classe | Formule / bande | Usage scénario |
 |-------|----------------------|-----------------|----------------|
-| **Rotation** | Combien de fois le stock moyen « tourne » dans l’année | Consommation ÷ Stock moyen · 4–12 normale | SCN-012 |
+| **Rotation** | Combien de fois le stock moyen « tourne » dans l’année | Consommation ÷ Stock moyen · 4–12 normale · <4× risque surstock · >12× risque stock trop serré | SCN-012 |
 | **OTIF** | On-Time In-Full — commandes à temps et complètes | 285÷300 = 95 % · ≥95 % excellent | SCN-013 / 014 |
 | **Taux d’erreur** | Erreurs opérationnelles / opérations | 12÷300 = 4 % · 1–5 % acceptable | SCN-013 / 014 |
 | **Lead time** | Délai moyen d’approvisionnement | 3,5 j · bande 3–7 j | SCN-014 |

@@ -156,7 +156,7 @@ Ce guide enseigne **comment observer, classer et décider**. Il ne fournit pas d
 
 | Indicateur | Formule / base | Bande de référence | Signal d'alerte |
 |------------|----------------|--------------------|-----------------|
-| **Rotation** | Consommation ÷ stock moyen | **4 à 12×/an** | < 4× surstock · > 12× sous-performance |
+| **Rotation** | Consommation ÷ stock moyen | **4 à 12×/an** | < 4× : risque de surstock · > 12× : risque de stock trop serré |
 | **Service (OTIF)** | Commandes honorées ÷ total | **≥ 95 %** | < 85 % insuffisant |
 | **Erreurs** | Erreurs ÷ opérations | **1 à 5 %** | > 5 % critique |
 | **Délai** | Délai moyen fournisseur | **3 à 7 j** | Contexte supply chain |

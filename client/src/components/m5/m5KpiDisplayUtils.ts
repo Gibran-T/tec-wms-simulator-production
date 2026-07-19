@@ -34,7 +34,8 @@ export function formatStockValue(value: number | null | undefined, language: str
 }
 
 export function getRotationBand(rate: number): KpiBand {
-  // July student guide + calculateKpis: >12 = sous-performance (critical), not excellent
+  // Band thresholds unchanged: <4 and >12 are out-of-band (critical colour).
+  // Visible copy uses risk framing — not automatic « sous-performance ».
   if (rate < 4) return "critical";
   if (rate > 12) return "critical";
   return "normal";
