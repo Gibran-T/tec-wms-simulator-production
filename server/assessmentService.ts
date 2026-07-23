@@ -5,6 +5,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import {
   ASSESSMENT_CODES,
+  COHORTE_A_ID,
   COHORTE_B_ID,
   computeM4UnlockStatus,
   isDemoAccount,
@@ -21,6 +22,7 @@ import {
   type M4UnlockStatus,
   type PracticalValidationStatus,
 } from "../shared/assessmentCore";
+import { assertReleaseCohortImmutable } from "../shared/assessmentReleaseScope";
 import {
   EVAL1_ASSESSMENT_CODE,
   EVAL1_DURATION_MINUTES,
@@ -122,6 +124,18 @@ export async function ensureAssessmentSchemaSeeded() {
         .set({ durationMinutes: stored })
         .where(eq(integratedAssessments.id, eval1Id));
     }
+  }
+
+  // Cohorte A: prepare Eval1 as visible_pending (idempotent; never opens automatically).
+  if (eval1Id) {
+    await ensureAssessmentReleaseForCohort({
+      assessmentId: eval1Id,
+      cohortId: COHORTE_A_ID,
+      releaseLevel: "visible_pending",
+      note: "Cohorte Été 2026 — Groupe A · préparée pour Classe 7 (libération professeur)",
+      configJson: { excludeDemoAccounts: true },
+      onlyIfMissing: true,
+    });
   }
 
   const existing2 = await db
@@ -1010,6 +1024,83 @@ export async function professorListAssessments() {
   }));
 }
 
+/**
+ * Idempotent ensure of one release row for (assessmentId, cohortId).
+ * When onlyIfMissing=true, never mutates an existing row (safe for boot seed).
+ */
+export async function ensureAssessmentReleaseForCohort(args: {
+  assessmentId: number;
+  cohortId: number;
+  releaseLevel:
+    | "unpublished"
+    | "visible_pending"
+    | "released_cohort"
+    | "released_students"
+    | "scheduled"
+    | "closed"
+    | "cancelled";
+  note?: string;
+  configJson?: Record<string, unknown>;
+  onlyIfMissing?: boolean;
+  actorUserId?: number | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("DB unavailable");
+  const { assessmentReleases } = await import("../drizzle/schema");
+
+  const existing = await db
+    .select()
+    .from(assessmentReleases)
+    .where(
+      and(
+        eq(assessmentReleases.assessmentId, args.assessmentId),
+        eq(assessmentReleases.cohortId, args.cohortId)
+      )
+    )
+    .orderBy(desc(assessmentReleases.updatedAt))
+    .limit(1);
+
+  if (existing[0]) {
+    if (args.onlyIfMissing) return { release: existing[0], created: false };
+    return { release: existing[0], created: false };
+  }
+
+  try {
+    const [row] = await db
+      .insert(assessmentReleases)
+      .values({
+        assessmentId: args.assessmentId,
+        cohortId: args.cohortId,
+        releaseLevel: args.releaseLevel,
+        releasedByUserId: args.actorUserId ?? null,
+        note: args.note ?? null,
+        configJson: args.configJson ?? null,
+      })
+      .$returningId();
+    const [created] = await db
+      .select()
+      .from(assessmentReleases)
+      .where(eq(assessmentReleases.id, row.id))
+      .limit(1);
+    return { release: created, created: true };
+  } catch {
+    // Race: concurrent insert — re-select
+    const [again] = await db
+      .select()
+      .from(assessmentReleases)
+      .where(
+        and(
+          eq(assessmentReleases.assessmentId, args.assessmentId),
+          eq(assessmentReleases.cohortId, args.cohortId)
+        )
+      )
+      .orderBy(desc(assessmentReleases.updatedAt))
+      .limit(1);
+    if (!again) throw new Error("RELEASE_ENSURE_FAILED");
+    return { release: again, created: false };
+  }
+}
+
 export async function professorUpsertRelease(args: {
   actorUserId: number;
   assessmentId: number;
@@ -1026,6 +1117,7 @@ export async function professorUpsertRelease(args: {
   opensAt?: Date | null;
   closesAt?: Date | null;
   note?: string;
+  /** Optional; ignored for cohort resolution — scope is always assessmentId+cohortId. */
   releaseId?: number;
 }) {
   const db = await getDb();
@@ -1034,21 +1126,55 @@ export async function professorUpsertRelease(args: {
     "../drizzle/schema"
   );
 
-  let releaseId = args.releaseId;
-  let before: unknown = null;
+  if (args.cohortId == null) {
+    throw new Error(
+      "RELEASE_COHORT_REQUIRED: cohort-scoped releases require a cohortId"
+    );
+  }
 
-  if (releaseId) {
-    const [prev] = await db
+  // If a releaseId is supplied, verify it matches the requested cohort — never reassign.
+  if (args.releaseId != null) {
+    const [byId] = await db
       .select()
       .from(assessmentReleases)
-      .where(eq(assessmentReleases.id, releaseId))
+      .where(eq(assessmentReleases.id, args.releaseId))
       .limit(1);
-    before = prev;
+    if (!byId) throw new Error(`RELEASE_NOT_FOUND: #${args.releaseId}`);
+    if (byId.assessmentId !== args.assessmentId) {
+      throw new Error(
+        `RELEASE_ASSESSMENT_MISMATCH: release #${args.releaseId} belongs to assessment ${byId.assessmentId}`
+      );
+    }
+    assertReleaseCohortImmutable({
+      existingCohortId: byId.cohortId,
+      requestedCohortId: args.cohortId,
+      releaseId: byId.id,
+    });
+  }
+
+  // Canonical scope: assessmentId + cohortId (never mutate B → A via cohortId change).
+  const scoped = await db
+    .select()
+    .from(assessmentReleases)
+    .where(
+      and(
+        eq(assessmentReleases.assessmentId, args.assessmentId),
+        eq(assessmentReleases.cohortId, args.cohortId)
+      )
+    )
+    .orderBy(desc(assessmentReleases.updatedAt))
+    .limit(1);
+
+  let releaseId = scoped[0]?.id;
+  let before: unknown = scoped[0] ?? null;
+  let action: "create_release" | "update_release" = "update_release";
+
+  if (releaseId) {
     await db
       .update(assessmentReleases)
       .set({
         releaseLevel: args.releaseLevel,
-        cohortId: args.cohortId,
+        // cohortId intentionally omitted — immutable
         studentUserIds: args.studentUserIds ?? null,
         opensAt: args.opensAt ?? null,
         closesAt: args.closesAt ?? null,
@@ -1057,20 +1183,51 @@ export async function professorUpsertRelease(args: {
       })
       .where(eq(assessmentReleases.id, releaseId));
   } else {
-    const [row] = await db
-      .insert(assessmentReleases)
-      .values({
-        assessmentId: args.assessmentId,
-        cohortId: args.cohortId,
-        releaseLevel: args.releaseLevel,
-        studentUserIds: args.studentUserIds ?? null,
-        opensAt: args.opensAt ?? null,
-        closesAt: args.closesAt ?? null,
-        releasedByUserId: args.actorUserId,
-        note: args.note ?? null,
-      })
-      .$returningId();
-    releaseId = row.id;
+    action = "create_release";
+    try {
+      const [row] = await db
+        .insert(assessmentReleases)
+        .values({
+          assessmentId: args.assessmentId,
+          cohortId: args.cohortId,
+          releaseLevel: args.releaseLevel,
+          studentUserIds: args.studentUserIds ?? null,
+          opensAt: args.opensAt ?? null,
+          closesAt: args.closesAt ?? null,
+          releasedByUserId: args.actorUserId,
+          note: args.note ?? null,
+        })
+        .$returningId();
+      releaseId = row.id;
+    } catch {
+      // Concurrent create — update the winner
+      const [race] = await db
+        .select()
+        .from(assessmentReleases)
+        .where(
+          and(
+            eq(assessmentReleases.assessmentId, args.assessmentId),
+            eq(assessmentReleases.cohortId, args.cohortId)
+          )
+        )
+        .orderBy(desc(assessmentReleases.updatedAt))
+        .limit(1);
+      if (!race) throw new Error("RELEASE_CREATE_RACE_FAILED");
+      releaseId = race.id;
+      before = race;
+      action = "update_release";
+      await db
+        .update(assessmentReleases)
+        .set({
+          releaseLevel: args.releaseLevel,
+          studentUserIds: args.studentUserIds ?? null,
+          opensAt: args.opensAt ?? null,
+          closesAt: args.closesAt ?? null,
+          releasedByUserId: args.actorUserId,
+          note: args.note ?? null,
+        })
+        .where(eq(assessmentReleases.id, releaseId));
+    }
   }
 
   const [after] = await db
@@ -1083,7 +1240,7 @@ export async function professorUpsertRelease(args: {
     releaseId: releaseId!,
     assessmentId: args.assessmentId,
     actorUserId: args.actorUserId,
-    action: args.releaseId ? "update_release" : "create_release",
+    action,
     beforeJson: before,
     afterJson: after,
   });
@@ -1372,7 +1529,10 @@ export async function professorRecalculateAttempt(args: {
   return { previousScore, updatedScore: scored.autoScore, passed: scored.passed };
 }
 
-export async function professorAssessmentAnalysis(assessmentId: number) {
+export async function professorAssessmentAnalysis(
+  assessmentId: number,
+  cohortId?: number | null
+) {
   const db = await getDb();
   if (!db) return null;
   const {
@@ -1383,11 +1543,18 @@ export async function professorAssessmentAnalysis(assessmentId: number) {
     studentAssessmentProgress,
   } = await import("../drizzle/schema");
 
-  const releases = await getReleasesForAssessment(assessmentId);
-  const attempts = await db
+  let releases = await getReleasesForAssessment(assessmentId);
+  if (cohortId != null) {
+    releases = releases.filter((r) => r.cohortId === cohortId);
+  }
+
+  let attempts = await db
     .select()
     .from(assessmentAttempts)
     .where(eq(assessmentAttempts.assessmentId, assessmentId));
+  if (cohortId != null) {
+    attempts = attempts.filter((a) => a.cohortId === cohortId);
+  }
 
   const userIds = Array.from(new Set(attempts.map((a) => a.userId)));
   const userRows =
@@ -1396,11 +1563,24 @@ export async function professorAssessmentAnalysis(assessmentId: number) {
       : [];
   const userMap = new Map(userRows.map((u) => [u.id, u]));
 
+  // When cohort-scoped, also require profile.cohortId match (defense in depth).
+  let cohortUserIds: Set<number> | null = null;
+  if (cohortId != null) {
+    const cohortProfiles = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.cohortId, cohortId));
+    cohortUserIds = new Set(cohortProfiles.map((p) => p.userId));
+  }
+
   const officialAttempts = attempts.filter((a) => {
     const u = userMap.get(a.userId);
-    return u
-      ? shouldIncludeInOfficialAssessmentStats({ id: u.id, email: u.email })
-      : false;
+    if (!u) return false;
+    if (!shouldIncludeInOfficialAssessmentStats({ id: u.id, email: u.email })) {
+      return false;
+    }
+    if (cohortUserIds && !cohortUserIds.has(a.userId)) return false;
+    return true;
   });
 
   const submitted = officialAttempts.filter(
@@ -1420,10 +1600,13 @@ export async function professorAssessmentAnalysis(assessmentId: number) {
             (scores[scores.length / 2 - 1] + scores[scores.length / 2]) / 2
           );
 
-  const progress = await db
+  let progress = await db
     .select()
     .from(studentAssessmentProgress)
     .where(eq(studentAssessmentProgress.assessmentId, assessmentId));
+  if (cohortUserIds) {
+    progress = progress.filter((p) => cohortUserIds!.has(p.userId));
+  }
 
   const questions = await getQuestionsForAssessment(assessmentId);
   const questionStats = questions.map((q) => {

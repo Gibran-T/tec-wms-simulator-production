@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useCohort } from "@/contexts/CohortContext";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,16 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ClipboardList,
   Users,
@@ -26,11 +37,14 @@ import {
   Layers,
   FileCheck2,
   Library,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import {
   ProfessorPreviewPanel,
   QuestionBankPanel,
 } from "./AssessmentPreviewPanel";
+import { findReleaseForCohort } from "@shared/assessmentReleaseScope";
 
 /* ─── types ───────────────────────────────────────────────────── */
 
@@ -45,6 +59,7 @@ type TabKey =
 
 type Release = {
   id: number;
+  assessmentId?: number;
   cohortId: number | null;
   releaseLevel: string;
   opensAt: string | null;
@@ -86,147 +101,385 @@ const releaseLabelFr: Record<ReleaseLevel, string> = {
   cancelled: "Annulé",
 };
 
+function isUntimed(durationMinutes: number | null | undefined) {
+  return durationMinutes == null || durationMinutes <= 0;
+}
+
 /* ─── ReleaseForm ─────────────────────────────────────────────── */
 
 function ReleaseForm({
   assessment,
+  cohortId,
+  cohortName,
+  studentCount,
   onSaved,
 }: {
   assessment: Assessment;
+  cohortId: number;
+  cohortName: string;
+  studentCount: number | null;
   onSaved: () => void;
 }) {
   const { t } = useLanguage();
-  const existingRelease = assessment.releases[0] ?? null;
 
-  const [releaseId] = useState<number | undefined>(existingRelease?.id);
+  const scopedRelease = useMemo(() => {
+    const rows = (assessment.releases ?? []).map((r) => ({
+      ...r,
+      assessmentId: r.assessmentId ?? assessment.id,
+    }));
+    return findReleaseForCohort(rows, assessment.id, cohortId);
+  }, [assessment, cohortId]);
+
   const [releaseLevel, setReleaseLevel] = useState<ReleaseLevel>(
-    (existingRelease?.releaseLevel as ReleaseLevel) ?? "unpublished"
-  );
-  const [cohortId, setCohortId] = useState<number>(
-    existingRelease?.cohortId ?? 3
+    (scopedRelease?.releaseLevel as ReleaseLevel) ?? "visible_pending"
   );
   const [opensAt, setOpensAt] = useState<string>(
-    existingRelease?.opensAt
-      ? new Date(existingRelease.opensAt).toISOString().slice(0, 16)
+    scopedRelease?.opensAt
+      ? new Date(scopedRelease.opensAt).toISOString().slice(0, 16)
       : ""
   );
   const [closesAt, setClosesAt] = useState<string>(
-    existingRelease?.closesAt
-      ? new Date(existingRelease.closesAt).toISOString().slice(0, 16)
+    scopedRelease?.closesAt
+      ? new Date(scopedRelease.closesAt).toISOString().slice(0, 16)
       : ""
   );
-  const [note, setNote] = useState<string>(existingRelease?.note ?? "");
+  const [note, setNote] = useState<string>(scopedRelease?.note ?? "");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+
+  useEffect(() => {
+    setReleaseLevel(
+      (scopedRelease?.releaseLevel as ReleaseLevel) ?? "visible_pending"
+    );
+    setOpensAt(
+      scopedRelease?.opensAt
+        ? new Date(scopedRelease.opensAt).toISOString().slice(0, 16)
+        : ""
+    );
+    setClosesAt(
+      scopedRelease?.closesAt
+        ? new Date(scopedRelease.closesAt).toISOString().slice(0, 16)
+        : ""
+    );
+    setNote(scopedRelease?.note ?? "");
+  }, [scopedRelease?.id, scopedRelease?.releaseLevel, cohortId]);
 
   const upsertMutation = trpc.assessments.professorUpsertRelease.useMutation({
     onSuccess: onSaved,
   });
 
-  function handleSave() {
+  function persist(level: ReleaseLevel) {
     upsertMutation.mutate({
-      releaseId,
+      // Never send another cohort's releaseId — server scopes by assessmentId+cohortId.
+      releaseId: scopedRelease?.id,
       assessmentId: assessment.id,
-      cohortId: cohortId || null,
-      releaseLevel,
+      cohortId,
+      releaseLevel: level,
       opensAt: opensAt ? new Date(opensAt) : null,
       closesAt: closesAt ? new Date(closesAt) : null,
       note: note || undefined,
     });
   }
 
+  const untimed = isUntimed(assessment.durationMinutes);
+  const levelLabel =
+    releaseLabelFr[(scopedRelease?.releaseLevel as ReleaseLevel) ?? "unpublished"] ??
+    scopedRelease?.releaseLevel ??
+    t("Aucune libération", "No release");
+
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {t("Niveau de libération", "Release level")}
-          </label>
-          <select
-            value={releaseLevel}
-            onChange={(e) => setReleaseLevel(e.target.value as ReleaseLevel)}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">{cohortName}</Badge>
+          <Badge
+            variant={
+              scopedRelease?.releaseLevel === "released_cohort"
+                ? "default"
+                : "secondary"
+            }
           >
-            {RELEASE_LEVELS.map((lvl) => (
-              <option key={lvl} value={lvl}>
-                {releaseLabelFr[lvl]}
-              </option>
-            ))}
-          </select>
+            {levelLabel}
+          </Badge>
+          {scopedRelease ? (
+            <span className="text-xs text-muted-foreground">
+              {t("Libération", "Release")} #{scopedRelease.id}
+            </span>
+          ) : (
+            <span className="text-xs text-amber-700">
+              {t(
+                "Aucune libération pour cette cohorte — création requise",
+                "No release for this cohort — creation required"
+              )}
+            </span>
+          )}
         </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {t("Cohorte (ID)", "Cohort (ID)")}
-          </label>
-          <input
-            type="number"
-            value={cohortId}
-            onChange={(e) => setCohortId(Number(e.target.value))}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-            placeholder="3"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {t("Ouverture", "Opens at")}
-          </label>
-          <input
-            type="datetime-local"
-            value={opensAt}
-            onChange={(e) => setOpensAt(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {t("Fermeture", "Closes at")}
-          </label>
-          <input
-            type="datetime-local"
-            value={closesAt}
-            onChange={(e) => setClosesAt(e.target.value)}
-            className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-          />
-        </div>
+        <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
+          <li>
+            {t("Évaluation", "Assessment")}: {assessment.titleFr}
+          </li>
+          <li>
+            {t("Questions", "Questions")}: {assessment.questionCount} ·{" "}
+            {t("Points", "Points")}: 100 · {t("Seuil", "Threshold")}:{" "}
+            {assessment.passingScore}%
+          </li>
+          <li>
+            {t("Durée système", "System duration")}:{" "}
+            {untimed
+              ? t("Sans limite de temps", "No time limit")
+              : `${assessment.durationMinutes} min`}
+          </li>
+          {untimed && (
+            <li className="text-foreground">
+              {t(
+                "Consigne pédagogique (professeur) : 40 minutes — chronométrage en classe, non imposé par le système.",
+                "Pedagogical instruction (professor): 40 minutes — classroom timing, not enforced by the system."
+              )}
+            </li>
+          )}
+          <li>
+            {t("Étudiants de la cohorte", "Cohort students")}:{" "}
+            {studentCount ?? "—"}
+          </li>
+        </ul>
       </div>
-      <div className="space-y-1">
-        <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          {t("Note interne", "Internal note")}
-        </label>
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
-          placeholder={t("Note optionnelle…", "Optional note…")}
-        />
-      </div>
-      <Button
-        size="sm"
-        onClick={handleSave}
-        disabled={upsertMutation.isPending}
-      >
-        <Send className="size-4" />
-        {upsertMutation.isPending
-          ? t("Enregistrement…", "Saving…")
-          : t("Enregistrer la configuration", "Save configuration")}
-      </Button>
+
+      {!scopedRelease && (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "Préparez une libération spécifique à cette cohorte. Les étudiants verront l’évaluation mais ne pourront pas démarrer tant que vous ne l’aurez pas libérée.",
+              "Prepare a release for this cohort. Students will see the assessment but cannot start until you release it."
+            )}
+          </p>
+          <Button
+            size="sm"
+            onClick={() => persist("visible_pending")}
+            disabled={upsertMutation.isPending}
+          >
+            <Send className="size-4" />
+            {upsertMutation.isPending
+              ? t("Préparation…", "Preparing…")
+              : t("Préparer la libération", "Prepare release")}
+          </Button>
+        </div>
+      )}
+
+      {scopedRelease && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t("Niveau de libération", "Release level")}
+              </label>
+              <select
+                value={releaseLevel}
+                onChange={(e) => setReleaseLevel(e.target.value as ReleaseLevel)}
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              >
+                {RELEASE_LEVELS.map((lvl) => (
+                  <option key={lvl} value={lvl}>
+                    {releaseLabelFr[lvl]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t("Cohorte", "Cohort")}
+              </label>
+              <input
+                type="text"
+                value={`${cohortName} (ID ${cohortId})`}
+                readOnly
+                className="w-full border rounded-md px-3 py-2 text-sm bg-muted text-muted-foreground"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t("Ouverture", "Opens at")}
+              </label>
+              <input
+                type="datetime-local"
+                value={opensAt}
+                onChange={(e) => setOpensAt(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                {t("Fermeture", "Closes at")}
+              </label>
+              <input
+                type="datetime-local"
+                value={closesAt}
+                onChange={(e) => setClosesAt(e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t("Note interne", "Internal note")}
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-none"
+              placeholder={t("Note optionnelle…", "Optional note…")}
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {(scopedRelease.releaseLevel === "visible_pending" ||
+              scopedRelease.releaseLevel === "closed" ||
+              scopedRelease.releaseLevel === "unpublished") && (
+              <Button
+                size="sm"
+                onClick={() => setConfirmOpen(true)}
+                disabled={upsertMutation.isPending}
+              >
+                <Unlock className="size-4" />
+                {t("Libérer pour la cohorte", "Release for cohort")}
+              </Button>
+            )}
+            {scopedRelease.releaseLevel === "released_cohort" && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => setConfirmClose(true)}
+                disabled={upsertMutation.isPending}
+              >
+                <Lock className="size-4" />
+                {t("Fermer la libération", "Close release")}
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => persist(releaseLevel)}
+              disabled={upsertMutation.isPending}
+            >
+              <Settings className="size-4" />
+              {upsertMutation.isPending
+                ? t("Enregistrement…", "Saving…")
+                : t("Enregistrer la configuration", "Save configuration")}
+            </Button>
+          </div>
+        </>
+      )}
+
       {upsertMutation.isSuccess && (
-        <p className="text-xs text-green-600">{t("Configuration sauvegardée.", "Configuration saved.")}</p>
+        <p className="text-xs text-green-600">
+          {t("Configuration sauvegardée.", "Configuration saved.")}
+        </p>
       )}
       {upsertMutation.isError && (
         <p className="text-xs text-destructive">{upsertMutation.error.message}</p>
       )}
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("Confirmer la libération", "Confirm release")}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  {t(
+                    "Vous allez ouvrir l’évaluation pour la cohorte sélectionnée. Les étudiants pourront démarrer immédiatement.",
+                    "You are about to open the assessment for the selected cohort. Students will be able to start immediately."
+                  )}
+                </p>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>{assessment.titleFr}</li>
+                  <li>{cohortName}</li>
+                  <li>
+                    {studentCount ?? "—"}{" "}
+                    {t("étudiants", "students")}
+                  </li>
+                  <li>
+                    {assessment.questionCount} {t("questions", "questions")} ·
+                    100 {t("points", "points")} · {assessment.passingScore}%
+                  </li>
+                  <li>
+                    {t("Durée système", "System duration")}:{" "}
+                    {untimed
+                      ? t("Sans limite de temps", "No time limit")
+                      : `${assessment.durationMinutes} min`}
+                  </li>
+                  {untimed && (
+                    <li>
+                      {t(
+                        "Consigne pédagogique : 40 minutes (contrôle professeur en classe)",
+                        "Pedagogical instruction: 40 minutes (professor classroom control)"
+                      )}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Annuler", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                persist("released_cohort");
+              }}
+            >
+              {t("Libérer pour la cohorte", "Release for cohort")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmClose} onOpenChange={setConfirmClose}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("Fermer la libération ?", "Close the release?")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                "Les étudiants de cette cohorte ne pourront plus démarrer de nouvelle tentative. Les tentatives en cours ne sont pas annulées automatiquement.",
+                "Students in this cohort will no longer be able to start a new attempt. In-progress attempts are not automatically cancelled."
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("Annuler", "Cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmClose(false);
+                persist("closed");
+              }}
+            >
+              {t("Fermer la libération", "Close release")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
 /* ─── RosterTable ─────────────────────────────────────────────── */
 
-function RosterTable({ assessmentId }: { assessmentId: number }) {
+function RosterTable({
+  assessmentId,
+  cohortId,
+}: {
+  assessmentId: number;
+  cohortId: number;
+}) {
   const { t } = useLanguage();
 
   const { data: roster, isLoading, refetch } = trpc.assessments.professorRoster.useQuery({
     assessmentId,
-    cohortId: 3,
+    cohortId,
   });
 
   const authRetakeMutation = trpc.assessments.professorAuthorizeRetake.useMutation({
@@ -268,7 +521,7 @@ function RosterTable({ assessmentId }: { assessmentId: number }) {
             const latest = row.latestAttempt;
             const score = latest?.finalScore ?? latest?.autoScore ?? null;
             const passed = latest?.passed;
-                const status = latest?.status ?? null;
+            const status = latest?.status ?? null;
             return (
               <tr key={row.userId} className="hover:bg-muted/30">
                 <td className="py-2 pr-3">
@@ -277,9 +530,7 @@ function RosterTable({ assessmentId }: { assessmentId: number }) {
                     {row.studentNumber ?? row.email}
                   </div>
                 </td>
-                <td className="py-2 pr-3 text-center">
-                  {row.attempts.length}
-                </td>
+                <td className="py-2 pr-3 text-center">{row.attempts.length}</td>
                 <td className="py-2 pr-3 font-mono">
                   {score != null ? `${score}%` : "—"}
                 </td>
@@ -315,9 +566,7 @@ function RosterTable({ assessmentId }: { assessmentId: number }) {
                 <td className="py-2">
                   <div className="flex items-center gap-2">
                     {latest && (
-                      <Link
-                        href={`/teacher/evaluations/attempt/${latest.id}`}
-                      >
+                      <Link href={`/teacher/evaluations/attempt/${latest.id}`}>
                         <Button variant="ghost" size="icon-sm">
                           <Eye className="size-3.5" />
                         </Button>
@@ -352,10 +601,17 @@ function RosterTable({ assessmentId }: { assessmentId: number }) {
 
 /* ─── AnalysisPanel ───────────────────────────────────────────── */
 
-function AnalysisPanel({ assessmentId }: { assessmentId: number }) {
+function AnalysisPanel({
+  assessmentId,
+  cohortId,
+}: {
+  assessmentId: number;
+  cohortId: number;
+}) {
   const { t } = useLanguage();
   const { data, isLoading } = trpc.assessments.professorAnalysis.useQuery({
     assessmentId,
+    cohortId,
   });
 
   if (isLoading) {
@@ -377,17 +633,31 @@ function AnalysisPanel({ assessmentId }: { assessmentId: number }) {
 
   return (
     <div className="space-y-6">
-      {/* KPI grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: t("Soumis", "Submitted"), value: counts.submitted },
           { label: t("Réussi", "Passed"), value: counts.passed },
           { label: t("Échoué", "Failed"), value: counts.failed },
           { label: t("En cours", "In progress"), value: counts.inProgress },
-          { label: t("Pratique en attente", "Pending practical"), value: counts.pendingPractical },
-          { label: t("Moy.", "Avg."), value: scores.average != null ? `${scores.average}%` : "—" },
-          { label: t("Taux réussite", "Pass rate"), value: scores.passRate != null ? `${Math.round(scores.passRate * 100)}%` : "—" },
-          { label: t("Médiane", "Median"), value: scores.median != null ? `${scores.median}%` : "—" },
+          {
+            label: t("Pratique en attente", "Pending practical"),
+            value: counts.pendingPractical,
+          },
+          {
+            label: t("Moy.", "Avg."),
+            value: scores.average != null ? `${scores.average}%` : "—",
+          },
+          {
+            label: t("Taux réussite", "Pass rate"),
+            value:
+              scores.passRate != null
+                ? `${Math.round(scores.passRate * 100)}%`
+                : "—",
+          },
+          {
+            label: t("Médiane", "Median"),
+            value: scores.median != null ? `${scores.median}%` : "—",
+          },
         ].map((kpi) => (
           <div
             key={kpi.label}
@@ -399,7 +669,6 @@ function AnalysisPanel({ assessmentId }: { assessmentId: number }) {
         ))}
       </div>
 
-      {/* Question stats */}
       <div>
         <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <BookOpen className="size-4" />
@@ -448,22 +717,22 @@ function AnalysisPanel({ assessmentId }: { assessmentId: number }) {
 
 export default function AssessmentsManagerPage() {
   const { t, language } = useLanguage();
+  const { selectedCohortId, selectedCohort, cohorts, isReady } = useCohort();
   const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<
     number | null
   >(null);
 
-  const { data: assessments, isLoading, refetch } = trpc.assessments.professorList.useQuery();
+  const { data: assessments, isLoading, refetch } =
+    trpc.assessments.professorList.useQuery();
 
-  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: "overview", label: t("Vue d'ensemble", "Overview"), icon: <Layers className="size-4" /> },
-    { key: "preview", label: t("Prévisualisation", "Preview"), icon: <Eye className="size-4" /> },
-    { key: "correction", label: t("Corrigé", "Correction"), icon: <FileCheck2 className="size-4" /> },
-    { key: "bank", label: t("Banque", "Question Bank"), icon: <Library className="size-4" /> },
-    { key: "releases", label: t("Libérations", "Releases"), icon: <Settings className="size-4" /> },
-    { key: "roster", label: t("Registre", "Roster"), icon: <Users className="size-4" /> },
-    { key: "analysis", label: t("Analyse", "Analysis"), icon: <BarChart2 className="size-4" /> },
-  ];
+  const cohortId = selectedCohortId;
+  const cohortName =
+    selectedCohort?.name ??
+    (cohortId != null
+      ? cohorts.find((c) => c.id === cohortId)?.name
+      : null) ??
+    t("Aucune cohorte sélectionnée", "No cohort selected");
 
   const selectedAssessment =
     selectedAssessmentId != null
@@ -472,10 +741,74 @@ export default function AssessmentsManagerPage() {
         )
       : (assessments as Assessment[] | undefined)?.[0] ?? null;
 
-  // Auto-select first assessment
-  if (!selectedAssessmentId && assessments && assessments.length > 0 && !selectedAssessmentId) {
-    setSelectedAssessmentId((assessments as Assessment[])[0].id);
-  }
+  useEffect(() => {
+    if (
+      selectedAssessmentId == null &&
+      assessments &&
+      (assessments as Assessment[]).length > 0
+    ) {
+      setSelectedAssessmentId((assessments as Assessment[])[0].id);
+    }
+  }, [assessments, selectedAssessmentId]);
+
+  const { data: rosterForCount } = trpc.assessments.professorRoster.useQuery(
+    {
+      assessmentId: selectedAssessment?.id ?? 0,
+      cohortId: cohortId ?? undefined,
+    },
+    { enabled: !!selectedAssessment && cohortId != null }
+  );
+  const studentCount = rosterForCount?.length ?? null;
+
+  const scopedRelease =
+    selectedAssessment && cohortId != null
+      ? findReleaseForCohort(
+          (selectedAssessment.releases ?? []).map((r) => ({
+            ...r,
+            assessmentId: r.assessmentId ?? selectedAssessment.id,
+          })),
+          selectedAssessment.id,
+          cohortId
+        )
+      : null;
+
+  const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+    {
+      key: "overview",
+      label: t("Vue d'ensemble", "Overview"),
+      icon: <Layers className="size-4" />,
+    },
+    {
+      key: "preview",
+      label: t("Prévisualisation", "Preview"),
+      icon: <Eye className="size-4" />,
+    },
+    {
+      key: "correction",
+      label: t("Corrigé", "Correction"),
+      icon: <FileCheck2 className="size-4" />,
+    },
+    {
+      key: "bank",
+      label: t("Banque", "Question Bank"),
+      icon: <Library className="size-4" />,
+    },
+    {
+      key: "releases",
+      label: t("Libérations", "Releases"),
+      icon: <Settings className="size-4" />,
+    },
+    {
+      key: "roster",
+      label: t("Registre", "Roster"),
+      icon: <Users className="size-4" />,
+    },
+    {
+      key: "analysis",
+      label: t("Analyse", "Analysis"),
+      icon: <BarChart2 className="size-4" />,
+    },
+  ];
 
   return (
     <FioriShell
@@ -494,7 +827,6 @@ export default function AssessmentsManagerPage() {
             : "max-w-5xl"
         }`}
       >
-        {/* Page header */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
@@ -508,49 +840,42 @@ export default function AssessmentsManagerPage() {
               )}
             </p>
           </div>
+          <Badge variant="outline" className="text-xs">
+            {isReady
+              ? cohortName
+              : t("Chargement de la cohorte…", "Loading cohort…")}
+          </Badge>
         </div>
 
         {/* Assessment selector */}
-        {isLoading && (
-          <div className="h-12 rounded-lg bg-muted animate-pulse" />
-        )}
-        {!isLoading && assessments && (assessments as Assessment[]).length > 0 && (
-          <div className="flex gap-2 flex-wrap">
-            {(assessments as Assessment[]).map((a) => (
-              <button
-                key={a.id}
-                onClick={() => setSelectedAssessmentId(a.id)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                  selectedAssessmentId === a.id
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-background hover:bg-muted/50"
-                }`}
-              >
-                {language === "FR" ? a.titleFr : (a.titleEn ?? a.titleFr)}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Tab nav */}
-        <div className="flex gap-1 border-b">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                activeTab === tab.key
-                  ? "border-primary text-primary"
-                  : "border-transparent text-muted-foreground hover:text-foreground"
-              }`}
+        <div className="flex flex-wrap gap-2">
+          {(assessments as Assessment[] | undefined)?.map((a) => (
+            <Button
+              key={a.id}
+              size="sm"
+              variant={selectedAssessment?.id === a.id ? "default" : "outline"}
+              onClick={() => setSelectedAssessmentId(a.id)}
             >
-              {tab.icon}
-              {tab.label}
-            </button>
+              {a.code}
+            </Button>
           ))}
         </div>
 
-        {/* Tab content */}
+        <div className="flex flex-wrap gap-1 border-b pb-1">
+          {tabs.map((tab) => (
+            <Button
+              key={tab.key}
+              size="sm"
+              variant={activeTab === tab.key ? "secondary" : "ghost"}
+              onClick={() => setActiveTab(tab.key)}
+              className="gap-1.5"
+            >
+              {tab.icon}
+              {tab.label}
+            </Button>
+          ))}
+        </div>
+
         {!selectedAssessment && !isLoading && (
           <Card>
             <CardContent className="py-10 text-center text-muted-foreground">
@@ -559,9 +884,19 @@ export default function AssessmentsManagerPage() {
           </Card>
         )}
 
-        {selectedAssessment && (
+        {selectedAssessment && cohortId == null && (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              {t(
+                "Sélectionnez une cohorte dans le sélecteur en haut de l’écran.",
+                "Select a cohort in the top selector."
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {selectedAssessment && cohortId != null && (
           <>
-            {/* Overview */}
             {activeTab === "overview" && (
               <div className="space-y-4">
                 <Card>
@@ -569,10 +904,12 @@ export default function AssessmentsManagerPage() {
                     <CardTitle className="text-base">
                       {language === "FR"
                         ? selectedAssessment.titleFr
-                        : (selectedAssessment.titleEn ?? selectedAssessment.titleFr)}
+                        : (selectedAssessment.titleEn ??
+                          selectedAssessment.titleFr)}
                     </CardTitle>
                     <CardDescription>
-                      {t("Code :", "Code:")} {selectedAssessment.code}
+                      {t("Code :", "Code:")} {selectedAssessment.code} ·{" "}
+                      {cohortName}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
@@ -589,8 +926,7 @@ export default function AssessmentsManagerPage() {
                         {t("Durée", "Duration")}
                       </p>
                       <p className="font-medium">
-                        {selectedAssessment.durationMinutes == null ||
-                        selectedAssessment.durationMinutes <= 0
+                        {isUntimed(selectedAssessment.durationMinutes)
                           ? t("Sans limite de temps", "No time limit")
                           : `${selectedAssessment.durationMinutes} min`}
                       </p>
@@ -599,17 +935,21 @@ export default function AssessmentsManagerPage() {
                       <p className="text-xs text-muted-foreground">
                         {t("Seuil réussite", "Passing score")}
                       </p>
-                      <p className="font-medium">{selectedAssessment.passingScore}%</p>
+                      <p className="font-medium">
+                        {selectedAssessment.passingScore}%
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">
                         {t("Questions", "Questions")}
                       </p>
-                      <p className="font-medium">{selectedAssessment.questionCount}</p>
+                      <p className="font-medium">
+                        {selectedAssessment.questionCount}
+                      </p>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground">
-                        {t("Statut", "Status")}
+                        {t("Statut évaluation", "Assessment status")}
                       </p>
                       <Badge
                         variant={
@@ -622,47 +962,87 @@ export default function AssessmentsManagerPage() {
                         {selectedAssessment.status}
                       </Badge>
                     </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("Libération (cohorte)", "Release (cohort)")}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {scopedRelease
+                          ? releaseLabelFr[
+                              scopedRelease.releaseLevel as ReleaseLevel
+                            ] ?? scopedRelease.releaseLevel
+                          : t("Non configurée", "Not configured")}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("Étudiants", "Students")}
+                      </p>
+                      <p className="font-medium">{studentCount ?? "—"}</p>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Current releases */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm font-semibold flex items-center gap-2">
                       <Settings className="size-4" />
-                      {t("Libérations actives", "Active releases")}
+                      {t("Libérations", "Releases")}
                     </CardTitle>
+                    <CardDescription>
+                      {t(
+                        "Toutes les libérations de cette évaluation (toutes cohortes)",
+                        "All releases for this assessment (all cohorts)"
+                      )}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
                     {selectedAssessment.releases.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        {t("Aucune libération configurée.", "No release configured.")}
+                        {t(
+                          "Aucune libération configurée.",
+                          "No release configured."
+                        )}
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {selectedAssessment.releases.map((rel) => (
-                          <div
-                            key={rel.id}
-                            className="flex items-center gap-3 text-sm"
-                          >
-                            <Badge variant="outline" className="text-xs">
-                              {releaseLabelFr[rel.releaseLevel as ReleaseLevel] ?? rel.releaseLevel}
-                            </Badge>
-                            <span className="text-muted-foreground">
-                              {t("Cohorte", "Cohort")} {rel.cohortId ?? "—"}
-                            </span>
-                            {rel.opensAt && (
-                              <span className="text-muted-foreground text-xs">
-                                {t("Ouv.:", "Opens:")} {new Date(rel.opensAt).toLocaleDateString("fr-CA")}
+                        {selectedAssessment.releases.map((rel) => {
+                          const cName =
+                            cohorts.find((c) => c.id === rel.cohortId)?.name ??
+                            `${t("Cohorte", "Cohort")} ${rel.cohortId ?? "—"}`;
+                          const highlight = rel.cohortId === cohortId;
+                          return (
+                            <div
+                              key={rel.id}
+                              className={`flex flex-wrap items-center gap-3 text-sm rounded-md px-2 py-1.5 ${
+                                highlight ? "bg-primary/5 border border-primary/20" : ""
+                              }`}
+                            >
+                              <Badge variant="outline" className="text-xs">
+                                {releaseLabelFr[
+                                  rel.releaseLevel as ReleaseLevel
+                                ] ?? rel.releaseLevel}
+                              </Badge>
+                              <span
+                                className={
+                                  highlight
+                                    ? "font-medium"
+                                    : "text-muted-foreground"
+                                }
+                              >
+                                {cName}
                               </span>
-                            )}
-                            {rel.note && (
-                              <span className="text-xs text-muted-foreground italic">
-                                {rel.note}
+                              <span className="text-xs text-muted-foreground">
+                                #{rel.id}
                               </span>
-                            )}
-                          </div>
-                        ))}
+                              {rel.note && (
+                                <span className="text-xs text-muted-foreground italic">
+                                  {rel.note}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
@@ -670,7 +1050,6 @@ export default function AssessmentsManagerPage() {
               </div>
             )}
 
-            {/* Releases */}
             {activeTab === "releases" && (
               <Card>
                 <CardHeader>
@@ -684,19 +1063,23 @@ export default function AssessmentsManagerPage() {
                   <CardDescription>
                     {language === "FR"
                       ? selectedAssessment.titleFr
-                      : (selectedAssessment.titleEn ?? selectedAssessment.titleFr)}
+                      : (selectedAssessment.titleEn ??
+                        selectedAssessment.titleFr)}{" "}
+                    · {cohortName}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <ReleaseForm
                     assessment={selectedAssessment}
+                    cohortId={cohortId}
+                    cohortName={cohortName}
+                    studentCount={studentCount}
                     onSaved={() => refetch()}
                   />
                 </CardContent>
               </Card>
             )}
 
-            {/* Roster */}
             {activeTab === "roster" && (
               <Card>
                 <CardHeader>
@@ -704,17 +1087,17 @@ export default function AssessmentsManagerPage() {
                     <Users className="size-4" />
                     {t("Registre des étudiants", "Student roster")}
                   </CardTitle>
-                  <CardDescription>
-                    {t("Cohorte B (ID 3)", "Cohort B (ID 3)")}
-                  </CardDescription>
+                  <CardDescription>{cohortName}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <RosterTable assessmentId={selectedAssessment.id} />
+                  <RosterTable
+                    assessmentId={selectedAssessment.id}
+                    cohortId={cohortId}
+                  />
                 </CardContent>
               </Card>
             )}
 
-            {/* Analysis */}
             {activeTab === "analysis" && (
               <Card>
                 <CardHeader>
@@ -722,14 +1105,17 @@ export default function AssessmentsManagerPage() {
                     <BarChart2 className="size-4" />
                     {t("Analyse de l'évaluation", "Assessment analysis")}
                   </CardTitle>
+                  <CardDescription>{cohortName}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <AnalysisPanel assessmentId={selectedAssessment.id} />
+                  <AnalysisPanel
+                    assessmentId={selectedAssessment.id}
+                    cohortId={cohortId}
+                  />
                 </CardContent>
               </Card>
             )}
 
-            {/* RC13.1 — Prévisualisation (read-only, no attempt) */}
             {activeTab === "preview" && (
               <ProfessorPreviewPanel
                 assessmentId={selectedAssessment.id}
@@ -737,7 +1123,6 @@ export default function AssessmentsManagerPage() {
               />
             )}
 
-            {/* RC13.1 — Corrigé officiel (professor only) */}
             {activeTab === "correction" && (
               <ProfessorPreviewPanel
                 assessmentId={selectedAssessment.id}
@@ -745,25 +1130,8 @@ export default function AssessmentsManagerPage() {
               />
             )}
 
-            {/* RC13.1 — Question Bank (browse only) */}
             {activeTab === "bank" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                    <Library className="size-4" />
-                    {t("Banque de questions", "Question Bank")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t(
-                      "Inspection des questions — aucune édition.",
-                      "Inspect questions — no editing."
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <QuestionBankPanel assessmentId={selectedAssessment.id} />
-                </CardContent>
-              </Card>
+              <QuestionBankPanel assessmentId={selectedAssessment.id} />
             )}
           </>
         )}

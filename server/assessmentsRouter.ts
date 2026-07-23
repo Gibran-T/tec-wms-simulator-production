@@ -128,11 +128,15 @@ export const assessmentsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const { professorUpsertRelease } = await import("./assessmentService");
-      return professorUpsertRelease({
-        actorUserId: ctx.user.id,
-        ...input,
-      });
+      try {
+        const { professorUpsertRelease } = await import("./assessmentService");
+        return await professorUpsertRelease({
+          actorUserId: ctx.user.id,
+          ...input,
+        });
+      } catch (e) {
+        mapErr(e);
+      }
     }),
 
   professorRoster: teacherProcedure
@@ -214,10 +218,15 @@ export const assessmentsRouter = router({
     }),
 
   professorAnalysis: teacherProcedure
-    .input(z.object({ assessmentId: z.number() }))
+    .input(
+      z.object({
+        assessmentId: z.number(),
+        cohortId: z.number().nullable().optional(),
+      })
+    )
     .query(async ({ input }) => {
       const { professorAssessmentAnalysis } = await import("./assessmentService");
-      return professorAssessmentAnalysis(input.assessmentId);
+      return professorAssessmentAnalysis(input.assessmentId, input.cohortId);
     }),
 
   /**

@@ -25,6 +25,9 @@ export const ASSESSMENT_CODES = {
   EVAL2: "EVAL_INTEGREE_2",
 } as const;
 
+/** Cohorte Été 2026 — Groupe A */
+export const COHORTE_A_ID = 2;
+/** Cohorte Été 2026 — Groupe B */
 export const COHORTE_B_ID = 3;
 
 export type M4UnlockStatus = "locked" | "pending_practical" | "unlocked";
