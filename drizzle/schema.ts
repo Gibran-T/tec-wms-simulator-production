@@ -643,3 +643,31 @@ export const studentAssessmentProgress = mysqlTable("student_assessment_progress
   ]).default("pending").notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
+
+// ── FORMATIVE EXERCISES (M4/M5) — isolated from official scoring ─────────────
+// Never counted toward missions, scenario average, certificate, assessment, or checkpoint.
+
+export const formativeExerciseAttempts = mysqlTable("formative_exercise_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  exerciseId: varchar("exerciseId", { length: 64 }).notNull(),
+  moduleId: int("moduleId").notNull(),
+  version: int("version").default(1).notNull(),
+  answers: json("answers").notNull(),
+  formativeScore: int("formativeScore"),
+  status: mysqlEnum("status", ["not_started", "in_progress", "completed"])
+    .default("not_started")
+    .notNull(),
+  feedbackJson: json("feedbackJson"),
+  countsTowardMissionCount: boolean("countsTowardMissionCount").default(false).notNull(),
+  countsTowardScenarioAverage: boolean("countsTowardScenarioAverage").default(false).notNull(),
+  countsTowardCertificate: boolean("countsTowardCertificate").default(false).notNull(),
+  countsTowardAssessment: boolean("countsTowardAssessment").default(false).notNull(),
+  countsTowardCheckpoint: boolean("countsTowardCheckpoint").default(false).notNull(),
+  startedAt: timestamp("startedAt"),
+  completedAt: timestamp("completedAt"),
+  lastUpdatedAt: timestamp("lastUpdatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type FormativeExerciseAttempt = typeof formativeExerciseAttempts.$inferSelect;
+export type InsertFormativeExerciseAttempt = typeof formativeExerciseAttempts.$inferInsert;

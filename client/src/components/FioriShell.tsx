@@ -3,11 +3,9 @@ import { trpc } from "@/lib/trpc";
 import { Link, useLocation } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import {
-  LogOut, LayoutDashboard, BookOpen, Users, ClipboardList,
-  BarChart2, Settings, ChevronRight, Menu, X, ChevronLeft,
+  LogOut, Settings, ChevronRight, Menu, X, ChevronLeft,
   ChevronRight as ChevronRightIcon, MonitorPlay, Moon, Sun, Globe,
-  Presentation, UserCircle, ShieldCheck, GraduationCap, TrendingUp, UserCog,
-  BookMarked, ClipboardCheck,
+  UserCircle, ShieldCheck, GraduationCap, BookOpen,
 } from "lucide-react";
 import Login from "@/pages/Login";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -15,11 +13,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useCohort } from "@/contexts/CohortContext";
 import { isConcordeConnectEnabled, getStudentEntryPath } from "@/lib/concordeConnect";
 import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import RoleIconNav, { type ResolvedNavItem } from "@/components/shell/RoleIconNav";
+import { SHELL_NAV_ITEMS } from "@/components/shell/roleNavConfig";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310419663029779635/KgVchfh3nwnwCSCPgkNzAq/concorde-logo_73f38483.png";
 const APP_VERSION = "v1.0";
@@ -90,35 +85,46 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
     ? t("Accueil département", "Department home")
     : t("Concorde Connect", "Concorde Connect");
 
-  const navItems = isTeacher
-    ? [
-        { href: "/teacher", label: t("Tableau de bord", "Dashboard"), icon: LayoutDashboard },
-        { href: "/teacher/cohorts", label: t("Cohortes", "Cohorts"), icon: Users },
-        { href: "/teacher/scenarios", label: t("Scénarios", "Scenarios"), icon: BookOpen },
-        { href: "/teacher/assignments", label: t("Assignments", "Assignments"), icon: ClipboardList },
-        { href: "/teacher/evaluations", label: t("Évaluations", "Assessments"), icon: ClipboardCheck },
-        { href: "/teacher/students", label: t("Étudiants", "Students"), icon: UserCog },
-        { href: "/teacher/monitor", label: t("Monitoring", "Monitoring"), icon: BarChart2 },
-        { href: "/teacher/analytics", label: t("Analytics", "Analytics"), icon: TrendingUp },
-        { href: studentHome, label: connectEnabled ? connectNavLabel : t("Simulateur", "Simulator"), icon: MonitorPlay },
-      ]
-    : [
-        {
+  const roleKey = isAdmin ? "admin" : isTeacher ? "teacher" : "student";
+  const navItems: ResolvedNavItem[] = SHELL_NAV_ITEMS
+    .filter((item) => {
+      if (roleKey === "admin") {
+        return item.roles.includes("admin") || item.roles.includes("teacher");
+      }
+      if (roleKey === "teacher") return item.roles.includes("teacher");
+      return item.roles.includes("student");
+    })
+    .filter((item) => {
+      if (item.href === "/student/profile" && !concordeConnectEnabled) return false;
+      // Admin entry is already role-gated; avoid duplicating for pure teachers
+      if (item.href === "/admin" && !isAdmin) return false;
+      return true;
+    })
+    .map((item) => {
+      if (item.href === "__student_home__") {
+        return {
           href: studentHome,
           label: connectEnabled ? connectNavLabel : t("Missions", "Missions"),
           icon: connectEnabled ? MonitorPlay : BookOpen,
-        },
-        ...(concordeConnectEnabled
-          ? [{ href: "/student/profile", label: t("Profil professionnel", "Professional profile"), icon: UserCircle }]
-          : []),
-        { href: "/student/slides", label: t("Slides", "Slides"), icon: Presentation },
-        { href: "/student/glossary", label: t("Glossaire", "Glossary"), icon: BookMarked },
-        { href: "/student/evaluations", label: t("Évaluations", "Assessments"), icon: ClipboardCheck },
-        { href: "/student/certifications", label: t("Certification", "Certification"), icon: ShieldCheck },
-      ];
+          priority: item.priority,
+        };
+      }
+      return {
+        href: item.href,
+        label: language === "FR" ? item.labelFr : item.labelEn,
+        icon: item.icon,
+        priority: item.priority,
+      };
+    });
 
-  if (isAdmin) {
-    navItems.push({ href: "/admin", label: t("Administration", "Administration"), icon: Settings });
+  // Teacher / admin: shortcut toward student simulator surface
+  if (isTeacher) {
+    navItems.push({
+      href: studentHome,
+      label: connectEnabled ? connectNavLabel : t("Simulateur", "Simulator"),
+      icon: MonitorPlay,
+      priority: 55,
+    });
   }
 
   // Determine first initial for avatar
@@ -163,52 +169,16 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
           <span className="text-[11px] font-semibold text-white">{COURSE_NAME}</span>
         </div>
 
-        {/* Course badge — TEC.LOG identifier from md until 2xl (never hide TEC.LOG for programme text) */}
-        <div className="hidden md:flex 2xl:hidden items-center gap-2 px-2.5 py-1 rounded-md shrink-0 mr-2" style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}>
+        {/* Course badge — students: TEC.LOG from md; teachers: only from xl (frees icon space) */}
+        <div
+          className={`${isTeacher ? "hidden xl:flex 2xl:hidden" : "hidden md:flex 2xl:hidden"} items-center gap-2 px-2.5 py-1 rounded-md shrink-0 mr-2`}
+          style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.22)" }}
+        >
           <span className="text-[10px] font-bold text-white/70 uppercase tracking-wider">TEC.LOG</span>
         </div>
 
-        {/* Nav — desktop/tablet: icon-only; labels via tooltip + aria-label */}
-        {!navCollapsed && (
-          <nav
-            className="hidden md:flex items-center gap-0.5 flex-1 min-w-0"
-            aria-label={t("Navigation principale", "Main navigation")}
-          >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const active =
-                location === item.href ||
-                (item.href !== "/" && location.startsWith(item.href + "/")) ||
-                (item.href === "/teacher" && location === "/teacher");
-              return (
-                <Tooltip key={item.href} delayDuration={200}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      href={item.href}
-                      aria-label={item.label}
-                      aria-current={active ? "page" : undefined}
-                      className={`flex items-center justify-center w-8 h-8 rounded transition-colors shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white ${
-                        active
-                          ? "bg-white/20 text-white ring-1 ring-white/40"
-                          : "text-white/70 hover:text-white hover:bg-white/10"
-                      }`}
-                    >
-                      <Icon size={15} className="shrink-0" aria-hidden="true" />
-                      {active && (
-                        <span className="sr-only">
-                          {t("(page active)", "(active page)")}
-                        </span>
-                      )}
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" sideOffset={6} className="text-xs z-[60]">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              );
-            })}
-          </nav>
-        )}
+        {/* Nav — desktop/tablet: icon-only + structural overflow ("Plus"), not zoom-dependent */}
+        {!navCollapsed && <RoleIconNav items={navItems} t={t} />}
         {navCollapsed && <div className="flex-1" />}
 
         {/* Nav collapse toggle (desktop) */}
@@ -232,16 +202,18 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
         {/* ── Right controls: Cohort + Lang + Dark + User Avatar Dropdown ── */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
 
+          {/* Cohort switcher: xl+ in bar; below xl available in user menu (avoids icon clipping) */}
           {isTeacher && cohorts.length > 0 && selectedCohortId != null && (
-            <label className="hidden sm:flex items-center gap-1.5 shrink-0">
+            <label className="hidden xl:flex items-center gap-1.5 shrink-0">
               <span className="text-[9px] font-semibold text-white/60 uppercase tracking-wide">
                 {t("Cohorte", "Cohort")}
               </span>
               <select
                 value={selectedCohortId}
                 onChange={(e) => setSelectedCohortId(Number(e.target.value))}
-                className="max-w-[140px] lg:max-w-[180px] text-[10px] font-medium rounded px-2 py-1 bg-white/15 text-white border border-white/25 hover:bg-white/20 focus:outline-none focus:ring-1 focus:ring-white/40 truncate"
+                className="max-w-[160px] text-[10px] font-medium rounded px-2 py-1 bg-white/15 text-white border border-white/25 hover:bg-white/20 focus:outline-none focus:ring-1 focus:ring-white/40 truncate"
                 title={t("Changer de cohorte", "Switch cohort")}
+                data-testid="shell-cohort-select"
               >
                 {cohorts.map((c) => (
                   <option key={c.id} value={c.id} className="text-gray-900">
@@ -317,6 +289,27 @@ export default function FioriShell({ children, title, breadcrumbs }: FioriShellP
                     </p>
                   )}
                 </div>
+
+                {/* Cohort switcher for mid widths (hidden from bar below xl) */}
+                {isTeacher && cohorts.length > 0 && selectedCohortId != null && (
+                  <div className={`xl:hidden px-4 py-2 border-b ${theme === "dark" ? "border-[#1a3a5c]" : "border-gray-100"}`}>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+                      {t("Cohorte", "Cohort")}
+                    </label>
+                    <select
+                      value={selectedCohortId}
+                      onChange={(e) => setSelectedCohortId(Number(e.target.value))}
+                      className="w-full text-xs rounded-md border bg-background px-2 py-1.5"
+                      data-testid="shell-cohort-select-menu"
+                    >
+                      {cohorts.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Switch view — admin/teacher only */}
                 {isTeacher && (

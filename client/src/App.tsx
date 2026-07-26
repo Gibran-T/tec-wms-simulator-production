@@ -27,6 +27,7 @@ import Module4Dashboard from "./pages/student/Module4Dashboard";
 import Module4ModeSelectionPage from "./pages/student/Module4ModeSelectionPage";
 import Module5SimulationPage from "./pages/student/Module5SimulationPage";
 import Module5ModeSelectionPage from "./pages/student/Module5ModeSelectionPage";
+import FormativeExercisePage from "./pages/student/FormativeExercisePage";
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import CohortManager from "./pages/teacher/CohortManager";
 import ScenarioManager from "./pages/teacher/ScenarioManager";
@@ -53,6 +54,7 @@ import EvaluationsHubPage from "./pages/student/EvaluationsHubPage";
 import AssessmentAttemptPage from "./pages/student/AssessmentAttemptPage";
 import AssessmentsManagerPage from "./pages/teacher/AssessmentsManagerPage";
 import AssessmentAttemptReviewPage from "./pages/teacher/AssessmentAttemptReviewPage";
+import FormativeExercicesMonitorPage from "./pages/teacher/FormativeExercicesMonitorPage";
 
 /** Legacy path used by ScenarioList before Mission Control migration. */
 function RunReportRedirect() {
@@ -90,9 +92,11 @@ function Router() {
       {/* Module 4 routes */}
       <Route path="/student/module4" component={Module4Dashboard} />
       <Route path="/student/module4/scenario/:scenarioId/mode" component={Module4ModeSelectionPage} />
+      <Route path="/student/module4/formative/:exerciseId" component={FormativeExercisePage} />
       {/* Module 5 routes */}
       <Route path="/student/module5" component={Module5SimulationPage} />
       <Route path="/student/module5/scenario/:scenarioId/mode" component={Module5ModeSelectionPage} />
+      <Route path="/student/module5/formative/:exerciseId" component={FormativeExercisePage} />
       {/* Quiz routes */}
       <Route path="/student/quiz/:moduleId" component={QuizPage} />
       {/* Glossary route */}
@@ -117,6 +121,7 @@ function Router() {
       <Route path="/teacher/students" component={StudentManager} />
       <Route path="/teacher/evaluations" component={AssessmentsManagerPage} />
       <Route path="/teacher/evaluations/attempt/:attemptId" component={AssessmentAttemptReviewPage} />
+      <Route path="/teacher/exercices" component={FormativeExercicesMonitorPage} />
       {/* Admin */}
       <Route path="/admin" component={AdminPanel} />
       {/* Auth / Legal */}

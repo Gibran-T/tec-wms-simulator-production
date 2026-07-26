@@ -26,6 +26,11 @@ import { getModuleConfig, MODULE_ACRONYMS } from "@/data/moduleConfig";
 import { MODULE_PROGRESSION_COPY } from "@/data/moduleProgressionCopy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import FormativeExerciseCard from "@/components/formative/FormativeExerciseCard";
+import {
+  getFormativeExercisesForModule,
+  type FormativeExerciseStatus,
+} from "@shared/formativeExercises";
 
 export interface EnterpriseModuleHubProps {
   moduleId: number;
@@ -76,6 +81,24 @@ export default function EnterpriseModuleHub({
   );
   const quizPassed = quizBestAttempt?.passed === true;
   const { data: employeeProfile } = useEmployeeProfile();
+  const showFormative = moduleId === 4 || moduleId === 5;
+  const { data: formativeAttempts } = trpc.formativeExercises.listMine.useQuery(
+    { moduleId },
+    { enabled: showFormative },
+  );
+  const formativeStatusById = useMemo(() => {
+    const map = new Map<string, FormativeExerciseStatus>();
+    for (const row of formativeAttempts ?? []) {
+      map.set(row.exerciseId, row.status);
+    }
+    return map;
+  }, [formativeAttempts]);
+  const formativeExercises = useMemo(
+    () => (showFormative ? getFormativeExercisesForModule(moduleId) : []),
+    [showFormative, moduleId],
+  );
+  const prepExercise = formativeExercises.find((e) => e.kind === "preparation");
+  const consExercise = formativeExercises.find((e) => e.kind === "consolidation");
 
   const rawModuleScenarios = useMemo(
     () => (scenarios ?? []).filter((s) => s.moduleId === moduleId),
@@ -276,7 +299,7 @@ export default function EnterpriseModuleHub({
             <OperationalFlowDisplay steps={mod.steps} />
           </div>
 
-          <div className="mt-4">
+          <div className="mt-4" data-testid="module-objectives-slot">
             <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
               <Target size={16} className={mod.text} />
               {t("Objectifs opérationnels", "Operational objectives")}
@@ -355,6 +378,19 @@ export default function EnterpriseModuleHub({
           )}
         </div>
 
+        {/* DOM order (M4/M5): objectifs → préparation → missions → consolidation → glossaire */}
+        {showFormative && prepExercise && (
+          <div data-testid="formative-prep-slot" data-formative-slot="preparation">
+            <FormativeExerciseCard
+              meta={prepExercise}
+              status={formativeStatusById.get(prepExercise.id) ?? "not_started"}
+              language={language}
+              t={t}
+              recommendAfterQuiz={!quizPassed}
+            />
+          </div>
+        )}
+
         {missionsBlocked ? (
           <Alert className="border-amber-200 bg-amber-50">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -398,7 +434,19 @@ export default function EnterpriseModuleHub({
           />
         )}
 
-        <div className="mt-8">
+        {showFormative && consExercise && (
+          <div data-testid="formative-cons-slot" data-formative-slot="consolidation">
+            <FormativeExerciseCard
+              meta={consExercise}
+              status={formativeStatusById.get(consExercise.id) ?? "not_started"}
+              language={language}
+              t={t}
+              recommendAfterMissions={completedScenarios < 3}
+            />
+          </div>
+        )}
+
+        <div className="mt-8" data-testid="module-glossary-slot">
           <button
             onClick={() => setShowGlossary(!showGlossary)}
             className="flex items-center gap-2 text-sm font-medium text-primary hover:underline"

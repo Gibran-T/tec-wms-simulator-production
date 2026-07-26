@@ -206,6 +206,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { mentorRouter } from "./aiMentor/router";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assessmentsRouter } from "./assessmentsRouter";
+import { formativeExercisesRouter } from "./formativeExercisesRouter";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
 
@@ -4168,6 +4169,9 @@ export const appRouter = router({
 
   // ── INTEGRATED ASSESSMENTS ──────────────────────────────────────────────────
   assessments: assessmentsRouter,
+
+  // ── FORMATIVE EXERCISES (M4/M5) — isolated from official scoring ─────────────
+  formativeExercises: formativeExercisesRouter,
 
   // ── QUIZ ROUTER ─────────────────────────────────────────────────────────────
   quiz: router({
