@@ -52,9 +52,15 @@ export const formativeExercisesRouter = router({
   getMine: protectedProcedure
     .input(z.object({ exerciseId: exerciseIdSchema }))
     .query(async ({ ctx, input }) => {
-      const { getFormativeAttempt } = await import("./formativeExerciseService");
+      const { getFormativeAttempt, startOrResumeFormativeExercise } = await import(
+        "./formativeExerciseService"
+      );
       const { getFormativeExerciseMeta } = await import("../shared/formativeExercises");
-      const attempt = await getFormativeAttempt(ctx.user.id, input.exerciseId);
+      // Prefer start/resume so legacy in-progress rows get ordering seed persisted.
+      let attempt = await getFormativeAttempt(ctx.user.id, input.exerciseId);
+      if (attempt?.status === "in_progress") {
+        attempt = await startOrResumeFormativeExercise(ctx.user.id, input.exerciseId);
+      }
       return {
         meta: getFormativeExerciseMeta(input.exerciseId),
         attempt,

@@ -23,6 +23,7 @@ import {
   M5_PREP_TRAFFIC,
   M5_PREP_TRUE_FALSE,
 } from "./content";
+import { isCompleteOrdering } from "./orderingState";
 import type {
   FormativeExerciseId,
   FormativeFeedbackItem,
@@ -98,7 +99,9 @@ function scoreOrdering(
   order: string[],
   labels: Record<string, LocalizedText>,
 ): { score: number; feedback: FormativeFeedbackItem[] } {
-  if (!order?.length) {
+  // Incomplete only when the payload is absent/malformed, missing IDs,
+  // unexpected IDs, or duplicates — never when a full non-canonical order exists.
+  if (!isCompleteOrdering(expected, order)) {
     return {
       score: 0,
       feedback: [
