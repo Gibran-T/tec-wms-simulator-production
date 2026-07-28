@@ -50,6 +50,7 @@ import {
   M5_TRAFFIC_OPTIONS,
   getFormativeExerciseMeta,
   isFormativeExerciseId,
+  withSeededOrdering,
   type FormativeExerciseId,
   type FormativeFeedbackItem,
 } from "@shared/formativeExercises";
@@ -119,11 +120,12 @@ export default function FormativeExercisePage() {
       !restartMut.isPending
     ) {
       autoRedoStartedRef.current = true;
+      const redoExerciseId = data.attempt.exerciseId as FormativeExerciseId;
       restartMut.mutate(
-        { exerciseId: data.attempt.exerciseId as FormativeExerciseId },
+        { exerciseId: redoExerciseId },
         {
           onSuccess: () => {
-            setAnswers({});
+            setAnswers(withSeededOrdering(redoExerciseId, {}));
             setFeedback([]);
             setPartScores({});
             setScore(null);
@@ -135,7 +137,14 @@ export default function FormativeExercisePage() {
       return;
     }
 
-    setAnswers((data.attempt.answers as AnswersState) ?? {});
+    // For in-progress attempts, seed ordering so UI state === answer state.
+    // Completed attempts keep the submitted payload as-is (redo contract).
+    const raw = (data.attempt.answers as AnswersState) ?? {};
+    setAnswers(
+      isCompleted
+        ? raw
+        : withSeededOrdering(data.attempt.exerciseId as FormativeExerciseId, raw),
+    );
     setCompleted(isCompleted);
     setScore(data.attempt.formativeScore);
     const fb = data.attempt.feedbackJson as
@@ -203,7 +212,7 @@ export default function FormativeExercisePage() {
       { exerciseId: meta.id },
       {
         onSuccess: () => {
-          setAnswers({});
+          setAnswers(withSeededOrdering(meta.id, {}));
           setFeedback([]);
           setPartScores({});
           setScore(null);
@@ -232,7 +241,7 @@ export default function FormativeExercisePage() {
           <Section title={t("2. Ordonner le raisonnement", "2. Order the reasoning")}>
             <OrderingExercise
               items={layerOptions}
-              value={(answers.ordering as string[]) ?? [...M4_LAYERS]}
+              value={(answers.ordering as string[]) ?? []}
               onChange={(v) => patch("ordering", v)}
               language={language}
               t={t}
@@ -395,7 +404,7 @@ export default function FormativeExercisePage() {
         <Section title={t("2. Ordonner le parcours", "2. Order the path")}>
           <OrderingExercise
             items={pathOptions}
-            value={(answers.ordering as string[]) ?? [...M5_CONS_PATH]}
+            value={(answers.ordering as string[]) ?? []}
             onChange={(v) => patch("ordering", v)}
             language={language}
             t={t}

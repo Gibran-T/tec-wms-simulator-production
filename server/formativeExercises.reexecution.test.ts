@@ -74,7 +74,7 @@ describe("formative re-execution (leave / return / redo)", () => {
 
   it("service restart clears answers and unlocks executable state", () => {
     expect(serviceSrc).toContain("restartFormativeExercise");
-    expect(serviceSrc).toContain("answers: {}");
+    expect(serviceSrc).toContain("withSeededOrdering(exerciseId, {})");
     expect(serviceSrc).toContain('status: "in_progress"');
     expect(serviceSrc).toContain("completedAt: null");
     expect(serviceSrc).toContain("formativeScore: null");

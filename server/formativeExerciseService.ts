@@ -17,6 +17,7 @@ import {
   completionRate,
   scoreFormativeExercise,
   correctAnswerRate,
+  withSeededOrdering,
   type FormativeExerciseId,
   type FormativeExerciseStatus,
   type TeacherFormativeStatus,
@@ -64,6 +65,38 @@ export async function getFormativeAttempt(userId: number, exerciseId: FormativeE
   return row ? sanitizeAttempt(row) : null;
 }
 
+/**
+ * Persist non-canonical ordering seed for in-progress attempts that lack a
+ * complete ordering payload (legacy rows started with answers: {}).
+ */
+async function ensureInProgressOrderingSeed(
+  userId: number,
+  exerciseId: FormativeExerciseId,
+  attempt: NonNullable<Awaited<ReturnType<typeof getFormativeAttempt>>>,
+) {
+  if (attempt.status !== "in_progress") return attempt;
+  const raw = (attempt.answers as Record<string, unknown>) ?? {};
+  const seeded = withSeededOrdering(exerciseId, raw);
+  if (JSON.stringify(seeded) === JSON.stringify(raw)) return attempt;
+
+  const db = await getDb();
+  if (!db) return attempt;
+  const { formativeExerciseAttempts } = await import("../drizzle/schema");
+  await db
+    .update(formativeExerciseAttempts)
+    .set({
+      answers: seeded,
+      ...isolationDefaults(),
+    })
+    .where(
+      and(
+        eq(formativeExerciseAttempts.id, attempt.id),
+        eq(formativeExerciseAttempts.userId, userId),
+      ),
+    );
+  return (await getFormativeAttempt(userId, exerciseId)) ?? attempt;
+}
+
 export async function startOrResumeFormativeExercise(userId: number, exerciseId: FormativeExerciseId) {
   if (!isFormativeExerciseId(exerciseId)) {
     throw Object.assign(new Error("Unknown formative exercise"), { code: "NOT_FOUND" });
@@ -75,9 +108,12 @@ export async function startOrResumeFormativeExercise(userId: number, exerciseId:
   }
   const { formativeExerciseAttempts } = await import("../drizzle/schema");
   const existing = await getFormativeAttempt(userId, exerciseId);
-  if (existing) return existing;
+  if (existing) {
+    return ensureInProgressOrderingSeed(userId, exerciseId, existing);
+  }
 
   const flags = isolationDefaults();
+  const seededAnswers = withSeededOrdering(exerciseId, {});
   const [inserted] = await db
     .insert(formativeExerciseAttempts)
     .values({
@@ -85,7 +121,7 @@ export async function startOrResumeFormativeExercise(userId: number, exerciseId:
       exerciseId,
       moduleId: meta.moduleId,
       version: CURRENT_VERSION,
-      answers: {},
+      answers: seededAnswers,
       formativeScore: null,
       status: "in_progress",
       feedbackJson: null,
@@ -201,7 +237,7 @@ export async function restartFormativeExercise(userId: number, exerciseId: Forma
   await db
     .update(formativeExerciseAttempts)
     .set({
-      answers: {},
+      answers: withSeededOrdering(exerciseId, {}),
       formativeScore: null,
       feedbackJson: null,
       status: "in_progress",

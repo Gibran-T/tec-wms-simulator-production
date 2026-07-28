@@ -10,6 +10,7 @@ export interface OrderingItem {
 
 export interface OrderingExerciseProps {
   items: OrderingItem[];
+  /** Canonical card IDs in the current answer-state order (source of truth). */
   value: string[];
   onChange: (next: string[]) => void;
   language: "FR" | "EN";
@@ -25,10 +26,12 @@ export default function OrderingExercise({
   t,
   disabled = false,
 }: OrderingExerciseProps) {
-  const order = value.length ? value : items.map((i) => i.id);
+  // Single source of truth: answer state order. Never invent a second display order.
+  const order = value;
   const labelById = Object.fromEntries(items.map((i) => [i.id, i.label]));
 
   const move = (index: number, dir: -1 | 1) => {
+    if (!order.length) return;
     const next = [...order];
     const target = index + dir;
     if (target < 0 || target >= next.length) return;
