@@ -59,8 +59,8 @@ export const SLIDE_VISUAL_MAP: Record<number, Record<number, { type: SlideVisual
   5: {
     1: { type: "FLOW", variant: "m5-ops" },
     2: { type: "FLOW", variant: "m5-ops" },
-    3: { type: "WH", variant: "default" },
-    4: { type: "KPI", variant: "m4-dashboard" },
+    3: { type: "FLOW", variant: "m5-ops" },
+    4: { type: "FLOW", variant: "m5-capstone" },
     5: { type: "FLOW", variant: "m5-ops" },
   },
 };

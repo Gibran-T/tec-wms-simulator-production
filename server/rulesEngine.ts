@@ -53,6 +53,12 @@ import {
   evalKpiServiceShort,
   evalM5DecisionShort,
 } from "../shared/m4m5ShortAnswerContract";
+import {
+  countM5SessionEvidenceCitations,
+  deriveM5SessionEvidenceV1,
+  isM4PortfolioOnlyEvidence,
+  type M5SessionEvidenceV1,
+} from "../shared/m5SessionEvidence";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -2645,12 +2651,18 @@ export function validateM5KpiSubmission(
       reasonEn: "Canonical KPI paste rejected — derive values from run ledger",
     };
   }
-  if (!kpiDataMatchesWithinTolerance(submitted, derived, 0.05)) {
+  // Phase 3A: only stock-anchored fields must match the run. Seeded service/errors/lead
+  // are legacy snapshot columns — not session-truth validation targets.
+  const stockOk =
+    Math.abs(submitted.averageStock - derived.averageStock) <= Math.max(1, derived.averageStock * 0.05) &&
+    Math.abs(submitted.annualConsumption - derived.annualConsumption) <= Math.max(1, derived.annualConsumption * 0.05) &&
+    Math.abs(submitted.stockValue - derived.stockValue) <= Math.max(1, derived.stockValue * 0.05);
+  if (!stockOk) {
     return {
       allowed: false,
-      reason: "KPI values must match run-derived ledger within tolerance",
-      reasonFr: "Les KPI doivent correspondre aux valeurs dérivées du moniteur (±5 %)",
-      reasonEn: "KPI values must match run-derived ledger within tolerance (±5%)",
+      reason: "Stock-anchored KPI values must match run-derived ledger within tolerance",
+      reasonFr: "Les valeurs de stock du moniteur doivent correspondre au registre (±5 %)",
+      reasonEn: "Stock-anchored KPI values must match run-derived ledger within tolerance (±5%)",
     };
   }
   return { allowed: true };
@@ -2667,6 +2679,50 @@ export function formatM5KpiEvidenceSource(evidence: M5KpiLedgerEvidence): string
     `replenish=${evidence.replenishmentQty ?? "n/a"}`,
     `stockAtBin=${evidence.stockQtyAtBin}`,
   ].join("|");
+}
+
+/** Build versioned session evidence from a run ledger snapshot (API / scoring). */
+export function buildM5SessionEvidenceFromRunState(input: {
+  initialStateJson?: M5InitialStateJson | null;
+  completedSteps: string[];
+  transactions: M5TransactionRow[];
+  inventoryCounts: M5InventoryCountRow[];
+  inventoryAdjustments: M5InventoryAdjustmentRow[];
+  inventory: Record<string, number>;
+  replenishmentQty?: number | null;
+  runStartedAt?: Date | string | null;
+  runCompletedAt?: Date | string | null;
+  complianceOk?: boolean | null;
+}): { ledger: M5KpiLedgerEvidence; sessionEvidence: M5SessionEvidenceV1; kpiData: KpiData } {
+  const { kpiData, evidence: ledger } = deriveM5KpiFromRunEvidence(input.initialStateJson, {
+    transactions: input.transactions,
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+    inventory: input.inventory,
+    replenishmentQty: input.replenishmentQty,
+  });
+  const effective = getEffectiveM5Steps(input.initialStateJson, {
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+  });
+  const contract = getM5ContractFromSeed(input.initialStateJson);
+  const sessionEvidence = deriveM5SessionEvidenceV1({
+    completedSteps: input.completedSteps,
+    effectiveStepCodes: effective.map((s) => s.code),
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+    transactions: input.transactions,
+    inventory: input.inventory,
+    replenishmentQty: input.replenishmentQty,
+    varianceResolved: ledger.varianceResolved,
+    stockQtyAtBin: ledger.stockQtyAtBin,
+    contractSku: contract?.sku,
+    contractToBin: contract?.toBin,
+    runStartedAt: input.runStartedAt,
+    runCompletedAt: input.runCompletedAt,
+    complianceOk: input.complianceOk,
+  });
+  return { ledger, sessionEvidence, kpiData };
 }
 
 export function getM5CycleCountTargets(initialStateJson?: M5InitialStateJson | null): M5CycleCountTarget[] {
@@ -2846,12 +2902,74 @@ export function countM5KpiNumericCitations(text: string, snapshot: M5KpiSnapshot
   return hits;
 }
 
+/**
+ * SCN-017 strategic point table (session evidence — m5-session-v1 only).
+ *
+ * Base (when all mandatory gates pass):
+ *   15 base + (8 × evidence citations) + diagnostic 10 + priority 10
+ *   + trade-off 12 + horizon 10 + recommendation 10 → capped at 80
+ *
+ * Mandatory gates (any miss → rejected; short-answer boost MUST NOT apply):
+ *   ≥3 session evidence refs, diagnostic, priority, trade-off, recommendation, horizon
+ *
+ * Rejected ceilings (cannot reach 70):
+ *   missing diagnostic ≤35, priority ≤40, trade-off ≤45, recommendation ≤50, horizon ≤60
+ *
+ * Generic short-answer boost (scoreM5Decision): Math.max(score, 70) only when !rejected.
+ *
+ * Legacy kpi_snapshots: Gold row-existence only — never citation sources.
+ */
+export const M5_SCN017_SCORE_TABLE = {
+  base: 15,
+  perEvidenceCitation: 8,
+  diagnostic: 10,
+  priority: 10,
+  tradeOff: 12,
+  horizon: 10,
+  recommendation: 10,
+  maxScore: 80,
+  minPassingWithGates: 70,
+  passThreshold: 70,
+  minEvidenceCitations: 3,
+  rejectedCeilings: {
+    MISSING_DIAGNOSTIC: 35,
+    MISSING_PRIORITY: 40,
+    MISSING_TRADE_OFF: 45,
+    MISSING_RECOMMENDATION: 50,
+    MISSING_HORIZON: 60,
+  },
+  shortAnswerBoost: {
+    floor: 70,
+    appliesOnlyWhenNotRejected: true,
+  },
+} as const;
+
+/**
+ * SCN-017 strategic scoring — session evidence citations (m5-session-v1).
+ * Legacy kpi_snapshots remain persisted for Gold existence checks but are not citation sources.
+ * @param _legacySnapshot unused for citations (kept for call-site compatibility)
+ */
 export function scoreM5StrategicDecision(
   studentDecision: string,
-  snapshot: M5KpiSnapshotValues,
+  sessionEvidenceOrLegacySnapshot: M5SessionEvidenceV1 | M5KpiSnapshotValues,
+  maybeLegacySnapshot?: M5KpiSnapshotValues | null,
 ): { score: number; feedback: string; rejected: boolean; rejectionReason?: string } {
   const text = studentDecision.trim();
   const lower = normalizePedagogicalText(text);
+
+  // Version guard: never treat a legacy kpi_snapshots-shaped object as m5-session-v1.
+  const sessionEvidence: M5SessionEvidenceV1 =
+    sessionEvidenceOrLegacySnapshot &&
+    "evidenceVersion" in sessionEvidenceOrLegacySnapshot &&
+    sessionEvidenceOrLegacySnapshot.evidenceVersion === "m5-session-v1"
+      ? sessionEvidenceOrLegacySnapshot
+      : {
+          evidenceVersion: "m5-session-v1",
+          // Transitional: if only a legacy snapshot was passed, do not invent session fields.
+        };
+
+  void maybeLegacySnapshot;
+  void STRATEGIC_BLOCK_WEIGHTS;
 
   const operationalPatterns = [
     /poster la reception/,
@@ -2870,47 +2988,111 @@ export function scoreM5StrategicDecision(
     };
   }
 
-  const kpiCitations = countM5KpiNumericCitations(text, snapshot);
+  const { count: evidenceCitations } = countM5SessionEvidenceCitations(text, sessionEvidence);
   const hasTradeOff = matchConceptGroup(lower, CG_TRADEOFF);
-  const hasHorizon = matchConceptGroup(lower, CG_HORIZON_90_180);
+  // Do NOT use bare CG_HORIZON_* terms like "90" — they false-match "exactitude 90%".
+  const hasHorizon =
+    hasAnyTerm(lower, [
+      "prochain quart",
+      "next shift",
+      "7 jours",
+      "7 days",
+      "30 jours",
+      "30 days",
+      "90 jours",
+      "90 days",
+      "180 jours",
+      "180 days",
+      "3 mois",
+      "6 mois",
+      "prochain trimestre",
+      "j-90",
+      "court terme",
+      "suivi mensuel",
+      "revue a 90",
+      "revue à 90",
+    ]) ||
+    (/\bhorizon\b/.test(lower) &&
+      (/\b(7|30|90|180)\b/.test(lower) ||
+        /prochain|trimestre|semestre|jours|days|quart|shift|semaine/.test(lower)));
+  // Recommendation must be distinct from priority (CG_ONE_PRIORITY must not satisfy this gate).
   const hasRecommendation =
-    matchConceptGroup(lower, CG_ACTION_VOCAB) ||
+    /recommand/.test(lower) ||
+    hasAnyTerm(lower, [
+      "je propose",
+      "nous proposons",
+      "action:",
+      "strategie:",
+      "stratégie:",
+      "investir dans",
+      "politique de",
+      "plan d",
+      "initiative:",
+      "objectif:",
+    ]);
+  const hasPriority =
     matchConceptGroup(lower, CG_ONE_PRIORITY) ||
-    hasAnyTerm(lower, ["invest", "politique", "plan", "initiative", "objectif", "orient"]);
-  const hasInterpretation =
+    hasAnyTerm(lower, ["priorite", "priorité", "priority"]);
+  const hasDiagnostic =
     matchConceptGroup(lower, CG_SITUATION_STABLE) ||
-    hasAnyTerm(lower, ["rotation", "service", "erreur", "priorite", "risque"]);
+    hasAnyTerm(lower, ["diagnostic", "controle", "contrôl", "echec", "échec", "retabl", "rétabl", "risque"]);
   const stuffing = evaluateConceptGroups(
     text,
     [CG_TRADEOFF, CG_HORIZON_90_180],
     [CG_NO_ACTION],
   ).stuffingSuspected;
 
-  // Internal strategic blocks → existing display budget (raw capped 80)
-  void STRATEGIC_BLOCK_WEIGHTS;
-
-  if (stuffing && kpiCitations < 2) {
+  if (isM4PortfolioOnlyEvidence(text, evidenceCitations)) {
     return {
       score: 0,
-      feedback: "Décision rejetée — empilement de mots-clés sans preuves KPI du snapshot.",
+      feedback:
+        "Décision rejetée — le portfolio M4 (6× / 95 % / 4 %) n'est pas une preuve de session M5. Citez au moins 3 preuves de votre run.",
+      rejected: true,
+      rejectionReason: "M4_PORTFOLIO_ONLY",
+    };
+  }
+
+  if (stuffing && evidenceCitations < 3) {
+    return {
+      score: 0,
+      feedback: "Décision rejetée — empilement de mots-clés sans preuves de session.",
       rejected: true,
       rejectionReason: "KEYWORD_STUFFING",
     };
   }
 
-  if (kpiCitations < 2) {
+  if (evidenceCitations < 3) {
     return {
       score: 0,
-      feedback: "Décision rejetée — citez au moins 2 KPI chiffrés du snapshot (rotation, service, erreurs, délai, stock).",
+      feedback:
+        "Décision rejetée — citez au moins 3 preuves de session (ex. variance, stock corrigé, Q, exactitude, conformité, completion).",
       rejected: true,
-      rejectionReason: "INSUFFICIENT_KPI_CITATIONS",
+      rejectionReason: "INSUFFICIENT_SESSION_EVIDENCE",
+    };
+  }
+
+  if (!hasDiagnostic) {
+    return {
+      score: Math.min(M5_SCN017_SCORE_TABLE.rejectedCeilings.MISSING_DIAGNOSTIC, evidenceCitations * 10),
+      feedback: "Preuves citées — ajoutez un diagnostic (contrôlé / écart / rétabli / risque restant).",
+      rejected: true,
+      rejectionReason: "MISSING_DIAGNOSTIC",
+    };
+  }
+
+  if (!hasPriority) {
+    return {
+      score: Math.min(M5_SCN017_SCORE_TABLE.rejectedCeilings.MISSING_PRIORITY, evidenceCitations * 10),
+      feedback: "Diagnostic partiel — nommez une priorité de gestion.",
+      rejected: true,
+      rejectionReason: "MISSING_PRIORITY",
     };
   }
 
   if (!hasTradeOff) {
     return {
-      score: Math.min(40, kpiCitations * 15),
-      feedback: "KPI cités — ajoutez un arbitrage explicite (trade-off stock/service/coût).",
+      score: Math.min(M5_SCN017_SCORE_TABLE.rejectedCeilings.MISSING_TRADE_OFF, evidenceCitations * 10),
+      feedback: "Priorité citée — ajoutez un arbitrage explicite (compromis).",
       rejected: true,
       rejectionReason: "MISSING_TRADE_OFF",
     };
@@ -2918,8 +3100,8 @@ export function scoreM5StrategicDecision(
 
   if (!hasRecommendation) {
     return {
-      score: Math.min(50, kpiCitations * 15),
-      feedback: "Arbitrage partiel — formulez une recommandation stratégique opérationnelle.",
+      score: Math.min(M5_SCN017_SCORE_TABLE.rejectedCeilings.MISSING_RECOMMENDATION, evidenceCitations * 10),
+      feedback: "Arbitrage partiel — formulez une recommandation professionnelle.",
       rejected: true,
       rejectionReason: "MISSING_RECOMMENDATION",
     };
@@ -2927,30 +3109,31 @@ export function scoreM5StrategicDecision(
 
   if (!hasHorizon) {
     return {
-      score: Math.min(60, kpiCitations * 15),
-      feedback: "Recommandation partielle — précisez un horizon 90–180 jours ou une action de suivi.",
+      score: Math.min(M5_SCN017_SCORE_TABLE.rejectedCeilings.MISSING_HORIZON, evidenceCitations * 10),
+      feedback: "Recommandation partielle — précisez un horizon (prochain quart, 7 j, 30 j, ou 90–180 j).",
       rejected: true,
       rejectionReason: "MISSING_HORIZON",
     };
   }
 
-  let score = 20 + kpiCitations * 10;
-  if (hasInterpretation) score += 10;
-  if (hasTradeOff) score += 15;
-  if (hasHorizon) score += 15;
-  if (hasRecommendation) score += 10;
-  // Concise 4–6 sentence answers are enough — no long-essay bonus gate.
-
-  const feedbackParts = [
-    `✓ ${kpiCitations} KPI chiffrés cités`,
-    "✓ Arbitrage / trade-off identifié",
-    "✓ Recommandation stratégique",
-    "✓ Horizon 90–180 j",
-  ];
+  let score =
+    M5_SCN017_SCORE_TABLE.base + evidenceCitations * M5_SCN017_SCORE_TABLE.perEvidenceCitation;
+  if (hasDiagnostic) score += M5_SCN017_SCORE_TABLE.diagnostic;
+  if (hasPriority) score += M5_SCN017_SCORE_TABLE.priority;
+  if (hasTradeOff) score += M5_SCN017_SCORE_TABLE.tradeOff;
+  if (hasHorizon) score += M5_SCN017_SCORE_TABLE.horizon;
+  if (hasRecommendation) score += M5_SCN017_SCORE_TABLE.recommendation;
 
   return {
-    score: Math.min(score, 80),
-    feedback: feedbackParts.join(" | "),
+    score: Math.min(score, M5_SCN017_SCORE_TABLE.maxScore),
+    feedback: [
+      `✓ ${evidenceCitations} preuves de session citées`,
+      "✓ Diagnostic",
+      "✓ Priorité",
+      "✓ Compromis",
+      "✓ Horizon",
+      "✓ Recommandation",
+    ].join(" | "),
     rejected: false,
   };
 }
@@ -2958,7 +3141,11 @@ export function scoreM5StrategicDecision(
 export function scoreM5Decision(
   studentDecision: string,
   kpiResult: { rotationRate?: number; serviceLevel?: number; errorRate?: number },
-  options?: { decisionLevel?: "TACTICAL" | "STRATEGIC"; kpiSnapshot?: M5KpiSnapshotValues },
+  options?: {
+    decisionLevel?: "TACTICAL" | "STRATEGIC";
+    kpiSnapshot?: M5KpiSnapshotValues;
+    sessionEvidence?: M5SessionEvidenceV1;
+  },
 ) {
   // Always reject Q=0 vs positive replenishment contradictions first.
   if (hasQ0VsReplenishmentContradiction(studentDecision)) {
@@ -2973,13 +3160,22 @@ export function scoreM5Decision(
 
   const level = options?.decisionLevel === "STRATEGIC" ? "STRATEGIC" : "TACTICAL";
   const short = evalM5DecisionShort(level, studentDecision);
-  if (options?.decisionLevel === "STRATEGIC" && options.kpiSnapshot) {
-    const strategic = scoreM5StrategicDecision(studentDecision, options.kpiSnapshot);
+  if (options?.decisionLevel === "STRATEGIC") {
+    const evidence =
+      options.sessionEvidence ??
+      ({ evidenceVersion: "m5-session-v1" } as M5SessionEvidenceV1);
+    const strategic = scoreM5StrategicDecision(studentDecision, evidence, options.kpiSnapshot);
+    // Short-answer boost never bypasses mandatory dimension gates.
     if (short.ok && !strategic.rejected) {
-      return { ...strategic, score: Math.max(strategic.score, 70), feedback: strategic.feedback };
+      return {
+        ...strategic,
+        score: Math.max(strategic.score, M5_SCN017_SCORE_TABLE.shortAnswerBoost.floor),
+        feedback: strategic.feedback,
+      };
     }
     return strategic;
   }
+  void kpiResult; // legacy M4-shaped display fields — not tactical session truth
   const text = normalizePedagogicalText(studentDecision);
   let score = 0;
   const feedbackParts: string[] = [];
@@ -2988,17 +3184,17 @@ export function scoreM5Decision(
     matchConceptGroup(text, CG_M5_NOMINAL) || matchConceptGroup(text, CG_M5_Q_ZERO);
   const varianceAware = matchConceptGroup(text, CG_M5_VARIANCE_AWARE);
 
-  if (hasAnyTerm(text, ["rotation", "turnover"])) {
+  if (hasAnyTerm(text, ["preuve", "evidence", "stock", "variance", "ecart", "écart"])) {
     score += 10;
-    feedbackParts.push("✓ Rotation des stocks mentionnée");
+    feedbackParts.push("✓ Preuves de session mentionnées");
   }
-  if (hasAnyTerm(text, ["service", "taux de service", "otif"])) {
+  if (hasAnyTerm(text, ["exactitude", "accuracy", "conformit", "completion"])) {
     score += 10;
-    feedbackParts.push("✓ Taux de service mentionné");
+    feedbackParts.push("✓ Indicateur de session cité");
   }
-  if (hasAnyTerm(text, ["erreur", "error"])) {
+  if (hasAnyTerm(text, ["minimum", "q = 0", "q=0", "reappro", "réappro"])) {
     score += 10;
-    feedbackParts.push("✓ Taux d'erreur mentionné");
+    feedbackParts.push("✓ Décision Q / stock référencée");
   }
 
   // Nominal / Q=0 is a complete professional stance — do not force invented problems.

@@ -1,32 +1,16 @@
 import React from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import type { M5KpiTowerEntry } from "@/data/m5KpiControlTower";
-import {
-  bandToBgClass,
-  formatLeadTime,
-  formatPercent,
-  formatRotation,
-  formatStockValue,
-  getErrorBand,
-  getLeadTimeBand,
-  getRotationBand,
-  getServiceBand,
-} from "./m5KpiDisplayUtils";
+import type { M5SessionEvidenceV1 } from "../../../../shared/m5SessionEvidence";
 
 type M5KpiLedgerPayload = {
-  kpiData: { avgLeadTimeDays: number; stockValue: number };
-  kpiResult: {
-    rotationRate: number;
-    serviceLevel: number;
-    errorRate: number;
-    stockImmobilizedValue: number;
-  };
   evidence: {
     receivedQty: number;
     putawayQty: number;
     varianceQty: number;
     varianceResolved: boolean;
   };
+  sessionEvidence?: M5SessionEvidenceV1 | null;
 };
 
 function MissionFramingBlock({
@@ -40,7 +24,7 @@ function MissionFramingBlock({
 }) {
   const isFr = language === "FR";
   const rows = [
-    { label: t("KPI évalué", "KPI evaluated"), value: isFr ? entry.kpiEvaluated.fr : entry.kpiEvaluated.en },
+    { label: t("Preuves évaluées", "Evidence evaluated"), value: isFr ? entry.kpiEvaluated.fr : entry.kpiEvaluated.en },
     { label: t("Focus diagnostic", "Diagnostic focus"), value: isFr ? entry.diagnosticFocus.fr : entry.diagnosticFocus.en },
     { label: t("Alerte / risque", "Alert / risk"), value: isFr ? entry.alertRisk.fr : entry.alertRisk.en, alert: true },
     { label: t("Sortie attendue", "Expected output"), value: isFr ? entry.expectedOutput.fr : entry.expectedOutput.en },
@@ -60,56 +44,43 @@ function MissionFramingBlock({
   );
 }
 
+function fmtPct(v: number | undefined): string {
+  if (v == null) return "—";
+  return `${(v * 100).toFixed(0)}%`;
+}
+
 function LiveReadingsBlock({
   ledger,
   targetLine,
   t,
-  language,
   snapshotLocked,
 }: {
   ledger: M5KpiLedgerPayload | undefined;
   targetLine: string;
   t: (fr: string, en: string) => string;
-  language: string;
   snapshotLocked?: boolean;
 }) {
-  const evidence = ledger?.evidence;
-  const kpiResult = ledger?.kpiResult;
-  const kpiData = ledger?.kpiData;
+  const session = ledger?.sessionEvidence;
 
   const tiles = [
+    { label: t("Parcours", "Pathway"), live: fmtPct(session?.sessionJourneyCompletionRate ?? session?.executionCompletionRate) },
+    { label: t("Exact. avant", "Acc. before"), live: fmtPct(session?.inventoryAccuracyBefore) },
+    { label: t("Exact. après", "Acc. after"), live: fmtPct(session?.inventoryAccuracyAfter) },
     {
-      label: t("Rotation", "Turnover"),
-      live: evidence && evidence.receivedQty > 0 ? formatRotation(kpiResult?.rotationRate) : "—",
-      band: kpiResult ? getRotationBand(kpiResult.rotationRate) : "normal",
-      derived: true,
-    },
-    {
-      label: t("Service", "Service"),
-      live: kpiResult ? formatPercent(kpiResult.serviceLevel) : "—",
-      band: kpiResult ? getServiceBand(kpiResult.serviceLevel) : "normal",
-      derived: false,
-    },
-    {
-      label: t("Erreurs", "Errors"),
-      live: kpiResult ? formatPercent(kpiResult.errorRate) : "—",
-      band: kpiResult ? getErrorBand(kpiResult.errorRate) : "normal",
-      derived: false,
-    },
-    {
-      label: t("Délai", "Lead time"),
-      live: kpiData ? formatLeadTime(kpiData.avgLeadTimeDays) : "—",
-      band: kpiData ? getLeadTimeBand(kpiData.avgLeadTimeDays) : "normal",
-      derived: false,
-    },
-    {
-      label: t("Stock $", "Stock $"),
+      label: t("Variance", "Variance"),
       live:
-        evidence && evidence.putawayQty > 0
-          ? formatStockValue(kpiResult?.stockImmobilizedValue ?? kpiData?.stockValue, language)
+        session?.varianceInitialQty != null
+          ? session.varianceInitialQty > 0
+            ? `+${session.varianceInitialQty}`
+            : String(session.varianceInitialQty)
           : "—",
-      band: "normal" as const,
-      derived: true,
+    },
+    {
+      label: t("Stock / Q", "Stock / Q"),
+      live:
+        session?.finalStockQty != null || session?.replenishmentQty != null
+          ? `${session?.finalStockQty ?? "—"} / Q=${session?.replenishmentQty ?? "—"}`
+          : "—",
     },
   ];
 
@@ -117,25 +88,26 @@ function LiveReadingsBlock({
     <div className="space-y-2">
       <p className="text-[10px] font-bold text-slate-500 uppercase">
         {snapshotLocked
-          ? t("Lectures KPI — snapshot verrouillé", "KPI readings — snapshot locked")
-          : t("Lectures KPI — direct", "KPI readings — live")}
+          ? t("Preuves de session — enregistrées", "Session evidence — recorded")
+          : t("Preuves de session — direct", "Session evidence — live")}
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
         {tiles.map((tile) => (
-          <div
-            key={tile.label}
-            className={`p-2 border text-center ${tile.derived ? bandToBgClass(tile.band) : "bg-slate-50 dark:bg-slate-800/50 border-border"}`}
-          >
+          <div key={tile.label} className="p-2 border text-center bg-slate-50 dark:bg-slate-800/50 border-border">
             <p className="text-[8px] font-bold text-slate-500 uppercase">{tile.label}</p>
             <p className="text-xs font-black font-mono">{tile.live}</p>
-            {!tile.derived && (
-              <p className="text-[7px] text-slate-400 uppercase mt-0.5">{t("contexte", "context")}</p>
-            )}
+            <p className="text-[7px] text-primary uppercase mt-0.5">{t("session", "session")}</p>
           </div>
         ))}
       </div>
       <p className="text-[9px] text-slate-500 font-mono italic">
         {t("Cible contrat", "Contract target")}: {targetLine}
+      </p>
+      <p className="text-[8px] text-slate-400 italic">
+        {t(
+          "Portfolio M4 non affiché comme preuve de session.",
+          "M4 portfolio is not shown as session evidence.",
+        )}
       </p>
     </div>
   );
@@ -160,7 +132,7 @@ export default function M5DynamicKpiTower({
   return (
     <div className="space-y-3" data-testid="m5-dynamic-kpi-tower">
       <p className="text-[10px] font-bold text-primary uppercase">
-        {t("Tour de contrôle KPI — Module 5", "KPI Control Tower — Module 5")}
+        {t("Tour de contrôle — Preuves de session M5", "Control tower — M5 session evidence")}
       </p>
 
       <MissionFramingBlock entry={entry} t={t} language={language} />
@@ -171,7 +143,7 @@ export default function M5DynamicKpiTower({
           <p>{isFr ? entry.varianceSignal.fr : entry.varianceSignal.en}</p>
           {ledger?.evidence?.varianceResolved && (
             <p className="mt-1 text-green-700 dark:text-green-300 font-semibold">
-              {t("Variance résolue — KPI débloqué", "Variance resolved — KPI unblocked")}
+              {t("Variance résolue — décision débloquée", "Variance resolved — decision unblocked")}
             </p>
           )}
         </div>
@@ -181,7 +153,6 @@ export default function M5DynamicKpiTower({
         ledger={ledger}
         targetLine={targetLine}
         t={t}
-        language={language}
         snapshotLocked={snapshotLocked}
       />
     </div>

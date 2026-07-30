@@ -378,7 +378,39 @@ export default function EnterpriseModuleHub({
           )}
         </div>
 
-        {/* DOM order (M4/M5): objectifs → préparation → missions → consolidation → glossaire */}
+        {/* Official M5 order: slides → QUIZ → PRÉ-M5 → SCN → POST-M5 → conclusion.
+            DOM: objectifs → quiz checkpoint → préparation → missions → consolidation → glossaire */}
+        {moduleId === 5 && user?.role === "student" && (
+          <div
+            className="mt-2 p-3 border border-blue-300 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-950/30 rounded-md flex items-center gap-3"
+            data-testid="m5-quiz-checkpoint-slot"
+          >
+            <AlertCircle size={18} className="text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                {t("Quiz M5 — point de contrôle", "Quiz M5 — knowledge checkpoint")}
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200">
+                {quizPassed
+                  ? t(
+                      "Quiz validé (≥60 %). Passez à la préparation puis aux scénarios.",
+                      "Quiz passed (≥60%). Continue to prep, then scenarios.",
+                    )
+                  : t(
+                      "Après les diapositives : validez le quiz (≥60 %, tentatives illimitées) avant la Pré-M5.",
+                      "After the slides: pass the quiz (≥60%, unlimited attempts) before Pré-M5.",
+                    )}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate(`/student/quiz/${moduleId}`)}
+              className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors shrink-0"
+            >
+              {quizPassed ? t("Revoir", "Review") : t("Lancer le quiz", "Start quiz")}
+            </button>
+          </div>
+        )}
+
         {showFormative && prepExercise && (
           <div data-testid="formative-prep-slot" data-formative-slot="preparation">
             <FormativeExerciseCard

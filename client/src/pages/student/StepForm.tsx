@@ -2786,8 +2786,7 @@ export default function StepForm() {
                       scnCode={scnCode}
                       t={t}
                       evidence={m5KpiLedger?.evidence ?? null}
-                      kpiResult={m5KpiLedger?.kpiResult ?? null}
-                      avgLeadTimeDays={m5KpiLedger?.kpiData?.avgLeadTimeDays ?? null}
+                      sessionEvidence={m5KpiLedger?.sessionEvidence ?? null}
                       contract={{
                         minQty: m5Contract?.replenishmentParams?.minQty,
                         maxQty: m5Contract?.replenishmentParams?.maxQty,
@@ -2820,10 +2819,15 @@ export default function StepForm() {
                                   "Priority quality. Maintain stock. Review OTIF/errors in 90 days.",
                                 )
                               : isM5DecisionStep
-                                ? t(
-                                    "Lecture KPI. Décision. Suivi du prochain cycle.",
-                                    "KPI reading. Decision. Next-cycle follow-up.",
-                                  )
+                                ? scnCode === "SCN-017"
+                                  ? t(
+                                      "Preuves (≥3) · Diagnostic · Priorité · Compromis · Horizon · Recommandation.",
+                                      "Evidence (≥3) · Diagnostic · Priority · Trade-off · Horizon · Recommendation.",
+                                    )
+                                  : t(
+                                      "Preuves de session · Décision · Suivi du prochain cycle.",
+                                      "Session evidence · Decision · Next-cycle follow-up.",
+                                    )
                                 : t(
                                     "Rotation 6x, zone normale. Maintenir globalement. Surveiller les SKU lents.",
                                     "Turnover 6x, normal zone. Maintain globally. Watch slow SKUs.",
@@ -2855,14 +2859,34 @@ export default function StepForm() {
                       <p className="font-mono text-muted-foreground">
                         {t("Réception", "Received")}: {m5KpiLedger.evidence.receivedQty} · {t("Putaway", "Putaway")}: {m5KpiLedger.evidence.putawayQty} · CC: {m5KpiLedger.evidence.cycleCountQty ?? "—"} · {t("Variance", "Variance")}: {m5KpiLedger.evidence.varianceQty} · {t("Stock bin", "Bin stock")}: {m5KpiLedger.evidence.stockQtyAtBin}
                       </p>
-                      {m5KpiLedger.kpiResult && (
+                      {m5KpiLedger.sessionEvidence && (
                         <p className="text-muted-foreground">
-                          → rotation {m5KpiLedger.kpiResult.rotationRate}× · service {(m5KpiLedger.kpiResult.serviceLevel * 100).toFixed(1)}% · {t("erreurs", "errors")} {(m5KpiLedger.kpiResult.errorRate * 100).toFixed(1)}%
+                          → {t("parcours", "pathway")}{" "}
+                          {(m5KpiLedger.sessionEvidence.sessionJourneyCompletionRate ??
+                            m5KpiLedger.sessionEvidence.executionCompletionRate) != null
+                            ? `${(((m5KpiLedger.sessionEvidence.sessionJourneyCompletionRate ??
+                                m5KpiLedger.sessionEvidence.executionCompletionRate) as number) * 100).toFixed(0)}%`
+                            : "—"}
+                          {" · "}
+                          {t("exact. avant/après", "acc. before/after")}{" "}
+                          {m5KpiLedger.sessionEvidence.inventoryAccuracyBefore != null
+                            ? `${(m5KpiLedger.sessionEvidence.inventoryAccuracyBefore * 100).toFixed(0)}%`
+                            : "—"}
+                          /
+                          {m5KpiLedger.sessionEvidence.inventoryAccuracyAfter != null
+                            ? `${(m5KpiLedger.sessionEvidence.inventoryAccuracyAfter * 100).toFixed(0)}%`
+                            : "—"}
+                          {" · Q="}
+                          {m5KpiLedger.sessionEvidence.replenishmentQty ?? "—"}
                         </p>
                       )}
                       {isDemo && m5KpiLedger.canonicalExample && (
                         <p className="text-indigo-600 dark:text-indigo-400 mt-1">
-                          {t("Exemple Annexe A (démo)", "Annex A example (demo)")}: 2400/400 · 285/300 · 12/300 · 3,5 j · 48 000 $
+                          {t(
+                            "Exemple Annexe A (démo uniquement — pas une preuve de session)",
+                            "Annex A example (demo only — not session evidence)",
+                          )}
+                          : 2400/400 · 285/300 · 12/300 · 3,5 j · 48 000 $
                         </p>
                       )}
                     </div>

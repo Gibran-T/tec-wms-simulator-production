@@ -448,6 +448,7 @@ export async function checkScn017CapstoneGates(userId: number): Promise<{
 
   const capstoneScore = run.score >= GOLD_CAPSTONE_THRESHOLD;
 
+  // LEGACY: kpi_snapshots row existence only — numeric columns are NOT m5-session-v1.
   const snapshotRow = await getKpiSnapshotByRun(run.id);
   const state = await buildRunStateForGold(run.id);
   const decisionLinked =

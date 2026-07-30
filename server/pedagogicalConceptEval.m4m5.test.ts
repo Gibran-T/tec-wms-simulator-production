@@ -391,6 +391,18 @@ describe("SCN-016 — variance-aware tactical decision", () => {
 });
 
 describe("SCN-017 — strategic decision", () => {
+  const sessionEvidence = {
+    evidenceVersion: "m5-session-v1" as const,
+    varianceInitialQty: -5,
+    varianceResolved: true,
+    correctedStockQty: 45,
+    finalStockQty: 45,
+    replenishmentQty: 0,
+    inventoryAccuracyBefore: 0.9,
+    inventoryAccuracyAfter: 1,
+    sessionJourneyCompletionRate: 1,
+    executionCompletionRate: 1,
+  };
   const snapshot = {
     rotationRate: 5.5,
     serviceLevel: 0.97,
@@ -399,40 +411,126 @@ describe("SCN-017 — strategic decision", () => {
     stockImmobilizedValue: 12500,
   };
 
-  it("positive: concise 4–6 sentence natural French trade-off", () => {
-    const text =
-      "Rotation 5,5 et service 97% issus du snapshot. Priorite: securiser le service. On reporte toute baisse de stock pour proteger l'OTIF. Horizon: revue a 90 jours.";
-    const result = scoreM5StrategicDecision(text, snapshot);
+  const fullPassText =
+    "Diagnostic: variance -5 resolue, stock corrige 45, exactitude 90% puis 100%, Q = 0. "
+    + "Priorite: fiabilite. Compromis: ne pas commander. Horizon: prochain quart. Je recommande un suivi.";
+
+  it("positive: session evidence + priority + trade-off + horizon", () => {
+    const result = scoreM5StrategicDecision(fullPassText, sessionEvidence, snapshot);
     expect(result.rejected).toBe(false);
-    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.score).toBeGreaterThanOrEqual(70);
   });
 
   it("contradiction: missing trade-off", () => {
-    const text = "Rotation 5,5 et service 97%. Je recommande d'investir. Horizon 90 jours.";
-    const result = scoreM5StrategicDecision(text, snapshot);
+    const text =
+      "Diagnostic variance -5 stock corrige 45 Q=0 exactitude 90%. Priorite fiabilite. Je recommande. Horizon 90 jours.";
+    const result = scoreM5StrategicDecision(text, sessionEvidence, snapshot);
     expect(result.rejected).toBe(true);
     expect(result.rejectionReason).toBe("MISSING_TRADE_OFF");
+    expect(result.score).toBeLessThan(70);
   });
 
-  it("contradiction: M4 portfolio paste without snapshot KPIs", () => {
-    const text =
-      "Rotation 6 et service 95% du module 4 avec 48000$. Trade-off stock/service. Horizon 90 jours. Je recommande.";
-    // 6 and 95 may coincidentally match tolerance — use clearly wrong M4-only narrative without snapshot numbers
+  it("contradiction: M4 portfolio paste without session evidence", () => {
     const result = scoreM5StrategicDecision(
-      "Capital 48000 dollars Annexe A. Trade-off et recommandation. Horizon 90 jours.",
+      "Capital 48000 dollars Annexe A rotation 6 service 95. Trade-off et recommandation. Horizon 90 jours.",
+      { evidenceVersion: "m5-session-v1" },
       snapshot,
     );
     expect(result.rejected).toBe(true);
-    expect(result.rejectionReason).toBe("INSUFFICIENT_KPI_CITATIONS");
+    expect(["M4_PORTFOLIO_ONLY", "INSUFFICIENT_SESSION_EVIDENCE"]).toContain(result.rejectionReason);
   });
 
   it("adversarial: operational-level phrasing rejected", () => {
     const result = scoreM5StrategicDecision(
-      "Poster la reception puis faire le putaway. Rotation 5,5 service 97. Trade-off. Horizon 90 jours. Je recommande.",
+      "Poster la reception puis faire le putaway. Variance -5 stock 45. Trade-off. Horizon 90 jours. Je recommande.",
+      sessionEvidence,
       snapshot,
     );
     expect(result.rejected).toBe(true);
     expect(result.rejectionReason).toBe("OPERATIONAL_LEVEL");
+  });
+
+  it("rejects three correct numbers with no diagnosis", () => {
+    const result = scoreM5StrategicDecision(
+      "Variance -5 stock corrige 45 Q=0. Priorite fiabilite. Compromis: arbitrage stock. Horizon 30 jours. Je recommande un plan.",
+      sessionEvidence,
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(result.rejectionReason).toBe("MISSING_DIAGNOSTIC");
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("rejects copied ledger values with no recommendation", () => {
+    const result = scoreM5StrategicDecision(
+      "Diagnostic: variance -5 stock corrige 45 exactitude 90% Q=0. Priorite fiabilite. Compromis: ne pas commander. Horizon prochain quart.",
+      sessionEvidence,
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(result.rejectionReason).toBe("MISSING_RECOMMENDATION");
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("rejects only two session references", () => {
+    const result = scoreM5StrategicDecision(
+      "Diagnostic: variance -5 et stock corrige 45. Priorite fiabilite. Compromis: maintenir. Horizon 90 jours. Je recommande.",
+      {
+        evidenceVersion: "m5-session-v1",
+        varianceInitialQty: -5,
+        correctedStockQty: 45,
+      },
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(["INSUFFICIENT_SESSION_EVIDENCE", "M4_PORTFOLIO_ONLY"]).toContain(result.rejectionReason);
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("rejects invented OTIF / priority-order as session proof", () => {
+    const result = scoreM5StrategicDecision(
+      "Diagnostic: OTIF session 99% et priorite commande completee. Compromis: investir. Horizon 90 jours. Je recommande. Rotation 6 service 95.",
+      { evidenceVersion: "m5-session-v1" },
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("rejects missing horizon — cannot reach 70", () => {
+    const result = scoreM5StrategicDecision(
+      "Diagnostic: variance -5 resolue, stock corrige 45, Q = 0, exactitude 90%. "
+        + "Priorite fiabilite. Compromis: ne pas commander. Je recommande un suivi.",
+      sessionEvidence,
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(result.rejectionReason).toBe("MISSING_HORIZON");
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("short-answer boost cannot bypass missing mandatory dimension", () => {
+    const missingTradeOff =
+      "Diagnostic variance -5 stock corrige 45 Q=0 exactitude 90% 100%. Priorite fiabilite. "
+      + "Horizon prochain quart. Je recommande un plan de suivi de conformite pour la performance.";
+    const result = scoreM5Decision(missingTradeOff, {}, {
+      decisionLevel: "STRATEGIC",
+      sessionEvidence,
+      kpiSnapshot: snapshot,
+    });
+    expect(result.rejected).toBe(true);
+    expect(result.score).toBeLessThan(70);
+  });
+
+  it("rejects generic management language with no evidence", () => {
+    const result = scoreM5StrategicDecision(
+      "Ameliorer la performance globale, optimiser les processus, aligner la strategie et creer de la valeur. "
+        + "Priorite excellence. Compromis equilibre. Horizon 90 jours. Je recommande.",
+      sessionEvidence,
+      snapshot,
+    );
+    expect(result.rejected).toBe(true);
+    expect(result.score).toBeLessThan(70);
   });
 });
 

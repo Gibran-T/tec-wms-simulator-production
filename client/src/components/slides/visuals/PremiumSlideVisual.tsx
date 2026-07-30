@@ -300,44 +300,73 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "5-1":
       return (
-        <VisualFrame title="Opération intégrée M5" subtitle="Capstone M1 → M5" accent={accent}>
-          <IntegrationStack accent={accent} layers={[
-            { mod: "M1", label: "Flux PO → GR → SO → GI" },
-            { mod: "M2", label: "Putaway FIFO · bins" },
-            { mod: "M3", label: "CC · variance · réappro" },
-            { mod: "M4", label: "KPI · diagnostic" },
-            { mod: "M5", label: "REC → PUT → CC → REP → KPI → DEC" },
-          ]} />
+        <VisualFrame title="M5 · Piloter sous contrainte" subtitle="Capstone opérationnel" accent={accent}>
+          <FlowPipeline steps={["EXÉCUTER", "MESURER", "RÉCONCILIER", "ARBITRER", "DÉFENDRE"]} accent={accent} />
+          <p className="text-[10px] text-muted-foreground text-center mt-3 leading-snug">
+            Vos opérations produisent les preuves que vous devrez interpréter et défendre
+          </p>
         </VisualFrame>
       );
     case "5-2":
       return (
-        <VisualFrame title="SCN-015 · Opération multi-SKU" subtitle="YELLOW · Cycle intégré" accent={accent}>
-          <FlowPipeline steps={["REC", "PUT", "CC", "REP", "KPI", "DEC", "OK"]} accent={accent} />
-          <p className="text-[10px] text-muted-foreground text-center mt-3">SKU-001 · 50 u. · REC-01 → B-01-R1-L1</p>
+        <VisualFrame title="SCN-015 · Cycle nominal" subtitle="Décider sans correction artificielle" accent={accent}>
+          <FlowVertical
+            steps={[
+              "Opérations complétées",
+              "Aucune variance ouverte",
+              "Stock final vs minimum",
+              "Q = 0 valide",
+              "Décision tactique + suivi",
+            ]}
+            accent={accent}
+          />
         </VisualFrame>
       );
     case "5-3":
       return (
-        <VisualFrame title="SCN-016 · Gestion de crise" subtitle="RED · Variance papier + ADJ" accent={accent}>
-          <FlowVertical steps={["Variance −5 u. (papier)", "Demo sim partielle", "Discussion ADJ", "KPI recalculé"]} accent="#dc2626" />
+        <VisualFrame title="SCN-016 · Réconcilier d’abord" subtitle="Deux décisions distinctes" accent={accent}>
+          <FlowVertical
+            steps={[
+              "50 système → 45 physique → écart −5",
+              "Décision bloquée tant que l’écart est ouvert",
+              "Ajustement −5 → stock corrigé 45",
+              "Minimum 10 → Q = 0 (réappro)",
+            ]}
+            accent={accent}
+          />
         </VisualFrame>
       );
     case "5-4":
       return (
-        <VisualFrame title="SCN-017 · Audit conformité" subtitle="Décision stratégique · KPI cités" accent={accent}>
-          <KpiGrid accent={accent} tiles={[
-            { label: "Rotation", value: "6×", pct: 60, status: "neutral" },
-            { label: "Service", value: "95%", pct: 95, status: "good" },
-            { label: "Erreurs", value: "4%", pct: 40, status: "warn" },
-            { label: "Decision", value: "→", pct: 100, status: "neutral" },
-          ]} />
+        <VisualFrame title="SCN-017 · Défendre la décision" subtitle="Preuves de session → recommandation" accent={accent}>
+          <FlowVertical
+            steps={[
+              "Preuves de session",
+              "Priorité",
+              "Compromis",
+              "Horizon",
+              "Recommandation professionnelle",
+            ]}
+            accent={accent}
+          />
+          <p className="text-[10px] text-muted-foreground text-center mt-3 leading-snug">
+            Preuve opérationnelle · stock final · variance · délai · conformité
+          </p>
         </VisualFrame>
       );
     case "5-5":
       return (
-        <VisualFrame title="Parcours complété" subtitle="Formation terminée" accent={accent}>
-          <FlowVertical steps={["Quiz M5", "Parcours complété"]} accent={accent} />
+        <VisualFrame title="TEC.LOG complété" subtitle="Vous savez piloter" accent={accent}>
+          <IntegrationStack
+            accent={accent}
+            layers={[
+              { mod: "M1", label: "Comprendre" },
+              { mod: "M2", label: "Exécuter" },
+              { mod: "M3", label: "Contrôler" },
+              { mod: "M4", label: "Analyser" },
+              { mod: "M5", label: "Piloter et décider" },
+            ]}
+          />
         </VisualFrame>
       );
     default:
@@ -351,7 +380,18 @@ function renderFallback(props: PremiumVisualProps) {
     case "FLOW":
       return (
         <VisualFrame title="Processus opérationnel" accent={accent}>
-          <FlowPipeline steps={variant === "m1-flow" ? ["PO", "GR", "Stock", "SO", "GI", "CC"] : variant === "m5-ops" ? ["REC", "PUT", "CC", "REP", "KPI", "DEC"] : ["Step 1", "Step 2", "Step 3", "Step 4"]} accent={accent} />
+          <FlowPipeline
+            steps={
+              variant === "m1-flow"
+                ? ["PO", "GR", "Stock", "SO", "GI", "CC"]
+                : variant === "m5-capstone"
+                  ? ["Preuves", "Priorité", "Compromis", "Horizon", "Décision"]
+                  : variant === "m5-ops"
+                    ? ["EXÉCUTER", "MESURER", "RÉCONCILIER", "ARBITRER", "DÉFENDRE"]
+                    : ["Step 1", "Step 2", "Step 3", "Step 4"]
+            }
+            accent={accent}
+          />
         </VisualFrame>
       );
     case "WH":

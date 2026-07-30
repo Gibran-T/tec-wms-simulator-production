@@ -590,22 +590,22 @@ describe("Module 5 — scoreM5Decision", () => {
     errorRateStatus: "acceptable" as const,
   };
 
-  it("awards points for mentioning rotation", () => {
-    const result = scoreM5Decision("Le taux de rotation est trop bas, il faut agir.", kpiResult);
+  it("awards points for citing session evidence", () => {
+    const result = scoreM5Decision("Les preuves de session montrent un stock stable sans variance.", kpiResult);
     expect(result.score).toBeGreaterThan(0);
-    expect(result.feedback).toContain("Rotation");
+    expect(result.feedback.toLowerCase()).toMatch(/preuve|session/);
   });
 
-  it("awards points for mentioning service level", () => {
-    const result = scoreM5Decision("Le taux de service doit être amélioré.", kpiResult);
+  it("awards points for citing session indicators", () => {
+    const result = scoreM5Decision("L'exactitude inventaire et la completion du cycle sont solides.", kpiResult);
     expect(result.score).toBeGreaterThan(0);
-    expect(result.feedback).toContain("service");
+    expect(result.feedback.toLowerCase()).toMatch(/indicateur|session/);
   });
 
-  it("awards points for mentioning errors", () => {
-    const result = scoreM5Decision("Les erreurs opérationnelles doivent être réduites.", kpiResult);
+  it("awards points for referencing Q / minimum", () => {
+    const result = scoreM5Decision("Le stock est au-dessus du minimum, donc Q = 0.", kpiResult);
     expect(result.score).toBeGreaterThan(0);
-    expect(result.feedback).toContain("erreur");
+    expect(result.feedback.toLowerCase()).toMatch(/q|stock|réappro|reappro/);
   });
 
   it("awards points for proposing replenishment action", () => {
@@ -920,17 +920,73 @@ describe("Wave 4 — M5 runtime alignment", () => {
 
   it("9. SCN-017 decision rejects generic keyword-only text", () => {
     const generic = "Améliorer la performance globale de l'entrepôt avec rotation service erreur formation.";
-    const result = scoreM5StrategicDecision(generic, M5_KPI_SNAPSHOT);
+    const result = scoreM5StrategicDecision(generic, {
+      evidenceVersion: "m5-session-v1",
+      varianceInitialQty: -5,
+      correctedStockQty: 45,
+      replenishmentQty: 0,
+    });
     expect(result.rejected).toBe(true);
   });
 
-  it("10. SCN-017 decision accepts KPI-linked strategic answer", () => {
-    const strategic = "Rotation 6× normal et service 95% excellent ; erreurs 4% acceptable. "
-      + "J'arbitre entre maintien du stock immobilisé 48000 $ et plan formation picking. "
-      + "Recommandation : initiative qualité 90 j pour réduire erreurs à 2% sans descendre sous 93% service.";
-    const result = scoreM5StrategicDecision(strategic, M5_KPI_SNAPSHOT);
+  it("10. SCN-017 decision accepts session-evidence strategic answer", () => {
+    const sessionEvidence = {
+      evidenceVersion: "m5-session-v1" as const,
+      varianceInitialQty: -5,
+      varianceResolved: true,
+      correctedStockQty: 45,
+      finalStockQty: 45,
+      replenishmentQty: 0,
+      inventoryAccuracyBefore: 0.9,
+      inventoryAccuracyAfter: 1,
+      sessionJourneyCompletionRate: 1,
+      executionCompletionRate: 1,
+    };
+    const strategic =
+      "Diagnostic: ecart -5 detecte puis variance resolue. Stock corrige 45, exactitude avant 90% apres 100%, Q = 0. "
+      + "Priorite: fiabilite des donnees. Compromis: maintenir le stock sans commander. "
+      + "Horizon: prochain quart. Je recommande un suivi de conformite.";
+    const result = scoreM5StrategicDecision(strategic, sessionEvidence, M5_KPI_SNAPSHOT);
     expect(result.rejected).toBe(false);
-    expect(result.score).toBeGreaterThanOrEqual(50);
+    expect(result.score).toBeGreaterThanOrEqual(70);
+  });
+
+  it("10c. SCN-017 cannot reach 70 while omitting trade-off or horizon", () => {
+    const sessionEvidence = {
+      evidenceVersion: "m5-session-v1" as const,
+      varianceInitialQty: -5,
+      varianceResolved: true,
+      correctedStockQty: 45,
+      finalStockQty: 45,
+      replenishmentQty: 0,
+      inventoryAccuracyBefore: 0.9,
+      inventoryAccuracyAfter: 1,
+    };
+    const noTradeOff = scoreM5StrategicDecision(
+      "Diagnostic: variance -5 stock corrige 45 Q=0 exactitude 90%. Priorite fiabilite. Horizon 90 jours. Je recommande.",
+      sessionEvidence,
+      M5_KPI_SNAPSHOT,
+    );
+    expect(noTradeOff.rejected).toBe(true);
+    expect(noTradeOff.score).toBeLessThan(70);
+
+    const noHorizon = scoreM5StrategicDecision(
+      "Diagnostic: variance -5 stock corrige 45 Q=0 exactitude 90%. Priorite fiabilite. Compromis: ne pas commander. Je recommande.",
+      sessionEvidence,
+      M5_KPI_SNAPSHOT,
+    );
+    expect(noHorizon.rejected).toBe(true);
+    expect(noHorizon.score).toBeLessThan(70);
+  });
+
+  it("10b. SCN-017 rejects M4 portfolio-only paste", () => {
+    const result = scoreM5StrategicDecision(
+      "Rotation 6 service 95 erreurs 4 capital 48000. Trade-off stock/service. Horizon 90 jours. Je recommande.",
+      { evidenceVersion: "m5-session-v1" },
+      M5_KPI_SNAPSHOT,
+    );
+    expect(result.rejected).toBe(true);
+    expect(["M4_PORTFOLIO_ONLY", "INSUFFICIENT_SESSION_EVIDENCE"]).toContain(result.rejectionReason);
   });
 
   it("11. validateM5Compliance blocks missing evidence", () => {

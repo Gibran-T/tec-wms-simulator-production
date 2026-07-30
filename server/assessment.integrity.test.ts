@@ -278,7 +278,7 @@ describe("quiz integrity redistribution", () => {
       totalB += m.B;
       total += m.total;
     }
-    expect(total).toBe(21);
+    expect(total).toBe(25); // M1:5 + M2:4 + M3:4 + M4:4 + M5:8
     expect(totalB / total).toBeLessThan(0.4);
     expect(dist[2].B).toBeLessThan(4); // M2 was all B
     expect(dist[3].B).toBeLessThan(4);

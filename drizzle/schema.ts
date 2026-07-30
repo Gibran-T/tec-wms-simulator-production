@@ -336,6 +336,10 @@ export const replenishmentSuggestions = mysqlTable("replenishment_suggestions", 
 export type ReplenishmentSuggestion = typeof replenishmentSuggestions.$inferSelect;
 
 // ─── KPI Snapshots (Module 4) ─────────────────────────────────────────────────────────────
+/**
+ * LEGACY M4-shaped KPI row. NOT evidenceVersion "m5-session-v1".
+ * Gold SCN-017 only checks row existence (+ step codes). Do not score these columns as session evidence.
+ */
 export const kpiSnapshots = mysqlTable("kpi_snapshots", {
   id: int("id").autoincrement().primaryKey(),
   runId: int("runId").notNull(),

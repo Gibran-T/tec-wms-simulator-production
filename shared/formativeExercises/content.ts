@@ -491,10 +491,10 @@ export const M5_PREP_ASSOC: Array<{
   {
     id: "a5",
     evidence: {
-      fr: "Service élevé avec erreurs à surveiller",
-      en: "High service with errors to monitor",
+      fr: "Valeurs 6× / 95 % / 4 % du portfolio M4 présentées comme résultat de session",
+      en: "M4 portfolio values 6× / 95% / 4% presented as session results",
     },
-    consequenceId: "c_watch",
+    consequenceId: "c_reject_m4",
   },
 ];
 
@@ -528,10 +528,10 @@ export const M5_PREP_CONSEQUENCES: Array<{ id: string; label: LocalizedText }> =
     },
   },
   {
-    id: "c_watch",
+    id: "c_reject_m4",
     label: {
-      fr: "Décision OK mais risque qualité à suivre",
-      en: "Decision OK but quality risk to monitor",
+      fr: "Rejeter — portfolio M4 ≠ preuve de session M5",
+      en: "Reject — M4 portfolio ≠ M5 session evidence",
     },
   },
 ];
@@ -592,12 +592,44 @@ export const M5_PREP_TRUE_FALSE: Array<{
       en: "Rule: decide on the most reliable evidence after verification.",
     },
   },
+  {
+    id: "tf4",
+    statement: {
+      fr: "Une condition initiale (ex. stock système 50) est déjà un résultat de session.",
+      en: "An initial condition (e.g. system stock 50) is already a session result.",
+    },
+    answer: false,
+    why: {
+      fr: "Incorrect : la condition initiale définit le problème ; le résultat vient des actions du run.",
+      en: "Incorrect: the initial condition defines the problem; results come from run actions.",
+    },
+    rule: {
+      fr: "Règle : distinguer condition initiale et preuve produite par l'exécution.",
+      en: "Rule: distinguish initial condition from evidence produced by execution.",
+    },
+  },
+  {
+    id: "tf5",
+    statement: {
+      fr: "Une décision tactique (Q) et une décision stratégique (plan de quart) sont le même niveau.",
+      en: "A tactical decision (Q) and a strategic decision (shift plan) are the same level.",
+    },
+    answer: false,
+    why: {
+      fr: "Incorrect : tactique = action immédiate ; stratégique = priorité, compromis, horizon.",
+      en: "Incorrect: tactical = immediate action; strategic = priority, trade-off, horizon.",
+    },
+    rule: {
+      fr: "Règle : séparer décision tactique et décision stratégique.",
+      en: "Rule: separate tactical and strategic decisions.",
+    },
+  },
 ];
 
-/** M5 Consolidation case */
+/** M5 Consolidation case — no priority-fulfillment claims (not in runtime yet) */
 export const M5_CONS_FACTS: LocalizedText = {
-  fr: "Réception terminée · Putaway terminé · Système 32 · Physique 29 · Écart −3 · Ajustement posté · Corrigé 29 · Min 20 · Max 70 · Q = 0 · Erreurs en hausse.",
-  en: "Receiving done · Putaway done · System 32 · Physical 29 · Variance −3 · Adjustment posted · Corrected 29 · Min 20 · Max 70 · Q = 0 · Errors rising.",
+  fr: "Réception terminée · Putaway terminé · Système 32 · Physique 29 · Écart −3 · Ajustement posté · Corrigé 29 · Min 20 · Max 70 · Q = 0 · Conformité du cycle à confirmer.",
+  en: "Receiving done · Putaway done · System 32 · Physical 29 · Variance −3 · Adjustment posted · Corrected 29 · Min 20 · Max 70 · Q = 0 · Cycle compliance to confirm.",
 };
 
 /** M5 Cons — block 1 evidence colors */
@@ -622,8 +654,8 @@ export const M5_CONS_EVIDENCE_COLORS: Array<{
     color: "vert",
   },
   {
-    id: "erreurs",
-    label: { fr: "Taux d’erreurs en hausse", en: "Rising error rate" },
+    id: "conformite",
+    label: { fr: "Conformité du cycle encore à confirmer", en: "Cycle compliance still to confirm" },
     color: "ambre",
   },
   {
@@ -638,21 +670,19 @@ export const M5_CONS_EVIDENCE_COLORS: Array<{
 
 /** M5 Cons — block 2 ordering */
 export const M5_CONS_PATH = [
-  "ecart",
-  "ajustement",
-  "corrige",
-  "minimum",
-  "q",
-  "suivi",
+  "executer",
+  "mesurer",
+  "reconcilier",
+  "arbitrer",
+  "defendre",
 ] as const;
 
 export const M5_CONS_PATH_LABELS: Record<(typeof M5_CONS_PATH)[number], LocalizedText> = {
-  ecart: { fr: "Écart constaté", en: "Variance observed" },
-  ajustement: { fr: "Ajustement posté", en: "Adjustment posted" },
-  corrige: { fr: "Stock corrigé", en: "Corrected stock" },
-  minimum: { fr: "Comparer au minimum", en: "Compare to minimum" },
-  q: { fr: "Déterminer Q", en: "Determine Q" },
-  suivi: { fr: "Suivi", en: "Follow-up" },
+  executer: { fr: "EXÉCUTER", en: "EXECUTE" },
+  mesurer: { fr: "MESURER", en: "MEASURE" },
+  reconcilier: { fr: "RÉCONCILIER", en: "RECONCILE" },
+  arbitrer: { fr: "ARBITRER", en: "ARBITRATE" },
+  defendre: { fr: "DÉFENDRE", en: "DEFEND" },
 };
 
 /** M5 Cons — block 3 evidence → decision */
@@ -676,8 +706,11 @@ export const M5_CONS_ASSOC: Array<{
   },
   {
     id: "e3",
-    evidence: { fr: "Erreurs en hausse", en: "Rising errors" },
-    decisionId: "dec_watch",
+    evidence: {
+      fr: "Ajustement inventaire distinct du réapprovisionnement",
+      en: "Inventory adjustment distinct from replenishment",
+    },
+    decisionId: "dec_sep",
   },
   {
     id: "e4",
@@ -705,10 +738,10 @@ export const M5_CONS_DECISIONS: Array<{ id: string; label: LocalizedText }> = [
     },
   },
   {
-    id: "dec_watch",
+    id: "dec_sep",
     label: {
-      fr: "Maintenir Q = 0 et surveiller la qualité",
-      en: "Keep Q = 0 and monitor quality",
+      fr: "Séparer correction et réapprovisionnement",
+      en: "Separate correction and replenishment",
     },
   },
   {
@@ -747,17 +780,17 @@ export const M5_CONS_TRUE_FALSE: Array<{
   {
     id: "tf2",
     statement: {
-      fr: "Les erreurs en hausse obligent à commander malgré Q = 0.",
-      en: "Rising errors force an order despite Q = 0.",
+      fr: "L'ajustement inventaire et le réapprovisionnement sont la même décision.",
+      en: "Inventory adjustment and replenishment are the same decision.",
     },
     answer: false,
     why: {
-      fr: "Incorrect : le risque qualité se surveille ; il ne force pas Q > 0 ici.",
-      en: "Incorrect: quality risk is monitored; it does not force Q > 0 here.",
+      fr: "Incorrect : corriger la fiabilité des données ≠ créer un besoin de commande.",
+      en: "Incorrect: restoring data reliability ≠ creating an order need.",
     },
     rule: {
-      fr: "Règle : séparer décision de stock et priorité qualité.",
-      en: "Rule: separate stock decision from quality priority.",
+      fr: "Règle : séparer correction et réapprovisionnement.",
+      en: "Rule: separate correction and replenishment.",
     },
   },
   {
@@ -778,7 +811,7 @@ export const M5_CONS_TRUE_FALSE: Array<{
   },
 ];
 
-/** M5 Cons — block 5 action buckets */
+/** M5 Cons — block 5 action buckets (next-shift debrief) */
 export const M5_CONS_ACTIONS: Array<{
   id: string;
   label: LocalizedText;
@@ -786,22 +819,22 @@ export const M5_CONS_ACTIONS: Array<{
 }> = [
   {
     id: "x1",
-    label: { fr: "Maintenir Q = 0", en: "Keep Q = 0" },
+    label: { fr: "Maintenir Q = 0 pour le prochain cycle", en: "Keep Q = 0 for the next cycle" },
     bucket: "maintenir",
   },
   {
     id: "x2",
     label: {
-      fr: "Surveiller erreurs / prochains comptages",
-      en: "Monitor errors / next counts",
+      fr: "Surveiller la conformité / prochains comptages",
+      en: "Monitor compliance / next counts",
     },
     bucket: "surveiller",
   },
   {
     id: "x3",
     label: {
-      fr: "Commander pour atteindre le maximum 70",
-      en: "Order to reach maximum 70",
+      fr: "Commander pour atteindre le maximum 70 sans besoin",
+      en: "Order to reach maximum 70 without need",
     },
     bucket: "rejeter",
   },

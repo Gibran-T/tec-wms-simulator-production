@@ -37,10 +37,8 @@ describe("M5DecisionResultPanel — session evidence chrome", () => {
     expect(SRC).toContain("m5-decision-result-panel");
   });
 
-  it("uses scenario-specific reasoning chains", () => {
-    expect(SRC).toContain("Exécuter → Vérifier → Interpréter → Décider");
-    expect(SRC).toContain("Exécuter → Réconcilier → Vérifier → Décider");
-    expect(SRC).toContain("Observer → Comparer → Arbitrer → Décider → Suivre");
+  it("uses the official M5 reasoning chain", () => {
+    expect(SRC).toContain("EXÉCUTER → MESURER → RÉCONCILIER → ARBITRER → DÉFENDRE");
   });
 
   it("includes SCN-016 before/after reconciliation blocks", () => {
@@ -55,10 +53,12 @@ describe("M5DecisionResultPanel — session evidence chrome", () => {
     expect(SRC).not.toContain("48 000");
   });
 
-  it("surfaces replenishment Q and KPI tiles without revealing the recommendation", () => {
+  it("surfaces replenishment Q and session evidence tiles without revealing the recommendation", () => {
     expect(SRC).toContain("Q réappro");
-    expect(SRC).toContain("Rotation");
+    expect(SRC).toContain("Completion");
+    expect(SRC).toContain("Exact. avant");
     expect(SRC).not.toMatch(/Je recommande|commander 100|Q = 0 est correct/);
+    expect(SRC).not.toContain('"Rotation"');
   });
 });
 
@@ -294,20 +294,25 @@ describe("SSR visual / rendered state descriptions", () => {
     expect(error).not.toContain("Rotation");
   });
 
-  it("SCN-017 partial ledger shows — for missing stock value and lead time", () => {
+  it("SCN-017 shows session evidence tiles and omits M4 portfolio KPI", () => {
     const html = renderToStaticMarkup(
       React.createElement(Panel, {
         scnCode: "SCN-017",
         t,
         evidence: evidence({ receivedQty: 50, putawayQty: 50, stockQtyAtBin: 50 }),
-        kpiResult: { rotationRate: 5, serviceLevel: 0.9, errorRate: 0 },
+        sessionEvidence: {
+          executionCompletionRate: 0.5,
+          finalStockQty: 50,
+          replenishmentQty: 0,
+        },
       }),
     );
     const text = strip(html);
-    expect(text).toContain("Rotation");
-    expect(text).toContain("5×");
-    expect(text).toContain("0.0 %"); // legitimate zero error rate
-    expect(text).toMatch(/Délai\s+—/);
-    expect(text).toMatch(/Valeur stock\s+—/);
+    expect(text).toContain("Taux de complétion du parcours");
+    expect(text).toContain("50.0 %");
+    expect(text).toContain("Preuves (≥3)");
+    expect(text).not.toContain("6×");
+    expect(text).not.toMatch(/Service\s+90/);
+    expect(text).not.toContain("Valeur stock");
   });
 });

@@ -646,8 +646,8 @@ function PanelD({ mission, nextStepCode, compliance, isDemo, onExecute, scnCode,
         <div className="text-[10px] bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-300">
           <p className="font-bold uppercase mb-1">{t("Mode évaluation M5", "M5 Evaluation Mode")}</p>
           <p>{isFr
-            ? "Décision stratégique : citez ≥2 KPI chiffrés de votre snapshot, nommez un arbitrage explicite et proposez un horizon 90–180 j."
-            : "Strategic decision: cite ≥2 numeric KPIs from your snapshot, name an explicit trade-off, and propose a 90–180 day horizon."}</p>
+            ? "Décision stratégique : citez ≥3 preuves de votre session (pas le portfolio M4), puis diagnostic → priorité → compromis → horizon → recommandation."
+            : "Strategic decision: cite ≥3 evidence items from your session (not the M4 portfolio), then diagnostic → priority → trade-off → horizon → recommendation."}</p>
         </div>
       )}
     </div>

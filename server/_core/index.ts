@@ -60,6 +60,9 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
+    // BOOT MUTATION: seedQuizData (empty DB only) then reconcileQuizIntegrity
+    // UPDATEs/INSERTs quiz_questions from QUIZ_INTEGRITY_BANK on every listen
+    // including production. Deploy authorization must account for this data mutation.
     seedQuizData()
       .then(async () => {
         const { reconcileQuizIntegrity, ensureAssessmentSchemaSeeded } = await import(

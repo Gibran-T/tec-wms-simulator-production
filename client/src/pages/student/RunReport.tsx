@@ -681,8 +681,26 @@ export default function RunReport() {
                 {t("Rapport M5 — Cycle intégré", "M5 Report — Integrated cycle")}
               </p>
               {safeDetail.m5Report.kpiSnapshot && (
-                <div className="p-2.5 rounded border bg-blue-50 dark:bg-blue-950/20 border-blue-200 text-xs font-mono">
-                  {t("Snapshot KPI", "KPI snapshot")}: rotation {safeDetail.m5Report.kpiSnapshot.rotationRate}× · service {(safeDetail.m5Report.kpiSnapshot.serviceLevel <= 1 ? safeDetail.m5Report.kpiSnapshot.serviceLevel * 100 : safeDetail.m5Report.kpiSnapshot.serviceLevel).toFixed(1)}% · erreurs {(safeDetail.m5Report.kpiSnapshot.errorRate <= 1 ? safeDetail.m5Report.kpiSnapshot.errorRate * 100 : safeDetail.m5Report.kpiSnapshot.errorRate).toFixed(1)}% · délai {safeDetail.m5Report.kpiSnapshot.averageLeadTime} j
+                <div className="p-2.5 rounded border bg-slate-50 dark:bg-slate-900/40 border-border text-xs space-y-1">
+                  <p className="font-semibold text-[10px] uppercase text-muted-foreground">
+                    {t(
+                      "Enregistrement historique (legacy) — ne pas confondre avec les preuves de session",
+                      "Historical record (legacy) — do not confuse with session evidence",
+                    )}
+                  </p>
+                  <p className="font-mono text-muted-foreground">
+                    rotation {safeDetail.m5Report.kpiSnapshot.rotationRate}× · service{" "}
+                    {(safeDetail.m5Report.kpiSnapshot.serviceLevel <= 1
+                      ? safeDetail.m5Report.kpiSnapshot.serviceLevel * 100
+                      : safeDetail.m5Report.kpiSnapshot.serviceLevel
+                    ).toFixed(1)}
+                    % · erreurs{" "}
+                    {(safeDetail.m5Report.kpiSnapshot.errorRate <= 1
+                      ? safeDetail.m5Report.kpiSnapshot.errorRate * 100
+                      : safeDetail.m5Report.kpiSnapshot.errorRate
+                    ).toFixed(1)}
+                    % · délai {safeDetail.m5Report.kpiSnapshot.averageLeadTime} j
+                  </p>
                 </div>
               )}
               {safeDetail.m5Report.varianceTrail.length > 0 && (

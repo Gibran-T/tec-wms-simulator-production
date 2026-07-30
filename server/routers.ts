@@ -169,6 +169,7 @@ import {
   getM5KpiDataFromSeed,
   getM5CycleCountTargets,
   deriveM5KpiFromRunEvidence,
+  buildM5SessionEvidenceFromRunState,
   validateM5KpiSubmission,
   formatM5KpiEvidenceSource,
   assertM5VarianceGate,
@@ -3738,19 +3739,29 @@ export const appRouter = router({
         const replRow = contract?.sku
           ? replenishments.find((r) => r.sku === contract.sku)
           : replenishments[0];
-        const { kpiData, evidence } = deriveM5KpiFromRunEvidence(state.m5InitialStateJson, {
+        const completedSteps = (state.completedSteps ?? []) as string[];
+        const { ledger: evidence, sessionEvidence, kpiData } = buildM5SessionEvidenceFromRunState({
+          initialStateJson: state.m5InitialStateJson,
+          completedSteps,
           transactions: state.transactions,
           inventoryCounts: state.inventoryCounts,
           inventoryAdjustments: state.inventoryAdjustments,
           inventory: state.inventory,
           replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+          runStartedAt: run.startedAt,
+          runCompletedAt: run.completedAt,
         });
+        // Legacy kpiResult retained for historical UI paths — not session truth.
         const kpiResult = calculateKpis(kpiData);
         return {
           kpiData,
           kpiResult,
           evidence,
-          canonicalExample: CANONICAL_M4_KPI_DATA,
+          sessionEvidence,
+          evidenceVersion: sessionEvidence.evidenceVersion,
+          /** Demo-only Annexe A example — never treat as session evidence. */
+          canonicalExample: run.isDemo ? CANONICAL_M4_KPI_DATA : null,
+          legacyPortfolioHidden: true,
           isDemo: run.isDemo,
         };
       }),
@@ -4017,6 +4028,7 @@ export const appRouter = router({
             message: "KPI snapshot required — complete M5_KPI before submitting decision",
           });
         }
+        // Legacy snapshot columns preserved for Gold existence / historical rows — not citation source.
         const kpiSnapshot = {
           rotationRate: Number(snapshotRow.rotationRate),
           serviceLevel: Number(snapshotRow.serviceLevel),
@@ -4024,10 +4036,26 @@ export const appRouter = router({
           averageLeadTime: Number(snapshotRow.averageLeadTime),
           stockImmobilizedValue: Number(snapshotRow.stockImmobilizedValue),
         };
+        const replenishments = await getReplenishmentSuggestionsByRun(input.runId);
+        const replRow = contract?.sku
+          ? replenishments.find((r) => r.sku === contract.sku)
+          : replenishments[0];
+        const { sessionEvidence } = buildM5SessionEvidenceFromRunState({
+          initialStateJson: m5State,
+          completedSteps: (state.completedSteps ?? []) as string[],
+          transactions: state.transactions,
+          inventoryCounts: state.inventoryCounts ?? [],
+          inventoryAdjustments: state.inventoryAdjustments ?? [],
+          inventory: state.inventory,
+          replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+          runStartedAt: run.startedAt,
+          runCompletedAt: run.completedAt,
+        });
         const decisionLevel = contract?.decisionLevel ?? (scnCode === "SCN-017" ? "STRATEGIC" : "TACTICAL");
         const result = scoreM5Decision(input.studentDecision, calculateKpis(getM5KpiDataFromSeed(m5State)), {
           decisionLevel,
           kpiSnapshot,
+          sessionEvidence,
         });
         if (decisionLevel === "STRATEGIC" && result.rejected) {
           if (!run.isDemo) {

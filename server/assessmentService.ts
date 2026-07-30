@@ -178,13 +178,22 @@ export async function ensureAssessmentSchemaSeeded() {
   return { eval1Id };
 }
 
-/** Upsert redistributed quiz options + stable option IDs (preserves historical attempt scores). */
+/**
+ * Upsert redistributed quiz options + stable option IDs.
+ *
+ * BOOT RISK: called from server/_core/index.ts on every listen (dev + production).
+ * Mutates quiz_questions rows (UPDATE text/options; INSERT missing orderIndex).
+ * Does NOT delete rows. Historical quiz_attempts keep stored scores; new attempts score by correctOptionId.
+ * Idempotent for identical seed content. Next deploy WILL mutate production quiz text if bank differs.
+ * Rollback: restore prior QUIZ_INTEGRITY_BANK and redeploy, or restore DB quiz_questions from backup.
+ */
 export async function reconcileQuizIntegrity() {
   const db = await getDb();
-  if (!db) return { updated: 0 };
+  if (!db) return { updated: 0, inserted: 0 };
   const { quizzes, quizQuestions } = await import("../drizzle/schema");
 
   let updated = 0;
+  let inserted = 0;
   for (const seed of QUIZ_INTEGRITY_BANK) {
     const [quiz] = await db
       .select()
@@ -203,9 +212,27 @@ export async function reconcileQuizIntegrity() {
         )
       )
       .limit(1);
-    if (!existingQ) continue;
 
     const mat = materializeQuizOptions(seed.options, seed.correctOptionId);
+    if (!existingQ) {
+      await db.insert(quizQuestions).values({
+        quizId: quiz.id,
+        orderIndex: seed.orderIndex,
+        questionFr: seed.questionFr,
+        questionEn: seed.questionEn,
+        optionsFr: mat.optionsFr,
+        optionsEn: mat.optionsEn,
+        correctIndex: mat.correctIndex,
+        optionsPayload: mat.optionsPayload,
+        correctOptionId: mat.correctOptionId,
+        explanationFr: seed.explanationFr,
+        explanationEn: seed.explanationEn,
+        difficulty: seed.difficulty,
+      });
+      inserted++;
+      continue;
+    }
+
     await db
       .update(quizQuestions)
       .set({
@@ -223,7 +250,7 @@ export async function reconcileQuizIntegrity() {
       .where(eq(quizQuestions.id, existingQ.id));
     updated++;
   }
-  return { updated };
+  return { updated, inserted };
 }
 
 async function getAssessmentByCode(code: string) {

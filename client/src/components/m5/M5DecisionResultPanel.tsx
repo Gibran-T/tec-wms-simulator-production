@@ -38,12 +38,30 @@ export type M5ReconDisplayState =
   | "unresolved"
   | "resolved";
 
+export type M5SessionEvidenceHint = {
+  sessionJourneyCompletionRate?: number;
+  /** @deprecated transitional alias of sessionJourneyCompletionRate */
+  executionCompletionRate?: number;
+  inventoryAccuracyBefore?: number;
+  inventoryAccuracyAfter?: number;
+  varianceInitialQty?: number;
+  varianceResolved?: boolean;
+  correctedStockQty?: number;
+  finalStockQty?: number;
+  replenishmentQty?: number;
+  finalComplianceStatus?: "OK" | "NOT_OK";
+  unresolvedIssueCount?: number;
+  cycleTimeMinutes?: number;
+};
+
 export type M5DecisionResultPanelProps = {
   scnCode: string | null;
   t: TranslateFn;
   evidence?: M5DecisionEvidence | null;
+  /** @deprecated Phase 3A — not shown as session truth */
   kpiResult?: M5DecisionKpiResult | null;
   avgLeadTimeDays?: number | null;
+  sessionEvidence?: M5SessionEvidenceHint | null;
   contract?: M5DecisionContractHint | null;
   adjCompleted?: boolean;
   isLoading?: boolean;
@@ -132,24 +150,27 @@ export default function M5DecisionResultPanel({
   scnCode,
   t,
   evidence,
-  kpiResult,
-  avgLeadTimeDays,
+  kpiResult: _kpiResult,
+  avgLeadTimeDays: _avgLeadTimeDays,
+  sessionEvidence,
   contract,
   adjCompleted = false,
   isLoading = false,
   isError = false,
   className,
 }: M5DecisionResultPanelProps) {
+  void _kpiResult;
+  void _avgLeadTimeDays;
   const is016 = scnCode === "SCN-016";
   const is017 = scnCode === "SCN-017";
-  const q = evidence?.replenishmentQty;
-  const stock = evidence?.stockQtyAtBin;
+  const q = sessionEvidence?.replenishmentQty ?? evidence?.replenishmentQty;
+  const stock = sessionEvidence?.finalStockQty ?? evidence?.stockQtyAtBin;
   const minQty = contract?.minQty;
   const reconState = resolveM5ReconDisplayState(evidence, adjCompleted);
   const systemStock = resolveM5SystemStock(evidence, contract);
   const physicalStock = resolveM5PhysicalStock(evidence, contract);
   const varianceDisplay =
-    evidence == null ? null : evidence.varianceQty;
+    sessionEvidence?.varianceInitialQty ?? (evidence == null ? null : evidence.varianceQty);
 
   const receptionDone = (evidence?.receivedQty ?? 0) > 0;
   const putawayDone = (evidence?.putawayQty ?? 0) > 0;
@@ -237,20 +258,10 @@ export default function M5DecisionResultPanel({
                 className="text-[11px] font-medium text-foreground leading-snug"
                 data-testid="m5-decision-reasoning-chain"
               >
-                {is017
-                  ? t(
-                      "Observer → Comparer → Arbitrer → Décider → Suivre",
-                      "Observe → Compare → Arbitrate → Decide → Follow up",
-                    )
-                  : is016
-                    ? t(
-                        "Exécuter → Réconcilier → Vérifier → Décider",
-                        "Execute → Reconcile → Verify → Decide",
-                      )
-                    : t(
-                        "Exécuter → Vérifier → Interpréter → Décider",
-                        "Execute → Verify → Interpret → Decide",
-                      )}
+                {t(
+                  "EXÉCUTER → MESURER → RÉCONCILIER → ARBITRER → DÉFENDRE",
+                  "EXECUTE → MEASURE → RECONCILE → ARBITRATE → DEFEND",
+                )}
               </p>
             </div>
 
@@ -268,6 +279,9 @@ export default function M5DecisionResultPanel({
                   </p>
                   <p className="text-xs font-mono text-foreground">
                     {t("Écart", "Variance")}: {formatM5Qty(varianceDisplay)}
+                  </p>
+                  <p className="text-xs font-mono text-foreground">
+                    {t("Exactitude", "Accuracy")}: {formatM5Pct(sessionEvidence?.inventoryAccuracyBefore)}
                   </p>
                 </div>
 
@@ -394,43 +408,46 @@ export default function M5DecisionResultPanel({
                   value={q == null ? "—" : String(q)}
                 />
               )}
-              {(is017 || !is016) && (
-                <EvidenceTile
-                  label={t("Rotation", "Turnover")}
-                  value={kpiResult ? `${kpiResult.rotationRate}×` : "—"}
-                />
-              )}
               <EvidenceTile
-                label={t("Service", "Service")}
-                value={formatM5Pct(kpiResult?.serviceLevel)}
+                label={t("Taux de complétion du parcours", "Pathway completion rate")}
+                value={formatM5Pct(
+                  sessionEvidence?.sessionJourneyCompletionRate ??
+                    sessionEvidence?.executionCompletionRate,
+                )}
               />
               <EvidenceTile
-                label={t("Erreurs", "Errors")}
-                value={formatM5Pct(kpiResult?.errorRate)}
+                label={t("Exact. avant", "Acc. before")}
+                value={formatM5Pct(sessionEvidence?.inventoryAccuracyBefore)}
+              />
+              <EvidenceTile
+                label={t("Exact. après", "Acc. after")}
+                value={formatM5Pct(sessionEvidence?.inventoryAccuracyAfter)}
               />
               {is017 && (
                 <EvidenceTile
-                  label={t("Délai", "Lead time")}
+                  label={t("Issues ouvertes", "Open issues")}
                   value={
-                    avgLeadTimeDays != null
-                      ? `${avgLeadTimeDays} j`
-                      : kpiResult?.averageLeadTime != null
-                        ? `${kpiResult.averageLeadTime} j`
-                        : "—"
-                  }
-                />
-              )}
-              {is017 && (
-                <EvidenceTile
-                  label={t("Valeur stock", "Stock value")}
-                  value={
-                    kpiResult?.stockImmobilizedValue != null
-                      ? `${Math.round(kpiResult.stockImmobilizedValue).toLocaleString()} $`
+                    sessionEvidence?.unresolvedIssueCount != null
+                      ? String(sessionEvidence.unresolvedIssueCount)
                       : "—"
                   }
                 />
               )}
+              {is017 && sessionEvidence?.cycleTimeMinutes != null && (
+                <EvidenceTile
+                  label={t("Temps session", "Session time")}
+                  value={`${sessionEvidence.cycleTimeMinutes} min`}
+                />
+              )}
             </div>
+            {is017 && (
+              <p className="text-[10px] text-muted-foreground leading-snug" data-testid="m5-017-evidence-rubric">
+                {t(
+                  "Structure : Preuves (≥3) → Diagnostic → Priorité → Compromis → Horizon → Recommandation. Ne citez pas le portfolio M4.",
+                  "Structure: Evidence (≥3) → Diagnostic → Priority → Trade-off → Horizon → Recommendation. Do not cite the M4 portfolio.",
+                )}
+              </p>
+            )}
           </>
         )}
       </div>

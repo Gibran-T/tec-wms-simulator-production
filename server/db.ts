@@ -1092,7 +1092,16 @@ export async function getReplenishmentSuggestionsByRun(runId: number) {
   return db.select().from(replenishmentSuggestions).where(eq(replenishmentSuggestions.runId, runId));
 }
 
-// ─── M4: KPI Snapshots ────────────────────────────────────────────────────────
+// ─── KPI Snapshots (LEGACY row — NOT m5-session-v1) ───────────────────────────
+/**
+ * Persists M4-shaped columns (rotation/service/error/lead/stock$).
+ * WHY STILL WRITTEN: Gold `checkScn017CapstoneGates` requires row existence
+ * (`snapshotRow != null`) plus M5_KPI / M5_DECISION steps — it does NOT score
+ * these numeric fields as session evidence.
+ * Do NOT treat these values as `evidenceVersion: "m5-session-v1"`.
+ * Session truth lives in API-derived `M5SessionEvidenceV1` only.
+ * New runs may still store seeded/hybrid legacy numbers in these columns.
+ */
 export async function addKpiSnapshot(data: {
   runId: number; rotationRate: number; serviceLevel: number; errorRate: number;
   averageLeadTime: number; stockImmobilizedValue: number;
