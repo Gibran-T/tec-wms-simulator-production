@@ -47,12 +47,12 @@ export const FORMATIVE_EXERCISE_CATALOG: Record<FormativeExerciseId, FormativeEx
     kind: "preparation",
     version: 2,
     title: {
-      fr: "Préparation opérationnelle — Lire les preuves avant de décider",
-      en: "Operational preparation — Read the evidence before deciding",
+      fr: "Pré-M5 — Lire les preuves avant de décider",
+      en: "Pré-M5 — Read the evidence before deciding",
     },
     subtitle: {
-      fr: "Après le quiz M5 : distinguez condition initiale, preuve de session et décision — sans rédaction.",
-      en: "After Quiz M5: distinguish initial condition, session evidence and decision — no writing.",
+      fr: "Après le quiz M5 : ACTION → PREUVE → KPI → DIAGNOSTIC → DÉCISION → SUIVI — sans rédaction.",
+      en: "After Quiz M5: ACTION → EVIDENCE → KPI → DIAGNOSTIC → DECISION → FOLLOW-UP — no writing.",
     },
     chain: {
       fr: "ACTION → PREUVE → KPI → DIAGNOSTIC → DÉCISION → SUIVI",
@@ -67,12 +67,12 @@ export const FORMATIVE_EXERCISE_CATALOG: Record<FormativeExerciseId, FormativeEx
     kind: "consolidation",
     version: 2,
     title: {
-      fr: "Consolidation M5 — Débriefer le quart de clôture",
-      en: "M5 consolidation — Debrief the closing shift",
+      fr: "Post-M5 — Débriefer le quart de clôture",
+      en: "Post-M5 — Debrief the closing shift",
     },
     subtitle: {
-      fr: "Reconstruisez la chaîne et séparez les décisions — sans rédaction libre.",
-      en: "Rebuild the chain and separate decisions — no free writing.",
+      fr: "Consolidez : ce qui s'est passé · pourquoi · quelles preuves · quelle décision · quoi changer au prochain quart.",
+      en: "Consolidate: what happened · why · which evidence · which decision · what to change next shift.",
     },
     chain: {
       fr: "EXÉCUTER → MESURER → RÉCONCILIER → ARBITRER → DÉFENDRE",

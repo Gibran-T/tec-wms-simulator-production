@@ -26,11 +26,11 @@ export type M5KpiTowerEntry = {
 
 export const M5_KPI_CONTROL_TOWER: Record<string, M5KpiTowerEntry> = {
   "SCN-015": {
-    kpiEvaluated: { fr: "Preuves de session · stock final · variance · conformité", en: "Session evidence · final stock · variance · compliance" },
-    target: { fr: "Citez les preuves disponibles dans votre session", en: "Cite the evidence available in your session" },
-    diagnosticFocus: { fr: "Cycle nominal — ops conforme, Q = 0 peut être valide", en: "Nominal cycle — compliant ops, Q = 0 can be valid" },
-    alertRisk: { fr: "Inventer une correction alors que le cycle est conforme", en: "Inventing a correction when the cycle is already compliant" },
-    expectedOutput: { fr: "Décision tactique + suivi, sans correction artificielle", en: "Tactical decision + follow-up, without artificial correction" },
+    kpiEvaluated: { fr: "Preuves de session · priorité · stock final · Q · conformité", en: "Session evidence · priority · final stock · Q · compliance" },
+    target: { fr: "Priorité CLI-PRIORITAIRE-A · inbound 50 · min 10 · capacité 100 · Q = 0", en: "Priority CLI-PRIORITAIRE-A · inbound 50 · min 10 · capacity 100 · Q = 0" },
+    diagnosticFocus: { fr: "Cycle nominal — protéger le minimum, Q = 0 sans correction artificielle", en: "Nominal cycle — protect the minimum, Q = 0 without artificial correction" },
+    alertRisk: { fr: "Inventer une correction ou un picking alors que le cycle est conforme", en: "Inventing a correction or pick when the cycle is already compliant" },
+    expectedOutput: { fr: "Décision tactique + priorité protégée + Q = 0", en: "Tactical decision + protected priority + Q = 0" },
   },
   "SCN-016": {
     kpiEvaluated: { fr: "Variance inventaire après comptage", en: "Inventory variance after cycle count" },

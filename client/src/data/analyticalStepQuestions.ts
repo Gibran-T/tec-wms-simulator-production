@@ -93,20 +93,20 @@ const SCN_STEP_QUESTIONS: Partial<Record<OfficialScnCode, Partial<Record<StepKey
   },
   "SCN-015": {
     m5_decision: {
-      fr: "À partir des résultats de votre session, indiquez si le cycle est conforme, si un réapprovisionnement est nécessaire et quelle décision tactique vous recommandez.",
-      en: "From your session results, state whether the cycle is compliant, whether replenishment is required, and which tactical decision you recommend.",
+      fr: "À partir des preuves de votre session (réception, putaway, stock, Q), indiquez si le cycle est conforme, si la priorité (minimum 10) est protégée, si Q = 0 est correct, et quelle décision tactique vous recommandez — sans correction artificielle.",
+      en: "From your session evidence (receipt, putaway, stock, Q), state whether the cycle is compliant, whether the priority (minimum 10) is protected, whether Q = 0 is correct, and which tactical decision you recommend — without artificial correction.",
     },
   },
   "SCN-016": {
     m5_decision: {
-      fr: "À partir du stock réconcilié, indiquez si un réapprovisionnement est nécessaire et expliquez votre décision. Réconcilier d'abord, décider ensuite.",
-      en: "From reconciled stock, state whether replenishment is required and explain your decision. Reconcile first, decide afterward.",
+      fr: "À partir du stock réconcilié (corrigé 45 · min 10), indiquez si un réapprovisionnement est nécessaire et expliquez votre décision. Réconcilier d'abord, décider ensuite — ajustement ≠ réappro.",
+      en: "From reconciled stock (corrected 45 · min 10), state whether replenishment is required and explain your decision. Reconcile first, decide next — adjustment ≠ replenishment.",
     },
   },
   "SCN-017": {
     m5_decision: {
-      fr: "À partir d'au moins deux KPI de votre snapshot, choisissez une priorité stratégique, expliquez le compromis et indiquez l'horizon de suivi.",
-      en: "From at least two KPIs in your snapshot, choose a strategic priority, explain the trade-off, and state the follow-up horizon.",
+      fr: "Présentez le bilan du quart : citez ≥3 preuves de votre session, puis diagnostic, priorité, compromis, horizon et recommandation. Interdit : 6× / 95 % / 4 % / OTIF inventé / backlog inventé.",
+      en: "Present the shift review: cite ≥3 session evidence items, then diagnostic, priority, trade-off, horizon and recommendation. Forbidden: 6× / 95% / 4% / invented OTIF / invented backlog.",
     },
   },
 };
@@ -133,8 +133,8 @@ const DEFAULT_QUESTIONS: Record<string, Bilingual> = {
     en: "From reconciled stock, state whether replenishment is required and explain your decision. Reconcile first, decide afterward.",
   },
   m5_decision_strategic: {
-    fr: "À partir d'au moins deux KPI de votre snapshot, choisissez une priorité stratégique, expliquez le compromis et indiquez l'horizon de suivi.",
-    en: "From at least two KPIs in your snapshot, choose a strategic priority, explain the trade-off, and state the follow-up horizon.",
+    fr: "Présentez le bilan du quart : citez ≥3 preuves de votre session, puis diagnostic, priorité, compromis, horizon et recommandation.",
+    en: "Present the shift review: cite ≥3 session evidence items, then diagnostic, priority, trade-off, horizon and recommendation.",
   },
 };
 
@@ -222,7 +222,7 @@ export function getM5DecisionStepTitle(
   isM5Strategic: boolean,
 ): Bilingual {
   if (isM5Strategic || scnCode === "SCN-017") {
-    return { fr: "Décision stratégique", en: "Strategic decision" };
+    return { fr: "Bilan du quart — défense stratégique", en: "Shift review — strategic defense" };
   }
   if (scnCode === "SCN-016") {
     return { fr: "Décision tactique après réconciliation", en: "Tactical decision after reconciliation" };
@@ -238,8 +238,8 @@ export function getM5ResponseGuidance(
 ): string {
   if (isM5Strategic || scnCode === "SCN-017") {
     return language === "FR"
-      ? "Citez deux KPI, une priorité, un compromis et un horizon. 4 à 6 phrases suffisent."
-      : "Cite two KPIs, one priority, one trade-off, and a horizon. 4–6 sentences are enough.";
+      ? "Structure : ≥3 preuves · diagnostic · priorité · compromis · horizon · recommandation. 4 à 8 phrases."
+      : "Structure: ≥3 evidence · diagnostic · priority · trade-off · horizon · recommendation. 4–8 sentences.";
   }
   if (scnCode === "SCN-016") {
     return language === "FR"

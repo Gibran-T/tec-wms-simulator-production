@@ -32,19 +32,19 @@ describe("analyticalStepQuestions — M5 run-to-decision", () => {
   it("SCN-015/016/017 titles and guidance", () => {
     expect(getM5DecisionStepTitle("SCN-015", false).fr).toBe("Décision tactique");
     expect(getM5DecisionStepTitle("SCN-016", false).fr).toContain("réconciliation");
-    expect(getM5DecisionStepTitle("SCN-017", true).fr).toBe("Décision stratégique");
+    expect(getM5DecisionStepTitle("SCN-017", true).fr).toMatch(/Bilan du quart/i);
 
     expect(getM5ResponseGuidance("SCN-015", false, "FR")).toMatch(/conformité|réappro/i);
     expect(getM5ResponseGuidance("SCN-015", false, "FR").toLowerCase()).not.toContain("min. 5");
     expect(getM5ResponseGuidance("SCN-016", false, "FR")).toMatch(/r[eé]concili/i);
     expect(getM5ResponseGuidance("SCN-016", false, "FR")).toMatch(/2 à 3 phrases/i);
-    expect(getM5ResponseGuidance("SCN-017", true, "FR")).toMatch(/kpi|priorit|compromis|horizon/i);
+    expect(getM5ResponseGuidance("SCN-017", true, "FR")).toMatch(/≥3|preuves|priorit|compromis|horizon/i);
   });
 
   it("SCN-015 question asks session-based tactical decision without forcing a problem", () => {
     const text = getAnalyticalQuestionText("m5_decision", "SCN-015", "FR", false);
-    expect(text.toLowerCase()).toMatch(/session|r[eé]sultats/);
-    expect(text.toLowerCase()).toMatch(/conforme|r[eé]appro/);
+    expect(text.toLowerCase()).toMatch(/session|preuves/);
+    expect(text.toLowerCase()).toMatch(/conforme|priorit|q\s*=\s*0/);
     expect(questionContainsAnswerLeakage(text)).toBe(false);
   });
 
@@ -54,11 +54,12 @@ describe("analyticalStepQuestions — M5 run-to-decision", () => {
     expect(text.toLowerCase()).toMatch(/r[eé]appro/);
   });
 
-  it("SCN-017 question asks snapshot KPI priority trade-off horizon", () => {
+  it("SCN-017 question asks ≥3 session evidence and defense dimensions", () => {
     const text = getAnalyticalQuestionText("m5_decision", "SCN-017", "FR", true);
-    expect(text.toLowerCase()).toMatch(/kpi|snapshot/);
+    expect(text).toMatch(/≥3|au moins 3/i);
+    expect(text.toLowerCase()).toMatch(/preuves?/);
     expect(text.toLowerCase()).toMatch(/priorit/);
-    expect(text.toLowerCase()).toMatch(/compromis|horizon/);
+    expect(text.toLowerCase()).toMatch(/compromis|horizon|recommand/);
     expect(text).not.toMatch(/2400|48\s*000/);
   });
 });

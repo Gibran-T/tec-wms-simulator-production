@@ -36,7 +36,7 @@ describe("analyticalStepQuestions — Slice B", () => {
   it("SCN-015/016 tactical titles vs SCN-017 strategic", () => {
     expect(getM5DecisionStepTitle("SCN-015", false).fr).toBe("Décision tactique");
     expect(getM5DecisionStepTitle("SCN-016", false).fr).toContain("réconciliation");
-    expect(getM5DecisionStepTitle("SCN-017", true).fr).toBe("Décision stratégique");
+    expect(getM5DecisionStepTitle("SCN-017", true).fr).toMatch(/Bilan du quart/i);
     expect(getM5DecisionStepTitle("SCN-015", false).fr).not.toContain("stratégique");
   });
 
@@ -77,10 +77,12 @@ describe("analyticalStepQuestions — Slice B", () => {
     expect(text.toLowerCase()).toMatch(/r[eé]concil/);
   });
 
-  it("SCN-017 asks for snapshot KPIs, priority, trade-off, horizon", () => {
+  it("SCN-017 asks for ≥3 session evidence and six defense dimensions", () => {
     const text = getAnalyticalQuestionText("m5_decision", "SCN-017", "FR", true);
-    expect(text.toLowerCase()).toMatch(/kpi|snapshot/);
-    expect(text.toLowerCase()).toMatch(/compromis|horizon|priorit/);
+    expect(text).toMatch(/≥3|au moins 3/i);
+    expect(text.toLowerCase()).toMatch(/preuves?/);
+    expect(text.toLowerCase()).toMatch(/diagnostic/);
+    expect(text.toLowerCase()).toMatch(/compromis|horizon|priorit|recommand/);
   });
 
   it("legacy leakage patterns are detected by helper", () => {

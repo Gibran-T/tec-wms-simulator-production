@@ -105,17 +105,21 @@ describe("RC21-C.1A — enterprise operational contracts", () => {
     });
   });
 
-  describe("SCN-017 — M5 strategic KPI runtime authority", () => {
+  describe("SCN-017 — M5 shift-review defense (session evidence)", () => {
     const mission = EXTENDED_MISSIONS["SCN-017"];
 
-    it("does not cite static portfolio KPI values in technicalSpecs", () => {
+    it("does not cite static portfolio KPI values and requires session evidence", () => {
       const qty = String(mission.technicalSpecs.quantity);
       expect(qty).not.toContain("rotation");
       expect(qty).not.toContain("95%");
       expect(qty).not.toContain("48000");
       expect(mission.technicalSpecs.lotNumber).toBe("LOT-M5-A");
-      expect(mission.context).toMatch(/M5_KPI runtime/i);
-      expect(mission.supervisorNotes).toMatch(/snapshot|M5_KPI/i);
+      expect(mission.objective).toMatch(/bilan du quart/i);
+      expect(mission.context).toMatch(/≥3 preuves|preuves de VOTRE session/i);
+      expect(mission.context).toMatch(/SCN-015/);
+      expect(mission.context).toMatch(/SCN-016/);
+      expect(mission.supervisorNotes).toMatch(/session courante|preuves/i);
+      expect(mission.controlPoints.join(" ")).toMatch(/Continuité scellée/);
     });
   });
 });

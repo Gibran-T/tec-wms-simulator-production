@@ -199,8 +199,8 @@ export const SCN_PROCESS_FAMILY: Record<string, string[]> = {
   "SCN-012": ["PROC-KPI", "PROC-STOCK"],
   "SCN-013": ["PROC-KPI", "PROC-SO"],
   "SCN-014": ["PROC-KPI"],
-  "SCN-015": ["PROC-PEAK", "PROC-GR", "PROC-PUT"],
-  "SCN-016": ["PROC-PEAK", "PROC-PICK", "PROC-SHIP", "PROC-CC"],
+  "SCN-015": ["PROC-PEAK", "PROC-GR", "PROC-PUT", "PROC-STOCK"],
+  "SCN-016": ["PROC-PEAK", "PROC-GR", "PROC-PUT", "PROC-CC", "PROC-ADJ"],
   "SCN-017": ["PROC-PEAK", "PROC-KPI"],
 };
 

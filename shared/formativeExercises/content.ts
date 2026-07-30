@@ -626,10 +626,10 @@ export const M5_PREP_TRUE_FALSE: Array<{
   },
 ];
 
-/** M5 Consolidation case — no priority-fulfillment claims (not in runtime yet) */
+/** M5 Consolidation — sealed M5 contract values (SCN-015/016 continuity), no OTIF/GI claims */
 export const M5_CONS_FACTS: LocalizedText = {
-  fr: "Réception terminée · Putaway terminé · Système 32 · Physique 29 · Écart −3 · Ajustement posté · Corrigé 29 · Min 20 · Max 70 · Q = 0 · Conformité du cycle à confirmer.",
-  en: "Receiving done · Putaway done · System 32 · Physical 29 · Variance −3 · Adjustment posted · Corrected 29 · Min 20 · Max 70 · Q = 0 · Cycle compliance to confirm.",
+  fr: "Ce qui s'est passé : réception 50 + putaway · système 50 · physique 45 · écart −5 · ajustement −5 · stock corrigé 45 · min 10 · Q = 0 · priorité CLI-PRIORITAIRE-A (min respecté). Pourquoi : réconcilier avant de décider. Preuves qui comptent : parcours, variance, exactitude, stock corrigé, Q. Décision correcte : Q = 0. Prochain quart : surveiller conformité / prochains comptages.",
+  en: "What happened: receipt 50 + putaway · system 50 · physical 45 · variance −5 · adjustment −5 · corrected 45 · min 10 · Q = 0 · priority CLI-PRIORITAIRE-A (min met). Why: reconcile before deciding. Evidence that mattered: journey, variance, accuracy, corrected stock, Q. Correct decision: Q = 0. Next shift: monitor compliance / next counts.",
 };
 
 /** M5 Cons — block 1 evidence colors */
@@ -650,7 +650,7 @@ export const M5_CONS_EVIDENCE_COLORS: Array<{
   },
   {
     id: "q0",
-    label: { fr: "Q = 0 avec stock corrigé 29 ≥ min 20", en: "Q = 0 with corrected 29 ≥ min 20" },
+    label: { fr: "Q = 0 avec stock corrigé 45 ≥ min 10", en: "Q = 0 with corrected 45 ≥ min 10" },
     color: "vert",
   },
   {
@@ -661,8 +661,8 @@ export const M5_CONS_EVIDENCE_COLORS: Array<{
   {
     id: "systeme_brut",
     label: {
-      fr: "Utiliser 32 (système brut) comme base après ajustement",
-      en: "Use 32 (raw system) as base after adjustment",
+      fr: "Utiliser 50 (système brut) comme base après ajustement",
+      en: "Use 50 (raw system) as base after adjustment",
     },
     color: "rouge",
   },
@@ -694,14 +694,14 @@ export const M5_CONS_ASSOC: Array<{
   {
     id: "e1",
     evidence: {
-      fr: "Ajustement posté, stock corrigé 29",
-      en: "Adjustment posted, corrected stock 29",
+      fr: "Ajustement posté, stock corrigé 45",
+      en: "Adjustment posted, corrected stock 45",
     },
     decisionId: "dec_base",
   },
   {
     id: "e2",
-    evidence: { fr: "Minimum 20 · stock corrigé 29", en: "Minimum 20 · corrected stock 29" },
+    evidence: { fr: "Minimum 10 · stock corrigé 45", en: "Minimum 10 · corrected stock 45" },
     decisionId: "dec_q0",
   },
   {
@@ -764,8 +764,8 @@ export const M5_CONS_TRUE_FALSE: Array<{
   {
     id: "tf1",
     statement: {
-      fr: "Dans ce run, Q = 0 est cohérent car 29 ≥ 20.",
-      en: "In this run, Q = 0 is coherent because 29 ≥ 20.",
+      fr: "Dans ce run, Q = 0 est cohérent car 45 ≥ 10.",
+      en: "In this run, Q = 0 is coherent because 45 ≥ 10.",
     },
     answer: true,
     why: {
@@ -796,13 +796,13 @@ export const M5_CONS_TRUE_FALSE: Array<{
   {
     id: "tf3",
     statement: {
-      fr: "Après ajustement, la base reste le stock système 32.",
-      en: "After adjustment, the base remains system stock 32.",
+      fr: "Après ajustement, la base reste le stock système 50.",
+      en: "After adjustment, the base remains system stock 50.",
     },
     answer: false,
     why: {
-      fr: "Incorrect : la base est le stock corrigé 29.",
-      en: "Incorrect: the base is corrected stock 29.",
+      fr: "Incorrect : la base est le stock corrigé 45.",
+      en: "Incorrect: the base is corrected stock 45.",
     },
     rule: {
       fr: "Règle : post-réconciliation, utiliser le stock corrigé.",
@@ -833,16 +833,16 @@ export const M5_CONS_ACTIONS: Array<{
   {
     id: "x3",
     label: {
-      fr: "Commander pour atteindre le maximum 70 sans besoin",
-      en: "Order to reach maximum 70 without need",
+      fr: "Commander pour atteindre le maximum 100 sans besoin",
+      en: "Order to reach maximum 100 without need",
     },
     bucket: "rejeter",
   },
   {
     id: "x4",
     label: {
-      fr: "Ignorer l’ajustement et décider sur 32",
-      en: "Ignore adjustment and decide on 32",
+      fr: "Ignorer l’ajustement et décider sur 50",
+      en: "Ignore adjustment and decide on 50",
     },
     bucket: "rejeter",
   },

@@ -300,23 +300,23 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "5-1":
       return (
-        <VisualFrame title="M5 · Piloter sous contrainte" subtitle="Capstone opérationnel" accent={accent}>
+        <VisualFrame title="M5 · Piloter sous contrainte" subtitle="Superviseur d'exploitation — quart de clôture" accent={accent}>
           <FlowPipeline steps={["EXÉCUTER", "MESURER", "RÉCONCILIER", "ARBITRER", "DÉFENDRE"]} accent={accent} />
           <p className="text-[10px] text-muted-foreground text-center mt-3 leading-snug">
-            Vos opérations produisent les preuves que vous devrez interpréter et défendre
+            Mission cumulative SCN-015 → SCN-016 → SCN-017 — preuves de session uniquement
           </p>
         </VisualFrame>
       );
     case "5-2":
       return (
-        <VisualFrame title="SCN-015 · Cycle nominal" subtitle="Décider sans correction artificielle" accent={accent}>
+        <VisualFrame title="SCN-015 · Priorité sans désorganiser" subtitle="Aucune variance · Q = 0 · pas de correction artificielle" accent={accent}>
           <FlowVertical
             steps={[
-              "Opérations complétées",
+              "Réception 50 + putaway",
               "Aucune variance ouverte",
-              "Stock final vs minimum",
+              "Priorité CLI-PRIORITAIRE-A (min 10)",
               "Q = 0 valide",
-              "Décision tactique + suivi",
+              "Décision tactique sans correction artificielle",
             ]}
             accent={accent}
           />
@@ -338,19 +338,20 @@ function renderBySlide({ moduleId, slideId, accent }: PremiumVisualProps) {
       );
     case "5-4":
       return (
-        <VisualFrame title="SCN-017 · Défendre la décision" subtitle="Preuves de session → recommandation" accent={accent}>
+        <VisualFrame title="SCN-017 · Bilan du quart" subtitle="Preuves de session → recommandation" accent={accent}>
           <FlowVertical
             steps={[
-              "Preuves de session",
+              "Preuves de session (≥3)",
+              "Diagnostic",
               "Priorité",
               "Compromis",
               "Horizon",
-              "Recommandation professionnelle",
+              "Recommandation",
             ]}
             accent={accent}
           />
           <p className="text-[10px] text-muted-foreground text-center mt-3 leading-snug">
-            Preuve opérationnelle · stock final · variance · délai · conformité
+            Parcours · variance · exactitude · stock · Q · conformité
           </p>
         </VisualFrame>
       );

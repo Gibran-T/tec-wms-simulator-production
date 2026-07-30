@@ -219,70 +219,97 @@ export const SCENARIO_COCKPIT_PEDAGOGY: Record<string, CockpitPedagogy> = {
   "SCN-015": {
     scnCode: "SCN-015",
     situation: {
-      fr: "Cycle M5 nominal intégré — exécuter, vérifier, décider.",
-      en: "Nominal integrated M5 cycle — execute, verify, decide.",
+      fr: "Quart 1/3 — protéger CLI-PRIORITAIRE-A sans désorganiser le flux inbound.",
+      en: "Shift 1/3 — protect CLI-PRIORITAIRE-A without disrupting the inbound flow.",
     },
     evidenceToObserve: {
-      fr: "Preuves du run : réception, putaway, comptage, réappro, snapshot KPI.",
-      en: "Run evidence: reception, putaway, count, replenish, KPI snapshot.",
+      fr: "Réception 50 · putaway · stock final · Q · conformité — aucune variance ouverte.",
+      en: "Receipt 50 · putaway · final stock · Q · compliance — no open variance.",
     },
-    operationalProblem: { fr: "Décision tactique — Q = 0 peut être correct si le stock est suffisant.", en: "Tactical decision — Q = 0 can be correct if stock is sufficient." },
+    operationalProblem: {
+      fr: "Protéger le minimum 10 et accepter Q = 0 — sans correction artificielle.",
+      en: "Protect minimum 10 and accept Q = 0 — without artificial correction.",
+    },
     expectedActionHint: {
-      fr: "Confirmer conformité du cycle ; réappro seulement si besoin ; maintenir/surveiller.",
-      en: "Confirm cycle compliance; replenish only if needed; maintain/monitor.",
+      fr: "Réception + putaway → vérifier stock ≥ min → Q = 0 → décision tactique.",
+      en: "Receipt + putaway → verify stock ≥ min → Q = 0 → tactical decision.",
     },
     emptyStockNote: {
-      fr: "Stock vide au départ — normal. La première preuve apparaît après M5_RECEPTION.",
-      en: "Empty stock at start — expected. First evidence appears after M5_RECEPTION.",
+      fr: "Stock initial 0 — attendu. Première preuve après réception.",
+      en: "Initial stock 0 — expected. First evidence after receipt.",
     },
-    transactionMonitorHint: { fr: "Chaque étape ops alimente les KPI du run.", en: "Each ops step feeds run KPIs." },
-    complianceHint: { fr: "COMPLIANCE_M5 après cycle complet.", en: "COMPLIANCE_M5 after complete cycle." },
-    learningTakeaway: { fr: "Un cycle nominal n'exige pas d'inventer un problème.", en: "A nominal cycle does not require inventing a problem." },
+    transactionMonitorHint: {
+      fr: "Chaque étape ops alimente les preuves de session (pas de picking/GI inventés).",
+      en: "Each ops step feeds session evidence (no invented pick/GI).",
+    },
+    complianceHint: {
+      fr: "Clôturer seulement si le cycle est conforme et Q cohérent.",
+      en: "Close only if the cycle is compliant and Q is coherent.",
+    },
+    learningTakeaway: {
+      fr: "Une opération conforme ne nécessite pas une correction artificielle.",
+      en: "A compliant operation does not require an artificial correction.",
+    },
   },
   "SCN-016": {
     scnCode: "SCN-016",
     situation: {
-      fr: "Cycle M5 avec écart inventaire — réconcilier avant de décider.",
-      en: "M5 cycle with inventory variance — reconcile before deciding.",
+      fr: "Quart 2/3 — écart −5 (50→45) ; réconcilier avant toute décision de stock.",
+      en: "Shift 2/3 — variance −5 (50→45); reconcile before any stock decision.",
     },
     evidenceToObserve: {
-      fr: "Comptage avec écart → ajustement → stock corrigé → KPI/réappro.",
-      en: "Count with variance → adjustment → corrected stock → KPI/replenish.",
+      fr: "Système 50 · physique 45 · ADJ −5 · stock corrigé 45 · exactitude · Q = 0.",
+      en: "System 50 · physical 45 · ADJ −5 · corrected 45 · accuracy · Q = 0.",
     },
-    operationalProblem: { fr: "Réconcilier d'abord, décider ensuite.", en: "Reconcile first, decide afterward." },
+    operationalProblem: { fr: "Réconcilier d'abord, décider ensuite.", en: "Reconcile first, decide next." },
     expectedActionHint: {
-      fr: "Ajuster l'écart, puis décider sur le stock corrigé (réappro ou Q = 0).",
-      en: "Adjust variance, then decide on corrected stock (replenish or Q = 0).",
+      fr: "Comptage → ajustement −5 → décider Q sur stock corrigé (Q = 0 si ≥ min 10).",
+      en: "Count → adjustment −5 → decide Q on corrected stock (Q = 0 if ≥ min 10).",
     },
-    transactionMonitorHint: { fr: "Vérifiez les mouvements avant et après l'ajustement.", en: "Verify movements before and after adjustment." },
+    transactionMonitorHint: {
+      fr: "Décision bloquée tant que l'écart reste ouvert.",
+      en: "Decision blocked while variance remains open.",
+    },
     complianceHint: { fr: "Ne clôturez pas avec écart ouvert.", en: "Do not close with open variance." },
-    learningTakeaway: { fr: "Les exceptions inventaire se traitent avant le pilotage.", en: "Inventory exceptions are handled before steering." },
+    learningTakeaway: {
+      fr: "Correction et réapprovisionnement sont deux décisions distinctes.",
+      en: "Correction and replenishment are two separate decisions.",
+    },
   },
   "SCN-017": {
     scnCode: "SCN-017",
     situation: {
-      fr: "Capstone M5 — décision stratégique à partir du snapshot de votre session.",
-      en: "M5 capstone — strategic decision from your session snapshot.",
+      fr: "Quart 3/3 — présenter le bilan et défendre le prochain plan d'action.",
+      en: "Shift 3/3 — present the shift review and defend the next action plan.",
     },
     evidenceToObserve: {
-      fr: "Snapshot M5_KPI runtime après le cycle ops — source autoritaire.",
-      en: "Runtime M5_KPI snapshot after ops cycle — authoritative source.",
+      fr: "≥3 preuves de VOTRE session : parcours · variance · exactitude · stock · Q · conformité.",
+      en: "≥3 proofs from YOUR session: journey · variance · accuracy · stock · Q · compliance.",
     },
     operationalProblem: {
-      fr: "Preuves → priorité → compromis → horizon. Pas les valeurs du Module 4.",
-      en: "Evidence → priority → trade-off → horizon. Not Module 4 values.",
+      fr: "Preuves → diagnostic → priorité → compromis → horizon → recommandation.",
+      en: "Evidence → diagnostic → priority → trade-off → horizon → recommendation.",
     },
     expectedActionHint: {
-      fr: "Lire le snapshot de session → décision stratégique concise (4–6 phrases).",
-      en: "Read session snapshot → concise strategic decision (4–6 sentences).",
+      fr: "Utilisez le moniteur de session + continuité scellée 015/016 — pas le portfolio M4.",
+      en: "Use the session monitor + sealed 015/016 continuity — not the M4 portfolio.",
     },
-    transactionMonitorHint: { fr: "Consultez les KPI agrégés — pas de nouvelle transaction requise.", en: "Review aggregated KPIs — no new transaction required." },
+    transactionMonitorHint: {
+      fr: "Continuité pédagogique scellée : SCN-015 (Q=0, priorité) · SCN-016 (écart −5 réconcilié).",
+      en: "Sealed pedagogical continuity: SCN-015 (Q=0, priority) · SCN-016 (variance −5 reconciled).",
+    },
     emptyStockNote: {
-      fr: "Complétez d'abord le cycle ops → KPI. La décision stratégique vient après les preuves.",
-      en: "Complete ops → KPI first. Strategic decision comes after evidence.",
+      fr: "Complétez d'abord le cycle ops de cette session — la défense s'appuie sur ses preuves.",
+      en: "Complete this session's ops cycle first — the defense rests on its evidence.",
     },
-    complianceHint: { fr: "Décision liée aux KPI avant COMPLIANCE_M5.", en: "Decision linked to KPIs before COMPLIANCE_M5." },
-    learningTakeaway: { fr: "Le capstone exige synthèse et justification KPI de session.", en: "The capstone requires synthesis and session KPI justification." },
+    complianceHint: {
+      fr: "Bilan défendu avec ≥3 preuves avant clôture.",
+      en: "Shift review defended with ≥3 evidence items before closing.",
+    },
+    learningTakeaway: {
+      fr: "Les preuves viennent de votre session ; la décision vient de votre raisonnement.",
+      en: "Evidence comes from your session; the decision comes from your reasoning.",
+    },
   },
 };
 

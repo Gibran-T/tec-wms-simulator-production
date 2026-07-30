@@ -1127,17 +1127,17 @@ export default function StepForm() {
       const objective =
         scnCode === "SCN-016"
           ? {
-              fr: "Réconcilier d'abord, décider ensuite. Basez votre décision sur le stock corrigé et les KPI du run.",
-              en: "Reconcile first, decide afterward. Base your decision on corrected stock and run KPIs.",
+              fr: "Réconcilier d'abord, décider ensuite. Basez votre décision sur le stock corrigé (45 · min 10) — ajustement ≠ réappro.",
+              en: "Reconcile first, decide next. Base your decision on corrected stock (45 · min 10) — adjustment ≠ replenishment.",
             }
           : isM5Strategic || scnCode === "SCN-017"
             ? {
-                fr: "Décision stratégique : citez ≥2 KPI du snapshot de session, une priorité, un compromis et un horizon de revue.",
-                en: "Strategic decision: cite ≥2 KPIs from the session snapshot, one priority, one trade-off, and a review horizon.",
+                fr: "Bilan du quart : citez ≥3 preuves de votre session, puis diagnostic → priorité → compromis → horizon → recommandation.",
+                en: "Shift review: cite ≥3 session evidence items, then diagnostic → priority → trade-off → horizon → recommendation.",
               }
             : {
-                fr: "Décision tactique : le cycle est-il conforme ? Un réapprovisionnement est-il nécessaire ? Que maintenir ou surveiller ?",
-                en: "Tactical decision: is the cycle compliant? Is replenishment required? What to maintain or monitor?",
+                fr: "Décision tactique : cycle conforme ? Priorité (min 10) protégée ? Q = 0 correct ? Pas de correction artificielle.",
+                en: "Tactical decision: cycle compliant? Priority (min 10) protected? Q = 0 correct? No artificial correction.",
               };
       next = {
         ...next,

@@ -59,6 +59,7 @@ import {
   isM4PortfolioOnlyEvidence,
   type M5SessionEvidenceV1,
 } from "../shared/m5SessionEvidence";
+import { buildCanonicalM5ContractFields } from "../shared/m5CapstoneMission";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -2436,7 +2437,7 @@ export const MODULE5_STEPS = [
   { code: "M5_CYCLE_COUNT", labelFr: "Inventaire cyclique", labelEn: "Cycle Count", order: 3, prerequisite: "M5_PUTAWAY", moduleId: 5 },
   { code: "M5_REPLENISH", labelFr: "Réapprovisionnement", labelEn: "Replenishment", order: 4, prerequisite: "M5_CYCLE_COUNT", moduleId: 5 },
   { code: "M5_KPI", labelFr: "Calcul des KPI", labelEn: "KPI Calculation", order: 5, prerequisite: "M5_REPLENISH", moduleId: 5 },
-  { code: "M5_DECISION", labelFr: "Décision stratégique", labelEn: "Strategic Decision", order: 6, prerequisite: "M5_KPI", moduleId: 5 },
+  { code: "M5_DECISION", labelFr: "Bilan du quart / décision", labelEn: "Shift review / decision", order: 6, prerequisite: "M5_KPI", moduleId: 5 },
   { code: "COMPLIANCE_M5", labelFr: "Validation finale M5", labelEn: "M5 Final Validation", order: 7, prerequisite: "M5_DECISION", moduleId: 5 }
 ];
 
@@ -2445,6 +2446,12 @@ export type M5CycleCountTarget = {
   bin: string;
   systemQty: number;
   physicalQty: number;
+};
+
+export type M5PriorityRequirement = {
+  customerCode: string;
+  reservedQty: number;
+  note?: string;
 };
 
 export type M5Contract = {
@@ -2460,6 +2467,11 @@ export type M5Contract = {
   kpiData?: KpiData;
   replenishmentParams?: { minQty: number; maxQty: number; safetyStock: number };
   profile?: "NOMINAL_INTEGRATED" | "EXCEPTION_VARIANCE" | "STRATEGIC_CAPSTONE";
+  /** Closing-shift priority constraint (single-SKU) — not a pick/GI event. */
+  priorityRequirement?: M5PriorityRequirement;
+  initialStockQty?: number;
+  storageCapacity?: number;
+  operationalWindow?: string;
 };
 
 export type M5InitialStateJson = {
@@ -2508,7 +2520,20 @@ const M5_ADJ_STEP = {
 };
 
 export function getM5ContractFromSeed(initialStateJson?: M5InitialStateJson | null): M5Contract | undefined {
-  return initialStateJson?.m5Contract;
+  const raw = initialStateJson?.m5Contract;
+  if (!raw) return undefined;
+  // Merge canonical closing-shift fields when older DB seeds omit them (no migration).
+  const profile = raw.profile ?? "NOMINAL_INTEGRATED";
+  const canonical = buildCanonicalM5ContractFields(profile);
+  return {
+    ...canonical,
+    ...raw,
+    replenishmentParams: raw.replenishmentParams ?? canonical.replenishmentParams,
+    priorityRequirement: raw.priorityRequirement ?? canonical.priorityRequirement,
+    initialStockQty: raw.initialStockQty ?? canonical.initialStockQty,
+    storageCapacity: raw.storageCapacity ?? canonical.storageCapacity,
+    operationalWindow: raw.operationalWindow ?? canonical.operationalWindow,
+  };
 }
 
 export function getM5KpiDataFromSeed(initialStateJson?: M5InitialStateJson | null): KpiData {
@@ -3183,6 +3208,24 @@ export function scoreM5Decision(
   const nominal =
     matchConceptGroup(text, CG_M5_NOMINAL) || matchConceptGroup(text, CG_M5_Q_ZERO);
   const varianceAware = matchConceptGroup(text, CG_M5_VARIANCE_AWARE);
+  const protectsPriority = hasAnyTerm(text, [
+    "prioritaire",
+    "priorite client",
+    "priorité client",
+    "commande prioritaire",
+    "cli-prioritaire",
+    "minimum",
+    "proteger",
+    "protéger",
+  ]);
+  const rejectsArtificialAdj = hasAnyTerm(text, [
+    "correction artificielle",
+    "ajustement inutile",
+    "pas d'ajustement",
+    "aucun ajustement",
+    "sans ajustement",
+    "pas de correction",
+  ]);
 
   if (hasAnyTerm(text, ["preuve", "evidence", "stock", "variance", "ecart", "écart"])) {
     score += 10;
@@ -3204,6 +3247,15 @@ export function scoreM5Decision(
   } else if (hasAnyTerm(text, ["reapprovisionnement", "réapprovisionnement", "commander", "stock"])) {
     score += 15;
     feedbackParts.push("✓ Action de stock / réapprovisionnement proposée");
+  }
+
+  if (protectsPriority) {
+    score += 10;
+    feedbackParts.push("✓ Priorité / minimum protégés");
+  }
+  if (rejectsArtificialAdj || (nominal && !varianceAware)) {
+    score += 5;
+    feedbackParts.push("✓ Pas de correction artificielle");
   }
 
   if (varianceAware) {

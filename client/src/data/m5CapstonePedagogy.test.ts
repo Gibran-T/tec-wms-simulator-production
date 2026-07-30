@@ -31,9 +31,9 @@ const M4_SNAPSHOT_AS_SESSION = [
 
 const TARGET_TITLES_FR = [
   "M5 — Piloter une opération sous contrainte",
-  "SCN-015 — Décider après un cycle nominal",
+  "SCN-015 — Protéger une commande prioritaire sans désorganiser le flux",
   "SCN-016 — Réconcilier avant de décider",
-  "SCN-017 — Défendre une décision stratégique",
+  "SCN-017 — Présenter le bilan du quart et défendre le prochain plan d'action",
   "TEC.LOG complété — Vous savez piloter",
 ];
 
@@ -98,10 +98,11 @@ describe("M5 capstone slides — titles and student bodies", () => {
 
   it("closes with M1–M5 progression competencies", () => {
     const body = m5.slides[4].bodyFr.join(" ");
-    expect(body).toMatch(/M1/);
-    expect(body).toMatch(/M5/);
-    expect(body.toLowerCase()).toMatch(/piloter/);
-    expect(body.toLowerCase()).toMatch(/d[eé]fendre/);
+    expect(body).toMatch(/M1 — Comprendre/);
+    expect(body).toMatch(/M2 — Exécuter/);
+    expect(body).toMatch(/M3 — Contrôler/);
+    expect(body).toMatch(/M4 — Analyser/);
+    expect(body).toMatch(/M5 — Piloter et décider/);
   });
 
   it("does not attach the VLS warehouse image to M5 student slides", () => {
