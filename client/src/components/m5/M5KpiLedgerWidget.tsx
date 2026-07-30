@@ -1,17 +1,7 @@
 import React from "react";
 import { Activity } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import {
-  formatLeadTime,
-  formatPercent,
-  formatRotation,
-  formatStockValue,
-  getErrorBand,
-  getLeadTimeBand,
-  getRotationBand,
-  getServiceBand,
-  bandToBgClass,
-} from "./m5KpiDisplayUtils";
+import type { M5SessionEvidenceV1 } from "../../../../shared/m5SessionEvidence";
 
 type M5Evidence = {
   receivedQty: number;
@@ -20,18 +10,24 @@ type M5Evidence = {
   varianceQty: number;
   varianceResolved: boolean;
   stockQtyAtBin: number;
+  replenishmentQty?: number | null;
 };
 
 type M5KpiLedgerPayload = {
-  kpiData: { avgLeadTimeDays: number; stockValue: number };
-  kpiResult: {
-    rotationRate: number;
-    serviceLevel: number;
-    errorRate: number;
-    stockImmobilizedValue: number;
-  };
   evidence: M5Evidence;
+  sessionEvidence?: M5SessionEvidenceV1 | null;
+  legacyPortfolioHidden?: boolean;
 };
+
+function fmtPct(v: number | undefined): string {
+  if (v == null) return "—";
+  return `${(v * 100).toFixed(0)}%`;
+}
+
+function fmtNum(v: number | undefined | null): string {
+  if (v == null) return "—";
+  return String(v);
+}
 
 export default function M5KpiLedgerWidget({
   ledger,
@@ -42,53 +38,54 @@ export default function M5KpiLedgerWidget({
   scnCode: string | null;
   isLoading?: boolean;
 }) {
-  const { t, language } = useLanguage();
+  const { t } = useLanguage();
   const evidence = ledger?.evidence;
-  const kpiResult = ledger?.kpiResult;
-  const kpiData = ledger?.kpiData;
+  const session = ledger?.sessionEvidence;
 
   const showVarianceBadge = scnCode === "SCN-016" && evidence?.varianceResolved;
   const varianceAmber = scnCode === "SCN-016" && evidence && evidence.varianceQty !== 0 && !evidence.varianceResolved;
 
   const tiles = [
     {
-      label: t("Rotation", "Turnover"),
-      value: evidence && evidence.receivedQty > 0 ? formatRotation(kpiResult?.rotationRate) : "—",
-      badge: t("dérivé", "derived"),
-      derived: true,
-      band: kpiResult ? getRotationBand(kpiResult.rotationRate) : "normal",
+      label: t("Taux de complétion du parcours", "Pathway completion rate"),
+      value: fmtPct(session?.sessionJourneyCompletionRate ?? session?.executionCompletionRate),
     },
     {
-      label: t("Service", "Service"),
-      value: kpiResult ? formatPercent(kpiResult.serviceLevel) : "—",
-      badge: t("contexte", "context"),
-      derived: false,
-      band: kpiResult ? getServiceBand(kpiResult.serviceLevel) : "normal",
+      label: t("Exact. avant", "Acc. before"),
+      value: fmtPct(session?.inventoryAccuracyBefore),
     },
     {
-      label: t("Erreurs", "Errors"),
-      value: kpiResult ? formatPercent(kpiResult.errorRate) : "—",
-      badge: t("contexte", "context"),
-      derived: false,
-      band: kpiResult ? getErrorBand(kpiResult.errorRate) : "normal",
+      label: t("Exact. après", "Acc. after"),
+      value: fmtPct(session?.inventoryAccuracyAfter),
     },
     {
-      label: t("Délai", "Lead time"),
-      value: kpiData ? formatLeadTime(kpiData.avgLeadTimeDays) : "—",
-      badge: t("contexte", "context"),
-      derived: false,
-      band: kpiData ? getLeadTimeBand(kpiData.avgLeadTimeDays) : "normal",
+      label: t("Variance", "Variance"),
+      value: session?.varianceInitialQty != null
+        ? (session.varianceInitialQty > 0 ? `+${session.varianceInitialQty}` : String(session.varianceInitialQty))
+        : "—",
     },
     {
-      label: t("Stock $", "Stock $"),
-      value:
-        evidence && evidence.putawayQty > 0
-          ? formatStockValue(kpiResult?.stockImmobilizedValue ?? kpiData?.stockValue, language)
-          : "—",
-      badge: t("dérivé", "derived"),
-      derived: true,
-      band: "normal" as const,
+      label: t("Stock final", "Final stock"),
+      value: fmtNum(session?.finalStockQty ?? evidence?.stockQtyAtBin),
     },
+    {
+      label: t("Q réappro", "Replenish Q"),
+      value: fmtNum(session?.replenishmentQty),
+    },
+    {
+      label: t("Issues non résolues", "Unresolved issues"),
+      value: fmtNum(session?.unresolvedIssueCount),
+    },
+    {
+      label: t("Conformité", "Compliance"),
+      value: session?.finalComplianceStatus ?? "—",
+    },
+    ...(session?.cycleTimeMinutes != null
+      ? [{
+          label: t("Temps simulateur (min)", "Simulator elapsed (min)"),
+          value: fmtNum(session.cycleTimeMinutes),
+        }]
+      : []),
   ];
 
   return (
@@ -96,7 +93,7 @@ export default function M5KpiLedgerWidget({
       <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2 border-b border-border flex items-center gap-2">
         <Activity size={16} className="text-primary" />
         <span className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-          {t("Registre KPI — Peak Week (direct)", "KPI Ledger — Peak Week (live)")}
+          {t("Preuves de session M5", "M5 session evidence")}
         </span>
         {isLoading && (
           <span className="text-[9px] font-mono text-slate-400 ml-auto animate-pulse">
@@ -124,7 +121,12 @@ export default function M5KpiLedgerWidget({
           </span>
           <span>·</span>
           <span>
-            {t("Variance", "Variance")}: {evidence?.varianceQty != null ? (evidence.varianceQty > 0 ? `+${evidence.varianceQty}` : evidence.varianceQty) : "—"}
+            {t("Variance", "Variance")}:{" "}
+            {evidence?.varianceQty != null
+              ? evidence.varianceQty > 0
+                ? `+${evidence.varianceQty}`
+                : evidence.varianceQty
+              : "—"}
           </span>
           <span>·</span>
           <span>
@@ -137,29 +139,39 @@ export default function M5KpiLedgerWidget({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {tiles.map((tile) => (
-            <div
-              key={tile.label}
-              className={`p-2 border text-center ${tile.derived ? bandToBgClass(tile.band) : "bg-slate-50 dark:bg-slate-800/50 border-border"}`}
-            >
+            <div key={tile.label} className="p-2 border text-center bg-slate-50 dark:bg-slate-800/50 border-border">
               <p className="text-[9px] font-bold text-slate-500 uppercase">{tile.label}</p>
               <p className="text-sm font-black font-mono text-foreground mt-0.5">{tile.value}</p>
-              <p
-                className={`text-[8px] font-bold uppercase mt-1 ${
-                  tile.derived ? "text-primary" : "text-slate-400"
-                }`}
-              >
-                [{tile.badge}]
+              <p className="text-[8px] font-bold uppercase mt-1 text-primary">
+                [{t("session", "session")}]
               </p>
             </div>
           ))}
         </div>
 
+        {scnCode === "SCN-016" && session?.correctedStockQty != null && (
+          <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 border-t border-border pt-2">
+            {t(
+              `Réconcilier d'abord : stock corrigé ${session.correctedStockQty} · exactitude avant ${fmtPct(session.inventoryAccuracyBefore)} → après ${fmtPct(session.inventoryAccuracyAfter)}`,
+              `Reconcile first: corrected stock ${session.correctedStockQty} · accuracy before ${fmtPct(session.inventoryAccuracyBefore)} → after ${fmtPct(session.inventoryAccuracyAfter)}`,
+            )}
+          </p>
+        )}
+
+        {(scnCode === "SCN-015" || scnCode === "SCN-017") &&
+          (session?.varianceInitialQty === 0 || evidence?.varianceQty === 0) &&
+          session?.correctedStockQty == null && (
+          <p className="text-[10px] font-medium text-slate-700 dark:text-slate-300 border-t border-border pt-2">
+            {t("Aucun ajustement — cycle nominal.", "No adjustment — nominal cycle.")}
+          </p>
+        )}
+
         <p className="text-[9px] text-slate-500 italic border-t border-border pt-2">
           {t(
-            "dérivé = moniteur · contexte = contrat Peak Week",
-            "derived = monitor · context = Peak Week contract",
+            "Seules les preuves dérivées du run sont affichées. Le portfolio M4 (consommation annuelle, commandes, délais, valeur stock) n'est pas saisi ici.",
+            "Only run-derived evidence is shown. The M4 portfolio (annual consumption, orders, lead times, stock value) is not entered here.",
           )}
         </p>
       </div>

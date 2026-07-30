@@ -53,6 +53,10 @@ import {
   evalKpiServiceShort,
   evalM5DecisionShort,
 } from "../shared/m4m5ShortAnswerContract";
+import {
+  deriveM5SessionEvidenceV1,
+  type M5SessionEvidenceV1,
+} from "../shared/m5SessionEvidence";
 
 export const ZONE_RECEPTION = "RECEPTION";
 export const ZONE_STOCKAGE = "STOCKAGE";
@@ -2621,36 +2625,24 @@ function kpiDataMatchesWithinTolerance(a: KpiData, b: KpiData, pct = 0.05): bool
   return true;
 }
 
-export function validateM5KpiSubmission(
-  submitted: KpiData,
-  derived: KpiData,
-  options: { isDemo: boolean; confirmedFromLedger: boolean },
-): ValidationResult {
+/**
+ * M5_KPI student path: confirm session evidence only.
+ * Legacy Annexe A portfolio fields are never validated as student input.
+ * Server-derived kpi_snapshots rows remain for Gold existence / history.
+ */
+export function validateM5KpiSubmission(options: {
+  isDemo: boolean;
+  confirmedFromLedger: boolean;
+}): ValidationResult {
   if (options.isDemo) {
     return { allowed: true };
   }
   if (!options.confirmedFromLedger) {
     return {
       allowed: false,
-      reason: "Confirm KPI values are anchored to run ledger",
-      reasonFr: "Confirmez que les KPI sont ancrés au moniteur d'exécution (coche requise)",
-      reasonEn: "Confirm KPI values are anchored to run ledger (checkbox required)",
-    };
-  }
-  if (isCanonicalM5KpiPaste(submitted)) {
-    return {
-      allowed: false,
-      reason: "Canonical KPI paste rejected — derive from run ledger",
-      reasonFr: "Coller les valeurs canoniques Annexe A est refusé — calculez depuis le moniteur",
-      reasonEn: "Canonical KPI paste rejected — derive values from run ledger",
-    };
-  }
-  if (!kpiDataMatchesWithinTolerance(submitted, derived, 0.05)) {
-    return {
-      allowed: false,
-      reason: "KPI values must match run-derived ledger within tolerance",
-      reasonFr: "Les KPI doivent correspondre aux valeurs dérivées du moniteur (±5 %)",
-      reasonEn: "KPI values must match run-derived ledger within tolerance (±5%)",
+      reason: "Confirm session evidence from run ledger",
+      reasonFr: "Confirmez les preuves de session dérivées du moniteur d'exécution (coche requise)",
+      reasonEn: "Confirm session evidence from run ledger (checkbox required)",
     };
   }
   return { allowed: true };
@@ -2667,6 +2659,50 @@ export function formatM5KpiEvidenceSource(evidence: M5KpiLedgerEvidence): string
     `replenish=${evidence.replenishmentQty ?? "n/a"}`,
     `stockAtBin=${evidence.stockQtyAtBin}`,
   ].join("|");
+}
+
+/** Build versioned session evidence from a run ledger snapshot (API / scoring). */
+export function buildM5SessionEvidenceFromRunState(input: {
+  initialStateJson?: M5InitialStateJson | null;
+  completedSteps: string[];
+  transactions: M5TransactionRow[];
+  inventoryCounts: M5InventoryCountRow[];
+  inventoryAdjustments: M5InventoryAdjustmentRow[];
+  inventory: Record<string, number>;
+  replenishmentQty?: number | null;
+  runStartedAt?: Date | string | null;
+  runCompletedAt?: Date | string | null;
+  complianceOk?: boolean | null;
+}): { ledger: M5KpiLedgerEvidence; sessionEvidence: M5SessionEvidenceV1; kpiData: KpiData } {
+  const { kpiData, evidence: ledger } = deriveM5KpiFromRunEvidence(input.initialStateJson, {
+    transactions: input.transactions,
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+    inventory: input.inventory,
+    replenishmentQty: input.replenishmentQty,
+  });
+  const effective = getEffectiveM5Steps(input.initialStateJson, {
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+  });
+  const contract = getM5ContractFromSeed(input.initialStateJson);
+  const sessionEvidence = deriveM5SessionEvidenceV1({
+    completedSteps: input.completedSteps,
+    effectiveStepCodes: effective.map((s) => s.code),
+    inventoryCounts: input.inventoryCounts,
+    inventoryAdjustments: input.inventoryAdjustments,
+    transactions: input.transactions,
+    inventory: input.inventory,
+    replenishmentQty: input.replenishmentQty,
+    varianceResolved: ledger.varianceResolved,
+    stockQtyAtBin: ledger.stockQtyAtBin,
+    contractSku: contract?.sku,
+    contractToBin: contract?.toBin,
+    runStartedAt: input.runStartedAt,
+    runCompletedAt: input.runCompletedAt,
+    complianceOk: input.complianceOk,
+  });
+  return { ledger, sessionEvidence, kpiData };
 }
 
 export function getM5CycleCountTargets(initialStateJson?: M5InitialStateJson | null): M5CycleCountTarget[] {

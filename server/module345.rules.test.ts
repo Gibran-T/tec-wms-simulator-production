@@ -997,30 +997,23 @@ describe("Wave 4 — M5 runtime alignment", () => {
     expect(isCanonicalM5KpiPaste(kpiData)).toBe(false);
   });
 
-  it("14. V4.6 rejects canonical KPI paste in eval without ledger confirmation", () => {
-    const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_015_M5_STATE, {
-      transactions: [{ docType: "GR", sku: "SKU-001", qty: 50, posted: true }],
-      inventoryCounts: [],
-      inventoryAdjustments: [],
-      inventory: { "SKU-001::B-01-R1-L1": 50 },
-    });
-    const noConfirm = validateM5KpiSubmission(CANONICAL_M4_KPI_DATA, derived, {
+  it("14. M5_KPI requires session-evidence confirmation in eval", () => {
+    const noConfirm = validateM5KpiSubmission({
       isDemo: false,
       confirmedFromLedger: false,
     });
     expect(noConfirm.allowed).toBe(false);
-    expect(noConfirm.reasonFr).toMatch(/coche|ancr/i);
+    expect(noConfirm.reasonFr).toMatch(/coche|preuve|session|ancr/i);
 
-    const canonicalPaste = validateM5KpiSubmission(CANONICAL_M4_KPI_DATA, derived, {
+    const confirmed = validateM5KpiSubmission({
       isDemo: false,
       confirmedFromLedger: true,
     });
-    expect(canonicalPaste.allowed).toBe(false);
-    expect(canonicalPaste.reasonFr).toMatch(/canonique|Annexe/i);
+    expect(confirmed.allowed).toBe(true);
   });
 
-  it("15. V4.6 accepts ledger-derived KPI with confirmation in eval", () => {
-    const { kpiData: derived } = deriveM5KpiFromRunEvidence(SCN_016_M5_STATE, {
+  it("15. M5_KPI accepts confirmation without legacy portfolio fields", () => {
+    const { evidence } = deriveM5KpiFromRunEvidence(SCN_016_M5_STATE, {
       transactions: [
         { docType: "GR", sku: "SKU-001", qty: 50, posted: true },
         { docType: "PUTAWAY", sku: "SKU-001", qty: 50, posted: true },
@@ -1030,7 +1023,7 @@ describe("Wave 4 — M5 runtime alignment", () => {
       inventoryAdjustments: [{ sku: "SKU-001", varianceQty: -5 }],
       inventory: { "SKU-001::B-01-R1-L1": 45 },
     });
-    const ok = validateM5KpiSubmission(derived, derived, {
+    const ok = validateM5KpiSubmission({
       isDemo: false,
       confirmedFromLedger: true,
     });
@@ -1045,5 +1038,6 @@ describe("Wave 4 — M5 runtime alignment", () => {
       stockQtyAtBin: 45,
       evidenceSource: "run_ledger",
     })).toMatch(/source=run_ledger/);
+    expect(evidence.stockQtyAtBin).toBe(45);
   });
 });

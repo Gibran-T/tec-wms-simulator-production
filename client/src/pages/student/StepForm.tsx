@@ -12,6 +12,7 @@ import { M3ReplenishmentParamsTable } from "@/components/operational-intelligenc
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
 import M5DecisionResultPanel from "@/components/m5/M5DecisionResultPanel";
+import M5KpiLedgerWidget from "@/components/m5/M5KpiLedgerWidget";
 import {
   getAnalyticalQuestionText,
   getM5DecisionStepTitle,
@@ -626,18 +627,18 @@ const STEP_CONFIG: Record<string, {
   m5_kpi: {
     titleFr: "KPI intégrés M5", titleEn: "M5 Integrated KPIs", code: "M5_KPI", txCode: "MB52", tCode: "MB52",
     etapeFr: "Étape 5 sur 7", etapeEn: "Step 5 of 7",
-    objectiveFr: "Simulation intégrée M5 — Étape 5 : Calculer les KPIs de la simulation. Saisissez les données de consommation, commandes et opérations pour obtenir les indicateurs de performance.",
-    objectiveEn: "M5 Integrated Simulation — Step 5: Calculate simulation KPIs. Enter consumption, orders and operations data to get performance indicators.",
-    fields: ["annualConsumption", "averageStock", "ordersFulfilled", "totalOrders", "operationalErrors", "totalOperations", "avgLeadTimeDays", "stockValue"],
+    objectiveFr: "Simulation intégrée M5 — Étape 5 : Confirmer les preuves de session dérivées du run (parcours, exactitude, variance, stock, Q, conformité). Aucune saisie du portfolio M4.",
+    objectiveEn: "M5 Integrated Simulation — Step 5: Confirm run-derived session evidence (pathway, accuracy, variance, stock, Q, compliance). No M4 portfolio entry.",
+    fields: [],
     pedagogicalDeep: {
-      whyFr: "Les KPI M5 synthétisent toute la simulation en indicateurs de performance. Ils permettent d'évaluer si les opérations de la simulation ont été efficaces.",
-      whyEn: "M5 KPIs synthesize the entire simulation into performance indicators. They allow evaluating whether the simulation operations were effective.",
-      realSAPFr: "Dans SAP, les KPIs de fin de simulation sont extraits via des rapports analytiques (SAP Analytics Cloud, BW/BI). Ils alimentent le tableau de bord de direction.",
-      realSAPEn: "In SAP, end-of-simulation KPIs are extracted via analytical reports (SAP Analytics Cloud, BW/BI). They feed the management dashboard.",
-      dependencyFr: "Les KPI M5 dépendent de toutes les transactions précédentes de la simulation. Des transactions incorrectes faussent les indicateurs finaux.",
-      dependencyEn: "M5 KPIs depend on all previous simulation transactions. Incorrect transactions distort final indicators.",
-      realErrorFr: "Des KPIs calculés en fin de simulation avec des données incohérentes invalident toute l'analyse. La qualité des données est fondamentale.",
-      realErrorEn: "KPIs calculated at the end of simulation with inconsistent data invalidate the entire analysis. Data quality is fundamental.",
+      whyFr: "Les preuves M5 sont calculées depuis les transactions du run. L'étudiant confirme le registre — il ne resaisit pas le portfolio Annexe A du Module 4.",
+      whyEn: "M5 evidence is computed from run transactions. The student confirms the ledger — they do not re-enter Module 4 Annex A portfolio values.",
+      realSAPFr: "Dans SAP, les indicateurs de fin de cycle viennent des mouvements runtime (Embedded Analytics / SAC), pas d'une annexe statique.",
+      realSAPEn: "In SAP, end-of-cycle indicators come from runtime movements (Embedded Analytics / SAC), not a static annex.",
+      dependencyFr: "Les preuves dépendent de réception, putaway, inventaire, ajustement si applicable, et réapprovisionnement.",
+      dependencyEn: "Evidence depends on reception, putaway, cycle count, adjustment when applicable, and replenishment.",
+      realErrorFr: "Saisir les valeurs portfolio M4 (consommation annuelle, commandes, délais…) invalide le contrat de session M5.",
+      realErrorEn: "Entering M4 portfolio values (annual consumption, orders, lead times…) violates the M5 session contract.",
     }
   },
   m5_decision: {
@@ -1252,18 +1253,9 @@ export default function StepForm() {
   const isDemo = runData?.isDemo ?? false;
 
   useEffect(() => {
-    if (!isM5KpiStep || !m5KpiLedger?.kpiData) return;
-    const d = m5KpiLedger.kpiData;
-    setValue("annualConsumption", String(d.annualConsumption));
-    setValue("averageStock", String(d.averageStock));
-    setValue("ordersFulfilled", String(d.ordersFulfilled));
-    setValue("totalOrders", String(d.totalOrders));
-    setValue("operationalErrors", String(d.operationalErrors));
-    setValue("totalOperations", String(d.totalOperations));
-    setValue("avgLeadTimeDays", String(d.avgLeadTimeDays));
-    setValue("stockValue", String(d.stockValue));
+    if (!isM5KpiStep) return;
     if (isDemo) setKpiLedgerConfirmed(true);
-  }, [isM5KpiStep, m5KpiLedger, setValue, isDemo]);
+  }, [isM5KpiStep, isDemo]);
 
   useEffect(() => {
     if (scnCode !== "SCN-004") return;
@@ -1612,22 +1604,15 @@ export default function StepForm() {
         return submitM5Replenish.mutate({ ...base, sku: values.sku!, systemQty: Number(values.systemQty ?? 0), minQty: Number(values.minQty ?? 0), maxQty: Number(values.maxQty ?? 0), safetyStock: Number(values.safetyStock ?? 0), studentQty: Number(values.studentQty ?? 0) });
       case "m5_kpi":
         if (!isDemo && !kpiLedgerConfirmed) {
-          toast.error(t("Confirmez que les KPI sont ancrés au moniteur d'exécution.", "Confirm KPI values are anchored to the run monitor."));
+          toast.error(t(
+            "Confirmez les preuves de session dérivées du moniteur d'exécution.",
+            "Confirm session evidence derived from the run monitor.",
+          ));
           return;
         }
         return submitM5Kpi.mutate({
           ...base,
-          confirmedFromLedger: kpiLedgerConfirmed,
-          kpiData: {
-            annualConsumption: Number(values.annualConsumption ?? 0),
-            averageStock: Number(values.averageStock ?? 0),
-            ordersFulfilled: Number(values.ordersFulfilled ?? 0),
-            totalOrders: Number(values.totalOrders ?? 0),
-            operationalErrors: Number(values.operationalErrors ?? 0),
-            totalOperations: Number(values.totalOperations ?? 0),
-            avgLeadTimeDays: Number(values.avgLeadTimeDays ?? 0),
-            stockValue: Number(values.stockValue ?? 0),
-          },
+          confirmedFromLedger: isDemo ? true : kpiLedgerConfirmed,
         });
       case "m5_decision":
         return submitM5Decision.mutate({ ...base, studentDecision: values.studentAnswer! });
@@ -2844,79 +2829,39 @@ export default function StepForm() {
                 </div>
               )}
 
-              {/* KPI Data fields (M5 only) */}
-              {cfg.fields.includes("annualConsumption") && (
-                <div className="space-y-3">
-                  {isM5KpiStep && m5KpiLedger?.evidence && (
-                    <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded p-3 text-[10px] space-y-1">
-                      <p className="font-bold text-slate-700 dark:text-slate-300">
-                        {t("Ancrage moniteur M5", "M5 monitor anchor")}
-                      </p>
-                      <p className="font-mono text-muted-foreground">
-                        {t("Réception", "Received")}: {m5KpiLedger.evidence.receivedQty} · {t("Putaway", "Putaway")}: {m5KpiLedger.evidence.putawayQty} · CC: {m5KpiLedger.evidence.cycleCountQty ?? "—"} · {t("Variance", "Variance")}: {m5KpiLedger.evidence.varianceQty} · {t("Stock bin", "Bin stock")}: {m5KpiLedger.evidence.stockQtyAtBin}
-                      </p>
-                      {m5KpiLedger.kpiResult && (
-                        <p className="text-muted-foreground">
-                          → rotation {m5KpiLedger.kpiResult.rotationRate}× · service {(m5KpiLedger.kpiResult.serviceLevel * 100).toFixed(1)}% · {t("erreurs", "errors")} {(m5KpiLedger.kpiResult.errorRate * 100).toFixed(1)}%
-                        </p>
+              {/* M5_KPI — session evidence confirmation only (no legacy M4 portfolio inputs) */}
+              {isM5KpiStep && (
+                <div className="space-y-3" data-testid="m5-kpi-session-confirm">
+                  <M5KpiLedgerWidget
+                    ledger={m5KpiLedger}
+                    scnCode={scnCode}
+                    isLoading={m5KpiLedgerLoading}
+                  />
+                  {m5KpiLedgerError && (
+                    <p className="text-xs text-destructive">
+                      {t(
+                        "Impossible de charger les preuves de session. Réessayez.",
+                        "Unable to load session evidence. Retry.",
                       )}
-                      {isDemo && m5KpiLedger.canonicalExample && (
-                        <p className="text-indigo-600 dark:text-indigo-400 mt-1">
-                          {t("Exemple Annexe A (démo)", "Annex A example (demo)")}: 2400/400 · 285/300 · 12/300 · 3,5 j · 48 000 $
-                        </p>
-                      )}
-                    </div>
+                    </p>
                   )}
-                  {!isDemo && isM5KpiStep && (
+                  {!isDemo && (
                     <label className="flex items-start gap-2 text-xs cursor-pointer">
                       <input
                         type="checkbox"
                         checked={kpiLedgerConfirmed}
                         onChange={(e) => setKpiLedgerConfirmed(e.target.checked)}
                         className="mt-0.5"
+                        data-testid="m5-kpi-confirm-checkbox"
                       />
                       <span>
                         {t(
-                          "Je confirme que les KPI ci-dessous sont dérivés du moniteur d'exécution (réception, putaway, CC, ADJ, réappro).",
-                          "I confirm the KPIs below are derived from the run monitor (reception, putaway, CC, ADJ, replenishment).",
+                          "Je confirme que les preuves affichées sont dérivées du moniteur d'exécution de ce run (réception, putaway, CC, ADJ si applicable, réappro).",
+                          "I confirm the displayed evidence is derived from this run's execution monitor (reception, putaway, CC, ADJ if applicable, replenishment).",
                         )}
                       </span>
                     </label>
                   )}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="fiori-field-label">{t("Consommation annuelle", "Annual consumption")}</label>
-                    <input {...register("annualConsumption")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Stock moyen", "Average stock")}</label>
-                    <input {...register("averageStock")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Commandes livrées", "Orders fulfilled")}</label>
-                    <input {...register("ordersFulfilled")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Total commandes", "Total orders")}</label>
-                    <input {...register("totalOrders")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Erreurs opérationnelles", "Operational errors")}</label>
-                    <input {...register("operationalErrors")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Total opérations", "Total operations")}</label>
-                    <input {...register("totalOperations")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Délai moyen (jours)", "Avg lead time (days)")}</label>
-                    <input {...register("avgLeadTimeDays")} type="number" step="0.1" className="fiori-field-input fiori-field-active" />
-                  </div>
-                  <div>
-                    <label className="fiori-field-label">{t("Valeur stock ($)", "Stock value ($)")}</label>
-                    <input {...register("stockValue")} type="number" className="fiori-field-input fiori-field-active" />
-                  </div>
-                </div>
                 </div>
               )}
 

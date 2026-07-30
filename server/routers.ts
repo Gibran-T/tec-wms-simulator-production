@@ -169,6 +169,7 @@ import {
   getM5KpiDataFromSeed,
   getM5CycleCountTargets,
   deriveM5KpiFromRunEvidence,
+  buildM5SessionEvidenceFromRunState,
   validateM5KpiSubmission,
   formatM5KpiEvidenceSource,
   assertM5VarianceGate,
@@ -3738,19 +3739,29 @@ export const appRouter = router({
         const replRow = contract?.sku
           ? replenishments.find((r) => r.sku === contract.sku)
           : replenishments[0];
-        const { kpiData, evidence } = deriveM5KpiFromRunEvidence(state.m5InitialStateJson, {
+        const completedSteps = (state.completedSteps ?? []) as string[];
+        const { ledger: evidence, sessionEvidence, kpiData } = buildM5SessionEvidenceFromRunState({
+          initialStateJson: state.m5InitialStateJson,
+          completedSteps,
           transactions: state.transactions,
           inventoryCounts: state.inventoryCounts,
           inventoryAdjustments: state.inventoryAdjustments,
           inventory: state.inventory,
           replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+          runStartedAt: run.startedAt,
+          runCompletedAt: run.completedAt,
         });
+        // Legacy kpiResult retained for historical UI paths — not session truth.
         const kpiResult = calculateKpis(kpiData);
         return {
           kpiData,
           kpiResult,
           evidence,
-          canonicalExample: CANONICAL_M4_KPI_DATA,
+          sessionEvidence,
+          evidenceVersion: sessionEvidence.evidenceVersion,
+          /** Demo-only Annexe A example — never treat as session evidence. */
+          canonicalExample: run.isDemo ? CANONICAL_M4_KPI_DATA : null,
+          legacyPortfolioHidden: true,
           isDemo: run.isDemo,
         };
       }),
@@ -3921,16 +3932,17 @@ export const appRouter = router({
         return { success: true, suggestion, diff, studentQty: input.studentQty };
       }),
 
-    /** M5 Step 5: M5_KPI */
+    /** M5 Step 5: M5_KPI — confirm session evidence only (no legacy M4 portfolio inputs). */
     submitKpi: protectedProcedure
       .input(z.object({
         runId: z.number(),
+        confirmedFromLedger: z.boolean().optional(),
+        /** Ignored — retained only so in-flight clients do not fail Zod parse. */
         kpiData: z.object({
           annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(),
           totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(),
           avgLeadTimeDays: z.number(), stockValue: z.number(),
-        }),
-        confirmedFromLedger: z.boolean().optional(),
+        }).optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const run = await getRunById(input.runId);
@@ -3953,21 +3965,28 @@ export const appRouter = router({
         const replRow = contract?.sku
           ? replenishments.find((r) => r.sku === contract.sku)
           : replenishments[0];
-        const { kpiData: derivedKpi, evidence } = deriveM5KpiFromRunEvidence(m5State, {
+        const { ledger: evidence, sessionEvidence, kpiData: derivedKpi } = buildM5SessionEvidenceFromRunState({
+          initialStateJson: m5State,
+          completedSteps: (state.completedSteps ?? []) as string[],
           transactions: state.transactions,
           inventoryCounts: state.inventoryCounts,
           inventoryAdjustments: state.inventoryAdjustments,
           inventory: state.inventory,
           replenishmentQty: replRow ? Number(replRow.suggestedQty) : null,
+          runStartedAt: run.startedAt,
+          runCompletedAt: run.completedAt,
         });
-        const kpiValidation = validateM5KpiSubmission(input.kpiData, derivedKpi, {
+        void input.kpiData; // never trust client portfolio fields
+        void sessionEvidence;
+        const kpiValidation = validateM5KpiSubmission({
           isDemo: run.isDemo,
           confirmedFromLedger: input.confirmedFromLedger ?? false,
         });
         if (!kpiValidation.allowed) {
           throw new TRPCError({ code: "BAD_REQUEST", message: pickReason(kpiValidation, ctx.req) });
         }
-        const kpiResult = calculateKpis(input.kpiData);
+        // Snapshot columns are server-derived for Gold row-existence only — not session truth.
+        const kpiResult = calculateKpis(derivedKpi);
         const evidenceSource = formatM5KpiEvidenceSource(evidence);
         await addKpiSnapshot({
           runId: input.runId,
@@ -3983,7 +4002,7 @@ export const appRouter = router({
             runId: input.runId,
             eventType: "M5_KPI_COMPLETED",
             pointsDelta: 10,
-            message: `KPI M5 calculés — snapshot enregistré | ${evidenceSource}`,
+            message: `KPI M5 session evidence confirmed — snapshot recorded | ${evidenceSource}`,
           });
         }
         return { success: true, kpiResult, evidenceSource };
