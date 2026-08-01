@@ -286,3 +286,47 @@ export function isM5DocGoldEnabled(env: NodeJS.ProcessEnv | Record<string, strin
   // Explicitly disabled until acceptance — never treat legacy Gold as DOC Gold.
   return env.ENABLE_M5_DOC_GOLD_V1 === "true";
 }
+
+/** Stable student allowlist for DOC access. Empty by default ⇒ no student access. */
+export type M5DocStudentAllowlist = {
+  userIds: Set<number>;
+  emails: Set<string>;
+  openIds: Set<string>;
+};
+
+export function parseM5DocStudentAllowlist(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): M5DocStudentAllowlist {
+  const raw = (env.M5_DOC_STUDENT_ALLOWLIST ?? "").trim();
+  const userIds = new Set<number>();
+  const emails = new Set<string>();
+  const openIds = new Set<string>();
+  if (!raw) return { userIds, emails, openIds };
+  for (const token of raw.split(/[,\s]+/).map((t) => t.trim()).filter(Boolean)) {
+    if (/^\d+$/.test(token)) userIds.add(Number(token));
+    else if (token.includes("@")) emails.add(token.toLowerCase());
+    else openIds.add(token);
+  }
+  return { userIds, emails, openIds };
+}
+
+export function isM5DocStudentAllowlisted(
+  user: { id: number; email?: string | null; openId?: string | null },
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  const allow = parseM5DocStudentAllowlist(env);
+  if (allow.userIds.has(user.id)) return true;
+  const email = user.email?.trim().toLowerCase();
+  if (email && allow.emails.has(email)) return true;
+  if (user.openId && allow.openIds.has(user.openId)) return true;
+  return false;
+}
+
+/** Staff (teacher/admin) bypass student allowlist; students must be explicitly listed. */
+export function canAccessM5DocAsActor(
+  user: { id: number; role: string; email?: string | null; openId?: string | null },
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  if (user.role === "teacher" || user.role === "admin") return true;
+  return isM5DocStudentAllowlisted(user, env);
+}

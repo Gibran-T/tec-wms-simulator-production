@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "./_core/trpc";
 import { getRunById, getScenarioById } from "./db";
 import {
+  canAccessM5DocAsActor,
   isM5DocFeatureEnabled,
   isM5DocInitialState,
   M5_DOC_INTERACTION_MODEL,
@@ -23,7 +24,12 @@ import { computeFinalScore } from "../shared/m5Doc/scoringPure";
 const submitModeSchema = z.enum(["OFFICIAL", "FORMATIVE", "REVIEW"]);
 
 function mapDocError(code: string, message: string): never {
-  if (code === "FORBIDDEN_PROFILE" || code === "FEATURE_DISABLED" || code === "REVIEW_ONLY") {
+  if (
+    code === "FORBIDDEN_PROFILE" ||
+    code === "FEATURE_DISABLED" ||
+    code === "REVIEW_ONLY" ||
+    code === "DOC_STUDENT_NOT_ALLOWLISTED"
+  ) {
     throw new TRPCError({ code: "FORBIDDEN", message: `${code}: ${message}` });
   }
   if (code === "SCORE_ONCE_LOCKED" || code === "ORDRE_INTERACTION") {
@@ -39,14 +45,22 @@ function mapDocError(code: string, message: string): never {
   throw new TRPCError({ code: "BAD_REQUEST", message: `${code}: ${message}` });
 }
 
-async function assertDocRunAccess(runId: number, userId: number, role: string) {
+async function assertDocRunAccess(
+  runId: number,
+  user: { id: number; role: string; email?: string | null; openId?: string | null },
+) {
   if (!isM5DocFeatureEnabled()) {
     mapDocError("FEATURE_DISABLED", "ENABLE_M5_DOC_SUPERVISION is not true");
   }
 
+  // Allowlist before DB read for students — empty list ⇒ no student DOC access.
+  if (!canAccessM5DocAsActor(user)) {
+    mapDocError("DOC_STUDENT_NOT_ALLOWLISTED", "Student not on M5_DOC_STUDENT_ALLOWLIST");
+  }
+
   const run = await getRunById(runId);
   if (!run) throw new TRPCError({ code: "NOT_FOUND", message: "Run not found" });
-  if (run.userId !== userId && role !== "teacher" && role !== "admin") {
+  if (run.userId !== user.id && user.role !== "teacher" && user.role !== "admin") {
     throw new TRPCError({ code: "FORBIDDEN", message: "Not your run" });
   }
 
@@ -68,7 +82,7 @@ export const m5DocRouter = router({
   getState: protectedProcedure
     .input(z.object({ runId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      const { initial } = await assertDocRunAccess(input.runId, ctx.user.id, ctx.user.role);
+      const { initial } = await assertDocRunAccess(input.runId, ctx.user);
       const state = await loadM5DocState(input.runId, initial.scnCode as M5DocScnCode);
       const expectedId = M5_DOC_INTERACTION_ORDER[Math.min(state.currentInteractionIndex, M5_DOC_INTERACTION_ORDER.length - 1)];
       const { finalScore, zoneScores } = computeFinalScore(state);
@@ -90,7 +104,7 @@ export const m5DocRouter = router({
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { initial } = await assertDocRunAccess(input.runId, ctx.user.id, ctx.user.role);
+      const { initial } = await assertDocRunAccess(input.runId, ctx.user);
       const state = await loadM5DocState(input.runId, initial.scnCode as M5DocScnCode);
       const def = getInteractionDef(input.interactionId);
       if (!def) throw new TRPCError({ code: "NOT_FOUND", message: "Unknown interaction" });
@@ -140,7 +154,7 @@ export const m5DocRouter = router({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { initial } = await assertDocRunAccess(input.runId, ctx.user.id, ctx.user.role);
+      const { initial } = await assertDocRunAccess(input.runId, ctx.user);
 
       const g = globalThis as unknown as {
         __m5DocIdem?: Map<string, unknown>;
@@ -213,7 +227,7 @@ export const m5DocRouter = router({
   getEvidence: protectedProcedure
     .input(z.object({ runId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {
-      const { initial } = await assertDocRunAccess(input.runId, ctx.user.id, ctx.user.role);
+      const { initial } = await assertDocRunAccess(input.runId, ctx.user);
       const state = await loadM5DocState(input.runId, initial.scnCode as M5DocScnCode);
       return deriveM5DocSessionEvidenceV2(state);
     }),
@@ -224,7 +238,7 @@ export const m5DocRouter = router({
       if (ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
         throw new TRPCError({ code: "FORBIDDEN", message: "Teacher/admin only" });
       }
-      const { initial } = await assertDocRunAccess(input.runId, ctx.user.id, ctx.user.role);
+      const { initial } = await assertDocRunAccess(input.runId, ctx.user);
       const state = await loadM5DocState(input.runId, initial.scnCode as M5DocScnCode);
       return buildM5DocProfessorView(state);
     }),

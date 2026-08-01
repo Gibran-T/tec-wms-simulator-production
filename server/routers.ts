@@ -606,14 +606,24 @@ export const appRouter = router({
     list: protectedProcedure.query(() => getAllScenarios()),
     listByModule: protectedProcedure
       .input(z.object({ moduleCode: z.string() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const db = await import("./db").then((m) => m.getDb());
         if (!db) return [];
         const { modules: modulesTable, scenarios: scenariosTable } = await import("../drizzle/schema");
         const { eq, and } = await import("drizzle-orm");
         const [mod] = await db.select().from(modulesTable).where(eq(modulesTable.code, input.moduleCode));
         if (!mod) return [];
-        return db.select().from(scenariosTable).where(and(eq(scenariosTable.moduleId, mod.id), eq(scenariosTable.isActive, true)));
+        const rows = await db
+          .select()
+          .from(scenariosTable)
+          .where(and(eq(scenariosTable.moduleId, mod.id), eq(scenariosTable.isActive, true)));
+        // Hide DOC scenarios unless feature on + actor allowlisted (staff always).
+        const { isM5DocFeatureEnabled, canAccessM5DocAsActor } = await import("../shared/m5Doc/types");
+        return rows.filter((row) => {
+          if (!isSupervisionDocRun(row.initialStateJson)) return true;
+          if (!isM5DocFeatureEnabled()) return false;
+          return canAccessM5DocAsActor(ctx.user);
+        });
       }),
     create: teacherProcedure
       .input(
@@ -1061,6 +1071,23 @@ export const appRouter = router({
           throw new TRPCError({ code: "NOT_FOUND", message: "Scénario introuvable" });
         }
 
+        // DOC scenarios: feature flag + server allowlist (James-only during controlled QA).
+        if (isSupervisionDocRun(scenario.initialStateJson)) {
+          const { isM5DocFeatureEnabled, canAccessM5DocAsActor } = await import("../shared/m5Doc/types");
+          if (!isM5DocFeatureEnabled()) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "FEATURE_DISABLED: ENABLE_M5_DOC_SUPERVISION is not true",
+            });
+          }
+          if (!canAccessM5DocAsActor(ctx.user)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "DOC_STUDENT_NOT_ALLOWLISTED: Student not on M5_DOC_STUDENT_ALLOWLIST",
+            });
+          }
+        }
+
         const moduleId = scenario.moduleId ?? 1;
 
         // Open M1–M5 access: no prior-module / quiz / teacher-validation checkpoint.
@@ -1230,7 +1257,7 @@ export const appRouter = router({
 
         // DOC dispatch BEFORE any legacy M5 calculation (getEffectiveM5Steps / v1 / Gold legacy).
         if (isSupervisionDocRun(scenario?.initialStateJson)) {
-          const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+          const { isM5DocFeatureEnabled, canAccessM5DocAsActor } = await import("../shared/m5Doc/types");
           const { loadM5DocState } = await import("./m5Doc/persistence");
           const { buildM5DocProfessorView } = await import("./m5Doc/professorView");
           const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
@@ -1239,6 +1266,12 @@ export const appRouter = router({
             throw new TRPCError({
               code: "FORBIDDEN",
               message: "FEATURE_DISABLED: ENABLE_M5_DOC_SUPERVISION is not true",
+            });
+          }
+          if (!canAccessM5DocAsActor(ctx.user)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "DOC_STUDENT_NOT_ALLOWLISTED: Student not on M5_DOC_STUDENT_ALLOWLIST",
             });
           }
           const docState = await loadM5DocState(input.runId, scenario.initialStateJson.scnCode);
@@ -1636,10 +1669,16 @@ export const appRouter = router({
 
         // DOC dispatch BEFORE buildRunState legacy M5 steps / getEffectiveM5Steps / v1 evidence.
         if (isSupervisionDocRun(scenario?.initialStateJson)) {
-          const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+          const { isM5DocFeatureEnabled, canAccessM5DocAsActor } = await import("../shared/m5Doc/types");
           const { loadM5DocState } = await import("./m5Doc/persistence");
           const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
           const featureOn = isM5DocFeatureEnabled();
+          if (featureOn && !canAccessM5DocAsActor(ctx.user)) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "DOC_STUDENT_NOT_ALLOWLISTED: Student not on M5_DOC_STUDENT_ALLOWLIST",
+            });
+          }
           let docScore = 0;
           let completed: string[] = [];
           if (featureOn) {

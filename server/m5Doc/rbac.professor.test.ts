@@ -7,12 +7,15 @@ import { buildCoherentHandoverFromState } from "./handoverGuard";
 import { buildM5DocProfessorView } from "./professorView";
 
 describe("M5 DOC professor / RBAC contracts", () => {
-  it("router forbids student professor view and requires feature flag before persistence", () => {
+  it("router forbids student professor view and requires feature flag + allowlist before persistence", () => {
     const src = readFileSync(resolve(__dirname, "../m5DocRouter.ts"), "utf8");
     expect(src).toMatch(/Teacher\/admin only|role !== "teacher"/);
     const assertFn = src.slice(src.indexOf("async function assertDocRunAccess"));
     expect(assertFn.indexOf("isM5DocFeatureEnabled()")).toBeGreaterThanOrEqual(0);
     expect(assertFn.indexOf("isM5DocFeatureEnabled()")).toBeLessThan(assertFn.indexOf("getRunById"));
+    expect(assertFn.indexOf("canAccessM5DocAsActor")).toBeGreaterThanOrEqual(0);
+    expect(assertFn.indexOf("canAccessM5DocAsActor")).toBeLessThan(assertFn.indexOf("getRunById"));
+    expect(src).toContain("DOC_STUDENT_NOT_ALLOWLISTED");
     // Procedures call assert before load
     expect(src).toMatch(/assertDocRunAccess[\s\S]{0,220}loadM5DocState/);
     expect(src).toContain("FORBIDDEN_PROFILE");
