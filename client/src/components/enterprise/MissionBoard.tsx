@@ -211,7 +211,7 @@ export default function MissionBoard({
               </span>
               <span className="inline-flex items-center gap-1">
                 <Target size={13} />
-                {scenario.targetScore ?? 60}% {t("cible", "target")}
+                {scenario.targetScore ?? (moduleId >= 3 ? 70 : 60)}% {t("cible", "target")}
               </span>
               {completedRun && completedRun.score != null && (
                 <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-medium">
@@ -312,7 +312,7 @@ export default function MissionBoard({
               {t("min", "min")}
             </span>
             <Target size={14} className="ml-4" />
-            <span>{scenario.targetScore ?? 60}% {t("cible", "target")}</span>
+            <span>{scenario.targetScore ?? (moduleId >= 3 ? 70 : 60)}% {t("cible", "target")}</span>
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">

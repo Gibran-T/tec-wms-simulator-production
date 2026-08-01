@@ -603,7 +603,17 @@ export const appRouter = router({
 
   // ─── Scenarios ─────────────────────────────────────────────────────────────
   scenarios: router({
-    list: protectedProcedure.query(() => getAllScenarios()),
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const rows = await getAllScenarios();
+      const { isM5DocFeatureEnabled, canAccessM5DocAsActor } = await import("../shared/m5Doc/types");
+      const featureOn = isM5DocFeatureEnabled();
+      const allowlisted = canAccessM5DocAsActor(ctx.user);
+      return rows.filter((row) => {
+        if (!isSupervisionDocRun(row.initialStateJson)) return true;
+        if (!featureOn) return false;
+        return allowlisted;
+      });
+    }),
     listByModule: protectedProcedure
       .input(z.object({ moduleCode: z.string() }))
       .query(async ({ ctx, input }) => {

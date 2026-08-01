@@ -12,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useEmployeeProfile } from "@/hooks/useEmployeeProfile";
 import { trpc } from "@/lib/trpc";
 import { filterCanonicalScenariosForModule, resolveScenarioScnCode } from "@/lib/scenarioCatalog";
+import { resolveM5ModuleScenariosForActor } from "@/lib/m5DocEntry";
 import { isConcordeConnectEnabled } from "@/lib/concordeConnect";
 import { isDepartmentHomeEnabled } from "@/lib/departmentHome";
 import { isEnterpriseAssignmentsEnabled } from "@/lib/enterpriseExperience";
@@ -33,6 +34,7 @@ export default function ConcordeConnect() {
   }, [navigate]);
   const { data: profile, isLoading: profileLoading } = useEmployeeProfile();
   const { data: scenarios, isLoading: scenariosLoading } = trpc.scenarios.list.useQuery();
+  const { data: m5DocAccess } = trpc.m5Doc.myAccess.useQuery(undefined, { retry: false });
   const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
   const [pendingScenario, setPendingScenario] = useState<{ id: number; name: string; difficulty?: string } | null>(null);
 
@@ -43,10 +45,15 @@ export default function ConcordeConnect() {
     [scenarios, activeModuleId]
   );
 
-  const moduleScenarios = useMemo(
-    () => filterCanonicalScenariosForModule(activeModuleId, scenarios ?? []),
-    [scenarios, activeModuleId]
-  );
+  const moduleScenarios = useMemo(() => {
+    if (activeModuleId === 5) {
+      return resolveM5ModuleScenariosForActor(scenarios ?? [], {
+        docFeatureEnabled: m5DocAccess?.featureEnabled === true,
+        studentAllowlisted: m5DocAccess?.allowlisted === true,
+      });
+    }
+    return filterCanonicalScenariosForModule(activeModuleId, scenarios ?? []);
+  }, [scenarios, activeModuleId, m5DocAccess?.featureEnabled, m5DocAccess?.allowlisted]);
 
   const headerBinding = useMemo(() => {
     const scn = profile?.currentAssignment.scnCode;

@@ -41,8 +41,9 @@ export function findLatestCompletedRunForScenario<T extends ScenarioRef>(
   runs: RunRow[] | undefined
 ): RunRow | undefined {
   const scn = resolveScenarioScnCode(canonical);
-  if (!scn) return undefined;
-  const ids = new Set(scenarioIdsForScn(scn, allModuleRows));
+  const ids = scn
+    ? new Set(scenarioIdsForScn(scn, allModuleRows))
+    : new Set([canonical.id]);
   const completed =
     runs?.filter(
       (r) => ids.has(r.run.scenarioId) && r.run.status === "completed" && !r.run.isDemo
@@ -85,8 +86,9 @@ export function findCompletedRunForScenario<T extends ScenarioRef>(
   runs: RunRow[] | undefined
 ): RunRow | undefined {
   const scn = resolveScenarioScnCode(canonical);
-  if (!scn) return undefined;
-  const ids = new Set(scenarioIdsForScn(scn, allModuleRows));
+  const ids = scn
+    ? new Set(scenarioIdsForScn(scn, allModuleRows))
+    : new Set([canonical.id]);
   const completed =
     runs?.filter(
       (r) => ids.has(r.run.scenarioId) && r.run.status === "completed" && !r.run.isDemo

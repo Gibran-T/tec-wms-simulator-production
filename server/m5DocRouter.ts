@@ -79,6 +79,22 @@ async function assertDocRunAccess(
 }
 
 export const m5DocRouter = router({
+  /** Lightweight gate for student UI entry (DOC vs legacy board). */
+  myAccess: protectedProcedure.query(({ ctx }) => {
+    const featureEnabled = isM5DocFeatureEnabled();
+    const allowlisted = canAccessM5DocAsActor(ctx.user);
+    return {
+      featureEnabled,
+      allowlisted,
+      useDocEntry: featureEnabled && allowlisted,
+      evidenceVersion: "m5-session-v2" as const,
+      interactionModel: "supervision-doc-v1" as const,
+      roleFr: "Superviseur d'exploitation — quart de clôture",
+      passThreshold: 70,
+      interactionCount: 31,
+    };
+  }),
+
   getState: protectedProcedure
     .input(z.object({ runId: z.number().int().positive() }))
     .query(async ({ ctx, input }) => {

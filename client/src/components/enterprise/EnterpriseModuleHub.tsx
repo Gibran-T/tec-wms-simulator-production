@@ -17,6 +17,7 @@ import {
   findCompletedRunForScenario,
   resolveDisplayActiveRunForScenario,
 } from "@/lib/scenarioCatalog";
+import { resolveM5ModuleScenariosForActor } from "@/lib/m5DocEntry";
 import { isEnterpriseExperienceEnabled, isEnterpriseAssignmentsEnabled } from "@/lib/enterpriseExperience";
 import AssignmentQueue from "@/components/enterprise/AssignmentQueue";
 import TodayPriorities from "@/components/enterprise/TodayPriorities";
@@ -72,6 +73,10 @@ export default function EnterpriseModuleHub({
   const careerChapter = CAREER_CHAPTER_LABELS[moduleId];
 
   const { data: scenarios, isLoading, isError, isFetching, refetch } = trpc.scenarios.list.useQuery();
+  const { data: m5DocAccess } = trpc.m5Doc.myAccess.useQuery(undefined, {
+    enabled: moduleId === 5,
+    retry: false,
+  });
   const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
   const { data: myProfile, refetch: refetchProfile } = trpc.profiles.mine.useQuery();
   const upsertProfile = trpc.profiles.upsert.useMutation({ onSuccess: () => refetchProfile() });
@@ -105,10 +110,15 @@ export default function EnterpriseModuleHub({
     [scenarios, moduleId],
   );
 
-  const moduleScenarios = useMemo(
-    () => filterCanonicalScenariosForModule(moduleId, scenarios ?? []),
-    [scenarios, moduleId],
-  );
+  const moduleScenarios = useMemo(() => {
+    if (moduleId === 5) {
+      return resolveM5ModuleScenariosForActor(scenarios ?? [], {
+        docFeatureEnabled: m5DocAccess?.featureEnabled === true,
+        studentAllowlisted: m5DocAccess?.allowlisted === true,
+      });
+    }
+    return filterCanonicalScenariosForModule(moduleId, scenarios ?? []);
+  }, [scenarios, moduleId, m5DocAccess?.featureEnabled, m5DocAccess?.allowlisted]);
 
   const getActiveRun = (scenario: (typeof moduleScenarios)[number]) =>
     resolveDisplayActiveRunForScenario(scenario, rawModuleScenarios, myRuns);
