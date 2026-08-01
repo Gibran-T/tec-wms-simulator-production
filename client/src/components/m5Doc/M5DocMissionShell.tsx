@@ -149,13 +149,16 @@ export function M5DocMissionShell({ runId }: Props) {
                 Post-M5 transmis · mission documentaire terminée ({completedCount}/31 ·{" "}
                 {stateQuery.data?.finalScore ?? 0}/100)
               </p>
-              {!quizPassed ? (
-                <Button onClick={() => navigate("/student/quiz/5")}>Passer au Quiz M5</Button>
-              ) : (
-                <Button onClick={() => navigate("/student/certifications")}>
-                  Voir la conclusion du cours
-                </Button>
-              )}
+              <div className="flex flex-wrap gap-2">
+                {!quizPassed && (
+                  <Button onClick={() => navigate("/student/quiz/5")}>Passer au Quiz M5</Button>
+                )}
+                {quizPassed && (
+                  <Button onClick={() => navigate("/student/certifications")}>
+                    Voir la conclusion du cours
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </CardContent>

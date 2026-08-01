@@ -1212,11 +1212,17 @@ export const appRouter = router({
             const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
             const docState = await loadM5DocState(r.run.id, r.scenario.initialStateJson.scnCode);
             const completed = Object.keys(docState.officialScores);
+            const finalScore = computeFinalScore(docState).finalScore;
+            // Never surface a fake 0/100 for an empty / unfinished DOC attempt.
+            const score =
+              r.run.isDemo || (r.run.status !== "completed" && completed.length === 0)
+                ? null
+                : finalScore;
             return {
               ...r,
               completedSteps: completed,
               progressPct: Math.round((completed.length / M5_DOC_INTERACTION_ORDER.length) * 100),
-              score: r.run.isDemo ? null : computeFinalScore(docState).finalScore,
+              score,
               interactionModel: "supervision-doc-v1" as const,
               evidenceVersion: "m5-session-v2" as const,
               docPhase: docState.phase,

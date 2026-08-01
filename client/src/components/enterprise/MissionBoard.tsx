@@ -142,10 +142,15 @@ export default function MissionBoard({
     completedRun: EnrichedRunRow | undefined,
   ) => {
     if (!scenario.docJourney) return null;
-    const progressRun = activeRun ?? completedRun;
-    const doneCount = progressRun?.completedSteps?.length ?? 0;
-    const score = completedRun && !activeRun ? completedRun.score : activeRun?.score;
-    const statusLabel = activeRun
+    // Empty fresh replay (0/31) must not hide a completed DOC result (e.g. 31/31 · 100/100).
+    const activeSteps = activeRun?.completedSteps?.length ?? 0;
+    const showAsInProgress = !!activeRun && activeSteps > 0;
+    const doneCount = showAsInProgress
+      ? activeSteps
+      : (completedRun?.completedSteps?.length ?? 0);
+    const bestScore =
+      completedRun && typeof completedRun.score === "number" ? completedRun.score : null;
+    const statusLabel = showAsInProgress
       ? t("En cours", "In progress")
       : completedRun
         ? t("Terminé", "Completed")
@@ -175,12 +180,12 @@ export default function MissionBoard({
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
             {statusLabel}
-            {(activeRun || completedRun) && (
+            {(showAsInProgress || completedRun) && (
               <span className="ml-1.5 font-semibold text-foreground">· {doneCount}/31</span>
             )}
-            {completedRun && !activeRun && typeof score === "number" && (
+            {bestScore != null && !showAsInProgress && (
               <span className="ml-1.5 inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-semibold">
-                · {score}/100
+                · {bestScore}/100
               </span>
             )}
           </span>
@@ -222,7 +227,15 @@ export default function MissionBoard({
     assignmentMeta,
     missionTitle,
   }: ScenarioCardContext) => {
-    const primaryAction = resolveMissionPrimaryAction(activeRun, completedRun);
+    // DOC: an empty replay (0 official steps) must not mask Terminé · n/31 · score.
+    const displayActiveRun =
+      scenario.docJourney &&
+      activeRun &&
+      (activeRun.completedSteps?.length ?? 0) === 0 &&
+      completedRun
+        ? undefined
+        : activeRun;
+    const primaryAction = resolveMissionPrimaryAction(displayActiveRun, completedRun);
     const binding = scnCode && enterpriseStyled ? getScenarioBinding(scnCode) : undefined;
     const boardCardClass = enterpriseStyled || assignmentPresentation
       ? `tec-mission-board-card tec-assignment-card tec-mission-board-card--m${moduleId}`
@@ -254,12 +267,12 @@ export default function MissionBoard({
                     : DEPARTMENT_LABELS[assignmentMeta.department].en
                 }
               />
-              {activeRun && (
+              {displayActiveRun && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                   <MonitorPlay size={11} className="mr-1" /> {t("En cours", "In Progress")}
                 </span>
               )}
-              {completedRun && !activeRun && (
+              {completedRun && !displayActiveRun && (
                 <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                   <CheckCircle size={11} className="mr-1" /> {t("Terminé", "Completed")}
                 </span>
@@ -283,7 +296,7 @@ export default function MissionBoard({
                 {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
               </p>
             )}
-            {renderDocJourneyChrome(scenario, activeRun, completedRun)}
+            {renderDocJourneyChrome(scenario, displayActiveRun, completedRun)}
 
             <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
               {(() => {
@@ -309,9 +322,9 @@ export default function MissionBoard({
           </div>
 
           <div className="mt-3 flex gap-2">
-            {primaryAction === "continue" && activeRun ? (
+            {primaryAction === "continue" && displayActiveRun ? (
               <button
-                onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
+                onClick={() => navigate(`/student/run/${displayActiveRun.run.id}`)}
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
               >
                 <Play size={16} className="inline mr-2" /> {t("Continuer la mission", "Continue mission")}
@@ -395,7 +408,7 @@ export default function MissionBoard({
               {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
             </p>
           )}
-          {renderDocJourneyChrome(scenario, activeRun, completedRun)}
+          {renderDocJourneyChrome(scenario, displayActiveRun, completedRun)}
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
             {durationMin != null && (
@@ -418,12 +431,12 @@ export default function MissionBoard({
 
           {!scenario.docJourney && (
             <div className="flex flex-wrap gap-2 mb-3">
-              {activeRun && (
+              {displayActiveRun && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
                   <MonitorPlay size={12} className="mr-1" /> {t("En cours", "In Progress")}
                 </span>
               )}
-              {completedRun && !activeRun && (
+              {completedRun && !displayActiveRun && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                   <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
                 </span>
@@ -440,9 +453,9 @@ export default function MissionBoard({
         </div>
 
         <div className="mt-4 flex gap-2">
-          {primaryAction === "continue" && activeRun ? (
+          {primaryAction === "continue" && displayActiveRun ? (
             <button
-              onClick={() => navigate(`/student/run/${activeRun.run.id}`)}
+              onClick={() => navigate(`/student/run/${displayActiveRun.run.id}`)}
               className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
             >
               <Play size={16} className="inline mr-2" /> {t("Continuer la mission", "Continue mission")}
