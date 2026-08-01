@@ -96,15 +96,16 @@ try {
   if (!runId) throw new Error("Failed to start DOC run");
   report.runId = runId;
 
-  // Build payloads; for POST use coherent handover from a mirrored local state.
+  // Canonical helper covers PRE→017 (30). POST is submitted separately with coherent handover.
   let mirror = createInitialM5DocState(runId, "SCN-015-DOC");
-  const steps = buildCanonicalProgressionPayloads();
+  const steps = [
+    ...buildCanonicalProgressionPayloads(),
+    { id: "INT-POST-01", payload: null },
+  ];
   for (const step of steps) {
     const mode = step.id.startsWith("INT-PRE") ? "FORMATIVE" : "OFFICIAL";
-    let payload = step.payload;
-    if (step.id === "INT-POST-01") {
-      payload = buildCoherentHandoverFromState(mirror);
-    }
+    const payload =
+      step.id === "INT-POST-01" ? buildCoherentHandoverFromState(mirror) : step.payload;
     const res = await trpcMutation("m5Doc.submitInteraction", {
       runId,
       interactionId: step.id,

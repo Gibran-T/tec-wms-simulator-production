@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";
 import { router, protectedProcedure } from "./_core/trpc";
-import { getRunById, getScenarioById } from "./db";
+import { completeRun, getRunById, getScenarioById } from "./db";
 import {
   canAccessM5DocAsActor,
   isM5DocFeatureEnabled,
@@ -198,6 +198,14 @@ export const m5DocRouter = router({
 
         await saveM5DocState(result.state);
         const { finalScore, zoneScores } = computeFinalScore(result.state);
+
+        // Close envelope run when documentary handover is transmitted (phase CLOSED).
+        if (result.state.phase === "CLOSED" && result.state.handover.status === "Transmis") {
+          const latest = await getRunById(input.runId);
+          if (latest && latest.status !== "completed") {
+            await completeRun(input.runId);
+          }
+        }
 
         const response = {
           accepted: true,
