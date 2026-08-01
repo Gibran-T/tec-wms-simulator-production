@@ -53,10 +53,13 @@ function normalizeReportDetail(
     kpiInterpretations?: Array<{
       kpiKey: string;
       studentAnswer: string;
-      isCorrect: boolean;
+      isCorrect: boolean | null;
       feedback: string;
       pointsDelta?: number;
     }>;
+    interactionModel?: "supervision-doc-v1" | "ops-ledger-v1" | string;
+    evidenceVersion?: string;
+    m5DocReport?: unknown;
     learningFeedback?: LearningFeedbackPayload | null;
     m4KpiSnapshot?: {
       rotationRate: number;

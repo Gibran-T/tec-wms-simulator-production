@@ -1,11 +1,13 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
-import { Download, Monitor, RefreshCw, FlaskConical, ShieldCheck, BarChart2, RotateCcw, Users } from "lucide-react";
+import { Download, Monitor, RefreshCw, FlaskConical, ShieldCheck, BarChart2, RotateCcw, Users, FileText } from "lucide-react";
 import { useState, useMemo } from "react";
 import { skipToken } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
+import { Link } from "wouter";
+import { isSupervisionDocRun } from "@shared/m5Doc/dispatch";
 
 type FilterMode = "evaluation" | "demonstration" | "all";
 
@@ -276,10 +278,18 @@ export default function MonitorDashboard() {
             {displayedRuns.map((r: any) => {
               const isDemo = r.run?.isDemo;
               const status = r.run?.status;
+              const runId = r.run?.id ?? r.runId;
+              const isDoc =
+                isSupervisionDocRun(r.scenario?.initialStateJson) ||
+                String(r.scenario?.name ?? "").includes("M5-DOC");
               return (
-                <tr key={r.run?.id ?? r.runId} className="hover:bg-secondary/50 transition-colors">
+                <tr key={runId} className="hover:bg-secondary/50 transition-colors">
                   <td className="px-4 py-3">
-                    {isDemo ? (
+                    {isDoc ? (
+                      <span className="flex items-center gap-1 text-[10px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-500/10 px-2 py-0.5 rounded-full w-fit">
+                        <FileText size={9} /> DOC
+                      </span>
+                    ) : isDemo ? (
                       <span className="flex items-center gap-1 text-[10px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full w-fit">
                         <FlaskConical size={9} /> {t("Démo", "Demo")}
                       </span>
@@ -338,14 +348,23 @@ export default function MonitorDashboard() {
                   </td>
                   <td className="px-4 py-3 text-[10px] text-muted-foreground">{r.completedSteps?.join(" → ") ?? "—"}</td>
                   <td className="px-4 py-3">
-                    {confirmResetId === (r.run?.id ?? r.runId) ? (
+                    <div className="flex flex-col gap-1 items-start">
+                      {isDoc && (
+                        <Link
+                          href={`/teacher/m5-doc/${runId}`}
+                          className="text-[10px] font-semibold px-2 py-1 rounded border border-teal-600/40 text-teal-700 dark:text-teal-300 hover:bg-teal-500/10"
+                        >
+                          {t("Vue professeur DOC", "DOC professor view")}
+                        </Link>
+                      )}
+                    {confirmResetId === runId ? (
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => handleReset(r.run?.id ?? r.runId)}
-                          disabled={resettingRunId === (r.run?.id ?? r.runId)}
+                          onClick={() => handleReset(runId)}
+                          disabled={resettingRunId === runId}
                           className="text-[10px] font-semibold px-2 py-1 rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50"
                         >
-                          {resettingRunId === (r.run?.id ?? r.runId) ? "..." : t("Confirmer", "Confirm")}
+                          {resettingRunId === runId ? "..." : t("Confirmer", "Confirm")}
                         </button>
                         <button
                           onClick={() => setConfirmResetId(null)}
@@ -356,13 +375,14 @@ export default function MonitorDashboard() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => handleReset(r.run?.id ?? r.runId)}
+                        onClick={() => handleReset(runId)}
                         title={t("Réinitialiser la session de cet étudiant", "Reset this student's session")}
                         className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded border border-border text-amber-600 dark:text-amber-400 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors"
                       >
                         <RotateCcw size={10} /> {t("Réinitialiser", "Reset")}
                       </button>
                     )}
+                    </div>
                   </td>
                 </tr>
               );

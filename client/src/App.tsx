@@ -33,6 +33,7 @@ import CohortManager from "./pages/teacher/CohortManager";
 import ScenarioManager from "./pages/teacher/ScenarioManager";
 import AssignmentManager from "./pages/teacher/AssignmentManager";
 import MonitorDashboard from "./pages/teacher/MonitorDashboard";
+import M5DocProfessorPage from "./pages/teacher/M5DocProfessorPage";
 import AnalyticsDashboard from "./pages/teacher/AnalyticsDashboard";
 import TeacherSlidesHub from "./pages/teacher/TeacherSlidesHub";
 import AdminPanel from "./pages/admin/AdminPanel";
@@ -116,6 +117,7 @@ function Router() {
       <Route path="/teacher/scenarios" component={ScenarioManager} />
       <Route path="/teacher/assignments" component={AssignmentManager} />
       <Route path="/teacher/monitor" component={MonitorDashboard} />
+      <Route path="/teacher/m5-doc/:runId" component={M5DocProfessorPage} />
       <Route path="/teacher/analytics" component={AnalyticsDashboard} />
       <Route path="/teacher/slides" component={TeacherSlidesHub} />
       <Route path="/teacher/students" component={StudentManager} />

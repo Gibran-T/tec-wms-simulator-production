@@ -208,6 +208,9 @@ import { mentorRouter } from "./aiMentor/router";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assessmentsRouter } from "./assessmentsRouter";
 import { formativeExercisesRouter } from "./formativeExercisesRouter";
+import { m5DocRouter } from "./m5DocRouter";
+import { isSupervisionDocRun } from "../shared/m5Doc/dispatch";
+import { M5_DOC_INTERACTION_ORDER } from "../shared/m5Doc/interactionsCatalog";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
 
@@ -345,9 +348,11 @@ async function buildRunState(runId: number) {
       adjustmentQty: Number(a.adjustmentQty),
       reason: a.reason,
     })),
-    m5InitialStateJson: scenario?.moduleId === 5
-      ? (scenario.initialStateJson as M5InitialStateJson | undefined)
-      : undefined,
+    // DOC runs must never be cast into ops-ledger M5InitialStateJson.
+    m5InitialStateJson:
+      scenario?.moduleId === 5 && !isSupervisionDocRun(scenario.initialStateJson)
+        ? (scenario.initialStateJson as M5InitialStateJson | undefined)
+        : undefined,
     inventory: calculateInventory(
       txs.map((t) => ({
         docType: t.docType,
@@ -1219,15 +1224,73 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
+        // ── Determine module from scenario ──────────────────────────────────
+        const scenario = await getScenarioById(run.scenarioId);
+        const moduleId = scenario?.moduleId ?? 1;
+
+        // DOC dispatch BEFORE any legacy M5 calculation (getEffectiveM5Steps / v1 / Gold legacy).
+        if (isSupervisionDocRun(scenario?.initialStateJson)) {
+          const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+          const { loadM5DocState } = await import("./m5Doc/persistence");
+          const { buildM5DocProfessorView } = await import("./m5Doc/professorView");
+          const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
+          const { deriveM5DocSessionEvidenceV2 } = await import("../shared/m5Doc/evidenceV2");
+          if (!isM5DocFeatureEnabled()) {
+            throw new TRPCError({
+              code: "FORBIDDEN",
+              message: "FEATURE_DISABLED: ENABLE_M5_DOC_SUPERVISION is not true",
+            });
+          }
+          const docState = await loadM5DocState(input.runId, scenario.initialStateJson.scnCode);
+          const { finalScore, zoneScores } = computeFinalScore(docState);
+          const professor = buildM5DocProfessorView(docState);
+          const evidence = deriveM5DocSessionEvidenceV2(docState);
+          const completed = Object.keys(docState.officialScores).length;
+          return {
+            runId: input.runId,
+            isDemo: run.isDemo,
+            interactionModel: "supervision-doc-v1" as const,
+            evidenceVersion: "m5-session-v2" as const,
+            totalScore: finalScore,
+            scoreLabel: "M5 DOC",
+            scoreColor: finalScore >= 70 ? "green" : "amber",
+            stepBreakdown: M5_DOC_INTERACTION_ORDER.map((id) => {
+              const sc = docState.officialScores[id];
+              return {
+                step: id,
+                label: id,
+                completed: !!sc,
+                pointsEarned: sc?.points ?? 0,
+                maxPoints: sc?.maxPoints ?? 0,
+                pct: sc ? Math.round((sc.points / Math.max(1, sc.maxPoints)) * 100) : 0,
+                zones: {},
+                zoneErrors: [] as string[],
+              };
+            }),
+            errors: [],
+            bonuses: [],
+            recommendations: [],
+            complianceIssues: [],
+            completedSteps: Object.keys(docState.officialScores),
+            progressPct: Math.round((completed / M5_DOC_INTERACTION_ORDER.length) * 100),
+            zoneFlow: [],
+            transactionTimeline: [],
+            m5Report: undefined,
+            m5DocReport: { professor, evidence, zoneScores, finalScore },
+            totalTransactions: 0,
+            totalErrors: 0,
+            stepsCompleted: completed,
+            totalSteps: M5_DOC_INTERACTION_ORDER.length,
+            certificationUnlocked: false,
+            silverEligible: false,
+          };
+        }
+
         const events = await getScoringEventsByRun(input.runId);
         const state = await buildRunState(input.runId);
         const compliance = checkCompliance(state);
 
         const silverStatus = await getSilverCertificationStatus(ctx.user.id);
-
-        // ── Determine module from scenario ──────────────────────────────────
-        const scenario = await getScenarioById(run.scenarioId);
-        const moduleId = scenario?.moduleId ?? 1;
         // ── Step max points map (all modules) ───────────────────────────────
         const STEP_MAX_ALL: Record<string, number> = {
           // M1
@@ -1568,13 +1631,57 @@ export const appRouter = router({
           throw new TRPCError({ code: "FORBIDDEN" });
         }
 
-        const state = await buildRunState(input.runId);
         const scenario = await getScenarioById(run.scenarioId);
+        const moduleId = scenario?.moduleId ?? 1;
+
+        // DOC dispatch BEFORE buildRunState legacy M5 steps / getEffectiveM5Steps / v1 evidence.
+        if (isSupervisionDocRun(scenario?.initialStateJson)) {
+          const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+          const { loadM5DocState } = await import("./m5Doc/persistence");
+          const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
+          const featureOn = isM5DocFeatureEnabled();
+          let docScore = 0;
+          let completed: string[] = [];
+          if (featureOn) {
+            const docState = await loadM5DocState(input.runId, scenario.initialStateJson.scnCode);
+            docScore = computeFinalScore(docState).finalScore;
+            completed = Object.keys(docState.officialScores);
+          }
+          return {
+            run,
+            scenario,
+            interactionModel: "supervision-doc-v1" as const,
+            evidenceVersion: "m5-session-v2" as const,
+            completedSteps: completed,
+            inventory: {},
+            compliance: { compliant: true, issuesFr: [] as string[], issuesEn: [] as string[] },
+            nextStep: null,
+            progressPct: Math.round((completed.length / M5_DOC_INTERACTION_ORDER.length) * 100),
+            totalScore: docScore,
+            moduleId,
+            atpShortage: null,
+            steps: M5_DOC_INTERACTION_ORDER.map((id) => ({
+              code: id,
+              labelFr: id,
+              labelEn: id,
+            })),
+            isDemo: run.isDemo,
+            kpiInterpretations: undefined,
+            m4KpiSnapshot: undefined,
+            transactions: [],
+            demoBackendState: null,
+            unpostedTransactions: [],
+            nextActionHint: null,
+            m3Evidence: undefined,
+            m5DocFeatureEnabled: featureOn,
+          };
+        }
+
+        const state = await buildRunState(input.runId);
         // In demo mode, score is always 0 (not tracked)
         // Score is now calculated for both modes; isDemo flag distinguishes official vs pedagogical
         const totalScore = calculateTotalScore(await getScoringEventsByRun(input.runId));
         const compliance = checkCompliance(state);
-         const moduleId = scenario?.moduleId ?? 1;
         const nextStep = getNextRequiredStepAllModules(state.completedSteps, moduleId, state);
         const progressPct = calculateProgressPctAllModules(state.completedSteps, moduleId, state);
         const scn007Hint = moduleId === 2 ? getScn007NextActionHint(state) : null;
@@ -1596,6 +1703,7 @@ export const appRouter = router({
         return {
           run,
           scenario,
+          interactionModel: moduleId === 5 ? ("ops-ledger-v1" as const) : undefined,
           completedSteps: state.completedSteps,
           inventory: state.inventory,
           compliance,
@@ -2485,6 +2593,32 @@ export const appRouter = router({
         const runs = await getAllRunsForMonitor(studentUserIds);
         const enriched = await Promise.all(
           runs.map(async (r) => {
+            // DOC runs: never enter getEffectiveM5Steps / ops-ledger progress scoring.
+            if (isSupervisionDocRun(r.scenario?.initialStateJson)) {
+              const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+              if (!isM5DocFeatureEnabled()) {
+                return {
+                  ...r,
+                  progressPct: 0,
+                  completedSteps: [] as string[],
+                  score: null,
+                  compliant: true,
+                  interactionModel: "supervision-doc-v1" as const,
+                };
+              }
+              const { loadM5DocState } = await import("./m5Doc/persistence");
+              const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
+              const docState = await loadM5DocState(r.run.id, r.scenario.initialStateJson.scnCode);
+              const completed = Object.keys(docState.officialScores);
+              return {
+                ...r,
+                progressPct: Math.round((completed.length / M5_DOC_INTERACTION_ORDER.length) * 100),
+                completedSteps: completed,
+                score: r.run.isDemo ? null : computeFinalScore(docState).finalScore,
+                compliant: docState.handover.contradictions.length === 0,
+                interactionModel: "supervision-doc-v1" as const,
+              };
+            }
             const state = await buildRunState(r.run.id);
             const events = r.run.isDemo ? [] : await getScoringEventsByRun(r.run.id);
             const compliance = checkCompliance(state);
@@ -4191,6 +4325,8 @@ export const appRouter = router({
 
   // ── FORMATIVE EXERCISES (M4/M5) — isolated from official scoring ─────────────
   formativeExercises: formativeExercisesRouter,
+  /** M5 documentary supervision (supervision-doc-v1) — isolated from ops-ledger-v1 */
+  m5Doc: m5DocRouter,
 
   // ── QUIZ ROUTER ─────────────────────────────────────────────────────────────
   quiz: router({

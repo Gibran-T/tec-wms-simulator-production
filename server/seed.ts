@@ -554,7 +554,39 @@ async function seed() {
     });
   }
 
-  console.log("\u2705 Seed complete: 5 modules, 10 SKUs, 13 bins, 5 M1 scenarios, 3 M2 scenarios, 3 M3 scenarios, 3 M4 scenarios, 3 M5 scenarios");
+  // DOC scenarios: only when feature flag is explicitly enabled.
+  // Never rewrites legacy SCN-015/016/017. Default ENABLE_M5_DOC_SUPERVISION=false.
+  let m5DocCount = 0;
+  if (process.env.ENABLE_M5_DOC_SUPERVISION === "true") {
+    const { M5_DOC_SCENARIO_DEFS } = await import("./m5Doc/docScenarioDefs");
+    for (const def of M5_DOC_SCENARIO_DEFS) {
+      const row = {
+        moduleId: m5.id,
+        name: def.name,
+        descriptionFr: def.descriptionFr,
+        descriptionEn: def.descriptionEn,
+        difficulty: def.difficulty,
+        isActive: true,
+        initialStateJson: def.initialStateJson,
+        createdBy: 1,
+      };
+      await db.insert(scenarios).values(row).onDuplicateKeyUpdate({
+        set: {
+          descriptionFr: row.descriptionFr,
+          descriptionEn: row.descriptionEn,
+          difficulty: row.difficulty,
+          initialStateJson: row.initialStateJson,
+          isActive: true,
+        },
+      });
+      m5DocCount += 1;
+    }
+  }
+
+  console.log(
+    `\u2705 Seed complete: 5 modules, 10 SKUs, 13 bins, 5 M1 scenarios, 3 M2 scenarios, 3 M3 scenarios, 3 M4 scenarios, 3 M5 scenarios` +
+      (m5DocCount ? `, ${m5DocCount} M5-DOC scenarios` : " (M5-DOC skipped — flag off)"),
+  );
   process.exit(0);
 }
 

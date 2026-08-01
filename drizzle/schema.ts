@@ -671,3 +671,28 @@ export const formativeExerciseAttempts = mysqlTable("formative_exercise_attempts
 
 export type FormativeExerciseAttempt = typeof formativeExerciseAttempts.$inferSelect;
 export type InsertFormativeExerciseAttempt = typeof formativeExerciseAttempts.$inferInsert;
+
+// ── M5 DOC SUPERVISION — satellite state (isolated from ops-ledger-v1) ────────
+// Forward-only additive table. Empty at creation. Never migrates legacy runs.
+// Do not place documentary state in kpi_snapshots / replenishment / inventory_* tables.
+
+export const m5DocMissionStates = mysqlTable(
+  "m5_doc_mission_states",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    runId: int("runId").notNull(),
+    version: varchar("version", { length: 32 }).notNull(),
+    stateJson: json("stateJson").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    runVersionUid: uniqueIndex("m5_doc_mission_states_run_version_uidx").on(
+      table.runId,
+      table.version,
+    ),
+  }),
+);
+
+export type M5DocMissionStateRow = typeof m5DocMissionStates.$inferSelect;
+export type InsertM5DocMissionStateRow = typeof m5DocMissionStates.$inferInsert;

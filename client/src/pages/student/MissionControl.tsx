@@ -47,6 +47,8 @@ import {
   isStudentAdjTransaction,
   type M3RunEvidence,
 } from "@/lib/m3OperationalEvidence";
+import { M5DocMissionShell } from "@/components/m5Doc/M5DocMissionShell";
+import { isM5DocInitialState } from "@shared/m5Doc/types";
 import {
   M3ConfirmationTargetsTable,
   M3ReplenishmentParamsTable,
@@ -73,8 +75,12 @@ export default function MissionControl() {
   const runIdNum = parseInt(runId);
   
   const { data, isLoading } = trpc.runs.state.useQuery({ runId: runIdNum });
-  const { data: txList } = trpc.transactions.list.useQuery({ runId: runIdNum }, { enabled: !!data && !isLoading });
-  const isM5Early = data?.moduleId === 5;
+  const isM5DocRun = isM5DocInitialState(data?.scenario?.initialStateJson);
+  const { data: txList } = trpc.transactions.list.useQuery(
+    { runId: runIdNum },
+    { enabled: !!data && !isLoading && !isM5DocRun },
+  );
+  const isM5Early = data?.moduleId === 5 && !isM5DocRun;
   const { data: m5KpiLedger, isFetching: m5LedgerLoading } = trpc.m5.kpiLedger.useQuery(
     { runId: runIdNum },
     {
@@ -232,6 +238,21 @@ export default function MissionControl() {
     run, scenario, completedSteps, compliance, totalScore: score, nextStep,
     progressPct, isDemo, moduleId, steps: backendSteps, inventory,
   } = data;
+
+  // Documentary supervision profile — isolated UI branch (no ops-ledger chrome).
+  if (isM5DocInitialState(scenario?.initialStateJson)) {
+    return (
+      <FioriShell
+        title="MISSION CONTROL — M5 DOC"
+        breadcrumbs={[
+          { label: t("Scénarios", "Scenarios"), href: "/student/scenarios" },
+          { label: "M5 DOC" },
+        ]}
+      >
+        <M5DocMissionShell runId={Number(runId)} />
+      </FioriShell>
+    );
+  }
 
   const atpShortage = (data as { atpShortage?: { active: boolean; sku: string; stockAvailable: number; soDemand: number; deficit: number } | null }).atpShortage;
   const nextActionHint = (data as {
