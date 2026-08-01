@@ -208,6 +208,16 @@ export default function QuizPage() {
                 {bestAttempt ? t("Recommencer le quiz", "Retake quiz") : t("Commencer le quiz", "Start quiz")}
                 <ChevronRight className="w-4 h-4 ml-2" />
               </Button>
+              {moduleId === 5 && bestAttempt?.passed && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-2"
+                  onClick={() => navigate("/student/certifications")}
+                >
+                  {t("Voir la conclusion du cours", "View course conclusion")}
+                  <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -497,7 +507,7 @@ export default function QuizPage() {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Button
               variant="outline"
               className="flex-1"
@@ -513,14 +523,24 @@ export default function QuizPage() {
               <RotateCcw className="w-4 h-4 mr-2" />
               {t("Recommencer", "Retake")}
             </Button>
-            <Button
-              className="flex-1 text-white"
-              style={{ backgroundColor: color }}
-              onClick={() => navigate("/student")}
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              {t("Tableau de bord", "Dashboard")}
-            </Button>
+            {moduleId === 5 && passed ? (
+              <Button
+                className="flex-1 text-white"
+                style={{ backgroundColor: color }}
+                onClick={() => navigate("/student/certifications")}
+              >
+                {t("Voir la conclusion du cours", "View course conclusion")}
+              </Button>
+            ) : (
+              <Button
+                className="flex-1 text-white"
+                style={{ backgroundColor: color }}
+                onClick={() => navigate("/student")}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                {t("Tableau de bord", "Dashboard")}
+              </Button>
+            )}
           </div>
         </div>
       </div>

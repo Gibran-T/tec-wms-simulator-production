@@ -1195,6 +1195,34 @@ export const appRouter = router({
       const runs = await getRunsByUser(ctx.user.id);
       const enriched = await Promise.all(
         runs.map(async (r) => {
+          // DOC runs: score from m5_doc_mission_states — never legacy scoring_events (would show 0/100).
+          if (isSupervisionDocRun(r.scenario?.initialStateJson)) {
+            const { isM5DocFeatureEnabled } = await import("../shared/m5Doc/types");
+            if (!isM5DocFeatureEnabled()) {
+              return {
+                ...r,
+                completedSteps: [] as string[],
+                progressPct: 0,
+                score: null as number | null,
+                interactionModel: "supervision-doc-v1" as const,
+                evidenceVersion: "m5-session-v2" as const,
+              };
+            }
+            const { loadM5DocState } = await import("./m5Doc/persistence");
+            const { computeFinalScore } = await import("../shared/m5Doc/scoringPure");
+            const docState = await loadM5DocState(r.run.id, r.scenario.initialStateJson.scnCode);
+            const completed = Object.keys(docState.officialScores);
+            return {
+              ...r,
+              completedSteps: completed,
+              progressPct: Math.round((completed.length / M5_DOC_INTERACTION_ORDER.length) * 100),
+              score: r.run.isDemo ? null : computeFinalScore(docState).finalScore,
+              interactionModel: "supervision-doc-v1" as const,
+              evidenceVersion: "m5-session-v2" as const,
+              docPhase: docState.phase,
+              docHandover: docState.handover.status,
+            };
+          }
           const state = await buildRunState(r.run.id);
           const events = r.run.isDemo ? [] : await getScoringEventsByRun(r.run.id);
           return {

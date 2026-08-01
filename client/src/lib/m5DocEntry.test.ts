@@ -20,11 +20,16 @@ const doc = {
 };
 
 describe("m5DocEntry routing", () => {
-  it("picks cumulative DOC entry with 70% target", () => {
+  it("picks cumulative DOC entry with 70% target and Post-M5 + suite labels", () => {
     const entry = pickM5DocEntryScenario([...legacy, doc]);
     expect(entry?.id).toBe(86);
     expect(entry?.targetScore).toBe(70);
+    expect(entry?.docJourney).toBe(true);
     expect(entry?.name).toMatch(/Superviseur d'exploitation/);
+    expect(entry?.descriptionFr).toMatch(/Post-M5 \(handover\)/);
+    expect(entry?.descriptionFr).toMatch(/Quiz M5 → Conclusion du cours/);
+    expect(entry?.descriptionFr).not.toMatch(/→ handover \(31/);
+    expect(entry?.durationMin).toBeNull();
   });
 
   it("routes allowlisted students to DOC entry only", () => {

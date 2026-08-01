@@ -24,6 +24,13 @@ import { getCharacterById } from "@shared/enterprise/characters";
 import { getMissionForScenario } from "../../../../server/missionData";
 import PriorityBadge from "@/components/enterprise/PriorityBadge";
 import DepartmentBadge from "@/components/enterprise/DepartmentBadge";
+import {
+  M5_DOC_MISSION_PATH_EN,
+  M5_DOC_MISSION_PATH_FR,
+  M5_DOC_PHASE_LABELS,
+  M5_DOC_SUITE_EN,
+  M5_DOC_SUITE_FR,
+} from "@/lib/m5DocEntry";
 
 const DIFF_CONFIG: Record<string, { labelFr: string; labelEn: string; bg: string; text: string }> = {
   facile: { labelFr: "Facile", labelEn: "Easy", bg: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-emerald-800 dark:text-emerald-300" },
@@ -44,11 +51,17 @@ type MissionBoardScenario = ScenarioRef & {
   descriptionFr?: string | null;
   descriptionEn?: string | null;
   targetScore?: number | null;
+  docJourney?: boolean;
+  durationMin?: number | null;
 };
 
 type EnrichedRunRow = {
   run: { id: number; scenarioId: number; status: string; isDemo: boolean; score?: number | null };
   score?: number | null;
+  completedSteps?: string[];
+  progressPct?: number;
+  interactionModel?: string;
+  evidenceVersion?: string;
 };
 
 type AssignmentGroupBy = "none" | "department" | "priority";
@@ -112,6 +125,72 @@ export default function MissionBoard({
 
   const getCompletedRun = (scenario: MissionBoardScenario) =>
     findCompletedRunForScenario(scenario, rawModuleScenarios, myRuns) as EnrichedRunRow | undefined;
+
+  const resolveDurationMin = (scenario: MissionBoardScenario, scnCode: string | null): number | null => {
+    if (scenario.docJourney) {
+      return typeof scenario.durationMin === "number" ? scenario.durationMin : null;
+    }
+    if (typeof scenario.durationMin === "number") return scenario.durationMin;
+    const key = scnCode ? parseInt(scnCode.replace("SCN-", ""), 10) : scenario.id;
+    const fromMap = SCENARIO_DURATION[key];
+    return typeof fromMap === "number" ? fromMap : null;
+  };
+
+  const renderDocJourneyChrome = (
+    scenario: MissionBoardScenario,
+    activeRun: EnrichedRunRow | undefined,
+    completedRun: EnrichedRunRow | undefined,
+  ) => {
+    if (!scenario.docJourney) return null;
+    const progressRun = activeRun ?? completedRun;
+    const doneCount = progressRun?.completedSteps?.length ?? 0;
+    const score = completedRun && !activeRun ? completedRun.score : activeRun?.score;
+    const statusLabel = activeRun
+      ? t("En cours", "In progress")
+      : completedRun
+        ? t("Terminé", "Completed")
+        : t("À commencer", "Not started");
+    return (
+      <div className="space-y-2 mb-3">
+        <p className="text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">{t("Mission cumulative — 31 interactions", "Cumulative mission — 31 interactions")}</span>
+          {" : "}
+          {language === "FR" ? M5_DOC_MISSION_PATH_FR : M5_DOC_MISSION_PATH_EN}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          <span className="font-semibold text-foreground">{t("Suite pédagogique", "Pedagogical suite")}</span>
+          {" : "}
+          {language === "FR" ? M5_DOC_SUITE_FR : M5_DOC_SUITE_EN}
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          {M5_DOC_PHASE_LABELS.map((label) => (
+            <span
+              key={label}
+              className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide bg-purple-50 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200 border border-purple-200/70"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+            {statusLabel}
+            {(activeRun || completedRun) && (
+              <span className="ml-1.5 font-semibold text-foreground">· {doneCount}/31</span>
+            )}
+            {completedRun && !activeRun && typeof score === "number" && (
+              <span className="ml-1.5 inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-semibold">
+                · {score}/100
+              </span>
+            )}
+          </span>
+          {completedRun?.evidenceVersion && (
+            <span className="font-mono text-[10px] text-slate-500">{completedRun.evidenceVersion}</span>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   const heading =
     title ??
@@ -199,21 +278,28 @@ export default function MissionBoard({
               </p>
             )}
 
-            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-              {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
-            </p>
+            {!scenario.docJourney && (
+              <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
+              </p>
+            )}
+            {renderDocJourneyChrome(scenario, activeRun, completedRun)}
 
             <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
-              <span className="inline-flex items-center gap-1">
-                <Clock size={13} />
-                {SCENARIO_DURATION[scnCode ? parseInt(scnCode.replace("SCN-", ""), 10) : scenario.id]}{" "}
-                {t("min", "min")}
-              </span>
+              {(() => {
+                const mins = resolveDurationMin(scenario, scnCode);
+                return mins != null ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock size={13} />
+                    {mins} {t("min", "min")}
+                  </span>
+                ) : null;
+              })()}
               <span className="inline-flex items-center gap-1">
                 <Target size={13} />
                 {scenario.targetScore ?? (moduleId >= 3 ? 70 : 60)}% {t("cible", "target")}
               </span>
-              {completedRun && completedRun.score != null && (
+              {!scenario.docJourney && completedRun && typeof completedRun.score === "number" && (
                 <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-medium">
                   <BarChart2 size={13} />
                   {completedRun.score}/100
@@ -254,7 +340,8 @@ export default function MissionBoard({
                 }
                 className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
               >
-                <ClipboardList size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
+                <ClipboardList size={16} className="inline mr-2" />{" "}
+                {t("Commencer la mission", "Start mission")}
               </button>
             )}
             {completedRun && (
@@ -262,13 +349,15 @@ export default function MissionBoard({
                 onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
                 className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
               >
-                <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
+                <FileText size={16} className="inline mr-2" /> {t("Voir le résultat", "View result")}
               </button>
             )}
           </div>
         </div>
       );
     }
+
+    const durationMin = resolveDurationMin(scenario, scnCode);
 
     return (
       <div
@@ -301,39 +390,53 @@ export default function MissionBoard({
               {language === "FR" ? DIFF_CONFIG[scenario.difficulty ?? "moyen"]?.labelFr : DIFF_CONFIG[scenario.difficulty ?? "moyen"]?.labelEn}
             </span>
           </div>
-          <p className="text-sm text-muted-foreground mb-3">
-            {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
-          </p>
+          {!scenario.docJourney && (
+            <p className="text-sm text-muted-foreground mb-3">
+              {language === "FR" ? (scenario.descriptionFr ?? "") : (scenario.descriptionEn ?? "")}
+            </p>
+          )}
+          {renderDocJourneyChrome(scenario, activeRun, completedRun)}
 
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-            <Clock size={14} />
-            <span>
-              {SCENARIO_DURATION[scnCode ? parseInt(scnCode.replace("SCN-", ""), 10) : scenario.id]}{" "}
-              {t("min", "min")}
-            </span>
-            <Target size={14} className="ml-4" />
+            {durationMin != null && (
+              <>
+                <Clock size={14} />
+                <span>
+                  {durationMin} {t("min", "min")}
+                </span>
+              </>
+            )}
+            <Target size={14} className={durationMin != null ? "ml-4" : undefined} />
             <span>{scenario.targetScore ?? (moduleId >= 3 ? 70 : 60)}% {t("cible", "target")}</span>
-          </div>
-
-          <div className="flex flex-wrap gap-2 mb-3">
-            {activeRun && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
-                <MonitorPlay size={12} className="mr-1" /> {t("En cours", "In Progress")}
-              </span>
-            )}
-            {completedRun && !activeRun && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
-              </span>
-            )}
-            {completedRun && completedRun.score != null && (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                <BarChart2 size={12} className="mr-1" />{" "}
-                {enterpriseStyled ? t("Résultat:", "Outcome:") : t("Score:", "Score:")}{" "}
+            {!scenario.docJourney && completedRun && typeof completedRun.score === "number" && (
+              <span className="inline-flex items-center gap-1 text-blue-700 dark:text-blue-300 font-medium ml-2">
+                <BarChart2 size={13} />
                 {completedRun.score}/100
               </span>
             )}
           </div>
+
+          {!scenario.docJourney && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {activeRun && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                  <MonitorPlay size={12} className="mr-1" /> {t("En cours", "In Progress")}
+                </span>
+              )}
+              {completedRun && !activeRun && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                  <CheckCircle size={12} className="mr-1" /> {t("Terminé", "Completed")}
+                </span>
+              )}
+              {completedRun && typeof completedRun.score === "number" && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                  <BarChart2 size={12} className="mr-1" />{" "}
+                  {enterpriseStyled ? t("Résultat:", "Outcome:") : t("Score:", "Score:")}{" "}
+                  {completedRun.score}/100
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex gap-2">
@@ -368,7 +471,8 @@ export default function MissionBoard({
               }
               className="flex-1 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors"
             >
-              <Play size={16} className="inline mr-2" /> {t("Commencer la mission", "Start mission")}
+              <Play size={16} className="inline mr-2" />{" "}
+              {t("Commencer la mission", "Start mission")}
             </button>
           )}
           {completedRun && (
@@ -376,7 +480,7 @@ export default function MissionBoard({
               onClick={() => navigate(`/student/run/${completedRun.run.id}/report`)}
               className="px-4 py-2 bg-secondary text-secondary-foreground text-sm font-medium rounded-md hover:bg-secondary/90 transition-colors"
             >
-              <FileText size={16} className="inline mr-2" /> {t("Résultat", "Result")}
+              <FileText size={16} className="inline mr-2" /> {t("Voir le résultat", "View result")}
             </button>
           )}
         </div>

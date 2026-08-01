@@ -5,6 +5,21 @@ import { isM5DocInitialState } from "@shared/m5Doc/types";
 import { filterCanonicalScenariosForModule, type ScenarioRef } from "../../../server/canonicalScenarios";
 import { getModuleScenarioPassThreshold } from "@shared/moduleThresholds";
 
+export const M5_DOC_PHASE_LABELS = [
+  "Pré-M5",
+  "SCN-015-DOC",
+  "SCN-016-DOC",
+  "SCN-017-DOC",
+  "Post-M5",
+] as const;
+
+export const M5_DOC_MISSION_PATH_FR =
+  "Pré-M5 → SCN-015-DOC → SCN-016-DOC → SCN-017-DOC → Post-M5 (handover)";
+export const M5_DOC_MISSION_PATH_EN =
+  "Pré-M5 → SCN-015-DOC → SCN-016-DOC → SCN-017-DOC → Post-M5 (handover)";
+export const M5_DOC_SUITE_FR = "Quiz M5 → Conclusion du cours";
+export const M5_DOC_SUITE_EN = "M5 Quiz → Course conclusion";
+
 export type M5EntryScenario = ScenarioRef & {
   name: string;
   difficulty?: string | null;
@@ -13,6 +28,9 @@ export type M5EntryScenario = ScenarioRef & {
   initialStateJson?: unknown;
   targetScore?: number | null;
   isActive?: boolean;
+  /** Marks the cumulative DOC portal card */
+  docJourney?: boolean;
+  durationMin?: number | null;
 };
 
 export function isM5DocScenarioRow(scenario: { name?: string | null; initialStateJson?: unknown }): boolean {
@@ -28,13 +46,19 @@ export function pickM5DocEntryScenario<T extends M5EntryScenario>(rows: T[]): T 
     docs.find((r) => /SCN-015-DOC/i.test(String(r.name ?? ""))) ||
     docs.find((r) => (r.initialStateJson as { scnCode?: string } | null)?.scnCode === "SCN-015-DOC") ||
     docs[0];
+  const configuredDuration =
+    typeof entry.durationMin === "number" && Number.isFinite(entry.durationMin) && entry.durationMin > 0
+      ? entry.durationMin
+      : null;
   return {
     ...entry,
+    docJourney: true,
+    durationMin: configuredDuration,
     name: "M5 DOC — Superviseur d'exploitation — quart de clôture",
     descriptionFr:
-      "Parcours cumulatif : Pré-M5 → SCN-015-DOC → SCN-016-DOC → SCN-017-DOC → handover (31 interactions). Evidence m5-session-v2.",
+      `Mission cumulative — 31 interactions : ${M5_DOC_MISSION_PATH_FR}. Evidence m5-session-v2. Suite pédagogique : ${M5_DOC_SUITE_FR}.`,
     descriptionEn:
-      "Cumulative path: Pré-M5 → SCN-015-DOC → SCN-016-DOC → SCN-017-DOC → handover (31 interactions). Evidence m5-session-v2.",
+      `Cumulative mission — 31 interactions: ${M5_DOC_MISSION_PATH_EN}. Evidence m5-session-v2. Pedagogical suite: ${M5_DOC_SUITE_EN}.`,
     targetScore: getModuleScenarioPassThreshold(5),
   };
 }
