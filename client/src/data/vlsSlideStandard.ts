@@ -66,7 +66,8 @@ export const VLS_MODULE_IMAGES: Record<number, string> = {
   2: "/visual-learning/modules/TEC_WMS_VLS_M2.png",
   3: "/visual-learning/modules/TEC_WMS_VLS_M3.png",
   4: "/visual-learning/modules/TEC_WMS_VLS_M4.png",
-  5: "/visual-learning/modules/TEC_WMS_VLS_M5.png",
+  /** M5 closing-shift supervisor hero (quart de clôture) */
+  5: "/visual-learning/modules/m5/03_truck_night_gls.png",
 };
 
 /** @deprecated Use getVlsModuleConfig(1).heroImage */
@@ -508,10 +509,10 @@ export const VLS_MODULE_CONFIG: Record<number, VlsModuleConfig> = {
     heroImage: VLS_MODULE_IMAGES[5],
     hotspots: VLS_M5_HOTSPOTS,
     observationZoneKeywords: [
-      "RECEPTION", "RÉCEPTION", "PUTAWAY", "CYCLE", "REPLENISH",
-      "KPI", "DECISION", "COMPLIANCE", "SCN-015", "SCN-016", "SCN-017",
+      "PRÉPARER", "PREPARER", "SUPERVISER", "INTERVENIR", "CLÔTURER", "CLOTURER",
+      "QUAI", "FRET", "ÉCART", "ECART", "SÉCURITÉ", "SECURITE", "TRANSMISSION",
     ],
-    conceptsLabel: { fr: "Simulation intégrée", en: "Integrated simulation" },
+    conceptsLabel: { fr: "Actes du quart", en: "Shift acts" },
     quizThresholdPct: 60,
     scenarioHref: "/student/module5",
     scenarioLinkFr: "Liste des scénarios M5",

@@ -29,20 +29,27 @@ type Props = {
   t: (fr: string, en: string) => string;
 };
 
+function resolveSlideImage(slide: SlideContent, config: VlsModuleConfig): string {
+  return slide.imageUrl?.trim() || config.heroImage;
+}
+
 function HeroImageBlock({
   src,
   alt,
   className = "",
+  contain = false,
 }: {
   src: string;
   alt: string;
   className?: string;
+  /** Prefer contain for operational photos (no crop of trucks/docks/people). */
+  contain?: boolean;
 }) {
   return (
     <img
       src={src}
       alt={alt}
-      className={`w-full rounded-xl border border-border/70 shadow-md object-cover ${className}`}
+      className={`w-full rounded-xl border border-border/70 shadow-md ${contain ? "object-contain bg-muted/40" : "object-cover"} ${className}`}
       loading="eager"
     />
   );
@@ -84,7 +91,9 @@ function HotspotPanel({
   t: (fr: string, en: string) => string;
   config: VlsModuleConfig;
 }) {
-  const { hotspots, heroImage } = config;
+  const { hotspots } = config;
+  const heroImage = resolveSlideImage(slide, config);
+  const containPhoto = Boolean(slide.imageUrl);
   const [activeHotspot, setActiveHotspot] = useState(hotspots[0]?.id ?? "");
   const hotspot = hotspots.find((h) => h.id === activeHotspot);
 
@@ -95,6 +104,7 @@ function HotspotPanel({
           src={heroImage}
           alt={lang === "FR" ? slide.titleFr : slide.titleEn}
           className="max-h-[400px]"
+          contain={containPhoto}
         />
         {hotspots.map((spot) => (
           <button
@@ -213,13 +223,15 @@ export default function VlsSlideCanvas({
   const sectionLabel = getVlsSectionLabel(section, lang);
   const conceptsLabel = getVlsConceptsLabel(moduleId, lang);
   const moduleCode = `M${moduleId}`;
+  const slideImage = resolveSlideImage(slide, config);
+  const containPhoto = Boolean(slide.imageUrl);
 
   if (section === "hero") {
     const { keyPoints, objectives } = splitHeroBody(body);
     return (
       <div className="space-y-5">
         <div className="relative overflow-hidden rounded-xl border border-border/70 shadow-lg">
-          <HeroImageBlock src={config.heroImage} alt={title} className="max-h-[420px] lg:max-h-[480px]" />
+          <HeroImageBlock src={slideImage} alt={title} className="max-h-[420px] lg:max-h-[480px]" contain={containPhoto} />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/40 to-transparent p-5 sm:p-6">
             <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
               VLS · {sectionLabel}
@@ -290,7 +302,7 @@ export default function VlsSlideCanvas({
     return (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
         <div className="lg:col-span-3">
-          <HeroImageBlock src={config.heroImage} alt={title} className="max-h-[360px]" />
+          <HeroImageBlock src={slideImage} alt={title} className="max-h-[360px]" contain={containPhoto} />
         </div>
         <div className="lg:col-span-2 space-y-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -323,7 +335,7 @@ export default function VlsSlideCanvas({
           </div>
         </div>
         <div className="lg:col-span-3">
-          <HeroImageBlock src={config.heroImage} alt={title} className="max-h-[340px] opacity-95" />
+          <HeroImageBlock src={slideImage} alt={title} className="max-h-[340px] opacity-95" contain={containPhoto} />
         </div>
       </div>
     );
@@ -351,9 +363,10 @@ export default function VlsSlideCanvas({
         </div>
         <div className="lg:col-span-2">
           <HeroImageBlock
-            src={config.heroImage}
+            src={slideImage}
             alt={title}
             className="max-h-[280px] lg:sticky lg:top-4"
+            contain={containPhoto}
           />
         </div>
       </div>
