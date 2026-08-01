@@ -5,9 +5,9 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 import mysql from "mysql2/promise";
 
-const url = process.env.DATABASE_URL;
+const url = process.env.DATABASE_URL || process.env.MYSQL_PUBLIC_URL || process.env.MYSQL_URL;
 if (!url) {
-  console.error("DATABASE_URL required");
+  console.error("DATABASE_URL/MYSQL_PUBLIC_URL required");
   process.exit(2);
 }
 if (/railway|rlwy/i.test(url) && process.env.M5DOC_ALLOW_REMOTE_MIGRATE !== "true") {
@@ -16,20 +16,22 @@ if (/railway|rlwy/i.test(url) && process.env.M5DOC_ALLOW_REMOTE_MIGRATE !== "tru
 }
 
 const sqlPath = resolve("drizzle/0020_m5_doc_mission_states.sql");
-const sql = readFileSync(sqlPath, "utf8");
-const conn = await mysql.createConnection(url);
+const raw = readFileSync(sqlPath, "utf8");
+// Strip line comments; keep single CREATE statement.
+const sql = raw
+  .split(/\r?\n/)
+  .filter((line) => !/^\s*--/.test(line))
+  .join("\n")
+  .trim()
+  .replace(/;\s*$/, "");
 
+const conn = await mysql.createConnection(url);
 const [beforeDb] = await conn.query("SELECT DATABASE() AS db, @@hostname AS host, @@port AS port");
 const [beforeTables] = await conn.query("SHOW TABLES LIKE 'm5_doc_mission_states'");
 const existed = beforeTables.length > 0;
 
 if (!existed) {
-  for (const stmt of sql
-    .split(/;\s*\n/)
-    .map((s) => s.trim())
-    .filter((s) => s && !s.startsWith("--"))) {
-    await conn.query(stmt);
-  }
+  await conn.query(sql);
 }
 
 const [afterTables] = await conn.query("SHOW TABLES LIKE 'm5_doc_mission_states'");
