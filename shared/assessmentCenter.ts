@@ -104,6 +104,12 @@ const COMPETENCY_SHORT: Record<string, string> = {
   Réapprovisionnement: "Réappro.",
   "Lecture des données WMS": "Données WMS",
   "Conformité du processus": "Conformité",
+  // Évaluation de clôture (Eval 2) axes
+  "Flux intégrés (réception → stockage → sortie)": "Flux",
+  "Exactitude et contrôle des stocks": "Exactitude",
+  "Capacité, localisation et priorités (FIFO / lots)": "Capacité",
+  "Pilotage par KPI et diagnostic": "KPI",
+  "Décision opérationnelle sous contrainte": "Décision",
 };
 
 export function shortCompetencyLabel(competency: string): string {

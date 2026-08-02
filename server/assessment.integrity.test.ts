@@ -269,6 +269,36 @@ describe("Eval1 question bank", () => {
   });
 });
 
+describe("Eval2 clôture question bank (programme closing)", () => {
+  it("is wired as EVAL_INTEGREE_2 with 50 min / 100 pts / pass 70", async () => {
+    const {
+      EVAL_CLOTURE_ASSESSMENT_CODE,
+      EVAL_CLOTURE_DURATION_MINUTES,
+      EVAL_CLOTURE_PASSING_SCORE,
+      EVAL_CLOTURE_QUESTIONS,
+      EVAL_CLOTURE_TOTAL_POINTS,
+      EVAL_CLOTURE_META,
+      countCorrectPositionDistribution: clotureDist,
+      uniqueLongestCorrectRatio,
+    } = await import("../shared/evalClotureQuestionBank");
+    const { ASSESSMENT_CODES } = await import("../shared/assessmentCore");
+
+    expect(EVAL_CLOTURE_ASSESSMENT_CODE).toBe(ASSESSMENT_CODES.EVAL2);
+    expect(EVAL_CLOTURE_META.activationStatus).toBe("ready");
+    expect(EVAL_CLOTURE_QUESTIONS).toHaveLength(20);
+    expect(EVAL_CLOTURE_TOTAL_POINTS).toBe(100);
+    expect(EVAL_CLOTURE_PASSING_SCORE).toBe(70);
+    expect(EVAL_CLOTURE_DURATION_MINUTES).toBe(50);
+    expect(EVAL_CLOTURE_QUESTIONS.reduce((s, q) => s + q.points, 0)).toBe(100);
+
+    const dist = clotureDist(EVAL_CLOTURE_QUESTIONS);
+    expect(dist).toEqual({ o1: 5, o2: 5, o3: 5, o4: 5 });
+    expect(uniqueLongestCorrectRatio(EVAL_CLOTURE_QUESTIONS)).toBeLessThanOrEqual(
+      0.35,
+    );
+  });
+});
+
 describe("quiz integrity redistribution", () => {
   it("eliminates systematic B pattern", () => {
     const dist = quizCorrectIndexDistribution();

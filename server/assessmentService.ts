@@ -30,9 +30,19 @@ import {
   EVAL1_QUESTIONS,
   EVAL1_TOTAL_POINTS,
 } from "../shared/eval1QuestionBank";
+import {
+  EVAL_CLOTURE_ASSESSMENT_CODE,
+  EVAL_CLOTURE_DOSSIER,
+  EVAL_CLOTURE_DURATION_MINUTES,
+  EVAL_CLOTURE_META,
+  EVAL_CLOTURE_PASSING_SCORE,
+  EVAL_CLOTURE_QUESTIONS,
+  EVAL_CLOTURE_TOTAL_POINTS,
+  axisToModuleCode,
+} from "../shared/evalClotureQuestionBank";
 import { QUIZ_INTEGRITY_BANK, materializeQuizOptions } from "../shared/quizIntegrity";
 
-const EVAL2_CODE = ASSESSMENT_CODES.EVAL2;
+const EVAL2_CODE = ASSESSMENT_CODES.EVAL2; // = EVAL_CLOTURE_ASSESSMENT_CODE
 
 export async function ensureAssessmentSchemaSeeded() {
   const db = await getDb();
@@ -138,44 +148,184 @@ export async function ensureAssessmentSchemaSeeded() {
     });
   }
 
+  // ── Eval 2 — Évaluation de clôture (programme) ───────────────────────────
   const existing2 = await db
     .select()
     .from(integratedAssessments)
     .where(eq(integratedAssessments.code, EVAL2_CODE))
     .limit(1);
 
+  const eval2Values = {
+    code: EVAL2_CODE,
+    titleFr: EVAL_CLOTURE_META.titleFr,
+    titleEn: EVAL_CLOTURE_META.titleEn,
+    modulesCovered: EVAL_CLOTURE_META.modulesCovered,
+    questionCount: EVAL_CLOTURE_QUESTIONS.length,
+    durationMinutes: EVAL_CLOTURE_DURATION_MINUTES,
+    passingScore: EVAL_CLOTURE_PASSING_SCORE,
+    totalPoints: EVAL_CLOTURE_TOTAL_POINTS,
+    purposeFr: EVAL_CLOTURE_META.purposeFr,
+    purposeEn: EVAL_CLOTURE_META.purposeEn,
+    status: "ready" as const,
+  };
+
+  let eval2Id: number;
   if (existing2.length === 0) {
     const [row2] = await db
       .insert(integratedAssessments)
-      .values({
-        code: EVAL2_CODE,
-        titleFr:
-          "Évaluation intégrée 2 — Préparation, expédition et performance logistique",
-        titleEn:
-          "Integrated Assessment 2 — Preparation, shipping and logistics performance",
-        modulesCovered: ["M4", "M5"],
-        questionCount: 20,
-        durationMinutes: 40,
-        passingScore: 70,
-        totalPoints: 100,
-        purposeFr:
-          "Évaluer la préparation, l'expédition, la qualité, la productivité et l'interprétation des KPI (M4–M5). Banque de questions en validation.",
-        purposeEn:
-          "Assess preparation, shipping, quality, productivity and KPI interpretation (M4–M5). Question bank pending validation.",
-        status: "draft",
-      })
+      .values(eval2Values)
       .$returningId();
-
-    await db.insert(assessmentReleases).values({
-      assessmentId: row2.id,
-      cohortId: COHORTE_B_ID,
-      releaseLevel: "visible_pending",
-      note: "Visible as À venir — not startable until question bank approved",
-      configJson: { excludeDemoAccounts: true },
-    });
+    eval2Id = row2.id;
+  } else {
+    eval2Id = existing2[0].id;
+    await db
+      .update(integratedAssessments)
+      .set({
+        titleFr: eval2Values.titleFr,
+        titleEn: eval2Values.titleEn,
+        modulesCovered: eval2Values.modulesCovered,
+        questionCount: eval2Values.questionCount,
+        durationMinutes: eval2Values.durationMinutes,
+        passingScore: eval2Values.passingScore,
+        totalPoints: eval2Values.totalPoints,
+        purposeFr: eval2Values.purposeFr,
+        purposeEn: eval2Values.purposeEn,
+        status: "ready",
+      })
+      .where(eq(integratedAssessments.id, eval2Id));
   }
 
-  return { eval1Id };
+  const existingEval2Questions = await db
+    .select({ id: assessmentQuestions.id, code: assessmentQuestions.code })
+    .from(assessmentQuestions)
+    .where(eq(assessmentQuestions.assessmentId, eval2Id));
+
+  const hasClotureBank =
+    existingEval2Questions.length >= EVAL_CLOTURE_QUESTIONS.length &&
+    existingEval2Questions.every((q) => q.code.startsWith("EF-Q"));
+
+  if (!hasClotureBank) {
+    if (existingEval2Questions.length > 0) {
+      const { assessmentAttempts } = await import("../drizzle/schema");
+      const priorAttempts = await db
+        .select({ id: assessmentAttempts.id })
+        .from(assessmentAttempts)
+        .where(eq(assessmentAttempts.assessmentId, eval2Id))
+        .limit(1);
+      if (priorAttempts.length === 0) {
+        await db
+          .delete(assessmentQuestions)
+          .where(eq(assessmentQuestions.assessmentId, eval2Id));
+      }
+    }
+    const afterDelete = await db
+      .select({ id: assessmentQuestions.id })
+      .from(assessmentQuestions)
+      .where(eq(assessmentQuestions.assessmentId, eval2Id))
+      .limit(1);
+    if (afterDelete.length === 0) {
+      await db.insert(assessmentQuestions).values(
+        EVAL_CLOTURE_QUESTIONS.map((q, i) => ({
+          assessmentId: eval2Id,
+          code: q.code,
+          moduleCode: axisToModuleCode(q.axisCode),
+          scenarioOrProcess: EVAL_CLOTURE_DOSSIER.code,
+          competency: q.competency,
+          difficulty: q.difficulty,
+          questionType: q.questionType,
+          promptFr: q.promptFr,
+          promptEn: q.promptEn,
+          optionsJson: q.options,
+          correctOptionId: q.correctOptionId,
+          explanationFr: q.explanationFr,
+          explanationEn: q.explanationEn,
+          learningObjectiveFr: q.learningObjectiveFr,
+          learningObjectiveEn: q.learningObjectiveEn,
+          estimatedTimeSeconds: q.estimatedTimeSeconds,
+          lastRevisedAt: new Date(),
+          points: q.points,
+          orderIndex: i + 1,
+          active: true,
+          annulled: false,
+          bankScope: "WMS",
+        })),
+      );
+    }
+  } else {
+    // Idempotent content sync (wording / options / keys) for live Classe 10
+    for (let i = 0; i < EVAL_CLOTURE_QUESTIONS.length; i++) {
+      const q = EVAL_CLOTURE_QUESTIONS[i];
+      await db
+        .update(assessmentQuestions)
+        .set({
+          moduleCode: axisToModuleCode(q.axisCode),
+          scenarioOrProcess: EVAL_CLOTURE_DOSSIER.code,
+          competency: q.competency,
+          difficulty: q.difficulty,
+          questionType: q.questionType,
+          promptFr: q.promptFr,
+          promptEn: q.promptEn,
+          optionsJson: q.options,
+          correctOptionId: q.correctOptionId,
+          explanationFr: q.explanationFr,
+          explanationEn: q.explanationEn,
+          learningObjectiveFr: q.learningObjectiveFr,
+          learningObjectiveEn: q.learningObjectiveEn,
+          estimatedTimeSeconds: q.estimatedTimeSeconds,
+          lastRevisedAt: new Date(),
+          points: q.points,
+          orderIndex: i + 1,
+          active: true,
+          annulled: false,
+        })
+        .where(
+          and(
+            eq(assessmentQuestions.assessmentId, eval2Id),
+            eq(assessmentQuestions.code, q.code),
+          ),
+        );
+    }
+  }
+
+  // Cohorte B · Classe 10 — released for students
+  const [eval2ReleaseB] = await db
+    .select()
+    .from(assessmentReleases)
+    .where(
+      and(
+        eq(assessmentReleases.assessmentId, eval2Id),
+        eq(assessmentReleases.cohortId, COHORTE_B_ID),
+      ),
+    )
+    .orderBy(desc(assessmentReleases.updatedAt))
+    .limit(1);
+
+  if (!eval2ReleaseB) {
+    await db.insert(assessmentReleases).values({
+      assessmentId: eval2Id,
+      cohortId: COHORTE_B_ID,
+      releaseLevel: "released_cohort",
+      releasedByUserId: null,
+      note: "Cohorte Été 2026 — Groupe B · Classe 10 — Évaluation de clôture",
+      configJson: { excludeDemoAccounts: true },
+    });
+  } else if (
+    eval2ReleaseB.releaseLevel !== "closed" &&
+    eval2ReleaseB.releaseLevel !== "cancelled" &&
+    eval2ReleaseB.releaseLevel !== "released_students"
+  ) {
+    // Promote draft/À venir → released for Classe 10 (idempotent if already released_cohort)
+    await db
+      .update(assessmentReleases)
+      .set({
+        releaseLevel: "released_cohort",
+        note: "Cohorte Été 2026 — Groupe B · Classe 10 — Évaluation de clôture",
+        configJson: { excludeDemoAccounts: true },
+      })
+      .where(eq(assessmentReleases.id, eval2ReleaseB.id));
+  }
+
+  return { eval1Id, eval2Id };
 }
 
 /** Upsert redistributed quiz options + stable option IDs (preserves historical attempt scores). */
@@ -344,7 +494,7 @@ export async function listStudentAssessmentHub(userId: number) {
   const profile = await getStudentProfile(userId);
   if (!profile?.user) return [];
   if (isDemoAccount({ id: userId, email: profile.user.email })) {
-    // Demo accounts see hub cards as non-official (no start for official cohort releases)
+    // Demo (James) may QA assessments; scores stay out of official cohort stats.
   }
 
   const { integratedAssessments, assessmentAttempts, studentAssessmentProgress, assessmentRetakeAuthorizations } =
@@ -378,9 +528,14 @@ export async function listStudentAssessmentHub(userId: number) {
       releaseLevel = primary.releaseLevel;
     }
 
-    // Demo accounts never start official Cohorte B assessments
+    // James / demo: allow QA start on ready Eval 2 (clôture) even if cohort row differs.
+    // Official averages still exclude demo via shouldIncludeInOfficialAssessmentStats.
     if (isDemoAccount({ id: userId, email: profile.user.email })) {
-      canStart = false;
+      if (a.code === EVAL2_CODE && a.status === "ready") {
+        canStart = true;
+      } else {
+        canStart = false;
+      }
     }
 
     const attempts = await db
@@ -493,15 +648,20 @@ export async function startAssessmentAttempt(args: {
   const db = await getDb();
   if (!db) throw new Error("DB unavailable");
 
-  if (isDemoAccount({ id: args.userId, email: args.email })) {
-    throw Object.assign(new Error("DEMO_EXCLUDED"), { code: "FORBIDDEN" });
-  }
-
   const profile = await getStudentProfile(args.userId);
   const cohortId = profile?.profile?.cohortId ?? null;
   const hub = await listStudentAssessmentHub(args.userId);
   const card = hub.find((h) => h.id === args.assessmentId);
   if (!card) throw Object.assign(new Error("NOT_FOUND"), { code: "NOT_FOUND" });
+
+  // Demo may QA Eval 2 clôture only; other official assessments stay blocked.
+  if (
+    isDemoAccount({ id: args.userId, email: args.email }) &&
+    card.code !== EVAL2_CODE
+  ) {
+    throw Object.assign(new Error("DEMO_EXCLUDED"), { code: "FORBIDDEN" });
+  }
+
   if (card.inProgressAttemptId) {
     return { attemptId: card.inProgressAttemptId, resumed: true };
   }
@@ -695,6 +855,10 @@ export async function getAttemptForStudent(args: {
     ? null
     : Math.max(0, attempt.expiresAt.getTime() - now.getTime());
 
+  const isCloture =
+    assessment?.code === EVAL2_CODE ||
+    assessment?.code === EVAL_CLOTURE_ASSESSMENT_CODE;
+
   return {
     attempt: {
       id: attempt.id,
@@ -716,6 +880,9 @@ export async function getAttemptForStudent(args: {
     },
     assessment,
     questions,
+    /** Case dossier for Eval 2 clôture — consultable during the attempt */
+    dossier: isCloture ? EVAL_CLOTURE_DOSSIER : null,
+    isProgrammeClosing: isCloture,
   };
 }
 
@@ -872,13 +1039,23 @@ export async function submitAssessmentAttempt(args: {
     )
     .limit(1);
 
-  const unlock = computeM4UnlockStatus({
-    assessmentPassed: scored.passed,
-    practicalEvidenceSatisfied: evidence.length > 0,
-    priorPracticalProgressComplete,
-    policy: progressionPolicyForCohort(attempt.cohortId),
-    previousM4UnlockStatus: progExisting?.m4UnlockStatus ?? null,
-  });
+  // M4 unlock / practical gate applies only to Eval 1 (M1–M3 pathway).
+  // Eval 2 clôture is a programme closing competency exam — not an M4 gate.
+  const isEval1 =
+    assessmentRow?.code === EVAL1_ASSESSMENT_CODE;
+  const unlock = isEval1
+    ? computeM4UnlockStatus({
+        assessmentPassed: scored.passed,
+        practicalEvidenceSatisfied: evidence.length > 0,
+        priorPracticalProgressComplete,
+        policy: progressionPolicyForCohort(attempt.cohortId),
+        previousM4UnlockStatus: progExisting?.m4UnlockStatus ?? null,
+      })
+    : {
+        m4UnlockStatus: "locked" as M4UnlockStatus,
+        practicalValidationStatus: "not_applicable" as PracticalValidationStatus,
+        assessmentRole: "competency_validation" as const,
+      };
   const m4UnlockStatus = unlock.m4UnlockStatus;
   const practicalStatus = unlock.practicalValidationStatus;
 

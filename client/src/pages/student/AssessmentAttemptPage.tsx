@@ -20,12 +20,14 @@ import {
   XCircle,
   AlertTriangle,
   Send,
-  RotateCcw,
   BookOpen,
   Award,
   ShieldCheck,
   Layers,
+  FileText,
+  ChevronDown,
 } from "lucide-react";
+import { interpretClotureReport } from "@shared/evalClotureQuestionBank";
 
 /* ─── helpers ────────────────────────────────────────────────── */
 
@@ -66,9 +68,15 @@ interface ResultViewProps {
   };
   questions: Question[];
   assessmentTitle: string;
+  isProgrammeClosing?: boolean;
 }
 
-function ResultView({ attempt, questions, assessmentTitle }: ResultViewProps) {
+function ResultView({
+  attempt,
+  questions,
+  assessmentTitle,
+  isProgrammeClosing,
+}: ResultViewProps) {
   const { t, language } = useLanguage();
   const score = attempt.finalScore ?? attempt.autoScore ?? 0;
   const passed = attempt.passed === true;
@@ -88,6 +96,9 @@ function ResultView({ attempt, questions, assessmentTitle }: ResultViewProps) {
         total: number;
       }>)
     : [];
+  const clotureInterp = isProgrammeClosing
+    ? interpretClotureReport(score)
+    : null;
   const levelLabel =
     score >= 90
       ? t("Compétence excellente", "Excellent Competency")
@@ -96,15 +107,19 @@ function ResultView({ attempt, questions, assessmentTitle }: ResultViewProps) {
         : score >= 70
           ? t("Compétence suffisante", "Sufficient Competency")
           : t("Compétence non encore démontrée", "Competency not yet demonstrated");
-  const levelMeaning = passed
-    ? t(
-        "Compétence suffisante démontrée pour poursuivre vers l'étape suivante.",
-        "Sufficient competency demonstrated to continue to the next learning stage."
-      )
-    : t(
-        "Compétence non encore démontrée — reprise uniquement si le professeur l'autorise.",
-        "Competency not yet demonstrated — retake only if the professor authorizes it."
-      );
+  const levelMeaning = clotureInterp
+    ? language === "FR"
+      ? clotureInterp.meaningFr
+      : clotureInterp.meaningEn
+    : passed
+      ? t(
+          "Compétence suffisante démontrée pour poursuivre vers l'étape suivante.",
+          "Sufficient competency demonstrated to continue to the next learning stage."
+        )
+      : t(
+          "Compétence non encore démontrée — reprise uniquement si le professeur l'autorise.",
+          "Competency not yet demonstrated — retake only if the professor authorizes it."
+        );
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -163,42 +178,65 @@ function ResultView({ attempt, questions, assessmentTitle }: ResultViewProps) {
         </Card>
       )}
 
-      {/* Practical + M4 status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-5 pb-4 flex items-center gap-3">
-            <ShieldCheck className="size-6 text-primary shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {t("Pratique", "Practical")}
-              </p>
-              <p className="text-sm font-medium">
-                {attempt.practicalValidationStatus === "satisfied" ||
-                attempt.practicalValidationStatus === "waived"
-                  ? t("Satisfaite", "Satisfied")
-                  : t("En attente", "Pending")}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Practical + M4 status — Eval 1 pathway only */}
+      {!isProgrammeClosing && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="pt-5 pb-4 flex items-center gap-3">
+              <ShieldCheck className="size-6 text-primary shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  {t("Pratique", "Practical")}
+                </p>
+                <p className="text-sm font-medium">
+                  {attempt.practicalValidationStatus === "satisfied" ||
+                  attempt.practicalValidationStatus === "waived"
+                    ? t("Satisfaite", "Satisfied")
+                    : t("En attente", "Pending")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="pt-5 pb-4 flex items-center gap-3">
+              <Award className="size-6 text-primary shrink-0" />
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wide">
+                  {t("Module 4", "Module 4")}
+                </p>
+                <p className="text-sm font-medium">
+                  {attempt.m4UnlockStatus === "unlocked"
+                    ? t("Déverrouillé", "Unlocked")
+                    : attempt.m4UnlockStatus === "pending_practical"
+                      ? t("En attente pratique", "Pending practical")
+                      : t("Verrouillé", "Locked")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {isProgrammeClosing && (
         <Card>
           <CardContent className="pt-5 pb-4 flex items-center gap-3">
             <Award className="size-6 text-primary shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide">
-                {t("Module 4", "Module 4")}
+                {t("Clôture du programme", "Programme closing")}
               </p>
               <p className="text-sm font-medium">
-                {attempt.m4UnlockStatus === "unlocked"
-                  ? t("Déverrouillé", "Unlocked")
-                  : attempt.m4UnlockStatus === "pending_practical"
-                  ? t("En attente pratique", "Pending practical")
-                  : t("Verrouillé", "Locked")}
+                {t(
+                  "Résultat conclusif de compétence WMS / stocks",
+                  "Conclusive WMS / inventory competency result"
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {assessmentTitle}
               </p>
             </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* Answer review — only shown when passed */}
       {passed && questions.some((q) => q.correctOptionId) && (
@@ -280,6 +318,7 @@ export default function AssessmentAttemptPage() {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [dossierOpen, setDossierOpen] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data, isLoading, refetch } = trpc.assessments.getAttempt.useQuery(
@@ -381,30 +420,44 @@ export default function AssessmentAttemptPage() {
     );
   }
 
-  const { attempt, assessment, questions } = data as unknown as {
-    attempt: {
-      id: number;
-      assessmentId: number;
-      attemptNumber: number;
-      status: string;
-      startedAt: string;
-      expiresAt: string;
-      remainingSeconds: number;
-      autoScore: number | null;
-      finalScore: number | null;
-      passed: boolean | null;
-      m4UnlockStatus: string | null;
-      practicalValidationStatus: string | null;
-      competencyBreakdown: unknown;
+  const { attempt, assessment, questions, dossier, isProgrammeClosing } =
+    data as unknown as {
+      attempt: {
+        id: number;
+        assessmentId: number;
+        attemptNumber: number;
+        status: string;
+        startedAt: string;
+        expiresAt: string;
+        remainingSeconds: number;
+        autoScore: number | null;
+        finalScore: number | null;
+        passed: boolean | null;
+        m4UnlockStatus: string | null;
+        practicalValidationStatus: string | null;
+        competencyBreakdown: unknown;
+      };
+      assessment: {
+        titleFr: string;
+        titleEn: string | null;
+        durationMinutes: number;
+        passingScore: number;
+        code?: string;
+      };
+      questions: Question[];
+      dossier: {
+        code: string;
+        titleFr: string;
+        titleEn: string;
+        contextFr: string;
+        contextEn: string;
+        factsFr: readonly string[];
+        factsEn: readonly string[];
+        tableFr: { headers: readonly string[]; rows: readonly string[][] };
+        tableEn: { headers: readonly string[]; rows: readonly string[][] };
+      } | null;
+      isProgrammeClosing?: boolean;
     };
-    assessment: {
-      titleFr: string;
-      titleEn: string | null;
-      durationMinutes: number;
-      passingScore: number;
-    };
-    questions: Question[];
-  };
 
   const assessmentTitle =
     language === "FR"
@@ -429,6 +482,7 @@ export default function AssessmentAttemptPage() {
           attempt={attempt}
           questions={questions}
           assessmentTitle={assessmentTitle}
+          isProgrammeClosing={!!isProgrammeClosing}
         />
       </FioriShell>
     );
@@ -452,6 +506,80 @@ export default function AssessmentAttemptPage() {
       ]}
     >
       <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
+        {/* Case dossier — Eval 2 clôture */}
+        {dossier && (
+          <Card className="border-primary/30 bg-muted/30">
+            <button
+              type="button"
+              className="w-full text-left px-4 py-3 flex items-center justify-between gap-2"
+              onClick={() => setDossierOpen((o) => !o)}
+            >
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <FileText className="size-4 text-primary" />
+                {language === "FR" ? dossier.titleFr : dossier.titleEn}
+              </span>
+              <ChevronDown
+                className={`size-4 text-muted-foreground transition-transform ${
+                  dossierOpen ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {dossierOpen && (
+              <CardContent className="pt-0 pb-4 space-y-3 text-sm">
+                <p className="text-muted-foreground whitespace-pre-line">
+                  {language === "FR" ? dossier.contextFr : dossier.contextEn}
+                </p>
+                <ul className="list-disc pl-5 space-y-1.5">
+                  {(language === "FR" ? dossier.factsFr : dossier.factsEn).map(
+                    (fact, i) => (
+                      <li key={i}>{fact}</li>
+                    )
+                  )}
+                </ul>
+                <div className="overflow-x-auto rounded-md border">
+                  <table className="w-full text-xs">
+                    <thead className="bg-muted">
+                      <tr>
+                        {(language === "FR"
+                          ? dossier.tableFr.headers
+                          : dossier.tableEn.headers
+                        ).map((h) => (
+                          <th
+                            key={h}
+                            className="px-2 py-1.5 text-left font-semibold"
+                          >
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(language === "FR"
+                        ? dossier.tableFr.rows
+                        : dossier.tableEn.rows
+                      ).map((row, ri) => (
+                        <tr key={ri} className="border-t">
+                          {row.map((cell, ci) => (
+                            <td key={ci} className="px-2 py-1.5">
+                              {cell}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="text-xs text-muted-foreground italic">
+                  {t(
+                    "Consultez ce dossier à tout moment pendant la preuve (50 min).",
+                    "Consult this dossier at any time during the exam (50 min)."
+                  )}
+                </p>
+              </CardContent>
+            )}
+          </Card>
+        )}
+
         {/* Top bar: progress + timer */}
         <div className="flex items-center gap-4">
           <div className="flex-1 space-y-1">

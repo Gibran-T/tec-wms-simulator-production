@@ -182,7 +182,11 @@ export default function EvaluationsHubPage() {
                       </span>
                       <span className="font-medium flex items-center gap-1">
                         <BookOpen className="size-3.5 text-muted-foreground" />
-                        {Array.isArray(item.modulesCovered) ? item.modulesCovered.join(", ") : "—"}
+                        {item.code === "EVAL_INTEGREE_2"
+                          ? t("Programme (clôture)", "Programme (closing)")
+                          : Array.isArray(item.modulesCovered)
+                            ? item.modulesCovered.join(", ")
+                            : "—"}
                       </span>
                     </div>
                     <div className="flex flex-col gap-0.5">
