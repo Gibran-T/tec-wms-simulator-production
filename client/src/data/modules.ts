@@ -944,7 +944,7 @@ const module4: ModuleData = {
       highlight: "Rotation = Consommation ÷ Stock moyen",
       bodyFr: [
         "Formule : 2 400 ÷ 400 = 6× → bande normale (4–12×)",
-        "Bonne cognição : maintenir globalement + surveiller SKU lents",
+        "Bon jugement : maintenir globalement + surveiller SKU lents",
         "Near-miss : liquidation globale / « capital injustifié » / « rien à faire »",
         "Sélecteur : 5 réponses proches — une seule professionnelle",
       ],
@@ -1020,7 +1020,7 @@ const module4: ModuleData = {
         "Steps : KPI_DATA → ROTATION → SERVICE → DIAGNOSTIC → COMPLIANCE_M4",
         "À chaque step décisif : ouvrir la flèche → lire les 5 options",
         "Rouge = pourquoi cette option est fausse (near-miss) · score −5",
-        "Vert = meilleure cognição · l'étape passe même après plusieurs essais",
+        "Vert = meilleur jugement · l'étape passe même après plusieurs essais",
       ],
       bodyEn: [
         "Steps: KPI_DATA → ROTATION → SERVICE → DIAGNOSTIC → COMPLIANCE_M4",
