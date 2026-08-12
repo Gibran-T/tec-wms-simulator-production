@@ -28,6 +28,8 @@ import { MODULE_PROGRESSION_COPY } from "@/data/moduleProgressionCopy";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import FormativeExerciseCard from "@/components/formative/FormativeExerciseCard";
+import ErrorSchoolPanel from "@/components/pedagogy/ErrorSchoolPanel";
+import MicroDrillPanel from "@/components/pedagogy/MicroDrillPanel";
 import {
   getFormativeExercisesForModule,
   type FormativeExerciseStatus,
@@ -398,6 +400,13 @@ export default function EnterpriseModuleHub({
               t={t}
               recommendAfterQuiz={!quizPassed}
             />
+          </div>
+        )}
+
+        {moduleId >= 1 && moduleId <= 3 && (
+          <div className="space-y-3" data-testid={`m${moduleId}-prep-pedagogy`}>
+            <ErrorSchoolPanel moduleId={moduleId} t={t} language={language} />
+            <MicroDrillPanel moduleId={moduleId} t={t} language={language} />
           </div>
         )}
 

@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import M4KpiSnapshotHeader from "@/components/operational-intelligence/m4/M4KpiSnapshotHeader";
 import LearningFeedbackLayer from "@/components/learning-feedback/LearningFeedbackLayer";
+import PostRunDebriefChecklist from "@/components/pedagogy/PostRunDebriefChecklist";
 import { isM4EvidenceScn, type M4KpiSnapshot } from "@/data/m4KpiBandUtils";
 import { resolveScnCode, getMissionForScenario } from "../../../../server/missionData";
 import type { LearningFeedbackPayload } from "@shared/learningFeedbackTypes";
@@ -497,6 +498,10 @@ export default function RunReport() {
 
         {enterpriseDebrief && (
           <EnterpriseDebriefPanel debrief={enterpriseDebrief} language={language} t={t} />
+        )}
+
+        {run.status === "completed" && (
+          <PostRunDebriefChecklist t={t} language={language} />
         )}
 
         {enterpriseEnabled && isAiMentorUiEnabled() && run.status === "completed" && (
