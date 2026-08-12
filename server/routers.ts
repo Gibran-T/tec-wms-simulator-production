@@ -213,6 +213,13 @@ import { isSupervisionDocRun } from "../shared/m5Doc/dispatch";
 import { M5_DOC_INTERACTION_ORDER } from "../shared/m5Doc/interactionsCatalog";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
+import {
+  getM4CognitiveOption,
+  isM4CognitiveStep,
+  M4_COGNITIVE_WRONG_PENALTY,
+  m4CognitivePenaltyEventType,
+  type M4CognitiveStep,
+} from "../shared/m4CognitiveSelectors";
 
 // ─── Language Helper ────────────────────────────────────────────────────────────────────────────────
 /**
@@ -223,6 +230,129 @@ function pickReason(result: ValidationResult, req: IncomingMessage): string {
   const lang = (req.headers["accept-language"] ?? "fr").toLowerCase();
   const isEn = lang.startsWith("en");
   return (isEn ? result.reasonEn : result.reasonFr) ?? result.reason ?? "Erreur de validation";
+}
+
+type M4SubmitCtx = {
+  user: { id: number; role: string };
+  req: IncomingMessage;
+};
+
+async function submitM4CognitiveOrFreeText(args: {
+  ctx: M4SubmitCtx;
+  runId: number;
+  step: M4CognitiveStep;
+  kpiKey: "rotationRate" | "serviceLevel" | "diagnostic";
+  optionId?: string;
+  studentAnswer?: string;
+  kpiDataInput?: {
+    annualConsumption: number;
+    averageStock: number;
+    ordersFulfilled: number;
+    totalOrders: number;
+    operationalErrors: number;
+    totalOperations: number;
+    avgLeadTimeDays: number;
+    stockValue: number;
+  };
+  completedEvent: string;
+  completedMessage: string;
+}) {
+  const { ctx, runId, step, kpiKey, optionId, kpiDataInput, completedEvent, completedMessage } = args;
+  const run = await getRunById(runId);
+  if (!run) throw new TRPCError({ code: "NOT_FOUND" });
+  if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") {
+    throw new TRPCError({ code: "FORBIDDEN" });
+  }
+
+  const scenario = await getScenarioById(run.scenarioId);
+  const scnCode = resolveScenarioScnCode(scenario);
+  const lang = (ctx.req.headers["accept-language"] ?? "fr").toLowerCase();
+  const isEn = lang.startsWith("en");
+
+  let answerText = (args.studentAnswer ?? "").trim();
+  let cognitiveWrongWhy: string | null = null;
+
+  if (optionId) {
+    if (!isM4CognitiveStep(step)) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Invalid cognitive step" });
+    }
+    const option = getM4CognitiveOption(scnCode, step, optionId);
+    if (!option) {
+      throw new TRPCError({
+        code: "BAD_REQUEST",
+        message: isEn ? "Unknown cognitive option." : "Option cognitive inconnue.",
+      });
+    }
+    answerText = option.answerText;
+    if (!option.isCorrect) {
+      cognitiveWrongWhy = isEn
+        ? (option.whyWrong?.en ?? option.whyWrong?.fr ?? "Incorrect answer.")
+        : (option.whyWrong?.fr ?? option.whyWrong?.en ?? "Réponse incorrecte.");
+    }
+  }
+
+  if (!answerText) {
+    throw new TRPCError({
+      code: "BAD_REQUEST",
+      message: isEn ? "Answer required." : "Réponse requise.",
+    });
+  }
+
+  const kpiData = resolveM4KpiDataForScenario(scenario, kpiDataInput);
+  const kpiResult = calculateKpis(kpiData);
+
+  if (cognitiveWrongWhy) {
+    await addKpiInterpretation({
+      runId,
+      kpiKey,
+      studentAnswer: answerText,
+      isCorrect: false,
+      pointsDelta: M4_COGNITIVE_WRONG_PENALTY,
+      feedback: cognitiveWrongWhy,
+    });
+    if (!run.isDemo) {
+      await addScoringEvent({
+        runId,
+        eventType: m4CognitivePenaltyEventType(step),
+        pointsDelta: M4_COGNITIVE_WRONG_PENALTY,
+        message: cognitiveWrongWhy,
+      });
+    }
+    throw new TRPCError({ code: "BAD_REQUEST", message: cognitiveWrongWhy });
+  }
+
+  const result = scoreKpiInterpretation(kpiKey, answerText, kpiResult, scnCode);
+  await addKpiInterpretation({
+    runId,
+    kpiKey,
+    studentAnswer: answerText,
+    isCorrect: result.isCorrect,
+    pointsDelta: result.pointsDelta,
+    feedback: result.feedback,
+  });
+
+  if (!result.isCorrect) {
+    if (!run.isDemo) {
+      await addScoringEvent({
+        runId,
+        eventType: m4CognitivePenaltyEventType(step),
+        pointsDelta: result.pointsDelta < 0 ? result.pointsDelta : M4_COGNITIVE_WRONG_PENALTY,
+        message: result.feedback,
+      });
+    }
+    throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
+  }
+
+  await markStepComplete(runId, step);
+  if (!run.isDemo) {
+    await addScoringEvent({
+      runId,
+      eventType: completedEvent,
+      pointsDelta: result.pointsDelta,
+      message: completedMessage,
+    });
+  }
+  return result;
 }
 
 function resolveM4KpiDataForScenario(
@@ -1497,6 +1627,21 @@ export const appRouter = router({
             title: "Tentative de dépassement de capacité d'emplacement",
             detail: "Vous avez tenté de ranger une quantité supérieure à la capacité maximale du bin cible. La transaction a été rejetée, mais la tentative pédagogique est enregistrée (−10 pts). En SCN-007, observez l'alerte puis répartissez la marchandise sur plusieurs emplacements STOCKAGE.",
             recommendation: "Vérifiez la capacité max du bin (ex. B-01-R1-L1 = 500 u.) avant le rangement. Répartissez les quantités excédentaires sur plusieurs bins conformes.",
+          },
+          KPI_ROTATION_COGNITIVE_INCORRECT: {
+            title: "Sélection cognitive incorrecte — rotation",
+            detail: "Vous avez choisi une interprétation de rotation proche mais incorrecte. Chaque tentative erronée enregistre −5 pts ; l'étape reste ouverte jusqu'à la bonne réponse.",
+            recommendation: "Relisez la bande normale (ex. 6×), évitez liquidation globale / « rien à faire », et sélectionnez maintien + suivi des SKU lents.",
+          },
+          KPI_SERVICE_COGNITIVE_INCORRECT: {
+            title: "Sélection cognitive incorrecte — service",
+            detail: "Vous avez mal classé OTIF/erreurs (piège dashboard vert, OTIF « faible », etc.). Pénalité −5 pts par tentative.",
+            recommendation: "OTIF 95 % = excellent ; erreurs 4 % = acceptables mais à surveiller. Ne sacrifiez pas le diagnostic qualité.",
+          },
+          KPI_DIAGNOSTIC_COGNITIVE_INCORRECT: {
+            title: "Sélection cognitive incorrecte — diagnostic",
+            detail: "La synthèse multi-KPI choisie était incomplète ou contradictoire (mono-KPI, destock global, absence d'action). Pénalité −5 pts.",
+            recommendation: "Arbitrez avec priorité, trade-off et horizon de revue — sans liquidation globale ni « rien à faire ».",
           },
         };
 
@@ -3823,67 +3968,70 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    /** M4 Step 2: KPI_ROTATION — rotation rate interpretation */
+    /** M4 Step 2: KPI_ROTATION — rotation rate interpretation (cognitive selector preferred) */
     submitKpiRotation: protectedProcedure
-      .input(z.object({ runId: z.number(), studentAnswer: z.string().min(1), kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional() }))
+      .input(z.object({
+        runId: z.number(),
+        studentAnswer: z.string().min(1).optional(),
+        optionId: z.string().min(1).optional(),
+        kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional(),
+      }).refine((v) => !!v.optionId || !!v.studentAnswer, { message: "optionId or studentAnswer required" }))
       .mutation(async ({ ctx, input }) => {
-        const run = await getRunById(input.runId);
-        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
-        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const scenario = await getScenarioById(run.scenarioId);
-        const scnCode = resolveScenarioScnCode(scenario);
-        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
-        const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("rotationRate", input.studentAnswer, kpiResult, scnCode);
-        await addKpiInterpretation({ runId: input.runId, kpiKey: "rotationRate", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
-        if (!result.isCorrect) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
-        }
-        await markStepComplete(input.runId, "KPI_ROTATION");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_ROTATION_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de rotation: correct` });
-        return result;
+        return submitM4CognitiveOrFreeText({
+          ctx,
+          runId: input.runId,
+          step: "KPI_ROTATION",
+          kpiKey: "rotationRate",
+          optionId: input.optionId,
+          studentAnswer: input.studentAnswer,
+          kpiDataInput: input.kpiData,
+          completedEvent: "KPI_ROTATION_COMPLETED",
+          completedMessage: "Taux de rotation: correct",
+        });
       }),
 
     /** M4 Step 3: KPI_SERVICE — service level interpretation */
     submitKpiService: protectedProcedure
-      .input(z.object({ runId: z.number(), studentAnswer: z.string().min(1), kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional() }))
+      .input(z.object({
+        runId: z.number(),
+        studentAnswer: z.string().min(1).optional(),
+        optionId: z.string().min(1).optional(),
+        kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional(),
+      }).refine((v) => !!v.optionId || !!v.studentAnswer, { message: "optionId or studentAnswer required" }))
       .mutation(async ({ ctx, input }) => {
-        const run = await getRunById(input.runId);
-        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
-        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const scenario = await getScenarioById(run.scenarioId);
-        const scnCode = resolveScenarioScnCode(scenario);
-        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
-        const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("serviceLevel", input.studentAnswer, kpiResult, scnCode);
-        await addKpiInterpretation({ runId: input.runId, kpiKey: "serviceLevel", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
-        if (!result.isCorrect) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
-        }
-        await markStepComplete(input.runId, "KPI_SERVICE");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_SERVICE_COMPLETED", pointsDelta: result.pointsDelta, message: `Taux de service: correct` });
-        return result;
+        return submitM4CognitiveOrFreeText({
+          ctx,
+          runId: input.runId,
+          step: "KPI_SERVICE",
+          kpiKey: "serviceLevel",
+          optionId: input.optionId,
+          studentAnswer: input.studentAnswer,
+          kpiDataInput: input.kpiData,
+          completedEvent: "KPI_SERVICE_COMPLETED",
+          completedMessage: "Taux de service: correct",
+        });
       }),
 
-    /** M4 Step 4: KPI_DIAGNOSTIC — error rate interpretation */
+    /** M4 Step 4: KPI_DIAGNOSTIC — multi-KPI synthesis */
     submitKpiDiagnostic: protectedProcedure
-      .input(z.object({ runId: z.number(), studentAnswer: z.string().min(1), kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional() }))
+      .input(z.object({
+        runId: z.number(),
+        studentAnswer: z.string().min(1).optional(),
+        optionId: z.string().min(1).optional(),
+        kpiData: z.object({ annualConsumption: z.number(), averageStock: z.number(), ordersFulfilled: z.number(), totalOrders: z.number(), operationalErrors: z.number(), totalOperations: z.number(), avgLeadTimeDays: z.number(), stockValue: z.number() }).optional(),
+      }).refine((v) => !!v.optionId || !!v.studentAnswer, { message: "optionId or studentAnswer required" }))
       .mutation(async ({ ctx, input }) => {
-        const run = await getRunById(input.runId);
-        if (!run) throw new TRPCError({ code: "NOT_FOUND" });
-        if (run.userId !== ctx.user.id && ctx.user.role !== "teacher" && ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
-        const scenario = await getScenarioById(run.scenarioId);
-        const scnCode = resolveScenarioScnCode(scenario);
-        const kpiData = resolveM4KpiDataForScenario(scenario, input.kpiData);
-        const kpiResult = calculateKpis(kpiData);
-        const result = scoreKpiInterpretation("diagnostic", input.studentAnswer, kpiResult, scnCode);
-        await addKpiInterpretation({ runId: input.runId, kpiKey: "diagnostic", studentAnswer: input.studentAnswer, isCorrect: result.isCorrect, pointsDelta: result.pointsDelta, feedback: result.feedback });
-        if (!result.isCorrect) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: result.feedback });
-        }
-        await markStepComplete(input.runId, "KPI_DIAGNOSTIC");
-        if (!run.isDemo) await addScoringEvent({ runId: input.runId, eventType: "KPI_DIAGNOSTIC_COMPLETED", pointsDelta: result.pointsDelta, message: `Diagnostic: correct` });
-        return result;
+        return submitM4CognitiveOrFreeText({
+          ctx,
+          runId: input.runId,
+          step: "KPI_DIAGNOSTIC",
+          kpiKey: "diagnostic",
+          optionId: input.optionId,
+          studentAnswer: input.studentAnswer,
+          kpiDataInput: input.kpiData,
+          completedEvent: "KPI_DIAGNOSTIC_COMPLETED",
+          completedMessage: "Diagnostic: correct",
+        });
       }),
 
     /** M4 Step 5: COMPLIANCE_M4 */

@@ -10,6 +10,7 @@ import FioriShell from "@/components/FioriShell";
 import { buildReplenishmentParamRows, computeCcReconProgress } from "@/lib/m3OperationalEvidence";
 import { M3ReplenishmentParamsTable } from "@/components/operational-intelligence/M3OperationalTowerView";
 import AnalyticalResponseField from "@/components/analytical/AnalyticalResponseField";
+import CognitiveAnswerSelector from "@/components/analytical/CognitiveAnswerSelector";
 import { AnalyticalStepHints } from "@/components/analytical/AnalyticalStepHints";
 import M5DecisionResultPanel from "@/components/m5/M5DecisionResultPanel";
 import M5KpiLedgerWidget from "@/components/m5/M5KpiLedgerWidget";
@@ -25,6 +26,11 @@ import {
   M4_KPI_DATA_TITLE,
 } from "@/data/analyticalStepQuestions";
 import { resolveScenarioScnCode } from "@/lib/scenarioCatalog";
+import {
+  getM4CognitiveOption,
+  getM4CognitiveQuestion,
+  isM4CognitiveStep,
+} from "@shared/m4CognitiveSelectors";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -694,6 +700,7 @@ type FormValues = {
   safetyStock?: string;
   studentQty?: string;
   studentAnswer?: string;
+  cognitiveOptionId?: string;
   varianceQty?: string;
   justification?: string;
   annualConsumption?: string;
@@ -1249,6 +1256,8 @@ export default function StepForm() {
   const [feedbackPanel, setFeedbackPanel] = useState<{ data: any } | null>(null);
   const [showGlossary, setShowGlossary] = useState(false);
   const [kpiLedgerConfirmed, setKpiLedgerConfirmed] = useState(false);
+  const [cognitiveWrongWhy, setCognitiveWrongWhy] = useState<{ fr: string; en: string } | null>(null);
+  const [cognitiveRightWhy, setCognitiveRightWhy] = useState<{ fr: string; en: string } | null>(null);
 
   const isDemo = runData?.isDemo ?? false;
 
@@ -1339,12 +1348,24 @@ export default function StepForm() {
       varianceQty: "",
       justification: "",
       studentAnswer: "",
+      cognitiveOptionId: "",
     });
   }, [step, runId, reset]);
 
+  useEffect(() => {
+    setCognitiveWrongWhy(null);
+    setCognitiveRightWhy(null);
+  }, [step, runId]);
+
   function handleSuccess(data: any) {
+    const selectedIdBeforeReset = watch("cognitiveOptionId");
+    if (isM4CognitiveStep(step) && selectedIdBeforeReset) {
+      const opt = getM4CognitiveOption(scnCode, step, selectedIdBeforeReset);
+      if (opt?.whyRight) setCognitiveRightWhy(opt.whyRight);
+    }
+    setCognitiveWrongWhy(null);
     // Reset all form fields (dropdowns, inputs) after successful submission
-    reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "" });
+    reset({ sku: "", bin: "", fromBin: "", toBin: "", qty: "", docRef: "", comment: "", lotNumber: "", physicalQty: "", systemQty: "", countedQty: "", minQty: "", maxQty: "", safetyStock: "", studentQty: "", varianceQty: "", justification: "", studentAnswer: "", cognitiveOptionId: "" });
     refetch();
     if (data?.atpShortageDetected && data?.pedagogicalMessage) {
       toast.warning(`⚠ ${data.pedagogicalMessage}`, { duration: 8000 });
@@ -1415,7 +1436,18 @@ export default function StepForm() {
   }
 
   function handleError(err: any) {
-    toast.error(err.message ?? t("Erreur de validation", "Validation error"));
+    const message = err.message ?? t("Erreur de validation", "Validation error");
+    if (isM4CognitiveStep(step)) {
+      const selectedId = watch("cognitiveOptionId");
+      const opt = selectedId ? getM4CognitiveOption(scnCode, step, selectedId) : null;
+      if (opt?.whyWrong) {
+        setCognitiveWrongWhy(opt.whyWrong);
+      } else {
+        setCognitiveWrongWhy({ fr: message, en: message });
+      }
+      setCognitiveRightWhy(null);
+    }
+    toast.error(message);
   }
 
   function onSubmit(values: FormValues) {
@@ -1466,9 +1498,19 @@ export default function StepForm() {
         return;
       }
     }
-    if (cfg.fields.includes("studentAnswer") && (!values.studentAnswer || values.studentAnswer.trim().length < 5)) {
-      toast.error(t("Veuillez saisir une réponse d'au moins 5 caractères.", "Please enter an answer of at least 5 characters."));
-      return;
+    if (cfg.fields.includes("studentAnswer")) {
+      const useCognitive = runData?.moduleId === 4 && isM4CognitiveStep(step);
+      if (useCognitive) {
+        if (!values.cognitiveOptionId) {
+          toast.error(
+            t("Veuillez sélectionner une réponse dans le sélecteur.", "Please select an answer in the selector."),
+          );
+          return;
+        }
+      } else if (!values.studentAnswer || values.studentAnswer.trim().length < 5) {
+        toast.error(t("Veuillez saisir une réponse d'au moins 5 caractères.", "Please enter an answer of at least 5 characters."));
+        return;
+      }
     }
 
     switch (stepLower) {
@@ -1571,11 +1613,26 @@ export default function StepForm() {
       case "kpi_data":
         return submitKpiData.mutate({ ...base });
       case "kpi_rotation":
-        return submitKpiRotation.mutate({ ...base, studentAnswer: values.studentAnswer! });
+        return submitKpiRotation.mutate({
+          ...base,
+          ...(values.cognitiveOptionId
+            ? { optionId: values.cognitiveOptionId }
+            : { studentAnswer: values.studentAnswer! }),
+        });
       case "kpi_service":
-        return submitKpiService.mutate({ ...base, studentAnswer: values.studentAnswer! });
+        return submitKpiService.mutate({
+          ...base,
+          ...(values.cognitiveOptionId
+            ? { optionId: values.cognitiveOptionId }
+            : { studentAnswer: values.studentAnswer! }),
+        });
       case "kpi_diagnostic":
-        return submitKpiDiagnostic.mutate({ ...base, studentAnswer: values.studentAnswer! });
+        return submitKpiDiagnostic.mutate({
+          ...base,
+          ...(values.cognitiveOptionId
+            ? { optionId: values.cognitiveOptionId }
+            : { studentAnswer: values.studentAnswer! }),
+        });
       case "compliance_m4":
         return submitComplianceM4.mutate({ ...base });
 
@@ -2786,45 +2843,63 @@ export default function StepForm() {
                     />
                   )}
                   <div className={isM5DecisionStep ? "lg:col-span-3 order-2 lg:order-1" : undefined}>
-                    <AnalyticalResponseField
-                      questionText={analyticalQuestionText}
-                      registerProps={register("studentAnswer")}
-                      t={t}
-                      minChars={5}
-                      guidanceText={m5ResponseGuidance}
-                      exampleStructure={
-                        step === "KPI_ROTATION" || step === "KPI_SERVICE" || step === "KPI_DIAGNOSTIC" || isM5DecisionStep
-                          ? scnCode === "SCN-013"
-                            ? t(
-                                "OTIF 95%, excellent. Erreurs 4%, à surveiller. Action qualité.",
-                                "OTIF 95%, excellent. Errors 4%, monitor. Quality action.",
-                              )
-                            : scnCode === "SCN-014"
+                    {runData?.moduleId === 4 && isM4CognitiveStep(step) && getM4CognitiveQuestion(scnCode, step) ? (
+                      <CognitiveAnswerSelector
+                        question={getM4CognitiveQuestion(scnCode, step)!}
+                        t={t}
+                        language={language === "en" ? "en" : "fr"}
+                        value={watch("cognitiveOptionId") || undefined}
+                        onChange={(optionId, answerText) => {
+                          setValue("cognitiveOptionId", optionId);
+                          setValue("studentAnswer", answerText);
+                          setCognitiveWrongWhy(null);
+                          setCognitiveRightWhy(null);
+                        }}
+                        lastWrongWhy={cognitiveWrongWhy}
+                        lastRightWhy={cognitiveRightWhy}
+                        testId={`cognitive-response-${step?.toLowerCase() ?? "unknown"}`}
+                      />
+                    ) : (
+                      <AnalyticalResponseField
+                        questionText={analyticalQuestionText}
+                        registerProps={register("studentAnswer")}
+                        t={t}
+                        minChars={5}
+                        guidanceText={m5ResponseGuidance}
+                        exampleStructure={
+                          step === "KPI_ROTATION" || step === "KPI_SERVICE" || step === "KPI_DIAGNOSTIC" || isM5DecisionStep
+                            ? scnCode === "SCN-013"
                               ? t(
-                                  "Priorité qualité. Maintenir stock. Revue OTIF/erreurs dans 90 jours.",
-                                  "Priority quality. Maintain stock. Review OTIF/errors in 90 days.",
+                                  "OTIF 95%, excellent. Erreurs 4%, à surveiller. Action qualité.",
+                                  "OTIF 95%, excellent. Errors 4%, monitor. Quality action.",
                                 )
-                              : isM5DecisionStep
+                              : scnCode === "SCN-014"
                                 ? t(
-                                    "Lecture KPI. Décision. Suivi du prochain cycle.",
-                                    "KPI reading. Decision. Next-cycle follow-up.",
+                                    "Priorité qualité. Maintenir stock. Revue OTIF/erreurs dans 90 jours.",
+                                    "Priority quality. Maintain stock. Review OTIF/errors in 90 days.",
                                   )
-                                : t(
-                                    "Rotation 6x, zone normale. Maintenir globalement. Surveiller les SKU lents.",
-                                    "Turnover 6x, normal zone. Maintain globally. Watch slow SKUs.",
-                                  )
-                          : undefined
-                      }
-                      testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
-                      hints={
-                        <AnalyticalStepHints
-                          step={step ?? ""}
-                          t={t}
-                          isM5Strategic={isM5Strategic}
-                          scnCode={scnCode}
-                        />
-                      }
-                    />
+                                : isM5DecisionStep
+                                  ? t(
+                                      "Lecture KPI. Décision. Suivi du prochain cycle.",
+                                      "KPI reading. Decision. Next-cycle follow-up.",
+                                    )
+                                  : t(
+                                      "Rotation 6x, zone normale. Maintenir globalement. Surveiller les SKU lents.",
+                                      "Turnover 6x, normal zone. Maintain globally. Watch slow SKUs.",
+                                    )
+                            : undefined
+                        }
+                        testId={`analytical-response-${step?.toLowerCase() ?? "unknown"}`}
+                        hints={
+                          <AnalyticalStepHints
+                            step={step ?? ""}
+                            t={t}
+                            isM5Strategic={isM5Strategic}
+                            scnCode={scnCode}
+                          />
+                        }
+                      />
+                    )}
                   </div>
                 </div>
               )}
