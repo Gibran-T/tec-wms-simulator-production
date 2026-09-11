@@ -15,6 +15,10 @@ import {
   resolveGoldState,
 } from "./goldCertification";
 import { OFFICIAL_SCN_BY_MODULE } from "./canonicalScenarios";
+import {
+  GOLD_REGISTRY_COHORT_2026,
+  lookupGoldRegistryByStudentNumber,
+} from "@shared/goldCertificationRegistry";
 
 describe("Gold certification — eligibility rules", () => {
   it("GOLD_SCN_KEYS maps twelve scenarios SCN-006 to SCN-017", () => {
@@ -161,5 +165,31 @@ describe("Gold certification — eligibility rules", () => {
     expect(source).toContain("goldStatus:");
     expect(source).toMatch(/isGoldUnlockEnabled\(\)/);
     expect(source).toContain("unlockGoldCertification");
+  });
+});
+
+describe("Gold certification — Été 2026 registry", () => {
+  it("registers Fondatrice and Été 2026 Gold credential IDs", () => {
+    expect(GOLD_REGISTRY_COHORT_2026).toHaveLength(11);
+    expect(GOLD_REGISTRY_COHORT_2026.map((e) => e.certificateId)).toEqual([
+      "TECWMS-GOLD-2026-001",
+      "TECWMS-GOLD-2026-002",
+      "TECWMS-GOLD-2026-003",
+      "TECWMS-GOLD-2026-004",
+      "TECWMS-GOLD-2026-005",
+      "TECWMS-GOLD-2026-006",
+      "TECWMS-GOLD-2026-007",
+      "TECWMS-GOLD-2026-008",
+      "TECWMS-GOLD-2026-009",
+      "TECWMS-GOLD-2026-010",
+      "TECWMS-GOLD-2026-011",
+    ]);
+  });
+
+  it("looks up Été 2026 Gold entries by student number and cohort prefix", () => {
+    expect(lookupGoldRegistryByStudentNumber("TECWMS-2026-A-002")?.certificateId).toBe("TECWMS-GOLD-2026-005");
+    expect(lookupGoldRegistryByStudentNumber("TECWMS-2026-A-003")?.displayName).toBe("Toumany Diakité");
+    expect(lookupGoldRegistryByStudentNumber("TECWMS-2026-B-004")?.certificateId).toBe("TECWMS-GOLD-2026-011");
+    expect(lookupGoldRegistryByStudentNumber("002004")?.certificateId).toBe("TECWMS-GOLD-2026-001");
   });
 });

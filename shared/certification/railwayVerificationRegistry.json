@@ -54,5 +54,103 @@
     "studentNumber": "2026-1806",
     "certificationLevel": "GOLD",
     "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-005",
+    "studentName": "Marc Arthur Dessin",
+    "studentNumber": "TECWMS-2026-A-002",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-006",
+    "studentName": "Toumany Diakité",
+    "studentNumber": "TECWMS-2026-A-003",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-007",
+    "studentName": "Saïd Mohamed Traoré",
+    "studentNumber": "TECWMS-2026-A-004",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-008",
+    "studentName": "Gnouma Camara",
+    "studentNumber": "TECWMS-2026-B-001",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-009",
+    "studentName": "Willy Martial Kouganou Siani",
+    "studentNumber": "TECWMS-2026-B-002",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-010",
+    "studentName": "Yawo Valentin Sodokin",
+    "studentNumber": "TECWMS-2026-B-003",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-SIL-2026-011",
+    "studentName": "Ghislain Djitouo Pepouo",
+    "studentNumber": "TECWMS-2026-B-004",
+    "certificationLevel": "SILVER",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-005",
+    "studentName": "Marc Arthur Dessin",
+    "studentNumber": "TECWMS-2026-A-002",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-006",
+    "studentName": "Toumany Diakité",
+    "studentNumber": "TECWMS-2026-A-003",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-007",
+    "studentName": "Saïd Mohamed Traoré",
+    "studentNumber": "TECWMS-2026-A-004",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-008",
+    "studentName": "Gnouma Camara",
+    "studentNumber": "TECWMS-2026-B-001",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-009",
+    "studentName": "Willy Martial Kouganou Siani",
+    "studentNumber": "TECWMS-2026-B-002",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-010",
+    "studentName": "Yawo Valentin Sodokin",
+    "studentNumber": "TECWMS-2026-B-003",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
+  },
+  {
+    "certificateId": "TECWMS-GOLD-2026-011",
+    "studentName": "Ghislain Djitouo Pepouo",
+    "studentNumber": "TECWMS-2026-B-004",
+    "certificationLevel": "GOLD",
+    "status": "ACTIVE"
   }
 ]

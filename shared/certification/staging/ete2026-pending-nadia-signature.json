@@ -1,0 +1,168 @@
+{
+  "status": "RELEASED",
+  "institutionalModel": "ete-2026-approved-pre-carimbo",
+  "note": "Signed Gold/Silver PDFs imported into client/public/certificates/{silver|gold}/2026/. HOLD markers removed. ACTIVE in silver/gold registries and railwayVerificationRegistry.",
+  "issueDate": "2026-08-07",
+  "releaseGate": "RELEASED_AFTER_NADIA_SIGNATURE",
+  "releasedAt": "2026-09-11",
+  "sourceZips": [
+    "TECWMS-CERTIFICATES-GOLD-2026.zip",
+    "TECWMS-CERTIFICATES-SILVER-2026.zip"
+  ],
+  "credentials": [
+    {
+      "certificateId": "TECWMS-SIL-2026-005",
+      "tier": "SILVER",
+      "displayName": "Marc Arthur Dessin",
+      "studentNumber": "TECWMS-2026-A-002",
+      "cohort": "A",
+      "email": "marcarthurdessin@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-005",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-005.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-005",
+      "tier": "GOLD",
+      "displayName": "Marc Arthur Dessin",
+      "studentNumber": "TECWMS-2026-A-002",
+      "cohort": "A",
+      "email": "marcarthurdessin@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-005",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-005.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-006",
+      "tier": "SILVER",
+      "displayName": "Toumany Diakité",
+      "studentNumber": "TECWMS-2026-A-003",
+      "cohort": "A",
+      "email": "diaktoumany@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-006",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-006.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-006",
+      "tier": "GOLD",
+      "displayName": "Toumany Diakité",
+      "studentNumber": "TECWMS-2026-A-003",
+      "cohort": "A",
+      "email": "diaktoumany@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-006",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-006.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-007",
+      "tier": "SILVER",
+      "displayName": "Saïd Mohamed Traoré",
+      "studentNumber": "TECWMS-2026-A-004",
+      "cohort": "A",
+      "email": "saidtraore824@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-007",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-007.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-007",
+      "tier": "GOLD",
+      "displayName": "Saïd Mohamed Traoré",
+      "studentNumber": "TECWMS-2026-A-004",
+      "cohort": "A",
+      "email": "saidtraore824@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-007",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-007.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-008",
+      "tier": "SILVER",
+      "displayName": "Gnouma Camara",
+      "studentNumber": "TECWMS-2026-B-001",
+      "cohort": "B",
+      "email": "camarasvetagnouma@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-008",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-008.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-008",
+      "tier": "GOLD",
+      "displayName": "Gnouma Camara",
+      "studentNumber": "TECWMS-2026-B-001",
+      "cohort": "B",
+      "email": "camarasvetagnouma@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-008",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-008.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-009",
+      "tier": "SILVER",
+      "displayName": "Willy Martial Kouganou Siani",
+      "studentNumber": "TECWMS-2026-B-002",
+      "cohort": "B",
+      "email": "kouganoumartial@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-009",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-009.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-009",
+      "tier": "GOLD",
+      "displayName": "Willy Martial Kouganou Siani",
+      "studentNumber": "TECWMS-2026-B-002",
+      "cohort": "B",
+      "email": "kouganoumartial@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-009",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-009.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-010",
+      "tier": "SILVER",
+      "displayName": "Yawo Valentin Sodokin",
+      "studentNumber": "TECWMS-2026-B-003",
+      "cohort": "B",
+      "email": "isaacsodokin@yahoo.fr",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-010",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-010.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-010",
+      "tier": "GOLD",
+      "displayName": "Yawo Valentin Sodokin",
+      "studentNumber": "TECWMS-2026-B-003",
+      "cohort": "B",
+      "email": "isaacsodokin@yahoo.fr",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-010",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-010.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-SIL-2026-011",
+      "tier": "SILVER",
+      "displayName": "Ghislain Djitouo Pepouo",
+      "studentNumber": "TECWMS-2026-B-004",
+      "cohort": "B",
+      "email": "ghislain.djitouo@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-SIL-2026-011",
+      "pdfPublicPath": "/certificates/silver/2026/TECWMS-SIL-2026-011.pdf",
+      "portalStatus": "ACTIVE"
+    },
+    {
+      "certificateId": "TECWMS-GOLD-2026-011",
+      "tier": "GOLD",
+      "displayName": "Ghislain Djitouo Pepouo",
+      "studentNumber": "TECWMS-2026-B-004",
+      "cohort": "B",
+      "email": "ghislain.djitouo@gmail.com",
+      "verifyUrl": "https://tec-wms-simulator-production-production.up.railway.app/verify/TECWMS-GOLD-2026-011",
+      "pdfPublicPath": "/certificates/gold/2026/TECWMS-GOLD-2026-011.pdf",
+      "portalStatus": "ACTIVE"
+    }
+  ]
+}

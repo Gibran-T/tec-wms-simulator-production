@@ -297,13 +297,20 @@ describe("Silver certification — certified state display alignment", () => {
 });
 
 describe("Silver certification — RC13 cohort registry", () => {
-  it("registers four first-cohort Silver credential IDs", () => {
-    expect(SILVER_REGISTRY_COHORT_2026).toHaveLength(4);
+  it("registers Fondatrice and Été 2026 Silver credential IDs", () => {
+    expect(SILVER_REGISTRY_COHORT_2026).toHaveLength(11);
     expect(SILVER_REGISTRY_COHORT_2026.map((e) => e.certificateId)).toEqual([
       "TECWMS-SIL-2026-001",
       "TECWMS-SIL-2026-002",
       "TECWMS-SIL-2026-003",
       "TECWMS-SIL-2026-004",
+      "TECWMS-SIL-2026-005",
+      "TECWMS-SIL-2026-006",
+      "TECWMS-SIL-2026-007",
+      "TECWMS-SIL-2026-008",
+      "TECWMS-SIL-2026-009",
+      "TECWMS-SIL-2026-010",
+      "TECWMS-SIL-2026-011",
     ]);
   });
 
@@ -315,6 +322,8 @@ describe("Silver certification — RC13 cohort registry", () => {
     expect(lookupSilverRegistryByStudentNumber(" 613-462 ")?.certificateId).toBe("TECWMS-SIL-2026-003");
     expect(lookupSilverRegistryByStudentNumber("2026-1806")?.certificateId).toBe("TECWMS-SIL-2026-004");
     expect(lookupSilverRegistryByStudentNumber("2026-1806")?.displayName).toBe("Aissata Soukeina Camara");
+    expect(lookupSilverRegistryByStudentNumber("TECWMS-2026-A-002")?.certificateId).toBe("TECWMS-SIL-2026-005");
+    expect(lookupSilverRegistryByStudentNumber("TECWMS-2026-B-001")?.displayName).toBe("Gnouma Camara");
     expect(lookupSilverRegistryByStudentNumber(null)).toBeNull();
     expect(lookupSilverRegistryByStudentNumber("unknown")).toBeNull();
   });
