@@ -263,7 +263,7 @@ export default function MonitorDashboard() {
             {isLoading && (
               <tr>
                 <td colSpan={9} className="py-10 text-center text-muted-foreground">
-                  {t("Chargement...", "Loading...")}
+                  {t("Chargement du monitoring (runs compactés par scénario)…", "Loading monitoring (runs compacted per scenario)…")}
                 </td>
               </tr>
             )}

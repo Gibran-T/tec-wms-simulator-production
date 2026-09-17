@@ -1,12 +1,11 @@
 import FioriShell from "@/components/FioriShell";
 import { trpc } from "@/lib/trpc";
 import { useLocation, Link } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
 import {
   BookOpen, Users, BarChart2, ClipboardList, Monitor,
-  FlaskConical, ShieldCheck, Layers, TrendingUp, FileText,
-  MonitorPlay, Presentation, Plus, ArrowRight, Clock,
-  TrendingDown, Minus,
+  ShieldCheck, Layers, TrendingUp, FileText,
+  MonitorPlay, Presentation, Plus, ArrowRight,
+  ListChecks,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -14,45 +13,9 @@ import { useTeacherCohortInput } from "@/hooks/useTeacherCohort";
 import { useCohort } from "@/contexts/CohortContext";
 import { skipToken } from "@tanstack/react-query";
 import { SLIDE_COUNT_BY_MODULE } from "@/data/slideCounts";
-import { getModuleScenarioPassThreshold } from "@/data/moduleThresholds";
 
-// ── helpers ──────────────────────────────────────────────────────────────────
-
-function fmtTime(dateVal: string | Date | undefined, lang: "FR" | "EN"): string {
-  if (!dateVal) return "";
-  const d = new Date(dateVal as string);
-  if (isNaN(d.getTime())) return "";
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-  if (lang === "EN") {
-    if (diffMin < 1) return "just now";
-    if (diffMin < 60) return `${diffMin} min ago`;
-    const diffH = Math.floor(diffMin / 60);
-    if (diffH < 24) return `${diffH}h ago`;
-    const diffD = Math.floor(diffH / 24);
-    return `${diffD}d ago`;
-  }
-  if (diffMin < 1) return "à l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
-  const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `il y a ${diffH}h`;
-  const diffD = Math.floor(diffH / 24);
-  return `il y a ${diffD}j`;
-}
-
-function TrendBadge({ current, previous }: { current: number | null; previous?: number | null }) {
-  if (current === null || previous === null || previous === undefined) return null;
-  const delta = current - previous;
-  if (delta > 0) return <span className="text-[9px] text-[#107e3e] font-semibold flex items-center gap-0.5"><TrendingUp size={9} />+{delta}</span>;
-  if (delta < 0) return <span className="text-[9px] text-[#bb0000] font-semibold flex items-center gap-0.5"><TrendingDown size={9} />{delta}</span>;
-  return <span className="text-[9px] text-muted-foreground flex items-center gap-0.5"><Minus size={9} />0</span>;
-}
-
-// ── component ─────────────────────────────────────────────────────────────────
 export default function TeacherDashboard() {
   const [, navigate] = useLocation();
-  const { user } = useAuth();
   const { t, language } = useLanguage();
 
   const cohortInput = useTeacherCohortInput();
@@ -68,9 +31,9 @@ export default function TeacherDashboard() {
 
   const { data: scenarios } = trpc.scenarios.list.useQuery();
   const { data: assignments } = trpc.assignments.all.useQuery(cohortInput);
-  const { data: monitor } = trpc.monitor.allRuns.useQuery(cohortInput);
-  const { data: enrolledStudents = [] } = trpc.students.list.useQuery(
-    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: true },
+  const { data: activity, isError: activityError, isFetching: activityLoading } = trpc.monitor.activitySummary.useQuery(cohortInput);
+  const { data: enrolledStudents = [], isLoading: studentsLoading, isError: studentsError } = trpc.students.list.useQuery(
+    cohortInput === skipToken ? skipToken : { ...cohortInput, includeAll: false },
   );
   const { data: moduleProgressRows } = trpc.warehouse.allModuleProgress.useQuery(cohortInput);
   const { data: goldRoster } = trpc.profiles.goldRoster.useQuery(cohortInput);
@@ -78,31 +41,26 @@ export default function TeacherDashboard() {
     onSuccess: () => void utils.warehouse.allModuleProgress.invalidate(),
   });
 
-  const evalRuns = (monitor ?? []).filter((r: any) => !r.run?.isDemo && r.run?.userId !== user?.id);
-  const demoRuns = (monitor ?? []).filter((r: any) => r.run?.isDemo);
-  const allEvalForStats = (monitor ?? []).filter((r: any) => !r.run?.isDemo);
+  const moduleStats = [1, 2, 3, 4, 5].map((moduleId) => {
+    const rows = (moduleProgressRows ?? []).filter(
+      (row: { progress: { moduleId: number; averageScore: number | null; passed: boolean; completedScenarios: number | null } }) =>
+        row.progress.moduleId === moduleId,
+    );
+    const scores = rows
+      .map((r: { progress: { averageScore: number | null } }) => r.progress.averageScore)
+      .filter((s: number | null): s is number => s != null);
+    const avg = scores.length ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : null;
+    const passed = rows.filter((r: { progress: { passed: boolean } }) => r.progress.passed).length;
+    const runCount = rows.reduce(
+      (sum: number, r: { progress: { completedScenarios: number | null } }) => sum + (r.progress.completedScenarios ?? 0),
+      0,
+    );
+    return { runCount, avg, passed };
+  });
 
-  const mScenarios = [1, 2, 3, 4, 5].map((id) =>
-    (scenarios ?? []).filter((s) => s.moduleId === id).map((s) => s.id)
-  );
-
-  const mRuns = mScenarios.map((ids) =>
-    allEvalForStats.filter((r: any) => ids.includes(r.run?.scenarioId))
-  );
-
-  const avgScore = (runs: any[]): number | null => {
-    const scored = runs.filter((r: any) => r.score !== null && r.score !== undefined);
-    if (scored.length === 0) return null;
-    return Math.round(scored.reduce((s: number, r: any) => s + (r.score ?? 0), 0) / scored.length);
-  };
-
-  const passedCount = (runs: any[], moduleId: number) => {
-    const threshold = getModuleScenarioPassThreshold(moduleId);
-    return runs.filter((r: any) => r.score !== null && r.score !== undefined && r.score >= threshold).length;
-  };
-
-  const mAvg = mRuns.map(avgScore);
-  const mPassed = mRuns.map((runs, idx) => passedCount(runs, idx + 1));
+  const mAvg = moduleStats.map((s) => s.avg);
+  const mPassed = moduleStats.map((s) => s.passed);
+  const mRunCounts = moduleStats.map((s) => s.runCount);
 
   const m3AwaitingValidation = (moduleProgressRows ?? []).filter(
     (row: { progress: { moduleId: number; passed: boolean; teacherValidated: boolean }; user: { role: string; name: string | null; id: number } }) =>
@@ -113,16 +71,18 @@ export default function TeacherDashboard() {
   );
 
   const assignmentsCount = assignments?.length ?? 0;
-  const activeEvalCount = allEvalForStats.filter((r: any) => r.run?.status === "in_progress").length;
-  const evalStudentIds = new Set(
-    allEvalForStats.map((r: any) => r.run?.userId).filter((id: number | undefined) => id != null),
-  );
+  const activeEvalCount = activity?.inProgressCount ?? 0;
+  const evalStudentIds = new Set(activity?.studentIdsWithEvalRuns ?? []);
   const activeEvalStudentCount = enrolledStudents.filter((s: { id: number }) => evalStudentIds.has(s.id)).length;
   const notStartedStudentCount = Math.max(0, enrolledStudents.length - activeEvalStudentCount);
-  const rosterBreakdown = t(
-    `${activeEvalStudentCount} en évaluation · ${notStartedStudentCount} pas commencé`,
-    `${activeEvalStudentCount} in evaluation · ${notStartedStudentCount} not started`,
-  );
+  const rosterBreakdown = studentsLoading
+    ? t("Chargement du roster…", "Loading roster…")
+    : studentsError
+      ? t("Impossible de charger le roster — réessayez", "Unable to load roster — retry")
+      : t(
+          `${enrolledStudents.length} inscrits · ${activeEvalCount} run(s) en cours · ${activity?.evalRunCount ?? 0} runs éval.`,
+          `${enrolledStudents.length} enrolled · ${activeEvalCount} in-progress run(s) · ${activity?.evalRunCount ?? 0} eval runs`,
+        );
 
   const cards = [
     {
@@ -135,10 +95,10 @@ export default function TeacherDashboard() {
     {
       icon: Users,
       label: t("Étudiants inscrits", "Enrolled students"),
-      value: enrolledStudents.length,
-      sub: enrolledStudents.length > 0 ? rosterBreakdown : undefined,
+      value: studentsLoading ? "…" : enrolledStudents.length,
+      sub: rosterBreakdown,
       href: "/teacher/students", color: "text-[#107e3e]", bg: "bg-[#d4edda]",
-      cta: enrolledStudents.length === 0 ? t("Ajouter un étudiant →", "Add a student →") : null,
+      cta: !studentsLoading && enrolledStudents.length === 0 ? t("Ajouter un étudiant →", "Add a student →") : null,
     },
     {
       icon: ClipboardList,
@@ -150,15 +110,20 @@ export default function TeacherDashboard() {
     {
       icon: Monitor,
       label: t("Simulations actives (éval.)", "Active simulations (eval.)"),
-      value: activeEvalCount,
+      value: activityLoading ? "…" : activeEvalCount,
       href: "/teacher/monitor", color: "text-[#5b4b8a]", bg: "bg-[#ede7f6]",
       cta: null,
     },
+    {
+      icon: ListChecks,
+      label: t("Parcours formatif Pré/Pós", "Formative Pre/Post path"),
+      value: t("Suivi", "Monitor"),
+      href: "/teacher/exercices", color: "text-[#0f766e]", bg: "bg-teal-50",
+      cta: t("Évolution et points chauds →", "Evolution and hotspots →"),
+    },
   ];
 
-  const recentRuns = (monitor ?? [])
-    .filter((r: any) => r.run?.userId !== user?.id)
-    .slice(0, 5);
+  const recentStudents = enrolledStudents.slice(0, 8);
 
   const moduleConfig = [
     { id: 1, label: t("Module 1 — Fondements ERP/WMS", "Module 1 — ERP/WMS Foundations"), color: "#0070f2", bg: "bg-[#e8f0fe]", text: "text-[#0070f2]", border: "border-[#0070f2]/20", slidesBg: "bg-[#e8f0fe]", slidesText: "text-[#0070f2]", slidesHover: "hover:bg-[#d0e4fc]", icon: BookOpen, threshold: 60 },
@@ -235,7 +200,7 @@ export default function TeacherDashboard() {
       {/* ── Module Progress Cards ────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {moduleConfig.map((mod, idx) => {
-          const runs = mRuns[idx];
+          const runCount = mRunCounts[idx];
           const avg = mAvg[idx];
           const passed = mPassed[idx];
           const Icon = mod.icon;
@@ -257,7 +222,7 @@ export default function TeacherDashboard() {
                   <span className="opacity-60 font-normal">({SLIDE_COUNT_BY_MODULE[mod.id]})</span>
                 </Link>
 
-                {runs.length === 0 ? (
+                {runCount === 0 ? (
                   <div className="py-3 text-center">
                     <p className="text-[10px] text-muted-foreground mb-2">{t("Aucune simulation enregistrée", "No simulation recorded")}</p>
                     <button
@@ -271,7 +236,7 @@ export default function TeacherDashboard() {
                   <>
                     <div className="grid grid-cols-3 gap-2">
                       <div className="text-center">
-                        <p className={`text-lg font-bold ${mod.text}`}>{runs.length}</p>
+                        <p className={`text-lg font-bold ${mod.text}`}>{runCount}</p>
                         <p className="text-[9px] text-muted-foreground">{t("Simul.", "Simul.")}</p>
                       </div>
                       <div className="text-center">
@@ -282,7 +247,7 @@ export default function TeacherDashboard() {
                       </div>
                       <div className="text-center">
                         <p className="text-lg font-bold text-[#e9730c]">
-                          {passed}/{runs.length}
+                          {passed}/{enrolledStudents.length || runCount}
                         </p>
                         <p className="text-[9px] text-muted-foreground">{t("Réussis", "Passed")}</p>
                       </div>
@@ -312,11 +277,11 @@ export default function TeacherDashboard() {
       </div>
 
       {/* ── Gold certification roster (read-only) ─────────────────────────────── */}
-      {(goldRoster ?? []).some((s) => s.silverCertified || s.goldState !== "LOCKED") && (
+      {(goldRoster ?? []).length > 0 && (
         <div className="bg-card border border-amber-200 rounded-md mb-6 p-4">
           <p className="text-xs font-semibold text-amber-900 flex items-center gap-2 mb-3">
             <Layers size={14} />
-            {t("Parcours Gold — état des étudiants", "Gold pathway — student status")}
+            {t("Parcours Silver / Gold — état des étudiants", "Silver / Gold pathway — student status")}
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[11px]">
@@ -329,15 +294,16 @@ export default function TeacherDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {(goldRoster ?? [])
-                  .filter((s) => s.silverCertified || s.goldState !== "LOCKED")
-                  .slice(0, 12)
-                  .map((row) => (
+                {(goldRoster ?? []).map((row) => (
                     <tr key={row.userId} className="border-b border-border/60 last:border-0">
                       <td className="py-2 pr-3 font-medium">{row.name ?? row.email}</td>
-                      <td className="py-2 pr-3">{row.silverCertified ? "✓" : "—"}</td>
+                      <td className="py-2 pr-3">{row.silverCertified ? "✓" : t("Non obtenue", "Not awarded")}</td>
                       <td className="py-2 pr-3 font-semibold text-amber-800">{row.goldState}</td>
-                      <td className="py-2 text-muted-foreground truncate max-w-[200px]">{row.blockerSummary ?? "—"}</td>
+                      <td className="py-2 text-muted-foreground max-w-[280px]">
+                        {row.silverCertified
+                          ? (row.blockerSummary ?? "—")
+                          : (language === "FR" ? row.silverBlockerBannerFr : row.silverBlockerBannerEn) ?? row.blockerSummary ?? "—"}
+                      </td>
                     </tr>
                   ))}
               </tbody>
@@ -377,106 +343,42 @@ export default function TeacherDashboard() {
         </div>
       )}
 
-      {/* ── Recent Student Activity ──────────────────────────────────────────── */}
+      {/* ── Cohort roster (lightweight — avoids 546-run monitor timeout) ── */}
       <div className="bg-card border border-border rounded-md mb-4">
         <div className="px-5 py-3 border-b border-border flex items-center justify-between">
           <p className="text-xs font-semibold text-foreground flex items-center gap-2">
             <BarChart2 size={13} />
-            {t("Activité récente des étudiants", "Recent student activity")}
+            {t("Roster de la cohorte", "Cohort roster")}
             <span className="text-[10px] font-normal text-muted-foreground ml-1">
-              ({evalRuns.length} {t("éval.", "eval.")} · {demoRuns.length} {t("démo", "demo")})
+              ({activityError ? t("activité indisponible", "activity unavailable") : `${activity?.evalRunCount ?? 0} ${t("runs éval.", "eval runs")}`})
             </span>
           </p>
-          <Link href="/teacher/monitor" className="text-xs text-[#0070f2] hover:underline flex items-center gap-1">
-            {t("Voir tout →", "View all →")} <span className="text-[9px] text-muted-foreground">({t("Monitoring", "Monitoring")})</span>
+          <Link href="/teacher/students" className="text-xs text-[#0070f2] hover:underline flex items-center gap-1">
+            {t("Voir tout →", "View all →")}
           </Link>
         </div>
 
         <div className="divide-y divide-border">
-          {recentRuns.length === 0 && (
+          {studentsLoading && (
+            <p className="py-8 text-center text-xs text-muted-foreground">{t("Chargement des étudiants…", "Loading students…")}</p>
+          )}
+          {studentsError && (
+            <p className="py-8 text-center text-xs text-[#bb0000]">{t("Erreur de chargement du roster. Le filtre de cohorte ou le serveur a échoué.", "Roster load error. Cohort filter or server failed.")}</p>
+          )}
+          {!studentsLoading && !studentsError && recentStudents.length === 0 && (
             <div className="py-10 text-center">
-              <p className="text-muted-foreground text-xs mb-2">{t("Aucune activité étudiante enregistrée", "No student activity recorded")}</p>
-              <button
-                onClick={() => navigate("/teacher/scenarios")}
-                className="text-[11px] text-[#0070f2] hover:underline flex items-center gap-1 mx-auto"
-              >
-                <ArrowRight size={11} /> {t("Assigner un scénario aux étudiants", "Assign a scenario to students")}
-              </button>
+              <p className="text-muted-foreground text-xs mb-2">{t("Aucun étudiant dans cette cohorte", "No students in this cohort")}</p>
             </div>
           )}
-          {recentRuns.map((run: any) => {
-            const isDemo = run.run?.isDemo;
-            const scenarioId = run.run?.scenarioId;
-            const moduleId = mScenarios.findIndex((ids) => ids.includes(scenarioId)) + 1 || null;
-            const modColors: Record<number, string> = {
-              1: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300",
-              2: "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300",
-              3: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300",
-              4: "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300",
-              5: "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300",
-            };
-            return (
-              <div
-                key={run.run?.id ?? run.runId}
-                className={`px-5 py-3 flex items-center justify-between gap-3 ${isDemo ? "bg-muted/30" : ""}`}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                    <p className="text-xs font-semibold text-foreground truncate">
-                      {run.user?.name ?? `${t("Étudiant", "Student")} #${run.run?.userId}`}
-                    </p>
-                    {isDemo ? (
-                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#5b4b8a] bg-[#ede7f6] dark:bg-purple-900/50 dark:text-purple-300 px-1.5 py-0.5 rounded-full shrink-0">
-                        <FlaskConical size={8} /> {t("Démo", "Demo")}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-[9px] font-semibold text-[#0070f2] bg-[#e8f4fd] dark:bg-blue-900/50 dark:text-blue-300 px-1.5 py-0.5 rounded-full shrink-0">
-                        <ShieldCheck size={8} /> {t("Éval.", "Eval.")}
-                      </span>
-                    )}
-                    {moduleId && moduleId > 0 && (
-                      <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${modColors[moduleId] ?? modColors[1]}`}>
-                        M{moduleId}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground truncate">
-                    {run.scenario?.name} · {run.completedSteps?.length ?? 0} {t("étapes", "steps")}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {run.run?.createdAt && (
-                    <span className="text-[9px] text-muted-foreground flex items-center gap-0.5 hidden sm:flex">
-                      <Clock size={8} />
-                      {fmtTime(run.run.createdAt, language)}
-                    </span>
-                  )}
-                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${isDemo ? "bg-[#5b4b8a]" : "bg-[#0070f2]"}`}
-                      style={{ width: `${run.progressPct}%` }}
-                    />
-                  </div>
-                  <span className={`text-[10px] font-semibold w-8 text-right ${isDemo ? "text-[#5b4b8a]" : "text-[#0070f2]"}`}>
-                    {run.progressPct}%
-                  </span>
-                  {!isDemo && (
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${run.compliant ? "bg-[#d4edda] text-[#107e3e]" : "bg-[#fde8e8] text-[#bb0000]"}`}>
-                      {run.compliant ? t("Conforme", "Compliant") : t("Non conforme", "Non-compliant")}
-                    </span>
-                  )}
-                  {isDemo && (
-                    <span
-                      className="text-[10px] text-[#5b4b8a] italic cursor-help"
-                      title={t("Les simulations en mode Démonstration ne génèrent pas de score officiel", "Demo mode simulations do not generate an official score")}
-                    >
-                      {t("Non officiel", "Unofficial")}
-                    </span>
-                  )}
-                </div>
+          {recentStudents.map((s: { id: number; name: string | null; email: string | null }) => (
+            <div key={s.id} className="px-5 py-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-foreground truncate">{s.name ?? s.email}</p>
+                <p className="text-[10px] text-muted-foreground truncate">{s.email}</p>
               </div>
-            );
-          })}
+              <span className="text-[10px] text-muted-foreground">#{s.id}</span>
+            </div>
+          ))}
         </div>
       </div>
 

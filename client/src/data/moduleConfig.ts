@@ -65,6 +65,8 @@ export const MODULE_CONFIG: ModuleConfigEntry[] = [
     descFr: "Rangement structuré · Capacité bin · FIFO · Précision inventaire",
     descEn: "Structured putaway · Bin capacity · FIFO · Inventory accuracy",
     durationH: 6,
+    passThreshold: 60,
+    route: "/student/module2",
     slidesRoute: "/student/slides/2",
     steps: ["RÉCEPTION", "PUTAWAY", "BIN CAPACITY", "FIFO", "INVENTAIRE"],
     objectives: [
@@ -87,6 +89,8 @@ export const MODULE_CONFIG: ModuleConfigEntry[] = [
     descFr: "Inventaire cyclique · Écarts · Ajustements · Min/Max · Stock de sécurité",
     descEn: "Cycle counting · Variances · Adjustments · Min/Max · Safety stock",
     durationH: 6,
+    passThreshold: 70,
+    route: "/student/module3",
     slidesRoute: "/student/slides/3",
     steps: ["CYCLE COUNT", "VARIANCE", "AJUSTEMENT", "RÉAPPRO", "VALIDATION"],
     objectives: [

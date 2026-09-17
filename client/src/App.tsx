@@ -77,6 +77,7 @@ function Router() {
       <Route path="/student/connect" component={ConcordeConnect} />
       <Route path="/student/department" component={DepartmentHome} />
       <Route path="/student/scenarios" component={ScenarioList} />
+      <Route path="/student/module1/formative/:exerciseId" component={FormativeExercisePage} />
       <Route path="/student/profile" component={EmployeeProfilePage} />
       <Route path="/student/run/:runId/briefing" component={MorningBriefing} />
       <Route path="/student/run/:runId" component={MissionControl} />
@@ -85,10 +86,12 @@ function Router() {
       <Route path="/student/report/:runId" component={RunReportRedirect} />
       {/* Module 2 routes */}
       <Route path="/student/module2" component={Module2ScenarioList} />
+      <Route path="/student/module2/formative/:exerciseId" component={FormativeExercisePage} />
       <Route path="/student/module2/scenario/:scenarioId/mode" component={Module2ModeSelectionPage} />
       <Route path="/student/module2/run/:runId/putaway" component={M2PutawayRedirect} />
       {/* Module 3 routes */}
       <Route path="/student/module3" component={Module3ScenarioList} />
+      <Route path="/student/module3/formative/:exerciseId" component={FormativeExercisePage} />
       <Route path="/student/module3/scenario/:scenarioId/mode" component={Module3ModeSelectionPage} />
       {/* Module 4 routes */}
       <Route path="/student/module4" component={Module4Dashboard} />

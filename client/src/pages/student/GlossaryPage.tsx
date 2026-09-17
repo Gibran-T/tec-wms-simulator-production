@@ -16,6 +16,8 @@ import {
   CATEGORY_LABELS,
   type GlossaryTerm,
 } from "@/data/glossary";
+import ModuleJourneyGuide from "@/components/pedagogy/ModuleJourneyGuide";
+import { GLOSSARY_SUPPORT_BY_CODE } from "@shared/pedagogy/glossarySupport";
 
 // ── Category icon map ─────────────────────────────────────────────────────────
 const CATEGORY_ICONS: Record<GlossaryTerm["category"], React.ElementType> = {
@@ -196,6 +198,9 @@ export default function GlossaryPage({
 
       {/* ── Terms list ─────────────────────────────────────────────────────── */}
       <div className={`flex-1 overflow-y-auto ${modal ? "px-4 sm:px-6 py-4" : "px-4 sm:px-6 py-6"}`}>
+        <div className="mb-4">
+          <ModuleJourneyGuide variant="glossary" language={language} t={t} />
+        </div>
         {filteredTerms.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <BookOpen size={40} className="text-muted-foreground/30 mb-3" />
@@ -284,6 +289,26 @@ export default function GlossaryPage({
                         <p className="text-xs text-foreground leading-relaxed">
                           {language === "FR" ? term.definitionFr : term.definitionEn}
                         </p>
+                        {GLOSSARY_SUPPORT_BY_CODE[term.code] && (
+                          <div className="mt-2 space-y-1" data-testid={`glossary-support-${term.code}`}>
+                            <p className="text-[11px] text-foreground leading-relaxed">
+                              <span className="font-semibold">
+                                {t("Sens opérationnel", "Operational meaning")} —{" "}
+                              </span>
+                              {language === "FR"
+                                ? GLOSSARY_SUPPORT_BY_CODE[term.code].operational.fr
+                                : GLOSSARY_SUPPORT_BY_CODE[term.code].operational.en}
+                            </p>
+                            <p className="text-[11px] text-muted-foreground leading-relaxed">
+                              <span className="font-semibold">
+                                {t("Exemple", "Example")} —{" "}
+                              </span>
+                              {language === "FR"
+                                ? GLOSSARY_SUPPORT_BY_CODE[term.code].example.fr
+                                : GLOSSARY_SUPPORT_BY_CODE[term.code].example.en}
+                            </p>
+                          </div>
+                        )}
                         {/* Show opposite language definition */}
                         <div className="mt-2 p-2 rounded bg-muted/50">
                           <p className="text-[10px] text-muted-foreground font-semibold mb-1">

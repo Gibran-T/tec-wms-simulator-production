@@ -25,6 +25,7 @@ import {
   type InsertPreAuthorizedEmail,
 } from "../drizzle/schema";
 import { QUIZ_PASS_THRESHOLD } from "@shared/moduleThresholds";
+import type { SilverBlockerEvidence } from "@shared/certification/silverTransparency";
 import { ENV } from "./_core/env";
 import {
   M1_CANONICAL_SCENARIO_IDS,
@@ -472,6 +473,38 @@ export async function completeRun(runId: number) {
   if (isCheckpointEngineEnabled() && isCheckpointModule(scenario.moduleId)) {
     await recomputeModuleCheckpoint(run.userId, scenario.moduleId);
   }
+}
+
+export async function getCohortActivitySummary(studentUserIds?: number[]) {
+  const empty = {
+    evalRunCount: 0,
+    inProgressCount: 0,
+    completedCount: 0,
+    studentIdsWithEvalRuns: [] as number[],
+  };
+  const db = await getDb();
+  if (!db) return empty;
+  if (studentUserIds && studentUserIds.length === 0) return empty;
+  const rows = await db
+    .select({
+      userId: scenarioRuns.userId,
+      status: scenarioRuns.status,
+      isDemo: scenarioRuns.isDemo,
+    })
+    .from(scenarioRuns)
+    .where(
+      studentUserIds && studentUserIds.length > 0
+        ? inArray(scenarioRuns.userId, studentUserIds)
+        : undefined,
+    );
+  const evalRows = rows.filter((r) => !r.isDemo);
+  const studentIds = new Set(evalRows.map((r) => r.userId));
+  return {
+    evalRunCount: evalRows.length,
+    inProgressCount: evalRows.filter((r) => r.status === "in_progress").length,
+    completedCount: evalRows.filter((r) => r.status === "completed").length,
+    studentIdsWithEvalRuns: Array.from(studentIds),
+  };
 }
 
 export async function getAllRunsForMonitor(studentUserIds?: number[]) {
@@ -1303,6 +1336,7 @@ export type SilverCertificationStatus = {
   noBlockers: boolean;
   silverEligible: boolean;
   silverCertified: boolean;
+  blockers: SilverBlockerEvidence[];
 };
 
 const M1_PASSING_SCORE = 60;
@@ -1503,30 +1537,60 @@ export async function checkM1ComplianceValidated(userId: number): Promise<boolea
   return true;
 }
 
-export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean> {
+/** Same M1 gates as checkNoUnresolvedBlockers, with per-SCN evidence for student/teacher UI. */
+export async function inspectM1SilverBlockers(userId: number): Promise<SilverBlockerEvidence[]> {
   const db = await getDb();
-  if (!db) return false;
+  if (!db) return [];
 
+  const blockers: SilverBlockerEvidence[] = [];
   const m1Rows = await getAllM1ScenarioRows();
 
   for (const scnCode of OFFICIAL_SCN_BY_MODULE[1]) {
     const bestRun = await getBestScoringNonDemoCompletedRunForM1Scn(userId, scnCode, m1Rows);
-    if (!bestRun) return false;
+    if (!bestRun) {
+      blockers.push({ kind: "missing_eval_run", scnCode, runId: null, count: 0 });
+      continue;
+    }
 
     const unpostedTransactions = await db.select()
       .from(transactions)
       .where(and(eq(transactions.runId, bestRun.id), eq(transactions.posted, false)));
 
-    if (unpostedTransactions.length > 0) return false;
+    if (unpostedTransactions.length > 0) {
+      blockers.push({
+        kind: "unposted_transactions",
+        scnCode,
+        runId: bestRun.id,
+        count: unpostedTransactions.length,
+      });
+    }
 
     const unresolvedCycleCounts = await db.select()
       .from(cycleCounts)
       .where(and(eq(cycleCounts.runId, bestRun.id), eq(cycleCounts.resolved, false)));
 
-    if (unresolvedCycleCounts.length > 0) return false;
+    if (unresolvedCycleCounts.length > 0) {
+      const sample = unresolvedCycleCounts[0];
+      blockers.push({
+        kind: "unresolved_cycle_counts",
+        scnCode,
+        runId: bestRun.id,
+        count: unresolvedCycleCounts.length,
+        sku: sample?.sku ?? null,
+        bin: sample?.bin ?? null,
+        variance: sample ? Number(sample.variance) : null,
+      });
+    }
   }
 
-  return true;
+  return blockers;
+}
+
+export async function checkNoUnresolvedBlockers(userId: number): Promise<boolean> {
+  const db = await getDb();
+  if (!db) return false;
+  const blockers = await inspectM1SilverBlockers(userId);
+  return blockers.length === 0;
 }
 
 export async function getSilverCertificationStatus(userId: number): Promise<SilverCertificationStatus> {
@@ -1547,13 +1611,15 @@ export async function getSilverCertificationStatus(userId: number): Promise<Silv
       noBlockers: true,
       silverEligible: true,
       silverCertified: true,
+      blockers: [],
     };
   }
 
   const quizPassed = await checkM1QuizPassed(userId);
   const scenariosCompleted = await getM1ScenarioCompletionStatus(userId);
   const complianceValidated = await checkM1ComplianceValidated(userId);
-  const noBlockers = await checkNoUnresolvedBlockers(userId);
+  const blockers = await inspectM1SilverBlockers(userId);
+  const noBlockers = blockers.length === 0;
   const allScenariosDone = M1_SCN_KEYS.every((k) => scenariosCompleted[k]);
   const silverEligible = quizPassed && allScenariosDone && complianceValidated && noBlockers;
 
@@ -1564,6 +1630,7 @@ export async function getSilverCertificationStatus(userId: number): Promise<Silv
     noBlockers,
     silverEligible,
     silverCertified: false,
+    blockers,
   };
 }
 

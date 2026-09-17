@@ -55,6 +55,9 @@ export interface EmployeeProfileCurrentAssignment {
   missionTitle: string | null;
   runId: number | null;
   status: "active" | "available" | "none";
+  /** True when official SCNs of the active chapter are already completed. */
+  officialPathComplete?: boolean;
+  leftoverRuns?: Array<{ runId: number; scnCode: string }>;
 }
 
 export interface EmployeeProfilePayload {
@@ -216,9 +219,27 @@ export function buildProfessionalSummary(input: {
 function resolveCurrentAssignment(
   activeModuleId: number,
   evalRuns: RunSnapshot[],
-  officialScnByModule: Record<number, string[]>
+  officialScnByModule: Record<number, string[]>,
+  moduleProgress: ModuleProgressSnapshot[],
 ): EmployeeProfileCurrentAssignment {
-  const inProgress = evalRuns.find((r) => r.status === "in_progress");
+  const moduleScns = officialScnByModule[activeModuleId] ?? [];
+  const completedScns = new Set(
+    evalRuns.filter((r) => r.status === "completed").map((r) => r.scnCode)
+  );
+  const moduleRow = moduleProgress.find((m) => m.moduleId === activeModuleId);
+  const officialPathComplete =
+    (moduleRow?.passed === true) ||
+    (moduleScns.length > 0 && moduleScns.every((scn) => completedScns.has(scn)));
+
+  const leftoverRuns = evalRuns
+    .filter((r) => r.status === "in_progress")
+    .sort((a, b) => b.runId - a.runId)
+    .map((r) => ({ runId: r.runId, scnCode: r.scnCode }));
+
+  const inProgress = leftoverRuns[0]
+    ? evalRuns.find((r) => r.runId === leftoverRuns[0].runId)
+    : undefined;
+
   if (inProgress) {
     const chapter = CAREER_CHAPTER_LABELS[activeModuleId];
     return {
@@ -227,15 +248,13 @@ function resolveCurrentAssignment(
       missionTitle: inProgress.missionTitle,
       runId: inProgress.runId,
       status: "active",
+      officialPathComplete,
+      leftoverRuns,
     };
   }
 
-  const moduleScns = officialScnByModule[activeModuleId] ?? [];
-  const completedScns = new Set(
-    evalRuns.filter((r) => r.status === "completed").map((r) => r.scnCode)
-  );
   const nextScn = moduleScns.find((scn) => !completedScns.has(scn));
-  if (nextScn) {
+  if (nextScn && !officialPathComplete) {
     const runForScn = evalRuns.find((r) => r.scnCode === nextScn);
     const chapter = CAREER_CHAPTER_LABELS[activeModuleId];
     return {
@@ -244,6 +263,8 @@ function resolveCurrentAssignment(
       missionTitle: runForScn?.missionTitle ?? null,
       runId: null,
       status: "available",
+      officialPathComplete: false,
+      leftoverRuns: [],
     };
   }
 
@@ -253,6 +274,8 @@ function resolveCurrentAssignment(
     missionTitle: null,
     runId: null,
     status: "none",
+    officialPathComplete,
+    leftoverRuns: [],
   };
 }
 
@@ -299,7 +322,7 @@ export function assembleEmployeeProfile(
 
   const activeModuleId = resolveActiveModuleId(input.moduleProgress);
   const evalRuns = input.runs.filter((r) => !r.isDemo);
-  const currentAssignment = resolveCurrentAssignment(activeModuleId, evalRuns, officialScnByModule);
+  const currentAssignment = resolveCurrentAssignment(activeModuleId, evalRuns, officialScnByModule, input.moduleProgress);
   const assignmentScn = currentAssignment.scnCode ?? undefined;
 
   const department = resolveDepartmentForModule(activeModuleId, assignmentScn);

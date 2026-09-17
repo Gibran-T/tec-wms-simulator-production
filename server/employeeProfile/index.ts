@@ -12,6 +12,7 @@ import {
   getScoringEventsByRun,
 } from "../db";
 import { getMissionForScenario, resolveScnCode } from "../missionData";
+import { selectRunsForHub } from "../../shared/runs/hubSelection";
 import { calculateTotalScore } from "../scoringEngine";
 
 export interface AssembleEmployeeProfileForUserInput {
@@ -20,7 +21,7 @@ export interface AssembleEmployeeProfileForUserInput {
 }
 
 async function buildRunSnapshots(userId: number): Promise<RunSnapshot[]> {
-  const runs = await getRunsByUser(userId);
+  const runs = selectRunsForHub(await getRunsByUser(userId));
   const snapshots: RunSnapshot[] = [];
 
   for (const row of runs) {

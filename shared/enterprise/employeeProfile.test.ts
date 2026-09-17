@@ -106,6 +106,31 @@ describe("RC20-A.2 — employee profile derivation", () => {
     expect(profile.currentAssignment.scnCode).toBe("SCN-002");
   });
 
+  it("labels leftover in-progress SCN-016 after official M5 is complete", () => {
+    const profile = assembleEmployeeProfile({
+      userId: 222,
+      displayName: "James Timothy",
+      moduleProgress: [
+        { moduleId: 1, passed: true },
+        { moduleId: 2, passed: true },
+        { moduleId: 3, passed: true },
+        { moduleId: 4, passed: true },
+        { moduleId: 5, passed: true, completedScenarios: 3, requiredScenarios: 3 },
+      ],
+      runs: [
+        { runId: 774, scenarioId: 16, moduleId: 5, scnCode: "SCN-016", missionTitle: "Variance", status: "completed", isDemo: false, completedAt: "2026-07-07T00:00:00.000Z", score: 100 },
+        { runId: 775, scenarioId: 17, moduleId: 5, scnCode: "SCN-017", missionTitle: "Capstone", status: "completed", isDemo: false, completedAt: "2026-07-07T00:00:00.000Z", score: 100 },
+        { runId: 776, scenarioId: 15, moduleId: 5, scnCode: "SCN-015", missionTitle: "Cycle", status: "completed", isDemo: false, completedAt: "2026-07-07T00:00:00.000Z", score: 100 },
+        { runId: 778, scenarioId: 16, moduleId: 5, scnCode: "SCN-016", missionTitle: "Variance leftover", status: "in_progress", isDemo: false, completedAt: null, score: null },
+      ],
+    });
+    expect(profile.currentAssignment.status).toBe("active");
+    expect(profile.currentAssignment.officialPathComplete).toBe(true);
+    expect(profile.currentAssignment.runId).toBe(778);
+    expect(profile.currentAssignment.scnCode).toBe("SCN-016");
+    expect(profile.currentAssignment.leftoverRuns?.some((r) => r.runId === 778)).toBe(true);
+  });
+
   it("excludes demo runs from completed missions", () => {
     const profile = assembleEmployeeProfile({
       userId: 5,

@@ -86,17 +86,20 @@ describe("Silver certification — eligibility rules", () => {
     expect(evalRun.isDemo).toBe(false);
   });
 
-  it("checkNoUnresolvedBlockers returns false when any canonical M1 SCN lacks a completed eval run", () => {
+  it("checkNoUnresolvedBlockers returns false when inspectM1SilverBlockers finds any gate residue", () => {
     const dbPath = path.join(path.dirname(fileURLToPath(import.meta.url)), "db.ts");
     const source = readFileSync(dbPath, "utf8");
-    const fnMatch = source.match(
-      /export async function checkNoUnresolvedBlockers[\s\S]*?\n\}/,
+    const inspectMatch = source.match(
+      /export async function inspectM1SilverBlockers[\s\S]*?\nexport async function checkNoUnresolvedBlockers/,
     );
-    expect(fnMatch).toBeTruthy();
-    const fnBody = fnMatch![0];
-    expect(fnBody).toContain("for (const scnCode of OFFICIAL_SCN_BY_MODULE[1])");
-    expect(fnBody).toMatch(/if \(!bestRun\) return false;/);
-    expect(fnBody).toContain("getBestScoringNonDemoCompletedRunForM1Scn");
+    expect(inspectMatch).toBeTruthy();
+    const inspectBody = inspectMatch![0];
+    expect(inspectBody).toContain("for (const scnCode of OFFICIAL_SCN_BY_MODULE[1])");
+    expect(inspectBody).toContain("unposted_transactions");
+    expect(inspectBody).toContain("unresolved_cycle_counts");
+    expect(inspectBody).toContain("getBestScoringNonDemoCompletedRunForM1Scn");
+    expect(source).toContain("const blockers = await inspectM1SilverBlockers(userId)");
+    expect(source).toContain("return blockers.length === 0");
   });
 });
 
@@ -240,6 +243,8 @@ describe("Silver certification — UI display contract", () => {
     );
     expect(source).toContain("shouldShowSilverContinueButton");
     expect(source).toContain("resolveSilverContinuePath");
+    expect(source).toContain("silver-not-awarded-banner");
+    expect(source).toContain("buildSilverNotAwardedCopy");
     expect(source).not.toMatch(/\{!silverEarned && \([\s\S]*?navigate\("\/student\/quiz\/1"\)/);
   });
 
@@ -283,7 +288,7 @@ describe("Silver certification — certified state display alignment", () => {
     expect(fnBody).toContain("complianceValidated: true");
     expect(fnBody).toContain("noBlockers: true");
     expect(fnBody).toContain("silverEligible: true");
-    expect(fnBody).toMatch(/SCN001:\s*true[\s\S]*SCN005:\s*true/);
+    expect(fnBody).toContain("blockers: []");
   });
 
   it("uncertified students still use live M1 gate computation", () => {
@@ -292,7 +297,7 @@ describe("Silver certification — certified state display alignment", () => {
     expect(fnMatch![0]).toContain("checkM1QuizPassed");
     expect(fnMatch![0]).toContain("getM1ScenarioCompletionStatus");
     expect(fnMatch![0]).toContain("checkM1ComplianceValidated");
-    expect(fnMatch![0]).toContain("checkNoUnresolvedBlockers");
+    expect(fnMatch![0]).toContain("inspectM1SilverBlockers");
   });
 });
 

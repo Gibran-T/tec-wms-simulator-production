@@ -696,3 +696,25 @@ export const m5DocMissionStates = mysqlTable(
 
 export type M5DocMissionStateRow = typeof m5DocMissionStates.$inferSelect;
 export type InsertM5DocMissionStateRow = typeof m5DocMissionStates.$inferInsert;
+
+// ── M1–M3 mission decision analytics (additive; does not change cert engines) ─
+export const missionDecisionResponses = mysqlTable("mission_decision_responses", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  runId: int("runId").notNull(),
+  moduleId: int("moduleId").notNull(),
+  scnCode: varchar("scnCode", { length: 16 }).notNull(),
+  stepCode: varchar("stepCode", { length: 32 }).notNull(),
+  questionId: varchar("questionId", { length: 64 }).notNull(),
+  optionId: varchar("optionId", { length: 16 }).notNull(),
+  correctOptionId: varchar("correctOptionId", { length: 16 }).notNull(),
+  isCorrect: boolean("isCorrect").notNull(),
+  pointsDelta: int("pointsDelta").default(0).notNull(),
+  responseMs: int("responseMs"),
+  submitMode: mysqlEnum("submitMode", ["OFFICIAL", "FORMATIVE"]).default("OFFICIAL").notNull(),
+  errorType: varchar("errorType", { length: 128 }),
+  competence: varchar("competence", { length: 128 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type MissionDecisionResponse = typeof missionDecisionResponses.$inferSelect;

@@ -132,6 +132,15 @@ export default function CurrentAssignmentCard({
         </p>
       )}
 
+      {assignment.status === "active" && assignment.officialPathComplete && (
+        <p className="text-xs text-amber-900 dark:text-amber-200 leading-relaxed rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 px-2 py-1.5" data-testid="leftover-assignment-note">
+          {t(
+            `Parcours officiel M5/module terminé. Ceci est une affectation/run résiduelle en cours${assignment.runId != null ? ` (run ${assignment.runId}${assignment.scnCode ? ` · ${assignment.scnCode}` : ""})` : ""} — le module n'est pas inachevé.`,
+            `Official module path is complete. This is a leftover in-progress assignment/run${assignment.runId != null ? ` (run ${assignment.runId}${assignment.scnCode ? ` · ${assignment.scnCode}` : ""})` : ""} — the module is not unfinished.`,
+          )}
+        </p>
+      )}
+
       {assignment.status === "active" && assignment.runId != null && (
         <Link
           href={`/student/run/${assignment.runId}`}

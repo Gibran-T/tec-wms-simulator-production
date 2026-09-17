@@ -23,6 +23,7 @@ import {
   M5_PREP_TRAFFIC,
   M5_PREP_TRUE_FALSE,
 } from "./content";
+import { getM1M3McqBank, type McqItem } from "./m1m3Content";
 import { isCompleteOrdering } from "./orderingState";
 import type {
   FormativeExerciseId,
@@ -269,6 +270,61 @@ function scoreSingleChoice(
   };
 }
 
+function scoreMcqBank(
+  items: McqItem[],
+  answers: Record<string, string>,
+): { score: number; feedback: FormativeFeedbackItem[] } {
+  let correct = 0;
+  const feedback: FormativeFeedbackItem[] = [];
+  for (const item of items) {
+    const chosen = answers[item.id];
+    if (!chosen) {
+      feedback.push(
+        fb(
+          `${item.id}-empty`,
+          "incomplete",
+          { fr: "Réponse incomplète", en: "Incomplete answer" },
+          {
+            fr: `Sélectionnez une option (A–D) pour : ${item.prompt.fr}`,
+            en: `Select an option (A–D) for: ${item.prompt.en}`,
+          },
+        ),
+      );
+      continue;
+    }
+    const ok = chosen === item.correctId;
+    if (ok) correct += 1;
+    const wrongBody = item.whyWrong[chosen as keyof typeof item.whyWrong];
+    const fallback = {
+      fr: "Cette option n’est pas la décision professionnelle attendue.",
+      en: "This option is not the expected professional decision.",
+    };
+    const incorrectBase = wrongBody ?? fallback;
+    feedback.push(
+      fb(
+        `${item.id}:${chosen}`,
+        ok ? "correct" : "incorrect",
+        ok
+          ? { fr: "Réponse correcte", en: "Correct answer" }
+          : { fr: "Réponse incorrecte", en: "Incorrect answer" },
+        ok
+          ? {
+              fr: `${item.whyRight.fr} Raisonnement : ${item.competence.fr}.`,
+              en: `${item.whyRight.en} Reasoning: ${item.competence.en}.`,
+            }
+          : {
+              fr: `${incorrectBase.fr} Conséquence opérationnelle : le prochain mouvement s’appuie sur une donnée non conforme. Règle violée : ${item.errorType.fr}.`,
+              en: `${incorrectBase.en} Operational consequence: the next movement relies on non-compliant data. Rule violated: ${item.errorType.en}.`,
+            },
+      ),
+    );
+  }
+  return {
+    score: items.length ? (correct / items.length) * 100 : 0,
+    feedback,
+  };
+}
+
 export function scoreFormativeExercise(
   exerciseId: FormativeExerciseId,
   answers: Record<string, unknown>,
@@ -471,7 +527,7 @@ export function scoreFormativeExercise(
     };
   }
 
-  // M5 consolidation
+  if (exerciseId === "M5-CONS-FULL-REASONING") {
   const c1 = scoreMapExact(
     M5_CONS_EVIDENCE_COLORS.map((e) => ({
       id: e.id,
@@ -538,9 +594,24 @@ export function scoreFormativeExercise(
   partScores.trueFalse = c4.score;
   partScores.actionBuckets = c5.score;
   feedback.push(...c1.feedback, ...c2.feedback, ...c3.feedback, ...c4.feedback, ...c5.feedback);
-  return {
-    formativeScore: clampScore((c1.score + c2.score + c3.score + c4.score + c5.score) / 5),
-    feedback,
-    partScores,
-  };
+    return {
+      formativeScore: clampScore((c1.score + c2.score + c3.score + c4.score + c5.score) / 5),
+      feedback,
+      partScores,
+    };
+  }
+
+  const mcqBank = getM1M3McqBank(exerciseId);
+  if (mcqBank) {
+    const mcq = scoreMcqBank(mcqBank, (answers.mcq as Record<string, string>) ?? {});
+    partScores.mcq = mcq.score;
+    feedback.push(...mcq.feedback);
+    return {
+      formativeScore: clampScore(mcq.score),
+      feedback,
+      partScores,
+    };
+  }
+
+  return { formativeScore: 0, feedback, partScores };
 }

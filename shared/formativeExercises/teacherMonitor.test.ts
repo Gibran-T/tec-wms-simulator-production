@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  aggregateFeedbackHotspots,
   completionRate,
+  computePrePostEvolution,
   correctAnswerRate,
   countFeedbackAnswers,
   deriveTeacherFormativeStatus,
+  needsInstructorIntervention,
   participationRate,
 } from "./teacherMonitor";
 
@@ -30,5 +33,23 @@ describe("teacher formative monitor aggregation", () => {
     expect(correctAnswerRate(0, 0)).toBeNull();
     expect(participationRate(0, 0)).toBeNull();
     expect(completionRate(2, 4)).toBe(50);
+  });
+
+  it("computes pre/post evolution and accompaniment signal", () => {
+    expect(computePrePostEvolution(40, 70)).toBe(30);
+    expect(computePrePostEvolution(null, 70)).toBeNull();
+    expect(needsInstructorIntervention({ prepScore: 80, consScore: 40, consCompleted: true })).toBe(true);
+    expect(needsInstructorIntervention({ prepScore: 40, consScore: 70, consCompleted: true })).toBe(false);
+    expect(needsInstructorIntervention({ prepScore: 40, consScore: 70, consCompleted: false })).toBe(false);
+  });
+
+  it("aggregates incorrect alternatives as hotspots", () => {
+    const hotspots = aggregateFeedbackHotspots([
+      { items: [{ id: "m1p1:a", kind: "incorrect" }, { id: "m1p2:c", kind: "correct" }] },
+      { items: [{ id: "m1p1:a", kind: "incorrect" }, { id: "m1p1:b", kind: "correct" }] },
+    ]);
+    expect(hotspots[0]?.itemId).toBe("m1p1");
+    expect(hotspots[0]?.mostChosenWrong).toBe("a");
+    expect(hotspots[0]?.incorrect).toBe(2);
   });
 });

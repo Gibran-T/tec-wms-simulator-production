@@ -1,5 +1,5 @@
 /**
- * Isolated formative exercise persistence for M4/M5.
+ * Isolated formative exercise persistence for M1–M5.
  * Explicitly does NOT update module_progress, scenario_runs, quiz_attempts,
  * assessments, checkpoints, or certification tables.
  */
@@ -17,13 +17,24 @@ import {
   completionRate,
   scoreFormativeExercise,
   correctAnswerRate,
-  withSeededOrdering,
+  withSeededFormativeDisplay,
+  computePrePostEvolution,
+  needsInstructorIntervention,
+  aggregateFeedbackHotspots,
   type FormativeExerciseId,
   type FormativeExerciseStatus,
   type TeacherFormativeStatus,
 } from "../shared/formativeExercises";
 
 const CURRENT_VERSION = 1;
+
+function formativeDisplaySeed(
+  userId: number,
+  exerciseId: string,
+  startedAt?: Date | null,
+): string {
+  return `formative-${userId}-${exerciseId}-t${startedAt?.getTime?.() ?? Date.now()}`;
+}
 
 function isolationDefaults() {
   return { ...FORMATIVE_ISOLATION_FLAGS };
@@ -76,7 +87,11 @@ async function ensureInProgressOrderingSeed(
 ) {
   if (attempt.status !== "in_progress") return attempt;
   const raw = (attempt.answers as Record<string, unknown>) ?? {};
-  const seeded = withSeededOrdering(exerciseId, raw);
+  const seeded = withSeededFormativeDisplay(
+    exerciseId,
+    raw,
+    formativeDisplaySeed(userId, exerciseId, attempt.startedAt),
+  );
   if (JSON.stringify(seeded) === JSON.stringify(raw)) return attempt;
 
   const db = await getDb();
@@ -113,7 +128,11 @@ export async function startOrResumeFormativeExercise(userId: number, exerciseId:
   }
 
   const flags = isolationDefaults();
-  const seededAnswers = withSeededOrdering(exerciseId, {});
+  const seededAnswers = withSeededFormativeDisplay(
+    exerciseId,
+    {},
+    formativeDisplaySeed(userId, exerciseId),
+  );
   const [inserted] = await db
     .insert(formativeExerciseAttempts)
     .values({
@@ -237,7 +256,11 @@ export async function restartFormativeExercise(userId: number, exerciseId: Forma
   await db
     .update(formativeExerciseAttempts)
     .set({
-      answers: withSeededOrdering(exerciseId, {}),
+      answers: withSeededFormativeDisplay(
+        exerciseId,
+        {},
+        formativeDisplaySeed(userId, exerciseId),
+      ),
       formativeScore: null,
       feedbackJson: null,
       status: "in_progress",
@@ -303,7 +326,7 @@ export type ProfessorFormativeRow = {
   studentEmail: string | null;
   studentNumber: string | null;
   cohortId: number;
-  moduleId: 4 | 5;
+  moduleId: 1 | 2 | 3 | 4 | 5;
   exerciseId: FormativeExerciseId;
   exerciseTitleFr: string;
   exerciseTitleEn: string;
@@ -329,7 +352,7 @@ export type ProfessorFormativeRow = {
 export async function listProfessorFormativeRoster(params: {
   cohortId: number;
   studentUserIds: number[];
-  moduleId?: 4 | 5;
+  moduleId?: 1 | 2 | 3 | 4 | 5;
   exerciseId?: FormativeExerciseId;
 }): Promise<{
   rows: ProfessorFormativeRow[];
@@ -343,6 +366,16 @@ export async function listProfessorFormativeRoster(params: {
     submittedAnswers: number;
     correctAnswerRate: number | null;
   };
+  evolution: Array<{
+    studentUserId: number;
+    studentName: string | null;
+    moduleId: number;
+    prepScore: number | null;
+    consScore: number | null;
+    evolution: number | null;
+    needsIntervention: boolean;
+  }>;
+  hotspots: ReturnType<typeof aggregateFeedbackHotspots>;
   tableAvailable: boolean;
 }> {
   const exerciseIds = (params.exerciseId
@@ -425,6 +458,52 @@ export async function listProfessorFormativeRoster(params: {
   const correctAnswers = rows.reduce((s, r) => s + r.correctAnswers, 0);
   const submittedAnswers = rows.reduce((s, r) => s + r.submittedAnswers, 0);
 
+  const evolution: Array<{
+    studentUserId: number;
+    studentName: string | null;
+    moduleId: number;
+    prepScore: number | null;
+    consScore: number | null;
+    evolution: number | null;
+    needsIntervention: boolean;
+  }> = [];
+  for (const student of scopedStudents) {
+    const moduleIds = Array.from(new Set(exerciseIds.map((id) => FORMATIVE_EXERCISE_CATALOG[id].moduleId)));
+    for (const moduleId of moduleIds) {
+      const prep = rows.find(
+        (r) =>
+          r.studentUserId === student.id &&
+          r.moduleId === moduleId &&
+          FORMATIVE_EXERCISE_CATALOG[r.exerciseId].kind === "preparation",
+      );
+      const cons = rows.find(
+        (r) =>
+          r.studentUserId === student.id &&
+          r.moduleId === moduleId &&
+          FORMATIVE_EXERCISE_CATALOG[r.exerciseId].kind === "consolidation",
+      );
+      if (!prep && !cons) continue;
+      const prepScore = prep?.formativeScore ?? null;
+      const consScore = cons?.formativeScore ?? null;
+      const consCompleted = cons?.attemptStatus === "completed";
+      evolution.push({
+        studentUserId: student.id,
+        studentName: student.name,
+        moduleId,
+        prepScore,
+        consScore,
+        evolution: computePrePostEvolution(prepScore, consScore),
+        needsIntervention: needsInstructorIntervention({
+          prepScore,
+          consScore,
+          consCompleted,
+        }),
+      });
+    }
+  }
+
+  const hotspots = aggregateFeedbackHotspots(attempts.map((a) => a.feedbackJson));
+
   return {
     rows,
     summary: {
@@ -437,6 +516,8 @@ export async function listProfessorFormativeRoster(params: {
       submittedAnswers,
       correctAnswerRate: correctAnswerRate(correctAnswers, submittedAnswers),
     },
+    evolution,
+    hotspots,
     tableAvailable,
   };
 }

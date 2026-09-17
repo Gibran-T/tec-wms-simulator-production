@@ -23,7 +23,7 @@ import {
   AlertCircle,
   ChevronRight,
 } from "lucide-react";
-import { formatAssessmentDurationLabel } from "@shared/assessmentCore";
+import { formatAssessmentDurationLabel, assessmentHubPrimaryAction } from "@shared/assessmentCore";
 
 function statusVariant(
   releaseLevel: string,
@@ -243,63 +243,86 @@ export default function EvaluationsHubPage() {
 
                   {/* Action area */}
                   <div className="flex items-center gap-3 pt-1">
-                    {item.inProgressAttemptId ? (
-                      <Button
-                        size="sm"
-                        onClick={() => handleResume(item.inProgressAttemptId!)}
-                      >
-                        <RotateCcw className="size-4" />
-                        {t("Reprendre", "Resume")}
-                      </Button>
-                    ) : item.canStart ? (
-                      <Button
-                        size="sm"
-                        onClick={() => handleStart(item.id)}
-                        disabled={startMutation.isPending}
-                      >
-                        <PlayCircle className="size-4" />
-                        {startMutation.isPending
-                          ? t("Démarrage…", "Starting…")
-                          : t("Commencer", "Start")}
-                      </Button>
-                    ) : isPending ? (
-                      <div className="flex items-center gap-2 text-sm text-amber-600">
-                        <Lock className="size-4 shrink-0" />
-                        <span>
-                          {t(
-                            "En attente de libération du professeur",
-                            "Awaiting professor release"
-                          )}
-                        </span>
-                      </div>
-                    ) : isComingSoon ? (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Lock className="size-4 shrink-0" />
-                        <span>
-                          {t(
-                            "Banque de questions en préparation",
-                            "Question bank in preparation"
-                          )}
-                        </span>
-                      </div>
-                    ) : item.passed ? (
-                      <div className="flex items-center gap-2 text-sm text-green-700">
-                        <CheckCircle2 className="size-4 shrink-0" />
-                        <span>
-                          {t("Évaluation réussie", "Assessment passed")}
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Lock className="size-4 shrink-0" />
-                        <span>
-                          {t(
-                            "Non disponible pour le moment",
-                            "Not available at this time"
-                          )}
-                        </span>
-                      </div>
-                    )}
+                    {(() => {
+                      const cta = assessmentHubPrimaryAction({
+                        inProgressAttemptId: item.inProgressAttemptId,
+                        canStart: item.canStart,
+                        passed: item.passed,
+                        retakeAuthorized: item.retakeAuthorized,
+                      });
+                      if (cta === "resume") {
+                        return (
+                          <Button
+                            size="sm"
+                            onClick={() => handleResume(item.inProgressAttemptId!)}
+                          >
+                            <RotateCcw className="size-4" />
+                            {t("Reprendre", "Resume")}
+                          </Button>
+                        );
+                      }
+                      if (cta === "passed") {
+                        return (
+                          <div className="flex items-center gap-2 text-sm text-green-700" data-testid="exam-passed-cta">
+                            <CheckCircle2 className="size-4 shrink-0" />
+                            <span>
+                              {t("Réussie — nouvelle tentative non autorisée", "Passed — retake not authorized")}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (cta === "start") {
+                        return (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStart(item.id)}
+                            disabled={startMutation.isPending}
+                          >
+                            <PlayCircle className="size-4" />
+                            {startMutation.isPending
+                              ? t("Démarrage…", "Starting…")
+                              : t("Commencer", "Start")}
+                          </Button>
+                        );
+                      }
+                      if (isPending) {
+                        return (
+                          <div className="flex items-center gap-2 text-sm text-amber-600">
+                            <Lock className="size-4 shrink-0" />
+                            <span>
+                              {t(
+                                "En attente de libération du professeur",
+                                "Awaiting professor release"
+                              )}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (isComingSoon) {
+                        return (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Lock className="size-4 shrink-0" />
+                            <span>
+                              {t(
+                                "Banque de questions en préparation",
+                                "Question bank in preparation"
+                              )}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Lock className="size-4 shrink-0" />
+                          <span>
+                            {t(
+                              "Non disponible pour le moment",
+                              "Not available at this time"
+                            )}
+                          </span>
+                        </div>
+                      );
+                    })()}
 
                     {/* If submitted+failed: retake note */}
                     {!item.canStart &&

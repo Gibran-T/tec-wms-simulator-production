@@ -57,3 +57,85 @@ export const TEACHER_STATUS_LABELS: Record<
   en_cours: { fr: "En cours", en: "In progress" },
   termine: { fr: "Terminé", en: "Completed" },
 };
+
+/** Post minus pre. Null when either score is missing. */
+export function computePrePostEvolution(
+  prepScore: number | null | undefined,
+  consScore: number | null | undefined,
+): number | null {
+  if (prepScore == null || consScore == null) return null;
+  if (!Number.isFinite(prepScore) || !Number.isFinite(consScore)) return null;
+  return Math.round((consScore - prepScore) * 10) / 10;
+}
+
+/**
+ * Instructor accompaniment signal — not a pass/fail label.
+ * Triggers when consolidation is completed and either regresses or stays very low.
+ */
+export function needsInstructorIntervention(args: {
+  prepScore: number | null | undefined;
+  consScore: number | null | undefined;
+  consCompleted: boolean;
+}): boolean {
+  if (!args.consCompleted || args.consScore == null) return false;
+  if (args.consScore < 50) return true;
+  if (args.prepScore != null && args.consScore < args.prepScore) return true;
+  return false;
+}
+
+export type FeedbackHotspot = {
+  itemId: string;
+  incorrect: number;
+  submitted: number;
+  errorRate: number;
+  mostChosenWrong: string | null;
+};
+
+/** Aggregate incorrect closed items from formative feedback JSON payloads. */
+export function aggregateFeedbackHotspots(
+  feedbackPayloads: unknown[],
+): FeedbackHotspot[] {
+  const stats = new Map<
+    string,
+    { incorrect: number; submitted: number; wrongCounts: Map<string, number> }
+  >();
+  for (const payload of feedbackPayloads) {
+    const items = (payload as { items?: Array<{ id?: string; kind?: string }> } | null)?.items;
+    if (!Array.isArray(items)) continue;
+    for (const item of items) {
+      if (!item.id || (item.kind !== "correct" && item.kind !== "incorrect")) continue;
+      const [itemId, chosen] = item.id.split(":");
+      const key = itemId || item.id;
+      const row = stats.get(key) ?? {
+        incorrect: 0,
+        submitted: 0,
+        wrongCounts: new Map<string, number>(),
+      };
+      row.submitted += 1;
+      if (item.kind === "incorrect") {
+        row.incorrect += 1;
+        if (chosen) row.wrongCounts.set(chosen, (row.wrongCounts.get(chosen) ?? 0) + 1);
+      }
+      stats.set(key, row);
+    }
+  }
+  return Array.from(stats.entries())
+    .map(([itemId, row]) => {
+      let mostChosenWrong: string | null = null;
+      let max = 0;
+      for (const [opt, n] of row.wrongCounts) {
+        if (n > max) {
+          max = n;
+          mostChosenWrong = opt;
+        }
+      }
+      return {
+        itemId,
+        incorrect: row.incorrect,
+        submitted: row.submitted,
+        errorRate: row.submitted ? Math.round((row.incorrect / row.submitted) * 1000) / 10 : 0,
+        mostChosenWrong,
+      };
+    })
+    .sort((a, b) => b.errorRate - a.errorRate || b.incorrect - a.incorrect);
+}

@@ -9,6 +9,7 @@ import {
   seededShuffle,
   shouldIncludeInOfficialAssessmentStats,
   studentAttemptStatusLabel,
+  assessmentHubPrimaryAction,
 } from "../shared/assessmentCore";
 import {
   EVAL1_QUESTIONS,
@@ -236,6 +237,25 @@ describe("student status labels", () => {
         practicalValidationStatus: "pending",
       })
     ).toContain("validation pratique");
+  });
+
+  it("does not treat a passed exam as a new start when retake is not authorized", () => {
+    expect(
+      assessmentHubPrimaryAction({
+        inProgressAttemptId: null,
+        canStart: true,
+        passed: true,
+        retakeAuthorized: false,
+      }),
+    ).toBe("passed");
+    expect(
+      assessmentHubPrimaryAction({
+        inProgressAttemptId: null,
+        canStart: true,
+        passed: false,
+        retakeAuthorized: false,
+      }),
+    ).toBe("start");
   });
 });
 

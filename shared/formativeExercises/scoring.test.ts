@@ -19,6 +19,7 @@ import {
   M5_PREP_TRUE_FALSE,
 } from "./content";
 import { scoreFormativeExercise } from "./scoring";
+import { M1_PREP_MCQ, M1_CONS_MCQ, M2_PREP_MCQ, M2_CONS_MCQ, M3_PREP_MCQ, M3_CONS_MCQ } from "./m1m3Content";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -70,6 +71,34 @@ describe("formative scoring — closed items only", () => {
       actionBuckets: Object.fromEntries(M5_CONS_ACTIONS.map((a) => [a.id, a.bucket])),
     });
     expect(result.formativeScore).toBe(100);
+  });
+
+  it("scores perfect M1–M3 pre/post MCQ banks at 100", () => {
+    const banks = [
+      ["M1-PREP-RECEIVING-SEQUENCE", M1_PREP_MCQ],
+      ["M1-CONS-OPERATIONAL-DECISION", M1_CONS_MCQ],
+      ["M2-PREP-PUTAWAY-FIFO", M2_PREP_MCQ],
+      ["M2-CONS-EXECUTION-DECISION", M2_CONS_MCQ],
+      ["M3-PREP-INVENTORY-CONTROL", M3_PREP_MCQ],
+      ["M3-CONS-VARIANCE-REPLENISH", M3_CONS_MCQ],
+    ] as const;
+    for (const [id, items] of banks) {
+      const result = scoreFormativeExercise(id, {
+        mcq: Object.fromEntries(items.map((q) => [q.id, q.correctId])),
+      });
+      expect(result.formativeScore).toBe(100);
+      expect(result.feedback.every((f) => f.kind === "correct")).toBe(true);
+    }
+  });
+
+  it("applies pedagogical whyWrong on an M1 pre incorrect choice", () => {
+    const result = scoreFormativeExercise("M1-PREP-RECEIVING-SEQUENCE", {
+      mcq: { m1p1: "a" },
+    });
+    expect(result.formativeScore).toBeLessThan(100);
+    const item = result.feedback.find((f) => f.id.startsWith("m1p1:"));
+    expect(item?.kind).toBe("incorrect");
+    expect(item?.body.fr).toContain("séquence opérationnelle");
   });
 
   it("rejects free-text style payloads (no credit without closed keys)", () => {

@@ -26,7 +26,10 @@ const migrationSrc = readFileSync(
 );
 
 describe("formative exercises integration contract", () => {
-  it("registers student routes for M4 and M5 formative pages", () => {
+  it("registers student routes for M1–M5 formative pages", () => {
+    expect(appSrc).toContain('path="/student/module1/formative/:exerciseId"');
+    expect(appSrc).toContain('path="/student/module2/formative/:exerciseId"');
+    expect(appSrc).toContain('path="/student/module3/formative/:exerciseId"');
     expect(appSrc).toContain('path="/student/module4/formative/:exerciseId"');
     expect(appSrc).toContain('path="/student/module5/formative/:exerciseId"');
     expect(appSrc).toContain("FormativeExercisePage");

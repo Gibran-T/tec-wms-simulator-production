@@ -23,8 +23,8 @@ describe("FormativeExerciseCard", () => {
     expect(SRC).toContain("?view=result");
   });
 
-  it("is only mounted for M4/M5 in the hub", () => {
-    expect(hubSrc).toContain("moduleId === 4 || moduleId === 5");
+  it("is mounted for M1–M5 in the hub", () => {
+    expect(hubSrc).toContain("moduleId >= 1 && moduleId <= 5");
   });
 });
 

@@ -19,6 +19,7 @@ import CertificateCredentialActions from "@/components/certification/Certificate
 import { lookupGoldRegistryByStudentNumber } from "@shared/goldCertificationRegistry";
 import { lookupSilverRegistryByStudentNumber } from "@shared/silverCertificationRegistry";
 import { lookupVerifiedCredentialByCertificateId } from "@shared/certification/railwayVerificationRegistry";
+import { buildSilverNotAwardedCopy } from "@shared/certification/silverTransparency";
 
 type M1ScnKey = "SCN001" | "SCN002" | "SCN003" | "SCN004" | "SCN005";
 
@@ -152,6 +153,17 @@ export function CertificationsPage() {
   const canPreviewCert = silverEarned || silverState === "eligible";
   const showSilverContinue = shouldShowSilverContinueButton(silverEarned, silverState);
   const silverContinuePath = resolveSilverContinuePath(quizPassed);
+  const silverNotAwarded = buildSilverNotAwardedCopy({
+    quizPassed,
+    scenariosCompleted: scenariosCompleted ?? {
+      SCN001: false, SCN002: false, SCN003: false, SCN004: false, SCN005: false,
+    },
+    complianceValidated,
+    noBlockers,
+    silverEligible,
+    silverCertified: silverEarned,
+    blockers: silverStatus?.blockers,
+  });
   const silverRegistryEntry = lookupSilverRegistryByStudentNumber(profile?.studentNumber ?? null);
   const activeSilverCredential =
     silverEarned && silverRegistryEntry?.status === "ACTIVE"
@@ -310,6 +322,14 @@ export function CertificationsPage() {
                   <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                     {statusBannerCopy(silverState, t)}
                   </p>
+                  {silverNotAwarded && (
+                    <p
+                      className="text-sm text-amber-900 dark:text-amber-100 mt-3 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 leading-relaxed"
+                      data-testid="silver-not-awarded-banner"
+                    >
+                      {t(silverNotAwarded.bannerFr, silverNotAwarded.bannerEn)}
+                    </p>
+                  )}
                 </div>
                 <CertificationProgressRing pct={progressPct} accent="#64748b" />
               </div>
@@ -333,6 +353,11 @@ export function CertificationsPage() {
                       </p>
                       {"subFr" in req && req.subFr && (
                         <p className="text-[10px] text-muted-foreground">{t(req.subFr, req.subEn!)}</p>
+                      )}
+                      {req.id === "blockers" && !req.met && silverNotAwarded && (
+                        <p className="text-[11px] text-amber-800 dark:text-amber-200 mt-1 leading-relaxed">
+                          {t(silverNotAwarded.reasonFr, silverNotAwarded.reasonEn)}
+                        </p>
                       )}
                     </div>
                     {!req.met && (

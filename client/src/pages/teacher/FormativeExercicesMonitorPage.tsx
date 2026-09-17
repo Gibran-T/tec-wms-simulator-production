@@ -13,6 +13,7 @@ import {
   type TeacherFormativeStatus,
 } from "@shared/formativeExercises";
 import { RefreshCw, ListChecks } from "lucide-react";
+import ModuleJourneyGuide from "@/components/pedagogy/ModuleJourneyGuide";
 
 function fmtRate(v: number | null | undefined): string {
   if (v == null || Number.isNaN(v) || !Number.isFinite(v)) return "—";
@@ -33,7 +34,7 @@ function statusBadgeClass(status: TeacherFormativeStatus): string {
 export default function FormativeExercicesMonitorPage() {
   const { t, language } = useLanguage();
   const { selectedCohortId, cohorts, isReady } = useCohort();
-  const [moduleId, setModuleId] = useState<"" | "4" | "5">("");
+  const [moduleId, setModuleId] = useState<"" | "1" | "2" | "3" | "4" | "5">("");
   const [exerciseId, setExerciseId] = useState<"" | FormativeExerciseId>("");
   const [status, setStatus] = useState<"" | TeacherFormativeStatus>("");
   const [studentQuery, setStudentQuery] = useState("");
@@ -43,7 +44,7 @@ export default function FormativeExercicesMonitorPage() {
     selectedCohortId != null
       ? {
           cohortId: selectedCohortId,
-          moduleId: moduleId ? (Number(moduleId) as 4 | 5) : undefined,
+          moduleId: moduleId ? (Number(moduleId) as 1 | 2 | 3 | 4 | 5) : undefined,
           exerciseId: exerciseId || undefined,
         }
       : null;
@@ -52,6 +53,13 @@ export default function FormativeExercicesMonitorPage() {
     trpc.formativeExercises.professorRoster.useQuery(queryInput!, {
       enabled: !!queryInput && isReady,
     });
+  const { data: missionRoster } = trpc.missionDecisions.professorRoster.useQuery(
+    {
+      cohortId: selectedCohortId!,
+      moduleId: moduleId ? (Number(moduleId) as 1 | 2 | 3) : undefined,
+    },
+    { enabled: !!selectedCohortId && isReady && (!moduleId || Number(moduleId) <= 3) },
+  );
 
   const exerciseOptions = useMemo(() => {
     return FORMATIVE_EXERCISE_IDS.filter((id) => {
@@ -85,6 +93,7 @@ export default function FormativeExercicesMonitorPage() {
       ]}
     >
       <div className="max-w-7xl mx-auto space-y-5" data-testid="formative-teacher-dashboard">
+        <ModuleJourneyGuide variant="teacher" language={language} t={t} />
         <header className="space-y-1">
           <div className="flex items-center gap-2">
             <ListChecks className="text-primary" size={22} aria-hidden />
@@ -94,8 +103,8 @@ export default function FormativeExercicesMonitorPage() {
           </div>
           <p className="text-sm text-muted-foreground">
             {t(
-              "Consultez la participation, la complétion et les bonnes réponses des exercices M4 et M5.",
-              "Review participation, completion and correct answers for M4 and M5 exercises.",
+              "Consultez la participation, la complétion, l’évolution Pré → Pós et les bonnes réponses des exercices M1 à M5.",
+              "Review participation, completion, Pre → Post evolution and correct answers for M1 to M5 exercises.",
             )}
           </p>
           <p className="text-xs text-muted-foreground">
@@ -127,11 +136,14 @@ export default function FormativeExercicesMonitorPage() {
                   className="block text-sm border rounded-md px-2 py-1.5 bg-background"
                   value={moduleId}
                   onChange={(e) => {
-                    setModuleId(e.target.value as "" | "4" | "5");
+                    setModuleId(e.target.value as "" | "1" | "2" | "3" | "4" | "5");
                     setExerciseId("");
                   }}
                 >
                   <option value="">{t("Tous", "All")}</option>
+                  <option value="1">M1</option>
+                  <option value="2">M2</option>
+                  <option value="3">M3</option>
                   <option value="4">M4</option>
                   <option value="5">M5</option>
                 </select>
@@ -254,6 +266,114 @@ export default function FormativeExercicesMonitorPage() {
                 "Neutral statuses: Not started · In progress · Completed. One active row per student and exercise (new run overwrites previous state). No pass threshold.",
               )}
             </p>
+
+            {(data?.evolution?.length ?? 0) > 0 && (
+              <div className="rounded-md border bg-card p-4 space-y-2" data-testid="teacher-prepost-evolution">
+                <p className="text-sm font-semibold">
+                  {t("Évolution Pré → Pós et accompagnement", "Pre → Post evolution and support")}
+                </p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="text-left py-1">{t("Étudiant", "Student")}</th>
+                        <th className="text-left py-1">{t("Module", "Module")}</th>
+                        <th className="text-left py-1">{t("Pré", "Pre")}</th>
+                        <th className="text-left py-1">{t("Pós", "Post")}</th>
+                        <th className="text-left py-1">{t("Évolution", "Evolution")}</th>
+                        <th className="text-left py-1">{t("Accompagnement", "Support")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data!.evolution.map((row) => (
+                        <tr key={`${row.studentUserId}-${row.moduleId}`} className="border-t">
+                          <td className="py-1.5">{row.studentName ?? row.studentUserId}</td>
+                          <td className="py-1.5">M{row.moduleId}</td>
+                          <td className="py-1.5">{row.prepScore != null ? `${row.prepScore}%` : "—"}</td>
+                          <td className="py-1.5">{row.consScore != null ? `${row.consScore}%` : "—"}</td>
+                          <td className="py-1.5">
+                            {row.evolution == null ? "—" : `${row.evolution > 0 ? "+" : ""}${row.evolution}`}
+                          </td>
+                          <td className="py-1.5">
+                            {row.needsIntervention
+                              ? t("À accompagner", "Needs support")
+                              : t("Suivi standard", "Standard follow-up")}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {(data?.hotspots?.length ?? 0) > 0 && (
+              <div className="rounded-md border bg-card p-4 space-y-2" data-testid="teacher-formative-hotspots">
+                <p className="text-sm font-semibold">
+                  {t("Questions à fort taux d’erreur (formatif)", "High-error questions (formative)")}
+                </p>
+                <ul className="text-sm space-y-1">
+                  {data!.hotspots.slice(0, 8).map((h) => (
+                    <li key={h.itemId} className="flex flex-wrap gap-2">
+                      <span className="font-mono text-xs">{h.itemId}</span>
+                      <span>
+                        {t("Erreur", "Error")} {h.errorRate}%
+                      </span>
+                      <span className="text-muted-foreground">
+                        {t("Alternative incorrecte la plus choisie", "Most chosen incorrect alternative")}:{" "}
+                        {h.mostChosenWrong ?? "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {(missionRoster?.rows?.length ?? 0) > 0 && (
+              <div className="rounded-md border bg-card p-4 space-y-2" data-testid="teacher-mission-decisions">
+                <p className="text-sm font-semibold">
+                  {t("Décisions de mission (A–D)", "Mission decisions (A–D)")}
+                </p>
+                <div className="overflow-x-auto max-h-72">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs uppercase text-muted-foreground">
+                      <tr>
+                        <th className="text-left py-1">{t("Étudiant", "Student")}</th>
+                        <th className="text-left py-1">{t("Mission", "Mission")}</th>
+                        <th className="text-left py-1">{t("Étape", "Step")}</th>
+                        <th className="text-left py-1">{t("Choix", "Chosen")}</th>
+                        <th className="text-left py-1">{t("Attendu", "Expected")}</th>
+                        <th className="text-left py-1">{t("Points", "Points")}</th>
+                        <th className="text-left py-1">{t("Compétence", "Competency")}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {missionRoster!.rows.slice(0, 40).map((row, idx) => (
+                        <tr key={`${row.studentUserId}-${row.scnCode}-${row.stepCode}-${idx}`} className="border-t">
+                          <td className="py-1.5">{row.studentName ?? row.studentUserId}</td>
+                          <td className="py-1.5 font-mono text-xs">{row.scnCode}</td>
+                          <td className="py-1.5 font-mono text-xs">{row.stepCode}</td>
+                          <td className="py-1.5 uppercase">{row.optionId}</td>
+                          <td className="py-1.5 uppercase">{row.correctOptionId}</td>
+                          <td className="py-1.5">{row.pointsDelta}</td>
+                          <td className="py-1.5 text-xs">{row.competence ?? "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {(missionRoster?.hotspots?.length ?? 0) > 0 && (
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    {missionRoster!.hotspots.slice(0, 5).map((h) => (
+                      <li key={h.question}>
+                        {h.question} — {t("Erreur", "Error")} {h.errorRate}% —{" "}
+                        {t("plus choisie (incorrecte)", "most chosen (incorrect)")}: {h.mostChosenWrong ?? "—"}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
 
             {isLoading && (
               <div className="py-12 text-center text-sm text-muted-foreground">

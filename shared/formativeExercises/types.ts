@@ -1,6 +1,12 @@
 /** Isolated formative exercise types — never counted toward official metrics. */
 
 export const FORMATIVE_EXERCISE_IDS = [
+  "M1-PREP-RECEIVING-SEQUENCE",
+  "M1-CONS-OPERATIONAL-DECISION",
+  "M2-PREP-PUTAWAY-FIFO",
+  "M2-CONS-EXECUTION-DECISION",
+  "M3-PREP-INVENTORY-CONTROL",
+  "M3-CONS-VARIANCE-REPLENISH",
   "M4-PREP-KPI-RESPONSE",
   "M4-CONS-SAME-KPI-DIFF-DECISION",
   "M5-PREP-EVIDENCE-TO-DECISION",
@@ -38,7 +44,7 @@ export type FormativeScoreResult = {
 
 export type FormativeExerciseMeta = {
   id: FormativeExerciseId;
-  moduleId: 4 | 5;
+  moduleId: 1 | 2 | 3 | 4 | 5;
   kind: FormativeExerciseKind;
   version: number;
   title: LocalizedText;

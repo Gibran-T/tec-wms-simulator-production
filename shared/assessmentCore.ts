@@ -294,6 +294,19 @@ export function studentAttemptStatusLabel(args: {
   return "À venir";
 }
 
+/** Hub CTA after a successful attempt — never looks like a new start unless retake is authorized. */
+export function assessmentHubPrimaryAction(args: {
+  inProgressAttemptId: number | null;
+  canStart: boolean;
+  passed: boolean;
+  retakeAuthorized: boolean;
+}): "resume" | "start" | "passed" | "other" {
+  if (args.inProgressAttemptId) return "resume";
+  if (args.passed && !args.retakeAuthorized) return "passed";
+  if (args.canStart) return "start";
+  return "other";
+}
+
 /**
  * Untimed assessments are stored as `durationMinutes = 0` (DB NOT NULL).
  * Application contract: null / undefined / <= 0 ⇒ untimed.

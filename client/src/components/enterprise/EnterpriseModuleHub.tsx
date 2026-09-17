@@ -30,8 +30,10 @@ import { Button } from "@/components/ui/button";
 import FormativeExerciseCard from "@/components/formative/FormativeExerciseCard";
 import ErrorSchoolPanel from "@/components/pedagogy/ErrorSchoolPanel";
 import MicroDrillPanel from "@/components/pedagogy/MicroDrillPanel";
+import ModuleJourneyGuide from "@/components/pedagogy/ModuleJourneyGuide";
 import {
   getFormativeExercisesForModule,
+  computePrePostEvolution,
   type FormativeExerciseStatus,
 } from "@shared/formativeExercises";
 
@@ -79,7 +81,7 @@ export default function EnterpriseModuleHub({
     enabled: moduleId === 5,
     retry: false,
   });
-  const { data: myRuns } = trpc.runs.myRunsEnriched.useQuery();
+  const { data: myRuns, isFetching: runsLoading } = trpc.runs.myRunsEnriched.useQuery();
   const { data: myProfile, refetch: refetchProfile } = trpc.profiles.mine.useQuery();
   const upsertProfile = trpc.profiles.upsert.useMutation({ onSuccess: () => refetchProfile() });
   const { data: quizBestAttempt } = trpc.quiz.getBestAttempt.useQuery(
@@ -88,7 +90,7 @@ export default function EnterpriseModuleHub({
   );
   const quizPassed = quizBestAttempt?.passed === true;
   const { data: employeeProfile } = useEmployeeProfile();
-  const showFormative = moduleId === 4 || moduleId === 5;
+  const showFormative = moduleId >= 1 && moduleId <= 5;
   const { data: formativeAttempts } = trpc.formativeExercises.listMine.useQuery(
     { moduleId },
     { enabled: showFormative },
@@ -106,6 +108,18 @@ export default function EnterpriseModuleHub({
   );
   const prepExercise = formativeExercises.find((e) => e.kind === "preparation");
   const consExercise = formativeExercises.find((e) => e.kind === "consolidation");
+  const formativeEvolution = useMemo(() => {
+    if (!prepExercise || !consExercise) return null;
+    const prep = formativeAttempts?.find((r) => r.exerciseId === prepExercise.id);
+    const cons = formativeAttempts?.find((r) => r.exerciseId === consExercise.id);
+    const prepScore = prep?.status === "completed" ? prep.formativeScore : null;
+    const consScore = cons?.status === "completed" ? cons.formativeScore : null;
+    return {
+      prepScore,
+      consScore,
+      delta: computePrePostEvolution(prepScore, consScore),
+    };
+  }, [formativeAttempts, prepExercise, consExercise]);
 
   const rawModuleScenarios = useMemo(
     () => (scenarios ?? []).filter((s) => s.moduleId === moduleId),
@@ -237,6 +251,15 @@ export default function EnterpriseModuleHub({
     >
       <div className="max-w-4xl mx-auto space-y-5">
         <ModulePathwayNav activeModuleId={moduleId} />
+        <ModuleJourneyGuide variant="hub" language={language} t={t} moduleId={moduleId} />
+        {runsLoading && (
+          <p className="text-xs text-muted-foreground" data-testid="hub-runs-loading">
+            {t(
+              "Chargement des missions (historique compacté : dernière run complétée par scénario + runs en cours)…",
+              "Loading missions (compact history: latest completed run per scenario + in-progress runs)…",
+            )}
+          </p>
+        )}
 
         {prerequisiteAlert}
 
@@ -390,7 +413,7 @@ export default function EnterpriseModuleHub({
           )}
         </div>
 
-        {/* DOM order (M4/M5): objectifs → préparation → missions → consolidation → glossaire */}
+        {/* DOM order: objectifs → préparation → missions → consolidation → glossaire */}
         {showFormative && prepExercise && (
           <div data-testid="formative-prep-slot" data-formative-slot="preparation">
             <FormativeExerciseCard
@@ -465,6 +488,59 @@ export default function EnterpriseModuleHub({
           </div>
         )}
 
+        {showFormative && formativeEvolution && (
+          <div className="rounded-md border bg-card p-4 space-y-2" data-testid="student-prepost-evolution">
+            <p className="text-sm font-semibold text-foreground">
+              {t("Évolution Pré → Pós (formatif)", "Pre → Post evolution (formative)")}
+            </p>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-[11px] text-muted-foreground">{t("Pré-teste", "Pre-test")}</p>
+                <p className="text-lg font-bold">
+                  {formativeEvolution.prepScore != null ? `${formativeEvolution.prepScore}%` : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">{t("Pós-teste", "Post-test")}</p>
+                <p className="text-lg font-bold">
+                  {formativeEvolution.consScore != null ? `${formativeEvolution.consScore}%` : "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">{t("Évolution", "Evolution")}</p>
+                <p className={`text-lg font-bold ${
+                  formativeEvolution.delta == null
+                    ? ""
+                    : formativeEvolution.delta > 0
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : formativeEvolution.delta < 0
+                        ? "text-rose-700 dark:text-rose-300"
+                        : "text-muted-foreground"
+                }`} data-testid="student-prepost-delta">
+                  {formativeEvolution.delta == null
+                    ? "—"
+                    : `${formativeEvolution.delta > 0 ? "+" : ""}${formativeEvolution.delta}`}
+                </p>
+                {formativeEvolution.delta != null && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {formativeEvolution.delta > 0
+                      ? t("Progression", "Gain")
+                      : formativeEvolution.delta < 0
+                        ? t("Régression", "Regression")
+                        : t("Stable", "Stable")}
+                  </p>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {t(
+                "Hors moyenne officielle. L’examen du module et les Examens 1/2 restent les notes formelles.",
+                "Outside the official average. The module exam and Exams 1/2 remain the formal grades.",
+              )}
+            </p>
+          </div>
+        )}
+
         <div className="mt-8" data-testid="module-glossary-slot">
           <button
             onClick={() => setShowGlossary(!showGlossary)}
@@ -476,6 +552,12 @@ export default function EnterpriseModuleHub({
 
           {showGlossary && (
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <p className="md:col-span-2 text-xs text-muted-foreground">
+                {t(
+                  "Consultation du langage professionnel — le glossaire n’est pas un substitut des slides et ne révèle pas la bonne réponse des missions.",
+                  "Professional language lookup — the glossary does not replace the slides and does not reveal mission answers.",
+                )}
+              </p>
               {MODULE_ACRONYMS.map((item) => (
                 <div key={item.code} className="bg-card p-3 rounded-md border">
                   <p className="font-semibold text-foreground">{item.code}</p>

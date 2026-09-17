@@ -3,7 +3,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useParams, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { ArrowLeft, CheckCircle, Lock, AlertTriangle, Info, FlaskConical, ChevronDown, ChevronUp, Database, BookOpen } from "lucide-react";
 import GlossaryPage from "./GlossaryPage";
 import FioriShell from "@/components/FioriShell";
@@ -31,6 +31,12 @@ import {
   getM4CognitiveQuestion,
   isM4CognitiveStep,
 } from "@shared/m4CognitiveSelectors";
+import {
+  getM1M3DecisionQuestion,
+  m1m3DecisionPenalty,
+} from "@shared/m1m3DecisionSelectors";
+import { applyOptionIdOrder, buildMcqDisplayOrder } from "@shared/mcqOptionOrder";
+import ModuleJourneyGuide from "@/components/pedagogy/ModuleJourneyGuide";
 
 // ─── STEP_CONFIG: All M1–M5 steps ────────────────────────────────────────────
 const STEP_CONFIG: Record<string, {
@@ -1258,6 +1264,51 @@ export default function StepForm() {
   const [kpiLedgerConfirmed, setKpiLedgerConfirmed] = useState(false);
   const [cognitiveWrongWhy, setCognitiveWrongWhy] = useState<{ fr: string; en: string } | null>(null);
   const [cognitiveRightWhy, setCognitiveRightWhy] = useState<{ fr: string; en: string } | null>(null);
+  const [localMissionUnlocked, setLocalMissionUnlocked] = useState(false);
+  const [missionDecisionStartedAt] = useState(() => Date.now());
+  const skipMissionDecisionRef = useRef(false);
+
+  const m1m3DecisionQuestion = useMemo(() => {
+    const mod = runData?.moduleId;
+    if (!mod || mod < 1 || mod > 3) return null;
+    return getM1M3DecisionQuestion(scnCode, step);
+  }, [runData?.moduleId, scnCode, step]);
+
+  const missionDecisionState = trpc.missionDecisions.state.useQuery(
+    { runId: parseInt(runId), step: step ?? "" },
+    { enabled: !!m1m3DecisionQuestion && !!runId && !Number.isNaN(parseInt(runId)) },
+  );
+  const submitMissionDecision = trpc.missionDecisions.submit.useMutation();
+
+  const missionDecisionUnlocked =
+    !m1m3DecisionQuestion ||
+    localMissionUnlocked ||
+    missionDecisionState.data?.unlocked === true ||
+    missionDecisionState.data?.tableAvailable === false;
+
+  const shuffledMissionOptions = useMemo(() => {
+    if (!m1m3DecisionQuestion) return [];
+    const order = buildMcqDisplayOrder({
+      questions: [
+        {
+          id: `${m1m3DecisionQuestion.scnCode}::${m1m3DecisionQuestion.step}`,
+          optionIds: m1m3DecisionQuestion.options.map((o) => o.id),
+          correctId: m1m3DecisionQuestion.options.find((o) => o.isCorrect)!.id,
+        },
+      ],
+      seed: `mission-${runId}-${m1m3DecisionQuestion.step}`,
+    });
+    return applyOptionIdOrder(
+      m1m3DecisionQuestion.options,
+      order[`${m1m3DecisionQuestion.scnCode}::${m1m3DecisionQuestion.step}`],
+    );
+  }, [m1m3DecisionQuestion, runId]);
+
+  useEffect(() => {
+    setLocalMissionUnlocked(false);
+    setCognitiveWrongWhy(null);
+    setCognitiveRightWhy(null);
+  }, [runId, step]);
 
   const isDemo = runData?.isDemo ?? false;
 
@@ -1455,6 +1506,46 @@ export default function StepForm() {
     const qty = values.qty ? Number(values.qty) : 0;
     const physicalQty = values.physicalQty ? Number(values.physicalQty) : 0;
     const stepLower = step?.toLowerCase() ?? "";
+
+    if (m1m3DecisionQuestion && !skipMissionDecisionRef.current && !missionDecisionUnlocked) {
+      if (!values.cognitiveOptionId) {
+        toast.error(
+          t("Veuillez d’abord choisir une décision A–D.", "Please first choose an A–D decision."),
+        );
+        return;
+      }
+      submitMissionDecision.mutate(
+        {
+          runId: parseInt(runId),
+          step: step ?? "",
+          optionId: values.cognitiveOptionId,
+          responseMs: Date.now() - missionDecisionStartedAt,
+        },
+        {
+          onSuccess: (res) => {
+            if (!res.isCorrect) {
+              setCognitiveWrongWhy(res.whyPair);
+              setCognitiveRightWhy(null);
+              toast.error(res.why || t("Réponse incorrecte", "Incorrect answer"));
+              return;
+            }
+            setCognitiveWrongWhy(null);
+            setCognitiveRightWhy(res.whyPair);
+            setLocalMissionUnlocked(true);
+            toast.success(
+              t("Décision correcte — la transaction peut être exécutée.", "Correct decision — the transaction can be executed."),
+            );
+            skipMissionDecisionRef.current = true;
+            onSubmit(values);
+            skipMissionDecisionRef.current = false;
+          },
+          onError: (err) => {
+            toast.error(err.message ?? t("Erreur de décision", "Decision error"));
+          },
+        },
+      );
+      return;
+    }
 
     // Standard field validations
     if (isGrRegularization && regularizeDocRef) {
@@ -2179,6 +2270,53 @@ export default function StepForm() {
             })()}
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-5 space-y-4">
+              {m1m3DecisionQuestion && (
+                <div className="space-y-3" data-testid="m1m3-mission-decision">
+                  <ModuleJourneyGuide
+                    variant="mission"
+                    language={language}
+                    t={t}
+                    moduleId={runData?.moduleId}
+                  />
+                  <CognitiveAnswerSelector
+                    question={{
+                      prompt: m1m3DecisionQuestion.prompt,
+                      context: m1m3DecisionQuestion.context,
+                      options: shuffledMissionOptions.map((o) => ({
+                        id: o.id,
+                        label: o.label,
+                        answerText: o.label.fr,
+                      })),
+                    }}
+                    t={t}
+                    language={language === "EN" ? "en" : "fr"}
+                    value={watch("cognitiveOptionId") || undefined}
+                    onChange={(optionId) => {
+                      setValue("cognitiveOptionId", optionId);
+                      setCognitiveWrongWhy(null);
+                      if (!missionDecisionUnlocked) setCognitiveRightWhy(null);
+                    }}
+                    lastWrongWhy={cognitiveWrongWhy}
+                    lastRightWhy={cognitiveRightWhy}
+                    layout="lettered"
+                    headingFr="Décision opérationnelle"
+                    headingEn="Operational decision"
+                    penaltyLabel={t(
+                      `Réponse incorrecte (${m1m3DecisionPenalty(isDemo)} pts)`,
+                      `Incorrect answer (${m1m3DecisionPenalty(isDemo)} pts)`,
+                    )}
+                    testId={`mission-decision-${step?.toLowerCase() ?? "unknown"}`}
+                  />
+                  {!missionDecisionUnlocked && (
+                    <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                      {t(
+                        "Choisissez A–D et validez. La transaction ne s’exécute qu’après une décision correcte. Une erreur diminue les points mais n’empêche pas de réessayer.",
+                        "Choose A–D and validate. The transaction runs only after a correct decision. An error reduces points but you may retry.",
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
               {/* ── Compliance / Auto steps ─────────────────────────────── */}
               {step?.toLowerCase() === "compliance" && (
                 <div>
@@ -2847,7 +2985,7 @@ export default function StepForm() {
                       <CognitiveAnswerSelector
                         question={getM4CognitiveQuestion(scnCode, step)!}
                         t={t}
-                        language={language === "en" ? "en" : "fr"}
+                        language={language === "EN" ? "en" : "fr"}
                         value={watch("cognitiveOptionId") || undefined}
                         onChange={(optionId, answerText) => {
                           setValue("cognitiveOptionId", optionId);
@@ -2960,7 +3098,7 @@ export default function StepForm() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isAnyPending || ccReconFormComplete}
+                  disabled={isAnyPending || ccReconFormComplete || submitMissionDecision.isPending}
                   className={`flex items-center gap-2 px-5 py-2 rounded-md text-sm font-semibold text-white transition-all ${
                     isAnyPending || ccReconFormComplete
                       ? "opacity-60 cursor-not-allowed bg-primary/60"

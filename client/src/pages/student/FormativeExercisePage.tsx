@@ -49,12 +49,16 @@ import {
   M5_PREP_TRUE_FALSE,
   M5_TRAFFIC_OPTIONS,
   getFormativeExerciseMeta,
+  getM1M3McqBank,
   isFormativeExerciseId,
   withSeededOrdering,
   type FormativeExerciseId,
   type FormativeFeedbackItem,
+  type McqItem,
 } from "@shared/formativeExercises";
+import { applyOptionIdOrder } from "@shared/mcqOptionOrder";
 import { getModuleConfig } from "@/data/moduleConfig";
+import ModuleJourneyGuide from "@/components/pedagogy/ModuleJourneyGuide";
 
 type AnswersState = Record<string, unknown>;
 
@@ -72,7 +76,8 @@ export default function FormativeExercisePage() {
   const [location, navigate] = useLocation();
   const { t, language } = useLanguage();
   const exerciseIdRaw = params.exerciseId ?? "";
-  const moduleId = location.includes("/module5/") ? 5 : 4;
+  const moduleMatch = location.match(/\/module([1-5])\/formative/);
+  const moduleId = moduleMatch ? Number(moduleMatch[1]) : 4;
 
   const valid = isFormativeExerciseId(exerciseIdRaw);
   const exerciseId = valid ? (exerciseIdRaw as FormativeExerciseId) : null;
@@ -224,6 +229,49 @@ export default function FormativeExercisePage() {
   };
 
   const renderBody = () => {
+    const mcqBank = getM1M3McqBank(meta.id);
+    const optionOrder = (answers.optionOrder as Record<string, string[]> | undefined) ?? {};
+    if (mcqBank) {
+      return (
+        <>
+          <p className="text-sm text-muted-foreground">
+            {t(
+              "Une seule réponse est correcte. Analysez le contexte de l’issue avant de choisir A, B, C ou D.",
+              "Only one answer is correct. Analyze the issue context before choosing A, B, C or D.",
+            )}
+          </p>
+          {mcqBank.map((item: McqItem, index: number) => (
+            <Section
+              key={item.id}
+              title={`${index + 1}. ${language === "FR" ? item.prompt.fr : item.prompt.en}`}
+            >
+              <p className="text-xs text-muted-foreground mb-2">
+                {language === "FR" ? item.context.fr : item.context.en}
+              </p>
+              <p className="text-[11px] text-primary mb-2">
+                {t("Compétence", "Competency")}: {language === "FR" ? item.competence.fr : item.competence.en}
+              </p>
+              <SingleSelectExercise
+                options={applyOptionIdOrder(item.options, optionOrder[item.id])}
+                value={((answers.mcq as Record<string, string> | undefined) ?? {})[item.id]}
+                onChange={(v) =>
+                  patch("mcq", {
+                    ...((answers.mcq as Record<string, string> | undefined) ?? {}),
+                    [item.id]: v,
+                  })
+                }
+                language={language}
+                t={t}
+                disabled={disabled}
+                lettered
+                testId={`mcq-${item.id}`}
+              />
+            </Section>
+          ))}
+        </>
+      );
+    }
+
     if (meta.id === "M4-PREP-KPI-RESPONSE") {
       return (
         <>
@@ -291,7 +339,7 @@ export default function FormativeExercisePage() {
           </Section>
           <Section title={t("2. Choisir le risque prioritaire", "2. Choose the priority risk")}>
             <SingleSelectExercise
-              options={[...M4_CONS_PRIORITY_RISK.options]}
+              options={applyOptionIdOrder([...M4_CONS_PRIORITY_RISK.options], optionOrder.priorityRisk)}
               value={answers.priorityRisk as string | undefined}
               onChange={(v) => patch("priorityRisk", v)}
               language={language}
@@ -353,7 +401,7 @@ export default function FormativeExercisePage() {
           <Section title={t("2. Choisir la preuve / base fiable", "2. Choose the reliable evidence / base")}>
             <SingleSelectExercise
               prompt={M5_PREP_STOCK_BASE.prompt}
-              options={[...M5_PREP_STOCK_BASE.options]}
+              options={applyOptionIdOrder([...M5_PREP_STOCK_BASE.options], optionOrder.stockBase)}
               value={answers.stockBase as string | undefined}
               onChange={(v) => patch("stockBase", v)}
               language={language}
@@ -497,6 +545,12 @@ export default function FormativeExercisePage() {
               "Closed interactions only — no free writing. Professional writing stays in SCN scenarios.",
             )}
           </p>
+          <ModuleJourneyGuide
+            variant={meta.kind === "preparation" ? "prep" : "cons"}
+            language={language}
+            t={t}
+            moduleId={meta.moduleId}
+          />
           {renderBody()}
           {completed && score != null && (
             <>

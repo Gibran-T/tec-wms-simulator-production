@@ -8,22 +8,36 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { M4CognitiveQuestion } from "@shared/m4CognitiveSelectors";
 
 type TranslateFn = (fr: string, en: string) => string;
 
+export type CognitiveSelectorOption = {
+  id: string;
+  label: { fr: string; en: string };
+  answerText?: string;
+};
+
+export type CognitiveSelectorQuestion = {
+  prompt: { fr: string; en: string };
+  context?: { fr: string; en: string };
+  options: CognitiveSelectorOption[];
+};
+
 export interface CognitiveAnswerSelectorProps {
-  question: M4CognitiveQuestion;
+  question: CognitiveSelectorQuestion;
   t: TranslateFn;
   language: "fr" | "en";
   value: string | undefined;
   onChange: (optionId: string, answerText: string) => void;
-  /** Server/local red why after an incorrect attempt */
   lastWrongWhy?: { fr: string; en: string } | null;
-  /** Green why after a correct validation (optional local preview) */
   lastRightWhy?: { fr: string; en: string } | null;
   disabled?: boolean;
   testId?: string;
+  /** Default select (M4). Lettered radios for M1–M3 A–D. */
+  layout?: "select" | "lettered";
+  headingFr?: string;
+  headingEn?: string;
+  penaltyLabel?: string;
 }
 
 export default function CognitiveAnswerSelector({
@@ -36,6 +50,10 @@ export default function CognitiveAnswerSelector({
   lastRightWhy,
   disabled,
   testId = "cognitive-answer-selector",
+  layout = "select",
+  headingFr,
+  headingEn,
+  penaltyLabel,
 }: CognitiveAnswerSelectorProps) {
   const [open, setOpen] = useState(false);
   const selected = useMemo(
@@ -44,6 +62,16 @@ export default function CognitiveAnswerSelector({
   );
 
   const prompt = language === "en" ? question.prompt.en : question.prompt.fr;
+  const context = question.context
+    ? language === "en"
+      ? question.context.en
+      : question.context.fr
+    : null;
+  const n = question.options.length;
+  const letters = n === 5 ? "A–E" : "A–D";
+  const wrongPts =
+    penaltyLabel ??
+    t("Réponse incorrecte (−5 pts)", "Incorrect answer (−5 pts)");
 
   return (
     <div
@@ -57,71 +85,110 @@ export default function CognitiveAnswerSelector({
           id={`${testId}-question-label`}
           className="text-[10px] font-bold uppercase tracking-wider text-primary mb-2"
         >
-          {t("Décision cognitive", "Cognitive decision")}
+          {t(headingFr ?? "Décision cognitive", headingEn ?? "Cognitive decision")}
         </p>
         <p className="text-sm sm:text-base text-foreground leading-relaxed">{prompt}</p>
+        {context ? (
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{context}</p>
+        ) : null}
         <p className="mt-2 text-[11px] text-muted-foreground leading-snug">
           {t(
-            "Choisissez la meilleure réponse parmi 5 options proches. Une erreur affiche un alerte rouge spécifique et pénalise le score ; la bonne réponse (vert) valide l’étape.",
-            "Choose the best answer among 5 near-miss options. A wrong choice shows a specific red alert and penalizes the score; the correct (green) choice validates the step.",
+            `Choisissez la meilleure réponse parmi ${n} options (${letters}). Une erreur affiche un alerte rouge spécifique et pénalise le score ; la bonne réponse (vert) valide l’étape.`,
+            `Choose the best answer among ${n} options (${letters}). A wrong choice shows a specific red alert and penalizes the score; the correct (green) choice validates the step.`,
           )}
         </p>
       </div>
 
       <div className="p-4 sm:p-5 space-y-3">
-        <label className="fiori-field-label block" htmlFor={`${testId}-trigger`}>
-          {t("Votre sélection", "Your selection")} <span className="text-destructive">*</span>
-        </label>
-
-        <Select
-          open={open}
-          onOpenChange={setOpen}
-          value={value || undefined}
-          disabled={disabled}
-          onValueChange={(id) => {
-            const opt = question.options.find((o) => o.id === id);
-            if (!opt) return;
-            onChange(opt.id, opt.answerText);
-          }}
-        >
-          <SelectTrigger
-            id={`${testId}-trigger`}
-            className={cn(
-              "w-full min-h-[2.75rem] h-auto py-2.5 whitespace-normal text-left items-start",
-              lastWrongWhy && "border-rose-500 ring-1 ring-rose-400/40",
-              lastRightWhy && !lastWrongWhy && "border-emerald-500 ring-1 ring-emerald-400/40",
-            )}
-            data-testid={`${testId}-trigger`}
-          >
-            <SelectValue
-              placeholder={t(
-                "Ouvrir le sélecteur — 5 réponses cognitives",
-                "Open selector — 5 cognitive answers",
-              )}
+        {layout === "lettered" ? (
+          <div className="flex flex-col gap-2" role="radiogroup" aria-label={prompt}>
+            {question.options.map((opt, idx) => {
+              const active = value === opt.id;
+              const letter = String.fromCharCode(65 + idx);
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={active}
+                  disabled={disabled}
+                  onClick={() =>
+                    onChange(opt.id, opt.answerText ?? (language === "en" ? opt.label.en : opt.label.fr))
+                  }
+                  className={cn(
+                    "w-full px-3 py-2.5 text-xs rounded-md border text-left",
+                    active
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted",
+                    "disabled:opacity-60",
+                  )}
+                  data-testid={`${testId}-option-${idx}`}
+                >
+                  <span className="font-semibold mr-2">{letter}.</span>
+                  {language === "en" ? opt.label.en : opt.label.fr}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            <label className="fiori-field-label block" htmlFor={`${testId}-trigger`}>
+              {t("Votre sélection", "Your selection")} <span className="text-destructive">*</span>
+            </label>
+            <Select
+              open={open}
+              onOpenChange={setOpen}
+              value={value || undefined}
+              disabled={disabled}
+              onValueChange={(id) => {
+                const opt = question.options.find((o) => o.id === id);
+                if (!opt) return;
+                onChange(
+                  opt.id,
+                  opt.answerText ?? (language === "en" ? opt.label.en : opt.label.fr),
+                );
+              }}
             >
-              {selected
-                ? language === "en"
-                  ? selected.label.en
-                  : selected.label.fr
-                : undefined}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="max-w-[min(100vw-2rem,42rem)]" position="popper" align="start">
-            {question.options.map((opt, idx) => (
-              <SelectItem
-                key={opt.id}
-                value={opt.id}
-                className="whitespace-normal py-2.5 leading-snug cursor-pointer"
-                data-testid={`${testId}-option-${idx}`}
+              <SelectTrigger
+                id={`${testId}-trigger`}
+                className={cn(
+                  "w-full min-h-[2.75rem] h-auto py-2.5 whitespace-normal text-left items-start",
+                  lastWrongWhy && "border-rose-500 ring-1 ring-rose-400/40",
+                  lastRightWhy && !lastWrongWhy && "border-emerald-500 ring-1 ring-emerald-400/40",
+                )}
+                data-testid={`${testId}-trigger`}
               >
-                <span className="text-[11px] font-semibold text-muted-foreground mr-2">
-                  {String.fromCharCode(65 + idx)}.
-                </span>
-                {language === "en" ? opt.label.en : opt.label.fr}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+                <SelectValue
+                  placeholder={t(
+                    `Ouvrir le sélecteur — ${n} réponses cognitives`,
+                    `Open selector — ${n} cognitive answers`,
+                  )}
+                >
+                  {selected
+                    ? language === "en"
+                      ? selected.label.en
+                      : selected.label.fr
+                    : undefined}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-w-[min(100vw-2rem,42rem)]" position="popper" align="start">
+                {question.options.map((opt, idx) => (
+                  <SelectItem
+                    key={opt.id}
+                    value={opt.id}
+                    className="whitespace-normal py-2.5 leading-snug cursor-pointer"
+                    data-testid={`${testId}-option-${idx}`}
+                  >
+                    <span className="text-[11px] font-semibold text-muted-foreground mr-2">
+                      {String.fromCharCode(65 + idx)}.
+                    </span>
+                    {language === "en" ? opt.label.en : opt.label.fr}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
+        )}
 
         {lastWrongWhy ? (
           <div
@@ -131,9 +198,7 @@ export default function CognitiveAnswerSelector({
           >
             <AlertTriangle className="size-4 shrink-0 mt-0.5 text-rose-600" />
             <div>
-              <p className="font-semibold text-rose-800">
-                {t("Réponse incorrecte (−5 pts)", "Incorrect answer (−5 pts)")}
-              </p>
+              <p className="font-semibold text-rose-800">{wrongPts}</p>
               <p className="mt-1 leading-relaxed">
                 {language === "en" ? lastWrongWhy.en : lastWrongWhy.fr}
               </p>

@@ -586,6 +586,8 @@ export async function listStudentAssessmentHub(userId: number) {
     }
     if (failed && !retake && !inProgress) canStart = false;
     if (inProgress) canStart = true;
+    const alreadyPassed = !!(progress?.passed || latestSubmitted?.passed);
+    if (alreadyPassed && !retake && !inProgress) canStart = false;
 
     if (a.code === EVAL2_CODE && a.status !== "ready") {
       canStart = false;

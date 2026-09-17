@@ -15,6 +15,7 @@ import {
   getAllBinCapacities,
   getAllModuleProgressForMonitor,
   getAllRunsForMonitor,
+  getCohortActivitySummary,
   getAllScenarios,
   getAllSkus,
   getAllBins,
@@ -85,6 +86,7 @@ import {
   getKpiSnapshotByRun,
   abandonAllInProgressRunsForUser,
 } from "./db";
+import { orderQuizQuestionsForAttempt } from "./quizDisplayOrder";
 import {
   computeModuleCheckpointSnapshot,
   isCheckpointEngineEnabled,
@@ -208,9 +210,12 @@ import { mentorRouter } from "./aiMentor/router";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { assessmentsRouter } from "./assessmentsRouter";
 import { formativeExercisesRouter } from "./formativeExercisesRouter";
+import { missionDecisionsRouter } from "./missionDecisionsRouter";
 import { m5DocRouter } from "./m5DocRouter";
 import { isSupervisionDocRun } from "../shared/m5Doc/dispatch";
 import { M5_DOC_INTERACTION_ORDER } from "../shared/m5Doc/interactionsCatalog";
+import { selectRunsForHub } from "@shared/runs/hubSelection";
+import { buildSilverNotAwardedCopy } from "@shared/certification/silverTransparency";
 import type { ValidationResult } from "./rulesEngine";
 import type { IncomingMessage } from "http";
 import {
@@ -896,10 +901,15 @@ export const appRouter = router({
       const status = await getSilverCertificationStatus(ctx.user.id);
       if (status.silverEligible && !status.silverCertified) {
         await unlockSilverCertification(ctx.user.id);
-        return { ...status, silverCertified: true };
+        return { ...status, silverCertified: true, blockers: [] };
       }
       return status;
     }),
+    silverStatusForStudent: teacherProcedure
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => {
+        return getSilverCertificationStatus(input.userId);
+      }),
     goldStatus: protectedProcedure.query(async ({ ctx }) => {
       const status = await getGoldCertificationStatus(ctx.user.id);
       if (status.goldEligible && !status.goldCertified && isGoldUnlockEnabled()) {
@@ -932,11 +942,17 @@ export const appRouter = router({
           students.map(async (u) => {
             const gold = await getGoldCertificationStatus(u.id);
             const profile = await getProfileByUserId(u.id);
+            const silver = await getSilverCertificationStatus(u.id);
+            const silverCopy = buildSilverNotAwardedCopy(silver);
             return {
               userId: u.id,
               name: u.name,
               email: u.email,
               silverCertified: profile?.silverCertified ?? false,
+              silverEligible: silver.silverEligible,
+              silverNoBlockers: silver.noBlockers,
+              silverBlockerBannerFr: silverCopy?.bannerFr ?? null,
+              silverBlockerBannerEn: silverCopy?.bannerEn ?? null,
               goldState: gold.state,
               goldEligible: gold.goldEligible,
               goldCertified: gold.goldCertified,
@@ -1321,8 +1337,9 @@ export const appRouter = router({
     myRuns: protectedProcedure.query(({ ctx }) => getRunsByUser(ctx.user.id)),
 
     /** Enriched runs for the student scenario list — includes score and completedSteps */
+    /** Enriched runs for the student hub — latest completed per scenario + in-progress leftovers. */
     myRunsEnriched: protectedProcedure.query(async ({ ctx }) => {
-      const runs = await getRunsByUser(ctx.user.id);
+      const runs = selectRunsForHub(await getRunsByUser(ctx.user.id));
       const enriched = await Promise.all(
         runs.map(async (r) => {
           // DOC runs: score from m5_doc_mission_states — never legacy scoring_events (would show 0/100).
@@ -2809,6 +2826,17 @@ export const appRouter = router({
   }),
 
   monitor: router({
+    activitySummary: teacherProcedure
+      .input(cohortFilterInput)
+      .query(async ({ ctx, input }) => {
+        const { studentUserIds } = await resolveCohortScope(
+          ctx.user.id,
+          input.cohortId,
+          ctx.user.role === "admin",
+        );
+        return getCohortActivitySummary(studentUserIds);
+      }),
+
     // Evaluation-only runs (for analytics, scoring, ranking)
     allRuns: teacherProcedure
       .input(cohortFilterInput)
@@ -2818,7 +2846,7 @@ export const appRouter = router({
           input.cohortId,
           ctx.user.role === "admin",
         );
-        const runs = await getAllRunsForMonitor(studentUserIds);
+        const runs = selectRunsForHub(await getAllRunsForMonitor(studentUserIds));
         const enriched = await Promise.all(
           runs.map(async (r) => {
             // DOC runs: never enter getEffectiveM5Steps / ops-ledger progress scoring.
@@ -4556,6 +4584,7 @@ export const appRouter = router({
 
   // ── FORMATIVE EXERCISES (M4/M5) — isolated from official scoring ─────────────
   formativeExercises: formativeExercisesRouter,
+  missionDecisions: missionDecisionsRouter,
   /** M5 documentary supervision (supervision-doc-v1) — isolated from ops-ledger-v1 */
   m5Doc: m5DocRouter,
 
@@ -4564,12 +4593,19 @@ export const appRouter = router({
     /** Get quiz for a module (correct answers hidden from student) */
     getByModule: protectedProcedure
       .input(z.object({ moduleId: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ ctx, input }) => {
         const quiz = await getQuizByModule(input.moduleId);
         if (!quiz) return null;
         const full = await getQuizWithQuestions(quiz.id);
         if (!full) return null;
-        const { seededShuffle } = await import("../shared/assessmentCore");
+        const prior = await getQuizAttemptsByUser(ctx.user.id, input.moduleId);
+        const display = orderQuizQuestionsForAttempt({
+          quizId: quiz.id,
+          userId: ctx.user.id,
+          attemptNumber: prior.length + 1,
+          questions: full.questions,
+        });
+        const byId = new Map(display.map((row) => [row.questionId, row]));
         return {
           id: full.id,
           moduleId: full.moduleId,
@@ -4577,26 +4613,14 @@ export const appRouter = router({
           titleEn: full.titleEn,
           passingScore: full.passingScore,
           questions: full.questions.map(q => {
-            let optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
-            let optionsEn = (typeof q.optionsEn === "string" ? JSON.parse(q.optionsEn as string) : q.optionsEn) as string[];
-            let optionIds: string[] = optionsFr.map((_, i) => `legacy_${q.id}_${i}`);
-            const payload = q.optionsPayload as Array<{ id: string; fr: string; en: string }> | null;
-            if (payload && Array.isArray(payload) && payload.length) {
-              optionsFr = payload.map(o => o.fr);
-              optionsEn = payload.map(o => o.en);
-              optionIds = payload.map(o => o.id);
-            }
-            const order = seededShuffle(
-              optionIds.map((_, i) => i),
-              `quiz-${quiz.id}-q${q.id}-display`
-            );
+            const row = byId.get(q.id);
             return {
               id: q.id,
               questionFr: q.questionFr,
               questionEn: q.questionEn,
-              optionsFr: order.map(i => optionsFr[i]),
-              optionsEn: order.map(i => optionsEn[i]),
-              optionIds: order.map(i => optionIds[i]),
+              optionsFr: row?.optionsFr ?? [],
+              optionsEn: row?.optionsEn ?? [],
+              optionIds: row?.orderedIds ?? [],
               difficulty: q.difficulty,
               orderIndex: q.orderIndex,
             };
@@ -4632,21 +4656,20 @@ export const appRouter = router({
         const full = await getQuizWithQuestions(quiz.id);
         if (!full) throw new TRPCError({ code: "NOT_FOUND" });
         const questions = full.questions;
-        const { seededShuffle } = await import("../shared/assessmentCore");
+        const prior = await getQuizAttemptsByUser(ctx.user.id, input.moduleId);
+        const display = orderQuizQuestionsForAttempt({
+          quizId: quiz.id,
+          userId: ctx.user.id,
+          attemptNumber: prior.length + 1,
+          questions,
+        });
+        const byId = new Map(display.map((row) => [row.questionId, row]));
 
         let correct = 0;
         const feedback = questions.map((q, i) => {
-          const payload = q.optionsPayload as Array<{ id: string }> | null;
-          let optionIds = payload?.map(o => o.id) ?? null;
-          if (!optionIds) {
-            const optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
-            optionIds = optionsFr.map((_, idx) => `legacy_${q.id}_${idx}`);
-          }
-          const order = seededShuffle(
-            optionIds.map((_, idx) => idx),
-            `quiz-${quiz.id}-q${q.id}-display`
-          );
-          const displayedIds = order.map(idx => optionIds![idx]);
+          const row = byId.get(q.id);
+          const displayedIds = row?.orderedIds ?? [];
+          const correctId = row?.correctId ?? q.correctOptionId ?? "";
 
           let selectedId: string | null = null;
           if (input.selectedOptionIds && input.selectedOptionIds[i] != null) {
@@ -4655,7 +4678,6 @@ export const appRouter = router({
             selectedId = displayedIds[input.answers[i]] ?? null;
           }
 
-          const correctId = q.correctOptionId ?? optionIds[q.correctIndex];
           const isCorrect = !!selectedId && selectedId === correctId;
           if (isCorrect) correct++;
           return {
@@ -4697,29 +4719,26 @@ export const appRouter = router({
         chosenIndex: z.number().optional(),
         selectedOptionId: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const quiz = await getQuizByModule(input.moduleId);
         if (!quiz) throw new TRPCError({ code: "NOT_FOUND", message: "Quiz non trouvé" });
         const full = await getQuizWithQuestions(quiz.id);
         if (!full) throw new TRPCError({ code: "NOT_FOUND" });
         const q = full.questions[input.questionIndex];
         if (!q) throw new TRPCError({ code: "BAD_REQUEST", message: "Question introuvable" });
-        const { seededShuffle } = await import("../shared/assessmentCore");
-        const payload = q.optionsPayload as Array<{ id: string }> | null;
-        let optionIds = payload?.map(o => o.id) ?? null;
-        if (!optionIds) {
-          const optionsFr = (typeof q.optionsFr === "string" ? JSON.parse(q.optionsFr as string) : q.optionsFr) as string[];
-          optionIds = optionsFr.map((_, idx) => `legacy_${q.id}_${idx}`);
-        }
-        const order = seededShuffle(
-          optionIds.map((_, idx) => idx),
-          `quiz-${quiz.id}-q${q.id}-display`
-        );
-        const displayedIds = order.map(idx => optionIds![idx]);
+        const prior = await getQuizAttemptsByUser(ctx.user.id, input.moduleId);
+        const display = orderQuizQuestionsForAttempt({
+          quizId: quiz.id,
+          userId: ctx.user.id,
+          attemptNumber: prior.length + 1,
+          questions: full.questions,
+        });
+        const row = display.find((d) => d.questionId === q.id);
+        const displayedIds = row?.orderedIds ?? [];
         const selectedId =
           input.selectedOptionId ??
           (input.chosenIndex != null ? displayedIds[input.chosenIndex] : null);
-        const correctId = q.correctOptionId ?? optionIds[q.correctIndex];
+        const correctId = row?.correctId ?? q.correctOptionId ?? "";
         const isCorrect = !!selectedId && selectedId === correctId;
         // No correctIndex / explanation leakage before final submit
         return { isCorrect };

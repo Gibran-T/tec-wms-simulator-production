@@ -1,5 +1,5 @@
 /**
- * tRPC router for isolated M4/M5 formative exercises.
+ * tRPC router for isolated M1–M5 formative exercises.
  * Soft gates only — no hard blocking via missionsBlocked / canAccessLearningModule /
  * checkpointEngine / assessments / certification.
  */
@@ -33,7 +33,7 @@ const teacherProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 export const formativeExercisesRouter = router({
   catalog: protectedProcedure
-    .input(z.object({ moduleId: z.union([z.literal(4), z.literal(5)]) }).optional())
+    .input(z.object({ moduleId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]) }).optional())
     .query(async ({ input }) => {
       const { getFormativeExercisesForModule, FORMATIVE_EXERCISE_CATALOG } = await import(
         "../shared/formativeExercises"
@@ -43,7 +43,7 @@ export const formativeExercisesRouter = router({
     }),
 
   listMine: protectedProcedure
-    .input(z.object({ moduleId: z.number().int().min(4).max(5).optional() }).optional())
+    .input(z.object({ moduleId: z.number().int().min(1).max(5).optional() }).optional())
     .query(async ({ ctx, input }) => {
       const { listFormativeAttemptsForUser } = await import("./formativeExerciseService");
       return listFormativeAttemptsForUser(ctx.user.id, input?.moduleId);
@@ -134,7 +134,7 @@ export const formativeExercisesRouter = router({
     .input(
       z.object({
         cohortId: z.number().int(),
-        moduleId: z.union([z.literal(4), z.literal(5)]).optional(),
+        moduleId: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]).optional(),
         exerciseId: exerciseIdSchema.optional(),
       }),
     )

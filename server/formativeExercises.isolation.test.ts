@@ -45,8 +45,8 @@ describe("formative isolation guards", () => {
     expect(canonicalSrc).toContain('5: ["SCN-015", "SCN-016", "SCN-017"]');
   });
 
-  it("wires formative cards only for moduleId 4 or 5 with soft badges", () => {
-    expect(hubSrc).toContain("moduleId === 4 || moduleId === 5");
+  it("wires formative cards for M1–M5 with soft badges", () => {
+    expect(hubSrc).toContain("moduleId >= 1 && moduleId <= 5");
     expect(hubSrc).toContain("recommendAfterQuiz={!quizPassed}");
     expect(hubSrc).toContain("recommendAfterMissions={completedScenarios < 3}");
     expect(hubSrc).toContain('data-formative-slot="preparation"');
